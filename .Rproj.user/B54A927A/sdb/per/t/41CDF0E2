@@ -1,0 +1,16 @@
+{
+    "contents" : "#' Get coefficients from a character\n#' \n#' @param char character, e.g. \"2*x + y\"\n#' @param symbol single character, e.g. \"x\" or \"y\"\n#' @return numeric vector with the coefficients\n#' @examples getCoefficients(\"2*x + x + y\", \"x\")\ngetCoefficients <- function(char, symbol) {\n  \n  pdata <- getParseData(parse(text=char))\n  pdata <- subset(pdata, terminal==TRUE)\n  symbolPos <- which(pdata$text == symbol)\n  coefficients <- rep(1, length(symbolPos))\n  \n  hasCoefficient <- rep(FALSE, length(symbolPos))\n  hasCoefficient[symbolPos > 1] <- (pdata$text[symbolPos[symbolPos > 1] - 1] == \"*\")\n  coefficients[hasCoefficient] <- pdata$text[symbolPos[hasCoefficient]-2]\n  \n  return(as.numeric(coefficients))\n  \n  \n  \n  \n  \n}\n\n\n#' Place top elements into bottom elemens\n#' \n#' @param variables named character vector\n#' @details If the names of top vector elements occur in the bottom of the vector, \n#' they are replaced by the character of the top entry. Useful for steady state conditions.\n#' @return named character vector of the same length as \\code{variables}\n#' @examples resolveRecurrence(c(A = \"k1*B/k2\", C = \"A*k3+k4\", D=\"A*C*k5\"))\nresolveRecurrence <- function (variables) \n{\n  for (i in 1:(length(variables) - 1)) {\n    newvariables <- c(variables[1:i], \n                      unlist(replaceSymbols(names(variables)[i],\n                                            paste(\"(\", variables[i], \")\", sep = \"\"), \n                                            variables[(i + 1):length(variables)])))\n    names(newvariables) <- names(variables)\n    variables <- newvariables\n  }\n  return(variables)\n}\n",
+    "created" : 1425993872280.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "4089456846",
+    "id" : "41CDF0E2",
+    "lastKnownWriteTime" : 1425993907,
+    "path" : "~/dMod/R/symbolics.R",
+    "project_path" : "R/symbolics.R",
+    "properties" : {
+    },
+    "source_on_save" : false,
+    "type" : "r_source"
+}
