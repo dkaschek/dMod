@@ -25,22 +25,26 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
   myforcings <- forcings
   myevents <- events
   
+  # Variable and parameter names
   variables <- attr(func, "variables")
   parameters <- attr(func, "parameters")
+  
+  # Variable and parameter names of sensitivities
   sensvar <- attr(extended, "variables")[!attr(extended, "variables")%in%variables]
+  senssplit <- strsplit(sensvar, ".", fixed=TRUE)
+  senssplit.1 <- unlist(lapply(senssplit, function(v) v[1]))
+  senssplit.2 <- unlist(lapply(senssplit, function(v) v[2]))
+  svariables <- intersect(senssplit.2, variables)
+  sparameters <- setdiff(senssplit.2, variables)
+  
   
   ## Initial values for sensitivities
-  yiniSens <- rep(0, length(sensvar))
-  senssplit <- strsplit(sensvar, ".", fixed=TRUE)
-  yiniSens[sapply(senssplit, function(v) v[1] == v[2])] <- 1
+  yiniSens <- as.numeric(senssplit.1 == senssplit.2)
   names(yiniSens) <- sensvar
-  
-  #if(!is.null(forcings)) forctimes <- unique(forcings$time) else forctimes <- NULL
-  
+
   # Names for deriv output
-  sensGrid <- expand.grid(variables, c(variables, parameters), stringsAsFactors=FALSE)
-  sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")
-  
+  sensGrid <- expand.grid(variables, c(svariables, sparameters), stringsAsFactors=FALSE)
+  sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")  
   
   P2X <- function(times, pars, forcings = myforcings, events = myevents, deriv=TRUE){
     
@@ -83,7 +87,7 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
       sensLong <- matrix(outSens[,sensNames], nrow=dim(outSens)[1]*length(variables))
       dP <- attr(pars, "deriv")
       if(!is.null(dP)) {
-        sensLong <- sensLong%*%(dP[c(variables, parameters),])
+        sensLong <- sensLong%*%(dP[c(svariables, sparameters),])
         sensGrid <- expand.grid(variables, colnames(dP), stringsAsFactors=FALSE)
         sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")
       }
@@ -110,7 +114,7 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
 #' @description Creates a function \code{y(out, pars)} that evaluates an observation function
 #' and its derivatives based on the output of a model function \code{x(times, pars)}, see \link{X} and \link{Xs}.
 #' @param g Named character vector defining the observation function
-#' @param states Character vector with the states 
+#' @param f Named character, the underlying ODE
 #' @return a function \code{y(out, pars, attach=FALSE)} representing the evaluation of the observation function. 
 #' If \code{out} has the attribute  "sensitivities", the result of
 #' \code{y(out, pars)}, will have an attributed "deriv" which reflec the sensitivities of 
@@ -120,11 +124,12 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
 #' of the parameter transformation and the sensitivities of the observation function
 #' are multiplied according to the chain rule for differentiation.
 #' If \code{attach = TRUE}, the original argument \code{out} will be attached to the evaluated observations.
-Y <- function(g, states) {
+Y <- function(g, f) {
   
   # Get potential paramters from g, forcings are treated as parameters because
   # sensitivities dx/dp with respect to forcings are zero.
-  parameters <- getSymbols(g, exclude = c(states, "time"))
+  states <- names(f)
+  parameters <- getSymbols(c(g, f), exclude = c(states, "time"))
     
   # Observables defined by g
   observables <- names(g)
@@ -143,7 +148,7 @@ Y <- function(g, states) {
   derivs <- as.vector(sumSymb(prodSymb(dgdx, dxdp), dgdp))
   names(derivs) <- apply(expand.grid.alt(observables, c(states, parameters)), 1, paste, collapse = ".")
   derivsEval <- funC.algebraic(derivs)
-  
+    
   # Vector with zeros for possibly missing derivatives
   zeros <- rep(0, length(dxdp))
   names(zeros) <- dxdp
