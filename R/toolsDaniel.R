@@ -4,22 +4,31 @@
 #' @param einspline Logical. Use einspline library if set to \code{TRUE}. Defaults to \code{FALSE}.
 #' @param ... Further arguments being passed to funC.
 #' @return list with \code{func} (ODE object) and \code{extended} (ODE+Sensitivities object)
-generateModel <- function(f, einspline=FALSE, modelname = "f", ...) {
+generateModel <- function(f, forcings=NULL, fixed=NULL, einspline=FALSE, modelname = "f", ...) {
   
   modelname_s <- paste0(modelname, "_s")
-  
-  s <- sensitivitiesSymb(f)
-  fs <- c(f, s)
-  
-  
+    
   if(einspline) {
-    func <- funC.einspline(f, modelname = modelname , ...)
-    extended <- funC.einspline(fs, modelname = modelname_s, ...)
+    func <- funC.einspline(f, forcings = forcings, modelname = modelname, ...)
+    s <- sensitivitiesSymb(f, 
+                           states = setdiff(attr(func, "variables"), fixed), 
+                           parameters = setdiff(attr(func, "parameters"), fixed), 
+                           inputs=forcings)
+    fs <- c(f, s)
+    extended <- funC.einspline(fs, forcings = forcings, modelname = modelname_s, ...)
     
   }
   if(!einspline) {
-    func <- cOde::funC(f, modelname = modelname , ...)
-    extended <- cOde::funC(fs, modelname = modelname_s, ...)
+    func <- cOde::funC(f, forcings = forcings, modelname = modelname , ...)
+    s <- sensitivitiesSymb(f, 
+                           states = setdiff(attr(func, "variables"), fixed), 
+                           parameters = setdiff(attr(func, "parameters"), fixed), 
+                           inputs=forcings)
+    print(setdiff(attr(func, "variables"), fixed))
+    print(setdiff(attr(func, "parameters"), fixed))
+    print(forcings)
+    fs <- c(f, s)
+    extended <- cOde::funC(fs, forcings = forcings, modelname = modelname_s, ...)
   }
   
   list(func = func, extended = extended)
