@@ -159,8 +159,7 @@ loadTemplate <- function(i = 1) {
 
 
 funC.algebraic <- function(x) {
-  require(inline)
-  
+    
   # Get symbols to be substituted by x[] and y[]
   outnames <- names(x)
   innames <- getSymbols(x)
@@ -181,7 +180,7 @@ funC.algebraic <- function(x) {
   )
   
   # Generate the C function by the inline package
-  myCfun <- cfunction(sig=c(x = "double", y = "double", n = "integer", k = "integer", l = "integer"),
+  myCfun <- inline::cfunction(sig=c(x = "double", y = "double", n = "integer", k = "integer", l = "integer"),
                      body=body,
                      language="C",
                      convention=".C"
