@@ -7,7 +7,9 @@ funC.nospline <- function(...) cOde::funC(...)
 #' 
 #' @param f named character vector containing the right-hand sides of the ODE
 #' @param forcings character vector with the names of the forcings
-#' @param jacobian logical indicating whether the jacobian is computed and written into the C file
+#' @param jacobian Character, either "none" (no jacobian is computed), "full" (full jacobian 
+#' is computed and written as a function into the C file) or "inz.lsodes" (only the non-zero elements
+#' of the jacobian are determined, see \link{deSolve::lsodes})
 #' @param boundary data.frame with columns name, yini, yend specifying the boundary condition set-up. NULL if not a boundary value problem
 #' @param compile logical. If FALSE, only the C file is written
 #' @param nGridpoints numeric. The number of spline interpolation points
@@ -21,7 +23,7 @@ funC.nospline <- function(...) cOde::funC(...)
 #' The compilation is done via \code{system(R CMD <modelname>.so -leinspline)}. Therefore, make sure einspline is installed 
 #' system-wide.
 #' @return the name of the generated shared object file together with a number of attributes
-funC.einspline <- function(f, forcings=NULL, jacobian=FALSE, boundary=NULL, compile = TRUE, nGridpoints = 500, precision=1e-5, modelname = NULL) {
+funC.einspline <- function(f, forcings=NULL, jacobian=c("none", "full", "inz.lsodes"), boundary=NULL, compile = TRUE, nGridpoints = 500, precision=1e-5, modelname = NULL) {
   
   ## f is a named character vector
   ## names of f are the variables
@@ -45,7 +47,15 @@ funC.einspline <- function(f, forcings=NULL, jacobian=FALSE, boundary=NULL, comp
   forcings.t <- paste(forcings, "t", sep=".")
   parameters <- symbols[!symbols%in%c(variables, forcings, forcings.t, "time")]
   jac <- NULL
-  if(jacobian) jac  <- jacobianSymb(f)
+  inz <- NULL
+  
+  jacobian <- match.arg(jacobian)
+  if(jacobian != "none") jac  <- jacobianSymb(f)
+  if(jacobian == "inz.lsodes") {
+    jac <- matrix(jac, length(f), length(f))
+    inz <- apply(jac, 2, function(v) which(v != "0"))
+    inz <- do.call(rbind, lapply(1:length(inz), function(j) if(length(inz[[j]]) > 0) cbind(i = inz[[j]], j = j)))
+  }
   not.zero.jac <- which(jac != "0")
   
   dv <- length(variables)
@@ -59,7 +69,7 @@ funC.einspline <- function(f, forcings=NULL, jacobian=FALSE, boundary=NULL, comp
   f <- replaceSymbols(forcings, paste0("x[", 1:length(forcings)-1, "]"), f)
   f <- replaceSymbols(forcings.t, paste0("xdot[", 1:length(forcings.t)-1, "]"), f)
   
-  if(jacobian) {
+  if(jacobian == "full") {
     jac <- replaceOperation("^", "pow", jac)
     jac <- replaceSymbols(variables, paste0("y[", 1:length(variables)-1, "]"), jac)
     jac <- replaceSymbols(forcings, paste0("x[", 1:length(forcings)-1, "]"), jac)  
@@ -119,7 +129,7 @@ funC.einspline <- function(f, forcings=NULL, jacobian=FALSE, boundary=NULL, comp
   cat("\n")
     
   ## Jacobian of deriv
-  if(jacobian) {
+  if(jacobian == "full") {
     cat("/** Jacobian of the ODE system **/\n")
     cat("void jacobian (int * n, double *t, double *y, double * df, double *RPAR, int *IPAR) {\n")
     cat("\n")
@@ -203,6 +213,7 @@ funC.einspline <- function(f, forcings=NULL, jacobian=FALSE, boundary=NULL, comp
   attr(f, "parameters") <- parameters
   attr(f, "forcings") <- forcings
   attr(f, "jacobian") <- jacobian
+  attr(f, "inz") <- inz
   attr(f, "boundary") <- boundary
   attr(f, "nGridpoints") <- nGridpoints
   
@@ -252,28 +263,37 @@ odeC.einspline <- function(y, times, func, parms, ...) {
   times.inner <- seq(min(c(times, 0)), max(times), len=nGridpoints)
   times.inner <- sort(unique(c(times, times.inner)))
   which.times <- match(times, times.inner)
-  
-  loadDLL(func, "evaluateSplines")
-    
+      
   y <- y[attr(func, "variables")]
   parms <- parms[attr(func, "parameters")]
   parms <- c(parms, rep(0, length(y)))
-  if(attr(func, "jacobian")) jacfunc <- "jacobian" else jacfunc <- NULL
   
-  arguments <- list(...)
-  if(any(names(arguments)=="forcings")) arguments <- arguments[-which(names(arguments)=="forcings")]
+  arglist <- list(y = y, times = times.inner, func = "derivs", parms = parms, dllname = func, initfunc = "initmod")
   
-  out <- do.call(ode, c(arguments, list(
-    y=y,
-    times=times.inner,
-    func="derivs",
-    parms=parms,
-    dllname=func,
-    initfunc="initmod",
-    jacfunc=jacfunc
-    )))[which.times,]
- 
   
+  
+  if (attr(func, "jacobian") == "full")
+    arglist <- c(arglist, list(jacfunc = "jacobian"))
+  
+  if (attr(func, "jacobian") == "inz.lsodes") {
+    inz <- attr(func, "inz")
+    lrw <- 20 + 3*dim(inz)[1] + 20*length(y)
+    arglist <- c(arglist, list(sparsetype = "sparseusr", inz = inz, lrw = lrw))
+  }
+  
+  # Replace arguments and add new ones
+  moreargs <- list(...)
+  if("forcings"%in%names(moreargs)) moreargs <- moreargs[-which(names(moreargs)=="forcings")]
+  i <- match(names(moreargs), names(arglist))
+  is.overlap <- which(!is.na(i))
+  is.new <- which(is.na(i))
+  arglist[i[is.overlap]] <- moreargs[is.overlap]
+  arglist <- c(arglist, moreargs[is.new])
+   
+  loadDLL(func, "evaluateSplines")
+  out <- do.call(deSolve::ode, arglist)[which.times,]
+  
+    
   return(out)
   
 }
