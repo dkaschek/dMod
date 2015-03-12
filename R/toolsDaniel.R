@@ -24,9 +24,6 @@ generateModel <- function(f, forcings=NULL, fixed=NULL, einspline=FALSE, modelna
                            states = setdiff(attr(func, "variables"), fixed), 
                            parameters = setdiff(attr(func, "parameters"), fixed), 
                            inputs=forcings)
-    print(setdiff(attr(func, "variables"), fixed))
-    print(setdiff(attr(func, "parameters"), fixed))
-    print(forcings)
     fs <- c(f, s)
     extended <- cOde::funC(fs, forcings = forcings, modelname = modelname_s, ...)
   }
