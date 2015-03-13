@@ -144,7 +144,7 @@ expand.grid.alt <- function(seq1,seq2) {
 #' i = 1: Do parameter estimation in a dynamic model with fixed forcings
 loadTemplate <- function(i = 1) {
   
-  path <- path.package("R2CdeSolve")
+  path <- path.package("dMod")
   if(i == 1) {
     system(paste0("cp ", path, "/templates/R2CTemplate.R mymodel.R"))
     file.edit("mymodel.R")
