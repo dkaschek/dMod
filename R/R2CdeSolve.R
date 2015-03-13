@@ -23,7 +23,7 @@ funC.nospline <- function(...) cOde::funC(...)
 #' The compilation is done via \code{system(R CMD <modelname>.so -leinspline)}. Therefore, make sure einspline is installed 
 #' system-wide.
 #' @return the name of the generated shared object file together with a number of attributes
-funC.einspline <- function(f, forcings=NULL, jacobian=c("none", "full", "inz.lsodes"), boundary=NULL, compile = TRUE, nGridpoints = 500, precision=1e-5, modelname = NULL) {
+funC.einspline <- function(f, forcings=NULL, jacobian=c("none", "full", "inz.lsodes", "jacvec.lsodes"), boundary=NULL, compile = TRUE, nGridpoints = 500, precision=1e-5, modelname = NULL) {
   
   ## f is a named character vector
   ## names of f are the variables
@@ -51,7 +51,7 @@ funC.einspline <- function(f, forcings=NULL, jacobian=c("none", "full", "inz.lso
   
   jacobian <- match.arg(jacobian)
   if(jacobian != "none") jac  <- jacobianSymb(f)
-  if(jacobian == "inz.lsodes") {
+  if(jacobian %in% c("inz.lsodes", "jacvec.lsodes")) {
     jac <- matrix(jac, length(f), length(f))
     inz <- apply(jac, 2, function(v) which(v != "0"))
     inz <- do.call(rbind, lapply(1:length(inz), function(j) if(length(inz[[j]]) > 0) cbind(i = inz[[j]], j = j)))
@@ -69,7 +69,7 @@ funC.einspline <- function(f, forcings=NULL, jacobian=c("none", "full", "inz.lso
   f <- replaceSymbols(forcings, paste0("x[", 1:length(forcings)-1, "]"), f)
   f <- replaceSymbols(forcings.t, paste0("xdot[", 1:length(forcings.t)-1, "]"), f)
   
-  if(jacobian == "full") {
+  if(jacobian %in% c("full", "jacvec.lsodes")) {
     jac <- replaceOperation("^", "pow", jac)
     jac <- replaceSymbols(variables, paste0("y[", 1:length(variables)-1, "]"), jac)
     jac <- replaceSymbols(forcings, paste0("x[", 1:length(forcings)-1, "]"), jac)  
@@ -149,6 +149,42 @@ funC.einspline <- function(f, forcings=NULL, jacobian=c("none", "full", "inz.lso
     cat("}\n")
     cat("\n")
   }
+  
+  ## Jacvec of deriv
+  if(jacobian == "jacvec.lsodes") {
+    vecs <- lapply(1:dv, function(i) matrix(jac, ncol=dv, nrow=dv)[,i])
+    not.zero.vec <- lapply(vecs, function(v) which(v != "0"))
+    not.zero.columns <- which(sapply(not.zero.vec, function(v) length(v) > 0))
+    cat("/** Jacobian vector of the ODE system **/\n")
+    cat("void jacvec (int *neq, double *t, double *y, int *j, int *ian, int *jan, double *pdj, double *yout, int *iout) {\n")
+    cat("\n")
+    cat("\t double x[nSplines];\n")
+    cat("\t double xdot[nSplines];\n")
+    #cat(paste("\t double ydot[", dv, "];\n", sep=""))
+    cat("\n")
+    cat("\t evaluateSplines(t, x, xdot);\n")
+    cat("\n")
+    cat("\n")
+    cat("\t double time = *t;\n")
+    cat("\t int i;\n")
+    cat("\t for(i=0; i<*neq; i++) pdj[i] = 0.;\n")
+    
+    j <- not.zero.columns[1]
+    cat(paste("\t if(*j ==", j, ") {\n"))
+    cat(paste("\t pdj[", not.zero.vec[[j]]-1,"] = ", vecs[[j]][not.zero.vec[[j]]],";\n", sep=""))
+    cat("\t }\n")
+    for(j in not.zero.columns[-1]) {
+      cat(paste("\t else if(*j ==", j, ") {\n"))
+      cat(paste("\t pdj[", not.zero.vec[[j]]-1,"] = ", vecs[[j]][not.zero.vec[[j]]],";\n", sep=""))
+      cat("\t }\n")
+    }
+    
+    cat("\n")
+    cat("}\n")
+    cat("\n")
+    
+  }
+  
   
   if(!is.null(boundary)) {
     
@@ -279,6 +315,11 @@ odeC.einspline <- function(y, times, func, parms, ...) {
     inz <- attr(func, "inz")
     lrw <- 20 + 3*dim(inz)[1] + 20*length(y)
     arglist <- c(arglist, list(sparsetype = "sparseusr", inz = inz, lrw = lrw))
+  }
+  
+  if (attr(func, "jacobian") == "jacvec.lsodes") {
+    inz <- attr(func, "inz")
+    arglist <- c(arglist, list(sparsetype = "sparseusr", jacvec = "jacvec", inz = inz))
   }
   
   # Replace arguments and add new ones
