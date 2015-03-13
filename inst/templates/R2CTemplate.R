@@ -34,7 +34,8 @@ fixed <- c(
   # "fixed1", "fixed2", ...
   )
 
-# Add observable ODEs to the original ODEs (choose one of the three options, or combine them)
+# Add observable ODEs to the original ODEs or use an observation function
+# Choose one of the three options, or combine them
 f <- variableTransformation(observables, f)
 f <- addObservable(observables, f)
 g <- Y(observables, f)
@@ -65,11 +66,23 @@ trafo <- replaceSymbols(names(constraints), constraints, trafo)
 # Then do a log-transform of all parameters (if defined as positive numbers)
 trafo <- replaceSymbols(innerpars, paste0("exp(log", innerpars, ")"), trafo)
 
-## Prediction Function ------------------------------------------------------
+
+## Specify different conditions -----------------------------------------------------
 
 conditions <- c(
   #"condition1", "condition2", ...
   )
+
+# Set condition-specific parameter transformations and generate p2p function
+trafoL <- lapply(conditions, function(con) trafo); names(trafoL) <- conditions
+
+specific <- c("")
+trafoL <- lapply(conditions, function(con) {
+  replaceSymbols(specific, paste(specific, con, sep="_"), trafoL[[con]])
+}); names(trafoL) <- conditions
+
+pL <- lapply(conditions, function(con) P(trafoL[[con]])); names(pL) <- conditions
+
 
 # Set different forcings per condition
 timesF <- seq(0, 100, by=0.1)
@@ -79,17 +92,8 @@ uL <- list(
   data.frame(name = "u3", time = timesF, value = 8*dnorm(timesF, 0, 5))
 ); names(uL) <- conditions
 
-# Set condition-specific parameter transformations and generate p2p function
-trafoL <- lapply(conditions, function(con) trafo); names(trafoL) <- conditions
 
-specific <- c("")
-trafoL <- lapply(conditions, function(con) {
-  replaceSymbols(specific, paste(specifi, con, sep="_"), trafoL[[con]])
-}); names(trafoL) <- conditions
-
-pL <- lapply(conditions, function(con) P(trafoL[[con]])); names(pL) <- conditions
-
-# Generate prediction functions for the different conditions (depends on different forces 
+# Specify prediction functions for the different conditions (depends on different forces 
 # but not on different parameter transformations)
 
 xL <- lapply(conditions, function(con) Xs(model0$func, model0$extended, uL[[con]])); names(xL) <- conditions
@@ -111,7 +115,7 @@ x <- function(times, pouter, fixed=NULL, ...) {
     prediction <- xL[[cond]](times, pinner, ...)
     observation <- g(prediction, pinner, attach = TRUE)
     return(observation)
-  }; names(out) <- conditions
+  }); names(out) <- conditions
   return(out)
   
 }
@@ -125,9 +129,8 @@ names(data) <- conditions
 
 ## Objective Functions -------------------------------------------------------
 
-# Model times and data times
-times <- seq(0, 100, by=0.1)
-timesD <- unique(sort(sapply(data, function(d) d$time)))
+# Data times
+timesD <- unique(sort(unlist(sapply(data, function(d) d$time))))
 
 # Initalize parameters 
 outerpars <- getSymbols(do.call(c, trafoL[conditions]))
@@ -148,3 +151,55 @@ obj <- function(pouter, fixed=NULL, deriv=TRUE) {
 }
 
 
+## Howto proceed -------------------------------------------------
+
+# Predicting and plotting
+times <- seq(min(timesD), max(timesD), len=100)
+prediction <- x(times, pouter)
+plotPrediction(prediction)
+plotPrediction(prediction, name %in% names(observables))
+
+# Fitting
+plotData(data)
+myfit <- trust(obj, pouter, rinit=1, rmax=10, iterlim=500)
+prediction <- x(times, myfit$argument)
+plotCombined(prediction, data)
+plotCombined(prediction, data, name%in%names(observables))
+plotCombined(prediction, data, name%in%names(observables)) + facet_grid(name~condition, scales="free")
+plotObjective(myfit)
+
+# Fitting from random positions
+center <- pouter
+sink("output.txt")
+fitlist <- mclapply(1:100, function(i) {
+  
+  deviation <- rnorm(length(center), 0, 2)
+  pars <- center + deviation
+  
+  out <- NULL
+  myfit <- try(trust(obj, pars, rinit=1, rmax=10, iterlim=1000), silent=TRUE)
+  if(!inherits(myfit1, "try-error")) {
+    out <- data.frame(index = i, 
+                      chisquare = myfit1$value, 
+                      converged = myfit1$converged, 
+                      iterations = myfit1$iterations, 
+                      as.data.frame(as.list(myfit1$argument)))
+  }
+  
+  return(out)
+  
+}, mc.cores=24, mc.preschedule=FALSE)
+sink()
+fitlist <- do.call(rbind, fitlist[sapply(fitlist, class) == "data.frame"])
+fitlist <- fitlist[order(fitlist$chisquare),]
+save(fitlist, file="fitlist.rda")
+bestfit <- unlist(fitlist[1,-(1:4)])
+qplot(y = fitlist$chisquare)
+
+# Profile likelihood
+bestfit <- myfit$argument
+profiles.approx <- do.call(c, mclapply(names(bestfit), function(n) profile.trust(obj, bestfit, n, limits=c(-3, 3), algoControl = list(gamma = 0)), mc.cores=4))
+profiles.exact  <- do.call(c, mclapply(names(bestfit), function(n) profile.trust(obj, bestfit, n, limits=c(-3, 3), algoControl = list(gamma = 0, reoptimize = TRUE), optControl = list(iterlim = 10)), mc.cores=4))
+plotProfile(profiles.approx, profiles.exact)
+plotPaths(profiles.approx[1])
+plotPaths(profiles.approx[c(1,3)])
