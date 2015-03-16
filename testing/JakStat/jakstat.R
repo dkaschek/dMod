@@ -45,7 +45,7 @@
   
 # Define transformations
   trafo <- innerpars # Initialize parameter transformation by the identity
-  trafo <- replaceSymbols(names(observables), observables, traf0) # Observable initial values
+  trafo <- replaceSymbols(names(observables), observables, trafo) # Observable initial values
   trafo <- replaceSymbols(names(steadyStates), steadyStates, trafo) # Steady states
   trafo <- replaceSymbols(innerpars, paste0("exp(", innerpars, ")"), trafo) # log-transform
   

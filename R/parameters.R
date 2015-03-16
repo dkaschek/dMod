@@ -99,24 +99,24 @@
 P <- function(trafo, parameters=NULL) {
   
   # get outer parameters
-  fparse <- getParseData(parse(text=P))
+  fparse <- getParseData(parse(text=trafo))
   symbols <- unique(fparse$text[fparse$token == "SYMBOL"])
   if(is.null(parameters)) {
     parameters <- symbols 
   } else {
     identity <- parameters[which(!parameters%in%symbols)]
     names(identity) <- identity
-    P <- c(P, identity)
+    trafo <- c(trafo, identity)
   }
   
   # expresion list for parameter and jacobian evaluation
-  expressionList <- lapply(P, function(myrel) parse(text=as.character(myrel)))
-  listExpression <- parse(text = paste("list(", paste(P, collapse=", "), ")"))
+  expressionList <- lapply(trafo, function(myrel) parse(text=as.character(myrel)))
+  listExpression <- parse(text = paste("list(", paste(trafo, collapse=", "), ")"))
   listJac <- unlist(lapply(parameters, function(var) {
     unlist(lapply(expressionList, function(myexp) paste(deparse(D(myexp, as.character(var))), collapse="")))
   }))
   listJac <- parse(text = paste("list(", paste(listJac, collapse=", "), ")"))
-  jacNames <- expand.grid(names(P), parameters)
+  jacNames <- expand.grid(names(trafo), parameters)
   
   # the parameter transformation function to be returned
   p2p <- function(p, fixed=NULL, derivs = TRUE) {
@@ -135,17 +135,17 @@ P <- function(trafo, parameters=NULL) {
     out <- with(as.list(p), { 
       
       values <- unlist(eval(listExpression))
-      names(values) <- names(P)
+      names(values) <- names(trafo)
       
       jacValues <- unlist(eval(listJac))
-      jacobian <- matrix(jacValues, ncol=length(parameters), nrow=length(P))
+      jacobian <- matrix(jacValues, ncol=length(parameters), nrow=length(trafo))
       if(!is.null(fixed)) {
-        jacobian <- matrix(jacobian[,-which(parameters %in% names(fixed))], nrow=length(P))
+        jacobian <- matrix(jacobian[,-which(parameters %in% names(fixed))], nrow=length(trafo))
         colnames(jacobian) <- parameters[!parameters%in%names(fixed)]
-        rownames(jacobian) <- names(P)
+        rownames(jacobian) <- names(trafo)
       } else {
         colnames(jacobian) <- parameters
-        rownames(jacobian) <- names(P)
+        rownames(jacobian) <- names(trafo)
       }
       
       # Append zeros for emptypars
