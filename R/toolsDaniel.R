@@ -1,6 +1,9 @@
 #' Generate the model objects for use in Xs (models with sensitivities)
 #' 
 #' @param f Named character vector with the ODE
+#' @param forcings Character vector with the names of the forcings
+#' @param fixed Character vector with the names of parameters (initial values and dynamic) for which
+#' no sensitivities are required (will speed up the integration).
 #' @param einspline Logical. Use einspline library if set to \code{TRUE}. Defaults to \code{FALSE}.
 #' @param ... Further arguments being passed to funC.
 #' @return list with \code{func} (ODE object) and \code{extended} (ODE+Sensitivities object)
@@ -89,13 +92,15 @@ generateModelIE <- function(f, observed, inputs, forcings, scale=1, modelname = 
 #' 
 #' @param type Which function to be returned
 #' @return String with the function
-forcingsSymb <- function(type =c("Gauss", "Fermi", "1-Fermi"), parameters = NULL) {
+forcingsSymb <- function(type =c("Gauss", "Fermi", "1-Fermi", "MM", "Signal"), parameters = NULL) {
   
   type <- match.arg(type)
   fun <- switch(type,
-                "Gauss"   = "scale*exp(-(time-mu)^2/(2*tau^2))/(tau*2.506628)",
-                "Fermi"   = "scale/(exp((time-mu)/tau)+1)",
-                "1-Fermi" = "scale*exp((time-mu)/tau)/(exp((time-mu)/tau)+1)"         
+                "Gauss"   = "(scale*exp(-(time-mu)^2/(2*tau^2))/(tau*2.506628))",
+                "Fermi"   = "(scale/(exp((time-mu)/tau)+1))",
+                "1-Fermi" = "(scale*exp((time-mu)/tau)/(exp((time-mu)/tau)+1))",
+                "MM"      = "(slope*time/(1 + slope*time/vmax))",
+                "Signal"  = "max1*max2*(1-exp(-time/tau1))*exp(-time*tau2)"
   )
   
   if(!is.null(parameters)) {
@@ -105,7 +110,6 @@ forcingsSymb <- function(type =c("Gauss", "Fermi", "1-Fermi"), parameters = NULL
   return(fun)
   
 }
-
 
 prepareFluxReduction <- function(f) {
   
