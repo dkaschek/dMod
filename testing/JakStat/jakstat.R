@@ -22,7 +22,7 @@
   fixedStates <- c("pSTAT", "pSTATdimer", "npSTATdimer", "nSTAT1", "nSTAT2", "nSTAT3", "nSTAT4", "nSTAT5")
 # Add observables to ODE  
   eq <- addObservable(observables, eq)
-  model <- generateModel(eq, einspline=FALSE, forcings = forcings, fixed = fixedStates, nGridpoints = 101, jacobian = "jacvec.lsodes")
+  model <- generateModel(eq, forcings = forcings, fixed = fixedStates, jacobian = "inz.lsodes")
   
 ## Get data --------------------------------------------------
   
@@ -44,9 +44,10 @@
   steadyStates <- rep("0", length(fixedStates)); names(steadyStates) <- fixedStates
   
 # Define transformations
-  trafo <- replaceSymbols(names(observables), observables, innerpars) #observable initial values
-  trafo <- replaceSymbols(names(steadyStates), steadyStates, trafo) # steady states
-  trafo <- replaceSymbols(innerpars, paste0("exp(", innerpars, ")"), trafo) #log-transform
+  trafo <- innerpars # Initialize parameter transformation by the identity
+  trafo <- replaceSymbols(names(observables), observables, traf0) # Observable initial values
+  trafo <- replaceSymbols(names(steadyStates), steadyStates, trafo) # Steady states
+  trafo <- replaceSymbols(innerpars, paste0("exp(", innerpars, ")"), trafo) # log-transform
   
 # Get outer parameters from trafo
   outerpars <- getSymbols(trafo)
@@ -76,7 +77,7 @@
 # Define objective function
   prior <- rep(0, length(outerpars)); names(prior) <- outerpars
   myfn <- function(pp, fixed=NULL, deriv=TRUE) 
-    wrss(res(mydata, x(timesD, p(pp, fixed=fixed), deriv = deriv))) + constraintL2(c(pp, fixed), prior, 20)
+    wrss(res(mydata, x(timesD, p(pp, fixed=fixed), deriv = deriv))) + constraintL2(c(pp, fixed), prior, 5)
   
 # Fit the data by a trust region algorithm
   myfit <- trust(myfn, pini + rnorm(length(pini), 0, .1), rinit=1, rmax=10, iterlim=500)

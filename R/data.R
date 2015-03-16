@@ -1,6 +1,8 @@
 #' Compare data in integration output to compute residuals
 #' 
 #' @param data data.frame with name (factor), time (numeric), value (numeric) and sigma (numeric)
+#' ATTENTION: Right now the data.frame should not contain replicates, i.e. entries with identical name
+#' and time but different value. Will be fixed in the future.
 #' @param out output of ode(), optionally augmented with attributes 
 #' "deriv" (output of ode() for the sensitivity equations) and
 #' "parameters" (character vector of parameter names, a subsest of those 

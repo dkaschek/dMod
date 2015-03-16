@@ -85,16 +85,18 @@
 
 #' Parameter transformation
 #' 
-#' @param P named character vector. Names correspond to the parameter names to be fed into
-#' the model. The values of P are equations that express the parameters in terms of other
-#' parameters
-#' @param parameters character vector. Optional. If given, the generated parameter
+#' @param trafo Named character vector. Names correspond to the parameters being fed into
+#' the model (the inner parameters). The elements of tafo are equations that express 
+#' the inner parameters in terms of other parameters (the outer parameters)
+#' @param parameters Character vector. Optional. If given, the generated parameter
 #' transformation returns values for each element in \code{parameters}. If elements of
-#' \code{parameters} are not in \code{names(P)} the identity transformation is assumed.
-#' @return a function \code{p(P)} representing the parameter transformation. The result of p(P) 
-#' contains an attribute "deriv" which is the jacobian of the parameter transformation
-#' evaluated at \code{P}.
-P <- function(P, parameters=NULL) {
+#' \code{parameters} are not in \code{names(trafo)} the identity transformation is assumed.
+#' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)} representing the parameter 
+#' transformation. Here, \code{p} is a named numeric vector with the values of the outer parameters,
+#' \code{fixed} is a named numeric vector with values of the outer parameters being considered
+#' as fixed (zero derivatives) and \code{deriv} is a logical determining whether the Jacobian
+#' of the parameter transformation is returned as attribute "deriv".
+P <- function(trafo, parameters=NULL) {
   
   # get outer parameters
   fparse <- getParseData(parse(text=P))
