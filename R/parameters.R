@@ -129,7 +129,7 @@ P <- function(trafo, parameters=NULL) {
     }
     
     # check for parameters which are not defined in parameters
-    emptypars <- names(p)[!names(p)%in%parameters]
+    emptypars <- names(p)[!names(p)%in%parameters & !names(p)%in%names(fixed)]
     
     # compute transformation output
     out <- with(as.list(p), { 
@@ -139,7 +139,7 @@ P <- function(trafo, parameters=NULL) {
       
       jacValues <- unlist(eval(listJac))
       jacobian <- matrix(jacValues, ncol=length(parameters), nrow=length(trafo))
-      if(!is.null(fixed)) {
+      if(any(parameters %in% names(fixed))) {
         jacobian <- matrix(jacobian[,-which(parameters %in% names(fixed))], nrow=length(trafo))
         colnames(jacobian) <- parameters[!parameters%in%names(fixed)]
         rownames(jacobian) <- names(trafo)
