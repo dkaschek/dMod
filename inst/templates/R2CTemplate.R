@@ -174,17 +174,18 @@ center <- pouter
 sink("output.txt")
 fitlist <- mclapply(1:100, function(i) {
   
-  deviation <- rnorm(length(center), 0, 2)
+  deviation <- rnorm(length(center), 0, 1)
   pars <- center + deviation
   
   out <- NULL
   myfit <- try(trust(obj, pars, rinit=1, rmax=10, iterlim=1000), silent=TRUE)
-  if(!inherits(myfit1, "try-error")) {
+  if(!inherits(myfit, "try-error")) {
     out <- data.frame(index = i, 
-                      chisquare = myfit1$value, 
-                      converged = myfit1$converged, 
-                      iterations = myfit1$iterations, 
-                      as.data.frame(as.list(myfit1$argument)))
+                      chisquare = myfit$value, 
+                      converged = myfit$converged, 
+                      iterations = myfit$iterations, 
+                      as.data.frame(as.list(myfit$argument)))
+    cat("out", i, myfit$value, myfit$converged, myfit$iterations, "\n")
   }
   
   return(out)
@@ -196,6 +197,7 @@ fitlist <- fitlist[order(fitlist$chisquare),]
 save(fitlist, file="fitlist.rda")
 bestfit <- unlist(fitlist[1,-(1:4)])
 qplot(y = fitlist$chisquare)
+
 
 # Profile likelihood
 bestfit <- myfit$argument
