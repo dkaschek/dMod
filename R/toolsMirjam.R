@@ -90,6 +90,18 @@ getSigmaFromProfileList <- function(proflist, alpha=0.32) {
   
   names(sigma) <- unique(data$name)
   
-  return(sigma)
-  
+  return(sigma) 
 }
+
+#' Print without attributes
+#' 
+#' @details To suppress the printout of attributes like "deriv". 
+print.noattributes <- function(x, list_attributes=TRUE ) {
+  attributes_all <- names(attributes(x))
+  attributes_rm <- attributes_all[!(attributes_all %in% c("dim","names","dimnames","row.names","col.names"))]
+  attributes(x)[attributes_rm] <- NULL
+  print.default(x)
+  if(list_attributes)
+    cat("Attributes:",attributes_all)
+}
+
