@@ -45,14 +45,17 @@ wide2long.data.frame <- function(out) {
   
 }
 
-wide2long.matrix <- function(out) {
+wide2long.matrix <- function(out, keep = 1, na.rm = FALSE) {
   
-  timename <- colnames(out)[1]
-  allnames <- colnames(out)[-1]
-  times <- out[,1]
+  timenames <- colnames(out)[keep]
+  allnames <- colnames(out)[-keep]
+  times <- out[,keep]
+  ntimes<- dim(out)[1]
   values <- unlist(out[,allnames])
-  outlong <- data.frame(time = times, name = rep(allnames, each=length(times)), value = as.numeric(values))
-  colnames(outlong)[1] <- timename
+  outlong <- data.frame(times, name = rep(allnames, each=ntimes), value = as.numeric(values))
+  colnames(outlong)[1:length(keep)] <- timenames
+  
+  if(na.rm) outlong <- outlong[!is.na(outlong$value),]
   
   return(outlong)
   
