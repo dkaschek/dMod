@@ -406,3 +406,51 @@ Xv <- function(func_fa, func_l, forcings=NULL, events=NULL, data, optionsBvp=NUL
   
   
 }
+
+
+#' Model evaluation without sensitivities. 
+#' @description Interface to get an ODE 
+#' into a model function \code{x(times, pars, forcings, events)} returning ODE output.
+#' It is a reduced version of \link{Xs}, missing the sensitivities. 
+#' @param func return value from \code{funC(f)} where \code{f} defines the ODE. 
+#' @details Can be used to integrate additional quantities, e.g. fluxes, by adding them to \code{f}. All quantities that are not initialised by pars 
+#' in \code{x(times, pars, forcings, events)} are initialized at 0.
+Xf <- function(func, forcings=NULL, events=NULL, optionsOde=list(method="lsoda"), optionsSens=list(method="lsodes")) {
+  
+  myforcings <- forcings
+  myevents <- events
+  
+  variables <- attr(func, "variables")
+  parameters <- attr(func, "parameters")
+  yini <- rep(0,length(variables))
+  names(yini) <- variables
+  
+  P2X <- function(times, P, changedForcings = NULL, events = myevents){
+    
+    if(!is.null(changedForcings)) myforcings <- changedForcings
+    yini[names(P[names(P) %in% variables])] <- P[names(P) %in% variables]
+    pars <- P[parameters]
+    #alltimes <- unique(sort(c(times, forctimes)))
+    
+    out.inputs <- NULL
+    if(!is.null(myforcings)) {
+      inputs <- unique(myforcings$name)
+      out.inputs <- unlist(lapply(inputs, function(inp) {
+        t <- myforcings[myforcings$name == inp, "time"]
+        y <- myforcings[myforcings$name == inp, "value"]
+        approx(t, y, times)$y
+      }))
+      out.inputs <- matrix(out.inputs, ncol=length(inputs), dimnames = list(NULL, inputs))    
+    }
+    
+    if(!is.null(myforcings)) forc <- setForcings(func, myforcings) else forc <- NULL
+    out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = events)), optionsOde))
+    out <- cbind(out, out.inputs)      
+    
+    return(out)
+    
+  }
+  
+  return(P2X)
+  
+}
