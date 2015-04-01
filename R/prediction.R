@@ -417,7 +417,7 @@ Xv <- function(func_fa, func_l, forcings=NULL, events=NULL, data, optionsBvp=NUL
 #' @param func return value from \code{funC(f)} where \code{f} defines the ODE. 
 #' @details Can be used to integrate additional quantities, e.g. fluxes, by adding them to \code{f}. All quantities that are not initialised by pars 
 #' in \code{x(times, pars, forcings, events)} are initialized at 0.
-Xf <- function(func, forcings=NULL, events=NULL, optionsOde=list(method="lsoda"), optionsSens=list(method="lsodes")) {
+Xf <- function(func, forcings=NULL, events=NULL, optionsOde=list(method="lsoda")) {
   
   myforcings <- forcings
   myevents <- events
