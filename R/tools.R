@@ -50,7 +50,7 @@ wide2long.matrix <- function(out, keep = 1, na.rm = FALSE) {
   timenames <- colnames(out)[keep]
   allnames <- colnames(out)[-keep]
   times <- out[,keep]
-  ntimes<- dim(out)[1]
+  ntimes<- nrow(out)
   values <- unlist(out[,allnames])
   outlong <- data.frame(times, name = rep(allnames, each=ntimes), value = as.numeric(values))
   colnames(outlong)[1:length(keep)] <- timenames

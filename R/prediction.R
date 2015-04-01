@@ -28,6 +28,7 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
   # Variable and parameter names
   variables <- attr(func, "variables")
   parameters <- attr(func, "parameters")
+  forcnames <- attr(func, "forcings")
   
   # Variable and parameter names of sensitivities
   sensvar <- attr(extended, "variables")[!attr(extended, "variables")%in%variables]
@@ -55,23 +56,23 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
     mypars <- pars[parameters]
     
     # Interpolate forcings for output with the prediction
-    out.inputs <- NULL
-    if(!is.null(myforcings)) {
-      inputs <- unique(myforcings$name)
-      out.inputs <- unlist(lapply(inputs, function(inp) {
-        t <- myforcings[myforcings$name == inp, "time"]
-        y <- myforcings[myforcings$name == inp, "value"]
-        approx(t, y, times)$y
-      }))
-      out.inputs <- matrix(out.inputs, ncol=length(inputs), dimnames = list(NULL, inputs))    
-    }
+#     out.inputs <- NULL
+#     if(!is.null(myforcings)) {
+#       inputs <- unique(myforcings$name)
+#       out.inputs <- unlist(lapply(inputs, function(inp) {
+#         t <- myforcings[myforcings$name == inp, "time"]
+#         y <- myforcings[myforcings$name == inp, "value"]
+#         approx(t, y, times)$y
+#       }))
+#       out.inputs <- matrix(out.inputs, ncol=length(inputs), dimnames = list(NULL, inputs))    
+#     }
     
     if(!deriv) {
     
       # Evaluate model without sensitivities
       if(!is.null(myforcings)) forc <- setForcings(func, myforcings) else forc <- NULL
       out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=mypars, forcings=forc, events = list(data = events)), optionsOde))
-      out <- cbind(out, out.inputs)
+      #out <- cbind(out, out.inputs)
       
       
     } else {
@@ -79,8 +80,9 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
       # Evaluate extended model
       if(!is.null(myforcings)) forc <- setForcings(extended, myforcings) else forc <- NULL
       outSens <- do.call(odeC, c(list(y=c(yini, yiniSens), times=times, func=extended, parms=mypars, forcings=forc, events = list(data = events)), optionsSens))
-      out <- cbind(outSens[,c("time", variables)], out.inputs)
-      attr(out, "sensitivities") <- outSens[,!colnames(outSens)%in%variables]
+      #out <- cbind(outSens[,c("time", variables)], out.inputs)
+      out <- outSens[,c("time", c(variables, forcnames))]
+      attr(out, "sensitivities") <- outSens[,!colnames(outSens)%in%c(variables, forcnames)]
       
       
       # Apply parameter transformation to the derivatives
@@ -432,20 +434,20 @@ Xf <- function(func, forcings=NULL, events=NULL, optionsOde=list(method="lsoda")
     pars <- P[parameters]
     #alltimes <- unique(sort(c(times, forctimes)))
     
-    out.inputs <- NULL
-    if(!is.null(myforcings)) {
-      inputs <- unique(myforcings$name)
-      out.inputs <- unlist(lapply(inputs, function(inp) {
-        t <- myforcings[myforcings$name == inp, "time"]
-        y <- myforcings[myforcings$name == inp, "value"]
-        approx(t, y, times)$y
-      }))
-      out.inputs <- matrix(out.inputs, ncol=length(inputs), dimnames = list(NULL, inputs))    
-    }
-    
+#     out.inputs <- NULL
+#     if(!is.null(myforcings)) {
+#       inputs <- unique(myforcings$name)
+#       out.inputs <- unlist(lapply(inputs, function(inp) {
+#         t <- myforcings[myforcings$name == inp, "time"]
+#         y <- myforcings[myforcings$name == inp, "value"]
+#         approx(t, y, times)$y
+#       }))
+#       out.inputs <- matrix(out.inputs, ncol=length(inputs), dimnames = list(NULL, inputs))    
+#     }
+#     
     if(!is.null(myforcings)) forc <- setForcings(func, myforcings) else forc <- NULL
     out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = events)), optionsOde))
-    out <- cbind(out, out.inputs)      
+    #out <- cbind(out, out.inputs)      
     
     return(out)
     

@@ -16,7 +16,7 @@ generateModel <- function(f, forcings=NULL, fixed=NULL, einspline=FALSE, modelna
     s <- sensitivitiesSymb(f, 
                            states = setdiff(attr(func, "variables"), fixed), 
                            parameters = setdiff(attr(func, "parameters"), fixed), 
-                           inputs=forcings)
+                           inputs = forcings)
     fs <- c(f, s)
     extended <- funC.einspline(fs, forcings = forcings, modelname = modelname_s, ...)
     
@@ -26,9 +26,11 @@ generateModel <- function(f, forcings=NULL, fixed=NULL, einspline=FALSE, modelna
     s <- sensitivitiesSymb(f, 
                            states = setdiff(attr(func, "variables"), fixed), 
                            parameters = setdiff(attr(func, "parameters"), fixed), 
-                           inputs=forcings)
+                           inputs=forcings,
+                           reduce = TRUE)
     fs <- c(f, s)
-    extended <- cOde::funC(fs, forcings = forcings, modelname = modelname_s, ...)
+    outputs <- attr(s, "outputs")
+    extended <- cOde::funC(fs, forcings = forcings, outputs = outputs, modelname = modelname_s, ...)
   }
   
   list(func = func, extended = extended)
