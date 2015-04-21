@@ -4,6 +4,7 @@
 
 static double parms[17];
 static double forc[1];
+static double cons[0];
 
 #define p1 parms[0] 
  #define p5 parms[1] 
@@ -51,5 +52,6 @@ void derivs (int *n, double *t, double *y, double *ydot, double *RPAR, int *IPAR
  	 ydot[9] = (1)*(-1*p1*pEpoR*y[0]+1*p5*y[8])+(1)*(1*p1*pEpoR*y[0]-2*p2*y[1]*y[1])+(2)*(1*p2*y[1]*y[1]-1*p3*y[2]);
  	 ydot[10] = 0+(s_STAT)*(1*p1*pEpoR*y[0]-2*p2*y[1]*y[1])+(s_STAT*2)*(1*p2*y[1]*y[1]-1*p3*y[2]);
 
+	 RPAR[0] = pEpoR;
 }
 
