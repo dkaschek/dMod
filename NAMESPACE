@@ -1,3 +1,4 @@
 exportPattern("^[[:alpha:]]+")
 export("+.obj")
+export("%o%")
 import(cOde)
