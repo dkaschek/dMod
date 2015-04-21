@@ -95,11 +95,23 @@ print.eqnList <- function(x, ...) {
   colnames(out) <- c("Educt",  "->",  "Product", "Rate", "Description", "Check")
   print(out)
   
+  if(!is.null(attr(x, "observables")))
   cat("\nObservables:\n")
   cat(paste(paste(names(attr(x, "observables")), attr(x, "observables"), sep=" = "), "\n"))
   
   
-  
+  S[is.na(S)] <- 0
+  v <- MASS::Null(t(S))
+  if(ncol(v) > 0) {
+    
+    v <- v/abs(min(v))
+    cq <- sapply(1:ncol(v), function(i) {
+      paste(paste(v[,i], names(x), sep = "*"), collapse = "+")
+    })
+    cat("Conserved quantities:\n")
+    cat(paste0("const_", 1:length(cq), " = ", cq, "\n"))
+  } 
+    
   
 }
 
