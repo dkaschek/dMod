@@ -102,7 +102,7 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, lambda = 1, rinit, rmax, pa
     theta <- parinit
     out <- try(objfun(theta, ...))
     grad0 <- out$gradient
-    outL1 <- try(constraintL1(theta, names(mu), mu, lambda))
+    outL1 <- try(constraintL1(theta, mu, lambda))
     gradL1 <- outL1$gradient
     
     if (inherits(out, "try-error")) {
@@ -111,8 +111,22 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, lambda = 1, rinit, rmax, pa
             iterations = 0))
     }
     
+    ## Fix L1-parameters on prior if they would be drawn back after step
+    is.fixed.theta <- which(names(theta)%in%names(mu))[which(theta[names(mu)] == mu & abs(grad0[names(mu)]) <= lambda)]
+    if(length(is.fixed.theta) > 0) {
+      
+      out$gradient <- out$gradient[-is.fixed.theta]
+      out$hessian <- out$hessian[-is.fixed.theta,-is.fixed.theta]  
+      outL1$gradient <- outL1$gradient[-is.fixed.theta]
+      outL1$hessian <- outL1$hessian[-is.fixed.theta, -is.fixed.theta]
+      
+    }
+    
+    
+
+    
     out <- out + outL1
-    check.objfun.output(out, minimize, d)
+    check.objfun.output(out, minimize, d - length(is.fixed.theta))
     if (! is.finite(out$value))
         stop("parinit not feasible")
     accept <- TRUE
@@ -220,17 +234,27 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, lambda = 1, rinit, rmax, pa
         
         ########## predicted versus actual change ##########
 
-        ## Check if step away from prior would lead to step-back
-        names(ptry) <- names(theta) <- names(parinit)
+       
         
-        is.mu <- which(theta[names(mu)] == mu)
-        subgradL1 <- lambda*sign(ptry[names(mu)][is.mu])
-        subgrad <- grad0[names(mu)][is.mu]
-        not.doStep <- sign(subgradL1 + subgrad)*sign(subgradL1) == 1
-        ptry[names(mu)][not.doStep] <- 0
+        
+        #         names(ptry) <- names(theta) <- names(parinit)
+        #         
+        #         is.mu <- which(theta[names(mu)] == mu)
+        #         subgradL1 <- lambda*sign(ptry[names(mu)][is.mu])
+        #         subgrad <- grad0[names(mu)][is.mu]
+        #         not.doStep <- sign(subgradL1 + subgrad)*sign(subgradL1) != -1
+        #         ptry[names(mu)][not.doStep] <- 0
         
         ## Compute theta.try
         preddiff <- sum(ptry * (g + as.numeric(B %*% ptry) / 2))
+        
+        ## Fix prior parameters which are on prior (catch-up from above)
+        if(length(is.fixed.theta) > 0) {
+          ptry.new <- structure(rep(0, length(parinit)), names = names(parinit))
+          ptry.new[names(parinit)[-is.fixed.theta]] <- ptry
+          ptry <- ptry.new
+        }
+        
         if (rescale) {
             theta.try <- theta + ptry / parscale
         } else {
@@ -238,16 +262,40 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, lambda = 1, rinit, rmax, pa
         }
         
         ## Set on prior value if step-over
-        chgsgn <- (theta[names(mu)]-mu)*(theta.try[names(mu)]-mu)
-        theta.try[names(mu)][chgsgn < 0] <- mu[chgsgn < 0]
+        # chgsgn <- (theta[names(mu)]-mu)*(theta.try[names(mu)]-mu)
+        # theta.try[names(mu)][chgsgn < 0] <- mu[chgsgn < 0]
         
+        ## Scale down step length if step over prior
+        chgsgn <- (theta[names(mu)]-mu)*(theta.try[names(mu)]-mu)
+        steplength.red <- (mu - theta[names(mu)])[chgsgn < 0]
+        steplength.full <- (theta.try[names(mu)] - theta[names(mu)])[chgsgn < 0]
+        if(length(steplength.red) > 0) {
+          fact <- abs(steplength.red/steplength.full)
+          theta.try <- theta + min(fact)*(theta.try-theta)
+          theta.try[names(mu)][chgsgn < 0][which.min(fact)] <- mu[chgsgn < 0][which.min(fact)]
+        }
+                
         
         out <- try(objfun(theta.try, ...))
         outL1 <- try(constraintL1(theta.try, mu, lambda))
         if (inherits(out, "try-error"))
             break
+        
+        
+        ## Fix L1-parameters on prior if they would be drawn back after step (theta.try)
+        is.fixed.theta.try <- which(names(theta.try)%in%names(mu))[which(theta.try[names(mu)] == mu & abs(out$gradient[names(mu)]) <= lambda)]
+        if(length(is.fixed.theta.try) > 0) {
+          
+          out$gradient <- out$gradient[-is.fixed.theta.try]
+          out$hessian <- out$hessian[-is.fixed.theta.try,-is.fixed.theta.try]  
+          outL1$gradient <- outL1$gradient[-is.fixed.theta.try]
+          outL1$hessian <- outL1$hessian[-is.fixed.theta.try, -is.fixed.theta.try]
+          
+        }
+                
         out <- out + outL1
-        check.objfun.output(out, minimize, d)
+        
+        check.objfun.output(out, minimize, d - length(is.fixed.theta.try))
         ftry <- out$value
         if (! minimize)
             ftry <- (- ftry)
@@ -266,6 +314,7 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, lambda = 1, rinit, rmax, pa
             if (ftry < f) {
                 accept <- TRUE
                 theta <- theta.try
+                is.fixed.theta <- is.fixed.theta.try
             }
         } else {
             if (rho < 1 / 4) {
@@ -274,6 +323,7 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, lambda = 1, rinit, rmax, pa
             } else {
                 accept <- TRUE
                 theta <- theta.try
+                is.fixed.theta <- is.fixed.theta.try
                 if (rho > 3 / 4 && (! is.newton))
                     r <- min(2 * r, rmax)
             }
@@ -388,6 +438,8 @@ check.objfun.output <- function(obj, minimize, dimen)
 constraintL1 <- function(p, mu, lambda = 1) {
   
   parameters <- names(mu)
+  
+  
   value <- sum(lambda*abs(p[parameters] - mu))
   
   gradient <- rep(0, length(p)); names(gradient) <- names(p)
@@ -395,7 +447,7 @@ constraintL1 <- function(p, mu, lambda = 1) {
   gradient[parameters][p[parameters] <  mu] <- -lambda
   
   hessian <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
-  diag(hessian)[parameters] <- lambda^2
+  diag(hessian)[parameters] <- 0
   
   dP <- attr(p, "deriv") 
   if(!is.null(dP)) {
@@ -411,6 +463,24 @@ constraintL1 <- function(p, mu, lambda = 1) {
   
   return(out)
   
+  
+}
+
+constraintLeins <- function(p, mu, lambda = 1, tol = 1e-3) {
+  
+  parameters <- names(mu)
+  
+  parameters.l1 <- parameters[abs(p[parameters] - mu) >  tol]
+  parameters.l2 <- parameters[abs(p[parameters] - mu) <= tol]
+  
+  sigma <- sqrt(tol/lambda)
+  offset <- lambda*tol - .5*(tol/sigma)^2 
+  
+  prior1 <- constraintL1(p, mu[parameters.l1], lambda)
+  if(prior1$value > 0) prior1$value <- prior1$value - offset
+  prior2 <- constraintL2(p, mu[parameters.l2], sigma)
+  
+  prior1 + prior2  
   
 }
 
