@@ -234,19 +234,10 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, lambda = 1, rinit, rmax, pa
         
         ########## predicted versus actual change ##########
 
-       
+        preddiff <- sum(ptry * (g + as.numeric(B %*% ptry) / 2))
         
-        
-        #         names(ptry) <- names(theta) <- names(parinit)
-        #         
-        #         is.mu <- which(theta[names(mu)] == mu)
-        #         subgradL1 <- lambda*sign(ptry[names(mu)][is.mu])
-        #         subgrad <- grad0[names(mu)][is.mu]
-        #         not.doStep <- sign(subgradL1 + subgrad)*sign(subgradL1) != -1
-        #         ptry[names(mu)][not.doStep] <- 0
         
         ## Compute theta.try
-        preddiff <- sum(ptry * (g + as.numeric(B %*% ptry) / 2))
         
         ## Fix prior parameters which are on prior (catch-up from above)
         if(length(is.fixed.theta) > 0) {
@@ -273,6 +264,10 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, lambda = 1, rinit, rmax, pa
           fact <- abs(steplength.red/steplength.full)
           theta.try <- theta + min(fact)*(theta.try-theta)
           theta.try[names(mu)][chgsgn < 0][which.min(fact)] <- mu[chgsgn < 0][which.min(fact)]
+          ptry.red <- theta.try - theta
+          if(length(is.fixed.theta) > 0) ptry.red <- ptry.red[-is.fixed.theta]
+          preddiff <- sum(ptry.red * (g + as.numeric(B %*% ptry.red) / 2))
+          
         }
                 
         
