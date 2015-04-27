@@ -147,7 +147,7 @@ obj <- function(pouter, fixed=NULL, deriv=TRUE) {
   # Working with weak prior (helps avoiding runaway solutions of the optimization problem)
   cOuter <- constraintL2(pouter, prior, sigma = 10)
   
-  Reduce("+", out) + cOuter
+  cOuter + Reduce("+", out)
   
 }
 

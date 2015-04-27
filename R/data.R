@@ -90,6 +90,28 @@ wrss <- function(nout) {
 }
 
 
+#' Generate dummy list of class \code{obj} from named numeric
+#' 
+#' @param p Names numeric vector
+#' @return list with entries value (\code{0}), 
+#' gradient (\code{rep(0, length(p))}) and 
+#' hessian (\code{matrix(0, length(p), length(p))}) of class \code{obj}.
+#' @examples
+#' p <- c(A = 1, B = 2)
+#' as.obj(p)
+as.obj <- function(p) {
+  
+  obj <- list(
+    value = 0,
+    gradient = structure(rep(0, length(p)), names = names(p)),
+    hessian = matrix(0, length(p), length(p), dimnames = list(names(p), names(p))))
+  
+  class(obj) <- "obj"
+  
+  return(obj)
+  
+}
+
 
 
 

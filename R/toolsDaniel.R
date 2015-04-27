@@ -259,10 +259,31 @@ normalizeData <- function(data) {
   
 }
 
+
+
+#' Soft L2 constraint on parameters
+#' 
+#' @param p Namec numeric, the parameter value
+#' @param mu Named numeric, the prior values
+#' @param sigma Named numeric of length of mu or numeric of length one.
+#' @return List of class \code{obj}, i.e. objective value, gradient and Hessian as list.
+#' @seealso \link{wrss}, \link{summation}, \link{constraintL1}, \link{constraintExp2}
+#' @details Computes the constraint value 
+#' \deqn{\frac{1}{2}\left(\frac{p-\mu}{\sigma}\right)^2}{0.5*(p-mu)^2/sigma^2}
+#' and its derivatives with respect to p.
+#' @examples
+#' p <- c(A = 1, B = 2, C = 3)
+#' mu <- c(A = 0, B = 0)
+#' sigma <- c(A = 0.1, B = 1)
+#' constraintL2(p, mu, sigma)
 constraintL2 <- function(p, mu, sigma = 1) {
-  par <- names(mu)
+  par <- intersect(names(mu), names(p))
   t <- p[par]
-  s <- sigma
+  mu <- mu[par]
+  if(length(sigma) == 1) 
+    s <- structure(rep(sigma, length(par)), names = par) 
+  else 
+    s <- sigma[par]
   
   val <- sum((0.5*((t-mu)/s)^2))
   gr <- rep(0, length(p)); names(gr) <- names(p)

@@ -10,6 +10,7 @@ norm <- function(x) sqrt(sum(x^2))
 #' The same holds for the attributed \code{dimnames}. In all other cases, the "+" operator is applied
 #' the corresponding elements of out1 and out2 as they are.
 #' @return List of length of out1. 
+#' @aliases summation
 "+.obj" <- function(out1, out2) {
   
   allnames <- c(names(out1), names(out2))
@@ -429,17 +430,33 @@ check.objfun.output <- function(obj, minimize, dimen)
 }
 
 
-
+#' Soft L1 constraint on parameters
+#' 
+#' @param p Namec numeric, the parameter value
+#' @param mu Named numeric, the prior values
+#' @param lambda Named numeric of length of mu or numeric of length one.
+#' @return List of class \code{obj}, i.e. objective value, gradient and Hessian as list.
+#' @details Computes the constraint value 
+#' \deqn{\lambda\|p-\mu\|}{lambda*abs(p-mu)}
+#' and its derivatives with respect to p.
+#' @seealso \link{wrss}, \link{summation}, \link{constraintL2}, \link{constraintExp2}
+#' @examples
+#' p <- c(A = 1, B = 2, C = 3)
+#' mu <- c(A = 0, B = 0)
+#' lambda <- c(A = 0.1, B = 1)
+#' constraintL1(p, mu, lambda)
 constraintL1 <- function(p, mu, lambda = 1) {
+   
+  parameters <- intersect(names(p), names(mu))
+  if(length(lambda) == 1) 
+    lambda <- structure(rep(lambda, length(parameters)), names = parameters) 
   
-  parameters <- names(mu)
   
-  
-  value <- sum(lambda*abs(p[parameters] - mu))
+  value <- sum(lambda[parameters]*abs(p[parameters] - mu[parameters]))
   
   gradient <- rep(0, length(p)); names(gradient) <- names(p)
-  gradient[parameters][p[parameters] >  mu] <-  lambda
-  gradient[parameters][p[parameters] <  mu] <- -lambda
+  gradient[parameters][p[parameters] >  mu[parameters]] <-  lambda[parameters][p[parameters] >  mu[parameters]]
+  gradient[parameters][p[parameters] <  mu[parameters]] <- -lambda[parameters][p[parameters] <  mu[parameters]]
   
   hessian <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
   diag(hessian)[parameters] <- 0
@@ -463,19 +480,26 @@ constraintL1 <- function(p, mu, lambda = 1) {
 
 constraintLeins <- function(p, mu, lambda = 1, tol = 1e-3) {
   
-  parameters <- names(mu)
+  parameters <- intersect(names(p), names(mu))
   
-  parameters.l1 <- parameters[abs(p[parameters] - mu) >  tol]
-  parameters.l2 <- parameters[abs(p[parameters] - mu) <= tol]
+    
+  parameters.l1 <- parameters[abs(p[parameters] - mu[parameters]) >  tol]
+  parameters.l2 <- parameters[abs(p[parameters] - mu[parameters]) <= tol]
   
   sigma <- sqrt(tol/lambda)
   offset <- lambda*tol - .5*(tol/sigma)^2 
   
-  prior1 <- constraintL1(p, mu[parameters.l1], lambda)
-  if(prior1$value > 0) prior1$value <- prior1$value - offset
-  prior2 <- constraintL2(p, mu[parameters.l2], sigma)
+  prior1 <- prior2 <- as.obj(p)
   
-  prior1 + prior2  
+  if(length(parameters.l1) > 0) {
+    prior1 <- constraintL1(p, mu[parameters.l1], lambda)
+    if(prior1$value > 0) prior1$value <- prior1$value - offset
+  }
+  if(length(parameters.l2) > 0) {
+    prior2 <- constraintL2(p, mu[parameters.l2], sigma)
+  }
+    
+  prior1 + prior2
   
 }
 
