@@ -254,22 +254,22 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, lambda = 1, rinit, rmax, pa
         }
         
         ## Set on prior value if step-over
-        # chgsgn <- (theta[names(mu)]-mu)*(theta.try[names(mu)]-mu)
-        # theta.try[names(mu)][chgsgn < 0] <- mu[chgsgn < 0]
+        chgsgn <- (theta[names(mu)]-mu)*(theta.try[names(mu)]-mu)
+        theta.try[names(mu)][chgsgn < 0] <- mu[chgsgn < 0]
         
         ## Scale down step length if step over prior
-        chgsgn <- (theta[names(mu)]-mu)*(theta.try[names(mu)]-mu)
-        steplength.red <- (mu - theta[names(mu)])[chgsgn < 0]
-        steplength.full <- (theta.try[names(mu)] - theta[names(mu)])[chgsgn < 0]
-        if(length(steplength.red) > 0) {
-          fact <- abs(steplength.red/steplength.full)
-          theta.try <- theta + min(fact)*(theta.try-theta)
-          theta.try[names(mu)][chgsgn < 0][which.min(fact)] <- mu[chgsgn < 0][which.min(fact)]
-          ptry.red <- theta.try - theta
-          if(length(is.fixed.theta) > 0) ptry.red <- ptry.red[-is.fixed.theta]
-          preddiff <- sum(ptry.red * (g + as.numeric(B %*% ptry.red) / 2))
-          
-        }
+        #         chgsgn <- (theta[names(mu)]-mu)*(theta.try[names(mu)]-mu)
+        #         steplength.red <- (mu - theta[names(mu)])[chgsgn < 0]
+        #         steplength.full <- (theta.try[names(mu)] - theta[names(mu)])[chgsgn < 0]
+        #         if(length(steplength.red) > 0) {
+        #           fact <- abs(steplength.red/steplength.full)
+        #           theta.try <- theta + min(fact)*(theta.try-theta)
+        #           theta.try[names(mu)][chgsgn < 0][which.min(fact)] <- mu[chgsgn < 0][which.min(fact)]
+        #           ptry.red <- theta.try - theta
+        #           if(length(is.fixed.theta) > 0) ptry.red <- ptry.red[-is.fixed.theta]
+        #           preddiff <- sum(ptry.red * (g + as.numeric(B %*% ptry.red) / 2))
+        #           
+        #         }
                 
         
         out <- try(objfun(theta.try, ...))
