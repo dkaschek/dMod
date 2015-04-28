@@ -276,8 +276,17 @@ normalizeData <- function(data) {
 #' mu <- c(A = 0, B = 0)
 #' sigma <- c(A = 0.1, B = 1)
 #' constraintL2(p, mu, sigma)
-constraintL2 <- function(p, mu, sigma = 1) {
-  par <- intersect(names(mu), names(p))
+constraintL2 <- function(p, mu, sigma = 1, fixed=NULL) {
+### Extract contribution of fixed pars and delete names for calculation of gr and hs  
+  
+  if(!(is.null(fixed)))  {
+    sumOfFixed <- Reduce("+",sapply(names(fixed), function(name){0.5*((fixed[name]-mu[name])/sigma[name])**2}))
+    p <- p[!(names(p) %in% names(fixed))]
+  } else {
+    sumOfFixed <- 0
+  }                          
+  
+  par <- names(p)
   t <- p[par]
   mu <- mu[par]
   if(length(sigma) == 1) 
@@ -285,7 +294,7 @@ constraintL2 <- function(p, mu, sigma = 1) {
   else 
     s <- sigma[par]
   
-  val <- sum((0.5*((t-mu)/s)^2))
+  val <- sum((0.5*((t-mu)/s)^2)) + sumOfFixed
   gr <- rep(0, length(p)); names(gr) <- names(p)
   gr[par] <- ((t-mu)/(s^2))
   
