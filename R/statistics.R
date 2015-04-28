@@ -38,17 +38,45 @@
 #' matrix with columns "value" (the objective value), "constraint" (deviation of the profiled paramter from
 #' the original value), "stepsize" (the stepsize take for the iteration), "gamma" (the gamma value employed for the
 #' iteration), one column per parameter (the profile paths).
-#' @examples trafo <- c(a = "exp(loga)", b = "exp(logb)",c = "exp(loga)*exp(logb)*exp(logc)")
-#'  p <- P(trafo) 
-#'  obj <- function(pOuter, fixed = NULL) 
-#'     constraintL2(p(pOuter, fixed), c(a =.1, b = 1, c = 10), 1)
+#' @examples 
+#' ## ----------------------
+#' ## Example 1 
+#' ## ----------------------
+#' trafo <- c(a = "exp(loga)", b = "exp(logb)",c = "exp(loga)*exp(logb)*exp(logc)")
+#' p <- P(trafo) 
+#' obj <- function(pOuter, fixed = NULL) 
+#'    constraintL2(p(pOuter, fixed), c(a =.1, b = 1, c = 10), 1)
 #'     
-#'  ini <- c(loga = 1, logb = 1, logc = 1)   
-#'  myfit <- trust(obj, ini, rinit=1, rmax=10)   
-#'  profiles <- sapply(1:3, function(i) profile.trust(obj, myfit$argument, whichPar = i, limits = c(-5, 5), algoControl=list(gamma=1, reoptimize=FALSE), verbose=TRUE))
-#'  plotProfile(profiles)
-  
-
+#' ini <- c(loga = 1, logb = 1, logc = 1)   
+#' myfit <- trust(obj, ini, rinit=1, rmax=10)   
+#' profiles <- sapply(1:3, function(i) 
+#'    profile.trust(obj, myfit$argument, whichPar = i, limits = c(-5, 5), 
+#'                  algoControl=list(gamma=1, reoptimize=FALSE), verbose=TRUE))
+#' plotProfile(profiles)
+#' 
+#' ## ----------------------------
+#' ## Example 2
+#' ## ----------------------------
+#' trafo <- c(a = "exp(loga)", b = "exp(logb)",c = "exp(loga)*exp(logb)*exp(logc)")
+#' p <- P(trafo)
+#' obj <- function(pOuter, fixed = NULL, sigma) 
+#'   constraintL2(p(pOuter, fixed), c(a =.1, b = 1, c = 10), 1) +
+#'   constraintL2(pOuter, mu = c(loga = 0, logb = 0), sigma = sigma, fixed = fixed)
+#' 
+#' 
+#' ini <- c(loga = 1, logb = 1, logc = 1)
+#' myfit <- trust(obj, ini[-1], rinit=1, rmax=10, fixed = ini[1], sigma = 10)
+#' profiles.approx <- sapply(1:2, function(i) 
+#'   profile.trust(obj, myfit$argument, whichPar = i, limits = c(-10, 10), 
+#'                 algoControl=list(gamma=1, reoptimize=FALSE), 
+#'                 verbose=TRUE, fixed = ini[1], sigma = 10))
+#' profiles.exact  <- sapply(1:2, function(i) 
+#'   profile.trust(obj, myfit$argument, whichPar = i, limits = c(-10, 10), 
+#'                 algoControl=list(gamma=0, reoptimize=TRUE), 
+#'                 verbose=TRUE, fixed = ini[1], sigma = 10))
+#' 
+#' plotProfile(profiles.approx, profiles.exact)
+#' 
 profile.trust <- function(obj, pars, whichPar, alpha = 0.05, 
                           limits = c(lower = -Inf, upper = Inf), 
                           stepControl = NULL, 
@@ -97,7 +125,7 @@ profile.trust <- function(obj, pars, whichPar, alpha = 0.05,
     # initialize values
     p <- y
     lambda <- 0
-    out <- obj.prof(p)
+    out <- obj.prof(p, ...)
     g.original <- constraint(p)
     
     # evaluate derivatives and constraints
@@ -150,9 +178,10 @@ profile.trust <- function(obj, pars, whichPar, alpha = 0.05,
       fixed.opt <- c(fixed, y.try[whichPar])
           
       arglist <- c(list(objfun = obj.opt, parinit = parinit.opt, fixed = fixed.opt, rinit = rinit), 
-                   oControl[names(oControl)!="rinit"])
+                   oControl[names(oControl)!="rinit"],
+                   list(...)[names(list(...)) != "fixed"])
       
-      myfit <- try(do.call(trust, arglist), silent=TRUE)
+      myfit <- try(do.call(trust, arglist), silent=FALSE)
       if(!inherits(myfit, "try-error")) {
         y.try[names(myfit$argument)] <- as.vector(myfit$argument)  
       } else {

@@ -27,13 +27,14 @@ norm <- function(x) sqrt(sum(x^2))
     n <- names(sub1)
     dn <- dimnames(sub1)
     if(!is.null(n) && !is.null(sub1) %% !is.null(sub2)) {
-      #print("case1")
+      #print("case1: sum of vectors")
       sub1[n] + sub2[n]
     } else if(!is.null(dn) && !is.null(sub1) && !is.null(sub2)) {
-      #print("case2")
-      sub1[dn[[1]], dn[[2]]] + sub2[dn[[1]], dn[[2]]]
+      #print("case2: sum of matrices")
+      matrix(sub1[dn[[1]], dn[[2]]] + sub2[dn[[1]], dn[[2]]], 
+             length(dn[[1]]), length(dn[[2]]), dimnames = list(dn[[1]], dn[[2]]))
     } else if(!is.null(sub1) && !is.null(sub2)) {
-      #print("case3")
+      #print("case3: sum of scalars")
       sub1 + sub2
     } else {
       #print("case4")
