@@ -161,61 +161,92 @@ loadTemplate <- function(i = 1) {
 
 
 
-funC.algebraic <- function(x) {
+
+
+funC.algebraic <- function(x, compile = TRUE) {
     
   # Get symbols to be substituted by x[] and y[]
   outnames <- names(x)
   innames <- getSymbols(x)
   
-  # Do the replacement to obtain C syntax
-  x <- replaceOperation("^", "pow", x)
-  x <- replaceSymbols(innames, paste0("x[", (1:length(innames))-1, "+i* *k]"), x)
-  names(x) <- paste0("y[", (1:length(outnames)) - 1, "+i* *l]")
+  x.new <- paste0(x, collapse = ", ")
+  x.new <- paste0("list(", x.new, ")")
+  x.expr <- parse(text = x.new)
   
-  # Paste into equation
-  expr <- paste(names(x), "=", x, ";")
-  
-  # Put equation into loop, body of the C function
-  body <- paste(
-    "for(int i = 0; i< *n; i++) {",
+  ## Compiled version based on inline package
+  ## Non-compiled version based on with() and eval()
+  if(compile) {
+    
+    # Do the replacement to obtain C syntax
+    x <- replaceOperation("^", "pow", x)
+    x <- replaceSymbols(innames, paste0("x[", (1:length(innames))-1, "+i* *k]"), x)
+    names(x) <- paste0("y[", (1:length(outnames)) - 1, "+i* *l]")
+    
+    # Paste into equation
+    expr <- paste(names(x), "=", x, ";")
+    
+    # Put equation into loop, body of the C function
+    body <- paste(
+      "for(int i = 0; i< *n; i++) {",
       paste(expr, collapse=""),
-    "}"
-  )
-  
-  # Generate the C function by the inline package
-  myCfun <- inline::cfunction(sig=c(x = "double", y = "double", n = "integer", k = "integer", l = "integer"),
-                     body=body,
-                     language="C",
-                     convention=".C"
-                     )
-  
-  # Generate output function
-  myRfun <- function(x) {
+      "}"
+    )
     
-    # Translate the list into matrix and then into vector
-    M <- do.call(rbind, x[innames])
-    if(length(M) == 0) M <- matrix(0)
-    x <- as.double(as.vector(M))
+    # Generate the C function by the inline package
+    myCfun <- inline::cfunction(sig=c(x = "double", y = "double", n = "integer", k = "integer", l = "integer"),
+                                body=body,
+                                language="C",
+                                convention=".C"
+    )
     
-    # Get integers for the array sizes
-    n <- as.integer(dim(M)[2])
-    k <- as.integer(length(innames))
-    if(length(k) == 0) k <- as.integer(0)
-    l <- as.integer(length(outnames))
+    # Generate output function
+    myRfun <- function(x) {
+      
+      # Translate the list into matrix and then into vector
+      M <- do.call(rbind, x[innames])
+      if(length(M) == 0) M <- matrix(0)
+      x <- as.double(as.vector(M))
+      
+      # Get integers for the array sizes
+      n <- as.integer(dim(M)[2])
+      k <- as.integer(length(innames))
+      if(length(k) == 0) k <- as.integer(0)
+      l <- as.integer(length(outnames))
+      
+      
+      # Initialize output vector
+      y <- double(l*n)
+      
+      # Evaluate C function and write into matrix
+      out <- matrix(myCfun(x, y, n, k, l)$y, nrow=length(outnames), ncol=n)
+      rownames(out) <- outnames
+      
+      return(t(out))    
+      
+    }
     
     
-    # Initialize output vector
-    y <- double(l*n)
     
-    # Evaluate C function and write into matrix
-    out <- matrix(myCfun(x, y, n, k, l)$y, nrow=length(outnames), ncol=n)
-    rownames(out) <- outnames
+  } else {
     
-    return(t(out))    
+    # Generate output function
+    myRfun <- function(x) {
+      
+      out.list <- with(x, eval(x.expr))
+      out.matrix <- do.call(cbind, out.list)
+      colnames(out.matrix) <- outnames
+      rownames(out.matrix) <- NULL
+      
+      return(out.matrix)
+      
+    }
     
   }
+  
+  
   
   
   return(myRfun)
   
 }
+
