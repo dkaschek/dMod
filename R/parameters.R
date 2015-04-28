@@ -1,90 +1,5 @@
 #' Parameter transformation
 #' 
-#' @param P named character vector. Names correspond to the parameter names to be fed into
-#' the model. The values of P are equations that express the parameters in terms of other
-#' parameters
-#' @param parameters character vector. Optional. If given, the generated parameter
-#' transformation returns values for each element in \code{parameters}. If elements of
-#' \code{parameters} are not in \code{names(P)} the identity transformation is assumed.
-#' @return a function \code{p(P)} representing the parameter transformation. The result of p(P) 
-#' contains an attribute "deriv" which is the jacobian of the parameter transformation
-#' evaluated at \code{P}.
-# P <- function(P, parameters=NULL) {
-#   
-#   # get outer parameters
-#   fparse <- getParseData(parse(text=P))
-#   symbols <- unique(fparse$text[fparse$token == "SYMBOL"])
-#   if(is.null(parameters)) {
-#     parameters <- symbols 
-#   } else {
-#     identity <- parameters[which(!parameters%in%symbols)]
-#     names(identity) <- identity
-#     P <- c(P, identity)
-#   }
-#   
-#   # expresion list for parameter and jacobian evaluation
-#   expressionList <- lapply(P, function(myrel) parse(text=as.character(myrel)))
-#   listJac <- unlist(lapply(parameters, function(var) {
-#     unlist(lapply(expressionList, function(myexp) paste(deparse(D(myexp, as.character(var))), collapse="")))
-#   }))
-#   
-#   jacNames <- expand.grid.alt(names(P), parameters)
-#   jacNames <- paste(jacNames[,1], jacNames[,2], sep=".")
-#   
-#   dP <- listJac; names(dP) <- jacNames
-# 
-#   PEval <- funC.algebraic(P)
-#   dPEval <- funC.algebraic(dP)
-#   
-#   # the parameter transformation function to be returned
-#   p2p <- function(p, fixed=NULL, derivs = TRUE) {
-#     
-#     # replace fixed parameters by values given in fixed
-#     if(!is.null(fixed)) {
-#       is.fixed <- which(names(p)%in%names(fixed)) 
-#       if(length(is.fixed)>0) p <- p[-is.fixed]
-#       p <- c(p, fixed)
-#     }
-#     
-#     # check for parameters which are not defined in parameters
-#     emptypars <- names(p)[!names(p)%in%parameters]
-#     
-#     x <- as.list(p)
-#     values <- PEval(x)[1,]
-#     jacValues <- dPEval(x)
-#       
-#     
-#     jacobian <- matrix(jacValues, ncol=length(parameters), nrow=length(P))
-#     if(!is.null(fixed)) {
-#       jacobian <- matrix(jacobian[,-which(parameters %in% names(fixed))], nrow=length(P))
-#       colnames(jacobian) <- parameters[!parameters%in%names(fixed)]
-#       rownames(jacobian) <- names(P)
-#     } else {
-#       colnames(jacobian) <- parameters
-#       rownames(jacobian) <- names(P)
-#     }
-#     
-#     # Append zeros for emptypars
-#     if(length(emptypars) > 0) {
-#       empty <- matrix(0, nrow=dim(jacobian)[1], ncol=length(emptypars))
-#       colnames(empty) <- emptypars
-#       jacobian <- cbind(jacobian, empty)
-#     }    
-#     if(derivs) attr(values, "deriv") <- jacobian
-#     
-#     
-#     
-#     return(values)
-#   }
-#   
-#   
-#   return(p2p)
-#   
-# }
-
-
-#' Parameter transformation
-#' 
 #' @param trafo Named character vector. Names correspond to the parameters being fed into
 #' the model (the inner parameters). The elements of tafo are equations that express 
 #' the inner parameters in terms of other parameters (the outer parameters)
@@ -104,11 +19,11 @@
 #' 
 #' p.outerValue <- c(logk1 = 1, logk2 = -1, logA = 0, logB = 0)
 #' (P.log)(p.outerValue)
-P <- function(trafo, parameters=NULL) {
+P <- function(trafo, parameters=NULL, compile = FALSE) {
   
   # get outer parameters
-  fparse <- getParseData(parse(text=trafo))
-  symbols <- unique(fparse$text[fparse$token == "SYMBOL"])
+  symbols <- getSymbols(trafo)
+  
   if(is.null(parameters)) {
     parameters <- symbols 
   } else {
@@ -117,14 +32,20 @@ P <- function(trafo, parameters=NULL) {
     trafo <- c(trafo, identity)
   }
   
-  # expresion list for parameter and jacobian evaluation
-  expressionList <- lapply(trafo, function(myrel) parse(text=as.character(myrel)))
-  listExpression <- parse(text = paste("list(", paste(trafo, collapse=", "), ")"))
-  listJac <- unlist(lapply(parameters, function(var) {
-    unlist(lapply(expressionList, function(myexp) paste(deparse(D(myexp, as.character(var))), collapse="")))
+  
+  # expression list for parameter and jacobian evaluation
+  trafo.list <- lapply(trafo, function(myrel) parse(text=as.character(myrel)))
+  jacobian <- unlist(lapply(parameters, function(var) {
+    unlist(lapply(trafo.list, function(myexp) paste(deparse(D(myexp, as.character(var))), collapse="")))
   }))
-  listJac <- parse(text = paste("list(", paste(listJac, collapse=", "), ")"))
-  jacNames <- expand.grid(names(trafo), parameters)
+  
+  jacNames <- expand.grid.alt(names(trafo), parameters)
+  jacNames <- paste(jacNames[,1], jacNames[,2], sep=".")
+  
+  dtrafo <- jacobian; names(dtrafo) <- jacNames
+  
+  PEval <- funC.algebraic(trafo, compile = compile)
+  dPEval <- funC.algebraic(dtrafo, compile = compile)
   
   # the parameter transformation function to be returned
   p2p <- function(p, fixed=NULL, deriv = TRUE) {
@@ -132,52 +53,24 @@ P <- function(trafo, parameters=NULL) {
     # Inherit from p
     dP <- attr(p, "deriv", exact = TRUE)
     
-    # replace fixed parameters by values given in fixed
-    if(!is.null(fixed)) {
-      is.fixed <- which(names(p)%in%names(fixed)) 
-      if(length(is.fixed)>0) p <- p[-is.fixed]
-      p <- c(p, fixed)
-    }
+    # Evaluate transformation
+    args <- c(as.list(p), as.list(fixed))
+    pinner <- PEval(args)[1,]
+    dpinner <- dPEval(args)[1,]
     
-    # check for parameters which are not defined in parameters
-    emptypars <- names(p)[!names(p)%in%parameters & !names(p)%in%names(fixed)]
+    # Construct output jacobian
+    jac.vector <- rep(0, length(pinner)*length(p))
+    names(jac.vector) <- outer(names(pinner), names(p), function(x, y) paste(x, y, sep = "."))
     
-    # compute transformation output
-    out <- with(as.list(p), { 
-      
-      values <- unlist(eval(listExpression))
-      names(values) <- names(trafo)
-      
-      jacValues <- unlist(eval(listJac))
-      jacobian <- matrix(jacValues, ncol=length(parameters), nrow=length(trafo))
-      if(any(parameters %in% names(fixed))) {
-        jacobian <- matrix(jacobian[,-which(parameters %in% names(fixed))], nrow=length(trafo))
-        colnames(jacobian) <- parameters[!parameters%in%names(fixed)]
-        rownames(jacobian) <- names(trafo)
-      } else {
-        colnames(jacobian) <- parameters
-        rownames(jacobian) <- names(trafo)
-      }
-      
-      # Append zeros for emptypars
-      if(length(emptypars) > 0) {
-        empty <- matrix(0, nrow=dim(jacobian)[1], ncol=length(emptypars))
-        colnames(empty) <- emptypars
-        jacobian <- cbind(jacobian, empty)
-      }    
-      
-      # Multiplication with deriv of p
-      if(!is.null(dP)) jacobian <- jacobian%*%dP[colnames(jacobian),]
-      
-      
-      if(deriv) attr(values, "deriv") <- jacobian
-      
-      return(values)
-      
-    })
+    names.intersect <- intersect(names(dpinner), names(jac.vector))
+    jac.vector[names.intersect] <- as.numeric(dpinner[names.intersect])
+    jac.matrix <- matrix(jac.vector, length(pinner), length(p), dimnames = list(names(pinner), names(p)))
     
     
-    return(out)
+    if(!is.null(dP)) jac.matrix <- jac.matrix%*%dP[colnames(jac.matrix),]
+    if(deriv) attr(pinner, "deriv") <- jac.matrix
+    
+    return(pinner)
   }
   
   class(p2p) <- "par"
@@ -230,7 +123,7 @@ P <- function(trafo, parameters=NULL) {
 #' p.outerValue <- c(logk1 = 1, logk2 = -1, logA = 0, logB = 0)
 #' (P.log)(p.outerValue)
 #' (P.steadyState %o% P.log)(p.outerValue)
-Pi <- function(trafo, parameters=NULL) {
+Pi <- function(trafo, parameters=NULL, compile = FALSE) {
 
   
   
@@ -238,7 +131,7 @@ Pi <- function(trafo, parameters=NULL) {
   nonstates <- getSymbols(trafo, exclude = states)
   dependent <- setdiff(states, parameters)
   
-  trafo.alg <- funC.algebraic(trafo[dependent])
+  trafo.alg <- funC.algebraic(trafo[dependent], compile = compile)
   ftrafo <- function(x, parms) {
     out <- trafo.alg(as.list(c(x, parms)))
     structure(as.numeric(out), names = colnames(out))

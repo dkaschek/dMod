@@ -126,7 +126,7 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
 #' of the parameter transformation and the sensitivities of the observation function
 #' are multiplied according to the chain rule for differentiation.
 #' If \code{attach = TRUE}, the original argument \code{out} will be attached to the evaluated observations.
-Y <- function(g, f, warnings = FALSE) {
+Y <- function(g, f, compile = FALSE, warnings = FALSE) {
   
   # Get potential paramters from g, forcings are treated as parameters because
   # sensitivities dx/dp with respect to forcings are zero.
@@ -135,7 +135,7 @@ Y <- function(g, f, warnings = FALSE) {
     
   # Observables defined by g
   observables <- names(g)
-  gEval <- funC.algebraic(g)
+  gEval <- funC.algebraic(g, compile = compile)
   
   # Character matrices of derivatives  
   dxdp <- apply(expand.grid.alt(states, c(states, parameters)), 1, paste, collapse = ".")
@@ -149,7 +149,7 @@ Y <- function(g, f, warnings = FALSE) {
   # Sensitivities of the observables
   derivs <- as.vector(sumSymb(prodSymb(dgdx, dxdp), dgdp))
   names(derivs) <- apply(expand.grid.alt(observables, c(states, parameters)), 1, paste, collapse = ".")
-  derivsEval <- funC.algebraic(derivs)
+  derivsEval <- funC.algebraic(derivs, compile = compile)
     
   # Vector with zeros for possibly missing derivatives
   zeros <- rep(0, length(dxdp))
