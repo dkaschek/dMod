@@ -266,6 +266,8 @@ normalizeData <- function(data) {
 #' @param p Namec numeric, the parameter value
 #' @param mu Named numeric, the prior values
 #' @param sigma Named numeric of length of mu or numeric of length one.
+#' @param fixed Named numeric with fixed parameter values (contribute to the prior value
+#' but not to gradient and Hessian)
 #' @return List of class \code{obj}, i.e. objective value, gradient and Hessian as list.
 #' @seealso \link{wrss}, \link{summation}, \link{constraintL1}, \link{constraintExp2}
 #' @details Computes the constraint value 
@@ -277,29 +279,26 @@ normalizeData <- function(data) {
 #' sigma <- c(A = 0.1, B = 1)
 #' constraintL2(p, mu, sigma)
 constraintL2 <- function(p, mu, sigma = 1, fixed=NULL) {
-### Extract contribution of fixed pars and delete names for calculation of gr and hs  
-  
-  if(!(is.null(fixed)))  {
-    sumOfFixed <- Reduce("+",sapply(names(fixed), function(name){0.5*((fixed[name]-mu[name])/sigma[name])**2}))
-    p <- p[!(names(p) %in% names(fixed))]
-  } else {
-    sumOfFixed <- 0
-  }                          
-  
-  par <- names(p)
-  t <- p[par]
-  mu <- mu[par]
+
+  ## Augment sigma if length = 1
   if(length(sigma) == 1) 
-    s <- structure(rep(sigma, length(par)), names = par) 
-  else 
-    s <- sigma[par]
+    sigma <- structure(rep(sigma, length(mu)), names = names(mu)) 
   
-  val <- sum((0.5*((t-mu)/s)^2)) + sumOfFixed
+  ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
+  par.fixed <- intersect(names(mu), names(fixed))
+  sumOfFixed <- 0
+  if(!is.null(par.fixed)) sumOfFixed <- sum(0.5*((fixed[par.fixed] - mu[par.fixed])/sigma[par.fixed])^2)
+  
+                         
+  # Compute prior value and derivatives
+  par <- intersect(names(mu), names(p))
+    
+  val <- sum((0.5*((p[par]-mu[par])/sigma[par])^2)) + sumOfFixed
   gr <- rep(0, length(p)); names(gr) <- names(p)
-  gr[par] <- ((t-mu)/(s^2))
+  gr[par] <- ((p[par]-mu[par])/(sigma[par]^2))
   
   hs <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
-  diag(hs)[par] <- 1/(s*s)
+  diag(hs)[par] <- 1/sigma[par]^2
   
   dP <- attr(p, "deriv")
   if(!is.null(dP)) {

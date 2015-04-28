@@ -435,6 +435,8 @@ check.objfun.output <- function(obj, minimize, dimen)
 #' @param p Namec numeric, the parameter value
 #' @param mu Named numeric, the prior values
 #' @param lambda Named numeric of length of mu or numeric of length one.
+#' @param fixed Named numeric with fixed parameter values (contribute to the prior value
+#' but not to gradient and Hessian)
 #' @return List of class \code{obj}, i.e. objective value, gradient and Hessian as list.
 #' @details Computes the constraint value 
 #' \deqn{\lambda\|p-\mu\|}{lambda*abs(p-mu)}
@@ -445,14 +447,21 @@ check.objfun.output <- function(obj, minimize, dimen)
 #' mu <- c(A = 0, B = 0)
 #' lambda <- c(A = 0.1, B = 1)
 #' constraintL1(p, mu, lambda)
-constraintL1 <- function(p, mu, lambda = 1) {
+constraintL1 <- function(p, mu, lambda = 1, fixed = NULL) {
    
-  parameters <- intersect(names(p), names(mu))
+  ## Augment sigma if length = 1
   if(length(lambda) == 1) 
-    lambda <- structure(rep(lambda, length(parameters)), names = parameters) 
+    lambda <- structure(rep(lambda, length(mu)), names = names(mu)) 
   
+  ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
+  par.fixed <- intersect(names(mu), names(fixed))
+  sumOfFixed <- 0
+  if(!is.null(par.fixed)) sumOfFixed <- sum(lambda[par.fixed]*abs(fixed[par.fixed] - mu[par.fixed]))
   
-  value <- sum(lambda[parameters]*abs(p[parameters] - mu[parameters]))
+  ## Compute constraint value and derivatives
+  parameters <- intersect(names(p), names(mu))
+    
+  value <- sum(lambda[parameters]*abs(p[parameters] - mu[parameters])) + sumOfFixed
   
   gradient <- rep(0, length(p)); names(gradient) <- names(p)
   gradient[parameters][p[parameters] >  mu[parameters]] <-  lambda[parameters][p[parameters] >  mu[parameters]]
@@ -478,30 +487,30 @@ constraintL1 <- function(p, mu, lambda = 1) {
   
 }
 
-constraintLeins <- function(p, mu, lambda = 1, tol = 1e-3) {
-  
-  parameters <- intersect(names(p), names(mu))
-  
-    
-  parameters.l1 <- parameters[abs(p[parameters] - mu[parameters]) >  tol]
-  parameters.l2 <- parameters[abs(p[parameters] - mu[parameters]) <= tol]
-  
-  sigma <- sqrt(tol/lambda)
-  offset <- lambda*tol - .5*(tol/sigma)^2 
-  
-  prior1 <- prior2 <- as.obj(p)
-  
-  if(length(parameters.l1) > 0) {
-    prior1 <- constraintL1(p, mu[parameters.l1], lambda)
-    if(prior1$value > 0) prior1$value <- prior1$value - offset
-  }
-  if(length(parameters.l2) > 0) {
-    prior2 <- constraintL2(p, mu[parameters.l2], sigma)
-  }
-    
-  prior1 + prior2
-  
-}
+# constraintLeins <- function(p, mu, lambda = 1, tol = 1e-3) {
+#   
+#   parameters <- intersect(names(p), names(mu))
+#   
+#     
+#   parameters.l1 <- parameters[abs(p[parameters] - mu[parameters]) >  tol]
+#   parameters.l2 <- parameters[abs(p[parameters] - mu[parameters]) <= tol]
+#   
+#   sigma <- sqrt(tol/lambda)
+#   offset <- lambda*tol - .5*(tol/sigma)^2 
+#   
+#   prior1 <- prior2 <- as.obj(p)
+#   
+#   if(length(parameters.l1) > 0) {
+#     prior1 <- constraintL1(p, mu[parameters.l1], lambda)
+#     if(prior1$value > 0) prior1$value <- prior1$value - offset
+#   }
+#   if(length(parameters.l2) > 0) {
+#     prior2 <- constraintL2(p, mu[parameters.l2], sigma)
+#   }
+#     
+#   prior1 + prior2
+#   
+# }
 
 
 #' Compute the L1 norm of residuals
