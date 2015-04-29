@@ -1,26 +1,44 @@
 #' Compute a differentiable box prior
 #' 
-#' @param p parameter vector
-#' @param mu vector of means of boxes
-#' @param sigma half box width
-#' @param k shape of box; if 0 a quadratic prior is obtained, the higher k the more box shape, gradient at border of the box (-sigma, sigma) is equal to sigma*k
+#' @param p Named numeric, the parameter value
+#' @param mu Named numeric, the prior values, means of boxes
+#' @param sigma Named numeric, half box width
+#' @param k Named numeric, shape of box; if 0 a quadratic prior is obtained, the higher k the more box shape, gradient at border of the box (-sigma, sigma) is equal to sigma*k
+#' @param fixed Named numeric with fixed parameter values (contribute to the prior value but not to gradient and Hessian)
 #' @return list with entries: value (numeric, the weighted residual sum of squares), 
 #' gradient (numeric, gradient) and 
 #' hessian (matrix of type numeric).
-constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, kmin=1e-5) {
-  par <- names(mu)
-  t <- p[par]
-  s <- sigma
+constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, kmin=1e-5, fixed=NULL) {
+  
+  ## Augment sigma if length = 1
+  if(length(sigma) == 1) 
+    sigma <- structure(rep(sigma, length(mu)), names = names(mu)) 
+  ## Augment k if length = 1
+  if(length(k) == 1) 
+    k <- structure(rep(k, length(mu)), names = names(mu))
+  
   k <- sapply(k, function(ki){
     if(ki < kmin){
       kmin
     } else ki
   })
   
+  par <- intersect(names(mu), names(p))
+  t <- p[par]
+  s <- sigma
+  
+  ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
+  par.fixed <- intersect(names(mu), names(fixed))
+  sumOfFixed <- 0
+  if(!is.null(par.fixed)) sumOfFixed <- sum(0.5*(exp(k[par.fixed]*((fixed[par.fixed] - mu[par.fixed])/sigma[par.fixed])^2)-1)/(exp(k[par.fixed])-1))
+  
+  
+  # Compute prior value and derivatives 
+  
   gr <- rep(0, length(p)); names(gr) <- names(p)
   hs <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
   
-  val <- sum(0.5*(exp(k*((t-mu)/s)^2)-1)/(exp(k)-1))
+  val <- sum(0.5*(exp(k*((t-mu)/s)^2)-1)/(exp(k)-1)) + sumOfFixed
   gr <- (k*(t-mu)/(s^2)*exp(k*((t-mu)/s)^2)/(exp(k)-1))
   diag(hs)[par] <- k/(s*s)*exp(k*((t-mu)/s)^2)/(exp(k)-1)*(1+2*k*(t-mu)/(s^2))
   
