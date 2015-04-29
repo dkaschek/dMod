@@ -23,20 +23,23 @@ constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, kmin=1e-5, fixed=NULL) {
     } else ki
   })
   
-  par <- intersect(names(mu), names(p))
-  t <- p[par]
-  s <- sigma
-  
+
   ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
   par.fixed <- intersect(names(mu), names(fixed))
   sumOfFixed <- 0
   if(!is.null(par.fixed)) sumOfFixed <- sum(0.5*(exp(k[par.fixed]*((fixed[par.fixed] - mu[par.fixed])/sigma[par.fixed])^2)-1)/(exp(k[par.fixed])-1))
   
   
+  par <- intersect(names(mu), names(p))
+  t <- p[par]
+  mu <- mu[par]
+  s <- sigma[par]
+  k <- k[par]
+  
   # Compute prior value and derivatives 
   
-  gr <- rep(0, length(p)); names(gr) <- names(p)
-  hs <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
+  gr <- rep(0, length(t)); names(gr) <- names(t)
+  hs <- matrix(0, length(t), length(t), dimnames = list(names(t), names(t)))
   
   val <- sum(0.5*(exp(k*((t-mu)/s)^2)-1)/(exp(k)-1)) + sumOfFixed
   gr <- (k*(t-mu)/(s^2)*exp(k*((t-mu)/s)^2)/(exp(k)-1))
