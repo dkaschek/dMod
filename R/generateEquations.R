@@ -3,6 +3,9 @@
 #' @param ... one or more \code{data.frame}s with columns "Description" (character), "Rate" (character), 
 #' and one column per ODE state with the state names. The state columns correspond to the stoichiometric
 #' matrix.
+#' @param volumes Named character, volume parameters for species. Names must be a subset of the species.
+#' Values can be either characters, e.g. "V1", or numeric values for the volume. If \code{volumes} is not
+#' \code{NULL}, missing species are treated like 1.
 #' @details This function is supposed to translate a reaction network as being defined in a csv file
 #' into the raw equations.
 #' 
@@ -10,7 +13,7 @@
 #' (the stoichiometric matrix), "species" (the state names), "rates" (the rate expressions) and "description".
 #' @examples reactions <- data.frame(Description = c("Activation", "Deactivation"), Rate = c("act*A", "deact*pA"), A=c(-1,1), pA=c(1, -1) )
 #' f <- generateEquations(reactions)
-generateEquations <- function(...) {
+generateEquations <- function(..., volumes = NULL) {
   
   mylist <- list(...)
   if(length(mylist) > 1) S <- combine(...) else S <- mylist[[1]]
@@ -19,6 +22,10 @@ generateEquations <- function(...) {
   rate <- as.character(S$Rate)
   variables <- colnames(S)[-(1:2)]
   SMatrix <- as.matrix(S[,-(1:2)]); colnames(SMatrix) <- variables
+  
+  volumes.draft <- structure(rep("1", length(variables)), names = variables)
+  volumes.draft[names(volumes)] <- volumes
+  volumes <- volumes.draft
   
     
   # check for potential errors
@@ -35,14 +42,31 @@ generateEquations <- function(...) {
   }))
   
   # generate equation expressions
-  terme <- lapply(1:length(variables), function(i) {
-    v <- SMatrix[,i]
+  terme <- lapply(1:length(variables), function(j) {
+    v <- SMatrix[,j]
     nonZeros <- which(!is.na(v))
     positives <- which(v > 0)
-    numberchar <- as.character(v)
-    if(nonZeros[1] %in% positives) numberchar[positives] <- paste(c("", rep("+", length(positives)-1)), numberchar[positives], sep = "") else numberchar[positives] <- paste("+", numberchar[positives], sep = "")
+    volumes.destin <- volumes[j]
+    volumes.origin <- sapply(positives, function(i) {
+      candidates <- which(SMatrix[i,] < 0)
+      myvolume <- unique(volumes[candidates])
+      if(length(myvolume) > 1) 
+        stop("species from different compartments meet in one reaction")
+      
+      return(myvolume)
+    })
     
-    paste(numberchar[nonZeros], rate[nonZeros], sep="*")
+    volumes.ratios <- paste0("*(", volumes.origin, "/", volumes.destin, ")")
+    print(volumes.ratios)
+    volumes.ratios[volumes.destin == volumes.origin] <- ""
+    
+    numberchar <- as.character(v)
+    if(nonZeros[1] %in% positives){
+      numberchar[positives] <- paste(c("", rep("+", length(positives)-1)), numberchar[positives], sep = "") 
+    } else {
+      numberchar[positives] <- paste("+", numberchar[positives], sep = "")
+    }
+    paste0(numberchar[nonZeros], "*(",  rate[nonZeros], ")", volumes.ratios)
   })
   
   terme <- lapply(terme, function(t) paste(t, collapse=" "))
