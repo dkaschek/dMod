@@ -85,7 +85,7 @@ generateEquations <- function(..., volumes = NULL) {
     } else {
       numberchar[positives] <- paste("+", numberchar[positives], sep = "")
     }
-    paste0(numberchar[nonZeros], "*(",  rate[nonZeros], ")", volumes.ratios)
+    paste0(numberchar[nonZeros], "*(",  rate[nonZeros], ")", volumes.ratios[nonZeros])
   })
   
   terme <- lapply(terme, function(t) paste(t, collapse=" "))
