@@ -263,7 +263,7 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, one.sided=FALSE, lambda = 1
         chgsgn <- (theta[names(mu)]-mu)*(theta.try[names(mu)]-mu)
         theta.try[names(mu)][chgsgn < 0] <- mu[chgsgn < 0]
         if(one.sided){  
-          theta.try[names(mu)][theta.try[names(mu)] < 0] <- mu[theta.try[names(mu)]< 0]
+          theta.try[names(mu)][theta.try[names(mu)] < mu] <- mu[theta.try[names(mu)] < mu]
         }
         ## Scale down step length if step over prior
         #         chgsgn <- (theta[names(mu)]-mu)*(theta.try[names(mu)]-mu)
