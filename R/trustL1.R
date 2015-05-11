@@ -76,10 +76,10 @@ norm <- function(x) sqrt(sum(x^2))
 ##### is better than fast.
 #############################
 
-trustL1 <- function(objfun, parinit, mu = 0*parinit, lambda = 1, rinit, rmax, parscale,
+trustL1 <- function(objfun, parinit, mu = 0*parinit, one.sided=FALSE, lambda = 1, rinit, rmax, parscale,
     iterlim = 100, fterm = sqrt(.Machine$double.eps),
     mterm = sqrt(.Machine$double.eps),
-    minimize = TRUE, blather = FALSE, ...)
+    minimize = TRUE, blather = FALSE, blather2 = FALSE, ...)
 {
     if (! is.numeric(parinit))
        stop("parinit not numeric")
@@ -114,7 +114,10 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, lambda = 1, rinit, rmax, pa
     }
     
     ## Fix L1-parameters on prior if they would be drawn back after step
-    is.fixed.theta <- which(names(theta)%in%names(mu))[which(theta[names(mu)] == mu & abs(grad0[names(mu)]) <= lambda)]
+    is.fixed.theta <- match(names(mu), names(theta))[which(theta[names(mu)] == mu & abs(grad0[names(mu)]) <= lambda)]
+    if(one.sided){
+      is.fixed.theta <- match(names(mu), names(theta))[which(theta[names(mu)] == mu & -(grad0[names(mu)]) <= lambda)]
+    }
     if(length(is.fixed.theta) > 0) {
       
       out$gradient <- out$gradient[-is.fixed.theta]
@@ -147,6 +150,8 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, lambda = 1, rinit, rmax, pa
     }
 
     for (iiter in 1:iterlim) {
+      if(blather2)
+        print(paste(iiter,out$value,accept))
 
         if (blather) {
             theta.blather <- rbind(theta.blather, theta)
@@ -280,7 +285,14 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, lambda = 1, rinit, rmax, pa
         
         
         ## Fix L1-parameters on prior if they would be drawn back after step (theta.try)
-        is.fixed.theta.try <- which(names(theta.try)%in%names(mu))[which(theta.try[names(mu)] == mu & abs(out$gradient[names(mu)]) <= lambda)]
+      
+       # is.fixed.theta.try <- which(names(theta.try)%in%names(mu))[which(theta.try[names(mu)] == mu & abs(out$gradient[names(mu)]) <= lambda)]
+      is.fixed.theta.try <- match(names(mu), names(theta.try))[which(theta.try[names(mu)] == mu & abs(out$gradient[names(mu)]) <= lambda)]
+      
+        if(one.sided){
+          is.fixed.theta.try <- match(names(mu), names(theta.try))[which(theta.try[names(mu)] == mu & -(out$gradient[names(mu)]) <= lambda)]
+        }
+      
         if(length(is.fixed.theta.try) > 0) {
           
           out$gradient <- out$gradient[-is.fixed.theta.try]
