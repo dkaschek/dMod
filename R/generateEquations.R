@@ -11,8 +11,24 @@
 #' 
 #' @return An object of class \code{eqnList}, a named vector with the equations. Contains attributes "SMatrix"
 #' (the stoichiometric matrix), "species" (the state names), "rates" (the rate expressions) and "description".
-#' @examples reactions <- data.frame(Description = c("Activation", "Deactivation"), Rate = c("act*A", "deact*pA"), A=c(-1,1), pA=c(1, -1) )
+#' @examples 
+#' #######################################
+#' # Example 1
+#' #######################################
+#' reactions <- data.frame(Description = c("Activation", "Deactivation"), Rate = c("act*A", "deact*pA"), A=c(-1,1), pA=c(1, -1) )
 #' f <- generateEquations(reactions)
+#' f
+#' 
+#' #######################################
+#' # Example 2
+#' #######################################
+#' reactions <- data.frame(Description = c("Activation", "Deactivation", "Production", "Degradation"), 
+#'                         Rate = c("act*A", "deact*pA", "prod", "degrad*pA"), 
+#'                         A=c(-1,1, 1, NA), 
+#'                         pA=c(1, -1, NA, -1))
+#' volumes <- c(A = "V1", pA = "V2")
+#' f <- generateEquations(reactions, volumes = volumes)
+#' f[1:length(f)]
 generateEquations <- function(..., volumes = NULL) {
   
   mylist <- list(...)
@@ -46,18 +62,21 @@ generateEquations <- function(..., volumes = NULL) {
     v <- SMatrix[,j]
     nonZeros <- which(!is.na(v))
     positives <- which(v > 0)
-    volumes.destin <- volumes[j]
-    volumes.origin <- sapply(positives, function(i) {
-      candidates <- which(SMatrix[i,] < 0)
-      myvolume <- unique(volumes[candidates])
-      if(length(myvolume) > 1) 
-        stop("species from different compartments meet in one reaction")
-      
-      return(myvolume)
-    })
-    
+    negatives <- which(v < 0)
+    volumes.destin <- volumes.origin <- rep(volumes[j], length(v))
+    if(length(positives) > 0) {
+        volumes.origin[positives] <- sapply(positives, function(i) {
+        candidates <- which(SMatrix[i,] < 0)
+        myvolume <- unique(volumes[candidates])
+        if(length(myvolume) > 1) 
+          stop("species from different compartments meet in one reaction")
+        if(length(myvolume) == 0) myvolume <- volumes[j]
+        
+        return(myvolume)
+      })
+    }
     volumes.ratios <- paste0("*(", volumes.origin, "/", volumes.destin, ")")
-    print(volumes.ratios)
+    #print(volumes.ratios)
     volumes.ratios[volumes.destin == volumes.origin] <- ""
     
     numberchar <- as.character(v)

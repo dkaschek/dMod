@@ -40,17 +40,17 @@ void derivs (int *n, double *t, double *y, double *ydot, double *RPAR, int *IPAR
 
 	 double time = *t;
 
-	 ydot[0] = -1*p1*pEpoR*y[0]+1*p5*y[8];
- 	 ydot[1] = 1*p1*pEpoR*y[0]-2*p2*y[1]*y[1];
- 	 ydot[2] = 1*p2*y[1]*y[1]-1*p3*y[2];
- 	 ydot[3] = 1*p3*y[2]-1*p4*y[3];
- 	 ydot[4] = 2*p4*y[3]-1*p5*y[4];
- 	 ydot[5] = 1*p5*y[4]-1*p5*y[5];
- 	 ydot[6] = 1*p5*y[5]-1*p5*y[6];
- 	 ydot[7] = 1*p5*y[6]-1*p5*y[7];
- 	 ydot[8] = 1*p5*y[7]-1*p5*y[8];
- 	 ydot[9] = (1)*(-1*p1*pEpoR*y[0]+1*p5*y[8])+(1)*(1*p1*pEpoR*y[0]-2*p2*y[1]*y[1])+(2)*(1*p2*y[1]*y[1]-1*p3*y[2]);
- 	 ydot[10] = 0+(s_STAT)*(1*p1*pEpoR*y[0]-2*p2*y[1]*y[1])+(s_STAT*2)*(1*p2*y[1]*y[1]-1*p3*y[2]);
+	 ydot[0] = -1*(p1*pEpoR*y[0])+1*(p5*y[8]);
+ 	 ydot[1] = 1*(p1*pEpoR*y[0])-2*(p2*y[1]*y[1]);
+ 	 ydot[2] = 1*(p2*y[1]*y[1])-1*(p3*y[2]);
+ 	 ydot[3] = 1*(p3*y[2])-1*(p4*y[3]);
+ 	 ydot[4] = 2*(p4*y[3])-1*(p5*y[4]);
+ 	 ydot[5] = 1*(p5*y[4])-1*(p5*y[5]);
+ 	 ydot[6] = 1*(p5*y[5])-1*(p5*y[6]);
+ 	 ydot[7] = 1*(p5*y[6])-1*(p5*y[7]);
+ 	 ydot[8] = 1*(p5*y[7])-1*(p5*y[8]);
+ 	 ydot[9] = (1)*(-1*(p1*pEpoR*y[0])+1*(p5*y[8]))+(1)*(1*(p1*pEpoR*y[0])-2*(p2*y[1]*y[1]))+(2)*(1*(p2*y[1]*y[1])-1*(p3*y[2]));
+ 	 ydot[10] = 0+(s_STAT)*(1*(p1*pEpoR*y[0])-2*(p2*y[1]*y[1]))+(s_STAT*2)*(1*(p2*y[1]*y[1])-1*(p3*y[2]));
 
 	 RPAR[0] = pEpoR;
 }
