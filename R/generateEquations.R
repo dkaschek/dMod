@@ -96,9 +96,11 @@ generateEquations <- function(..., volumes = NULL) {
   class(terme) <- "eqnList"
   attr(terme, "SMatrix") <- SMatrix
   attr(terme, "species") <- variables
+  attr(terme, "volumes") <- volumes
   attr(terme, "rates") <- rate
   attr(terme, "description") <- description
   attr(terme, "exclmarks") <- which(exclmark)
+  
   
   if(length(exclmark) == 0) cat("There might be a problem with one or more of the reactions.\n")
   
@@ -179,6 +181,7 @@ subset.eqnList <- function(x, ...) {
   Product <- lapply(1:dim(SMatrix)[1], function(row) colnames(SMatrix)[which(SMatrix[row,] > 0)])
   Rate <- attr(x, "rates")
   Description <- attr(x, "description")
+  Volume <- attr(x, "volumes")
   
   "%in%" <- function(x, table) sapply(table, function(mytable) match(x, mytable, nomatch=0) > 0)
   
@@ -186,17 +189,32 @@ subset.eqnList <- function(x, ...) {
   
   
   
-  newf <- x[ind]
-  attr(newf, "SMatrix") <- attr(x, "SMatrix")[ind,]
-  #attr(newf, "species") <- attr(x, "species")[ind]
-  attr(newf, "rates") <- attr(x, "rates")[ind]
-  attr(newf, "description") <- attr(x, "description")[ind]
-  attr(newf, "exclmarks") <- attr(x, "exclmarks")[ind]
-  attr(newf, "observables") <- attr(x, "observables")
+  S <- attr(x, "SMatrix")[ind,]
+  ind2 <- which(sapply(1:ncol(S), function(j) !all(is.na(S[, j]))))
+  S <- S[,ind2]
+  rates <- Rate[ind]
+  description <- Description[ind]
+  volumes <- Volume[colnames(S)]
   
-  class(newf) <- "eqnList"
+  reactions <- cbind(data.frame(Description = description, Rate = rates), S)
+
+  generateEquations(reactions, volumes = volumes)
+   
   
-  return(newf)
+  # newf <- x[ind]
+  # newS <- attr(x, "SMatrix")[ind,]
+  # ind2 <- which(sapply(1:ncol(newS), function(j) all(is.na(newS[, j]))))
+  # 
+  # attr(newf, "SMatrix") <- attr(x, "SMatrix")[ind, ind2]
+  # #attr(newf, "species") <- attr(x, "species")[ind]
+  # attr(newf, "rates") <- attr(x, "rates")[ind]
+  # attr(newf, "description") <- attr(x, "description")[ind]
+  # attr(newf, "exclmarks") <- attr(x, "exclmarks")[ind]
+  # attr(newf, "observables") <- attr(x, "observables")
+  # 
+  # class(newf) <- "eqnList"
+  # 
+  # return(newf)
   
   
   
