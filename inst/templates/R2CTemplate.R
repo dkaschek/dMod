@@ -43,7 +43,7 @@ g <- Y(observables, f)
 
 
 # Generate the model C files, compile them and return a list with func and extended.
-model0 <- generateModel(f, einspline=FALSE, fixed = fixed, forcings = forcings, jacobian = "inz.lsodes", compile = TRUE)
+model0 <- generateModel(f, fixed = fixed, forcings = forcings, jacobian = "inz.lsodes")
 
 ## Parameter Transformations -------------------------------------------
 
