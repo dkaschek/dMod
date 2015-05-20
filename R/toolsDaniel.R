@@ -4,34 +4,21 @@
 #' @param forcings Character vector with the names of the forcings
 #' @param fixed Character vector with the names of parameters (initial values and dynamic) for which
 #' no sensitivities are required (will speed up the integration).
-#' @param einspline Logical. Use einspline library if set to \code{TRUE}. Defaults to \code{FALSE}.
 #' @param ... Further arguments being passed to funC.
 #' @return list with \code{func} (ODE object) and \code{extended} (ODE+Sensitivities object)
-generateModel <- function(f, forcings=NULL, fixed=NULL, einspline=FALSE, modelname = "f", ...) {
+generateModel <- function(f, forcings=NULL, fixed=NULL, modelname = "f", ...) {
   
   modelname_s <- paste0(modelname, "_s")
-    
-  if(einspline) {
-    func <- funC.einspline(f, forcings = forcings, modelname = modelname, ...)
-    s <- sensitivitiesSymb(f, 
-                           states = setdiff(attr(func, "variables"), fixed), 
-                           parameters = setdiff(attr(func, "parameters"), fixed), 
-                           inputs = forcings)
-    fs <- c(f, s)
-    extended <- funC.einspline(fs, forcings = forcings, modelname = modelname_s, ...)
-    
-  }
-  if(!einspline) {
-    func <- cOde::funC(f, forcings = forcings, modelname = modelname , ...)
-    s <- sensitivitiesSymb(f, 
-                           states = setdiff(attr(func, "variables"), fixed), 
-                           parameters = setdiff(attr(func, "parameters"), fixed), 
-                           inputs=forcings,
-                           reduce = TRUE)
-    fs <- c(f, s)
-    outputs <- attr(s, "outputs")
-    extended <- cOde::funC(fs, forcings = forcings, outputs = outputs, modelname = modelname_s, ...)
-  }
+  
+  func <- cOde::funC(f, forcings = forcings, modelname = modelname , ...)
+  s <- sensitivitiesSymb(f, 
+                         states = setdiff(attr(func, "variables"), fixed), 
+                         parameters = setdiff(attr(func, "parameters"), fixed), 
+                         inputs=forcings,
+                         reduce = TRUE)
+  fs <- c(f, s)
+  outputs <- attr(s, "outputs")
+  extended <- cOde::funC(fs, forcings = forcings, outputs = outputs, modelname = modelname_s, ...)
   
   list(func = func, extended = extended)
   
@@ -76,13 +63,13 @@ generateModelIE <- function(f, observed, inputs, forcings, scale=1, modelname = 
                          yini = c(rep(1, nf), rep(NA, nf)),
                          yend = c(rep(NA, nf), rep(0, nf)))
   forcings_fa <- c(attr(au, "forcings"), forcings)
-  func_fa <- funC.einspline(fa, forcings_fa, jacobian=TRUE, boundary=boundary, modelname = modelname, ...)
+  func_fa <- cOde::funC(fa, forcings_fa, jacobian=TRUE, boundary=boundary, modelname = modelname, fcontrol = "einspline", ...)
   attr(func_fa, "inputs") <- attr(au, "inputs")
   
   ## Log-likelihood
   l <- c(attr(au, "chi"), attr(au, "grad"))
   forcings_l <- c(names(au), attr(au, "forcings"), names(f), c(forcings, inputs))
-  func_l <- funC.einspline(l, forcings_l, modelname = paste0(modelname, "_l"), ...)
+  func_l <- cOde::funC(l, forcings_l, modelname = paste0(modelname, "_l"), fcontrol = "einspline", ...)
   
   list(func_fa = func_fa, func_l = func_l)
   
