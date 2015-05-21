@@ -137,17 +137,25 @@ Y <- function(g, f, compile = FALSE, warnings = FALSE) {
   observables <- names(g)
   gEval <- funC.algebraic(g, compile = compile)
   
-  # Character matrices of derivatives  
-  dxdp <- apply(expand.grid.alt(states, c(states, parameters)), 1, paste, collapse = ".")
-  dxdp <- matrix(dxdp, nrow = length(states))
-  dgdx <- matrix(jacobianSymb(g, states), nrow=length(g))
-  dgdp <- cbind(
-    matrix("0", nrow=length(g), ncol=length(states)), 
-    matrix(jacobianSymb(g, parameters), nrow=length(g))
+  # Character matrices of derivatives
+  dxdp <- dgdx <- dgdp <- NULL
+  
+  if(length(states) > 0 & length(parameters) > 0) {
+    dxdp <- apply(expand.grid.alt(states, c(states, parameters)), 1, paste, collapse = ".")
+    dxdp <- matrix(dxdp, nrow = length(states))
+  }
+  if(length(states) > 0)
+    dgdx <- matrix(jacobianSymb(g, states), nrow=length(g))
+  if(length(parameters) > 0) {
+    dgdp <- cbind(
+      matrix("0", nrow=length(g), ncol=length(states)), 
+      matrix(jacobianSymb(g, parameters), nrow=length(g))
     )
+  }
   
   # Sensitivities of the observables
   derivs <- as.vector(sumSymb(prodSymb(dgdx, dxdp), dgdp))
+  if(length(derivs) == 0) stop("Nor states or parameters involved")
   names(derivs) <- apply(expand.grid.alt(observables, c(states, parameters)), 1, paste, collapse = ".")
   derivsEval <- funC.algebraic(derivs, compile = compile)
     
