@@ -32,7 +32,7 @@ getCoefficients <- function(char, symbol) {
 #' @return named character vector of the same length as \code{variables}
 #' @examples resolveRecurrence(c(A = "k1*B/k2", C = "A*k3+k4", D="A*C*k5"))
 resolveRecurrence <- function (variables) {
-  if(length(variables > 1)) {
+  if(length(variables) > 1) {
     for (i in 1:(length(variables) - 1)) {
       newvariables <- c(variables[1:i], 
                         unlist(replaceSymbols(names(variables)[i],
