@@ -73,7 +73,11 @@ P <- function(trafo, parameters=NULL, compile = FALSE) {
     return(pinner)
   }
   
-  class(p2p) <- "par"
+  class(p2p) <- "par" 
+  attr(p2p, "equations") <- trafo
+  attr(p2p, "parameters") <- parameters
+  
+  
   return(p2p)
   
 }
@@ -190,6 +194,10 @@ Pi <- function(trafo, parameters=NULL, compile = FALSE) {
   }
   
   class(p2p) <- "par"
+  
+  attr(p2p, "equations") <- trafo
+  attr(p2p, "parameters") <- parameters
+  
   return(p2p)
   
 }

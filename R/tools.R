@@ -244,7 +244,7 @@ funC.algebraic <- function(x, compile = TRUE) {
   }
   
   
-  
+  attr(myRfun, "equations") <- x
   
   return(myRfun)
   

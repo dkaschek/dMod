@@ -224,7 +224,8 @@ Y <- function(g, f, compile = FALSE, warnings = FALSE) {
   }
 
 
-return(X2Y)
+  attr(X2Y, "equations") <- g
+  return(X2Y)
 
 
 }
