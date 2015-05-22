@@ -1,8 +1,6 @@
-#' Compare data in integration output to compute residuals
+#' Compare data and model prediction by computing residuals
 #' 
 #' @param data data.frame with name (factor), time (numeric), value (numeric) and sigma (numeric)
-#' ATTENTION: Right now the data.frame should not contain replicates, i.e. entries with identical name
-#' and time but different value. Will be fixed in the future.
 #' @param out output of ode(), optionally augmented with attributes 
 #' "deriv" (output of ode() for the sensitivity equations) and
 #' "parameters" (character vector of parameter names, a subsest of those 
@@ -10,54 +8,59 @@
 #' needs to be given.
 #' @return data.frame with the original data augmented by columns "prediction" (
 #' numeric, the model prediction), "residual" (numeric, difference between
-#' data value and prediction), "weighted.residual" (numeric, residual devided
+#' prediction and data value), "weighted.residual" (numeric, residual devided
 #' by sigma). If "deriv" was given, the returned data.frame has an 
 #' attribute "deriv" (data.frame with the derivatives of the residuals with 
 #' respect to the parameters).
 res <- function (data, out) {
   
+  # Unique times, names and parameter names
   times <- sort(unique(data$time))
   names <- as.character(unique(data$name))
-  match.times <- match(data$time, times)
-  match.names <- match(data$name, names)
-  match.coords <- cbind(match.times, match.names)
-  index <- apply(match.coords, 1, function(m) length(times)*(m[2]-1) + m[1])
-  
-  
-  
-  names.extended <- rep(names, each=length(times))
-  values.extended <- matrix(NA, nrow = length(times)*length(names), ncol=3, 
-                            dimnames = list(NULL, c("time", "value", "sigma")))
-  values.extended[index, "time"] <- data$time
-  values.extended[index, "value"] <- data$value
-  values.extended[index, "sigma"] <- data$sigma
-  
-  data <- data.frame(name = names.extended, values.extended)
-  
-  
-  outtimes <- out[, 1]
-  index <- match(times, outtimes)
-  nout <- as.vector(out[index, names])
-  deriv <- attr(out, "deriv")
   pars <- attr(out, "parameters")
-  sensData <- NULL
+  
+  # Match data times/names in unique times/names
+  data.time <- match(data$time, times)
+  data.name <- match(data$name, names)
+  
+  # Match unique times/names in out times/names
+  time.out <- match(times, out[,1])
+  name.out <- match(names, colnames(out))
+  
+  # Match data times/names in out times/names
+  timeIndex <- time.out[data.time]
+  nameIndex <- name.out[data.name]
+  prediction <- sapply(1:nrow(data), function(i) out[timeIndex[i], nameIndex[i]]) 
+  
+  # Propagate derivatives if available
+  deriv <- attr(out, "deriv")
+  deriv.data <- NULL
   if (!is.null(deriv)) {
-    sensnames <-as.vector(outer(names, pars, paste, sep="."))
-    noutSens <- as.vector(deriv[index, sensnames])
-    M <- matrix(noutSens, ncol = length(pars), dimnames = list(NULL, pars))
-    sensData <- data.frame(time = data$time, name = data$name, M)
+    sensnames <- as.vector(outer(names, pars, paste, sep="."))
+    # Match names to the corresponding sensitivities in sensnames
+    names.sensnames <- apply(matrix(1:length(sensnames), nrow = length(names), ncol = length(pars)), 1, identity)
+    # Get positions of sensnames in colnames of deriv
+    sensnames.deriv <- match(sensnames, colnames(deriv))
+    # Get the columns in deriv corresponding to data names
+    derivnameIndex <- matrix(sensnames.deriv[names.sensnames[, data.name]], ncol = length(data.name))
+    # Derivatives of the prediction
+    deriv.prediction <- do.call(rbind, lapply(1:nrow(data), function(i) deriv[timeIndex[i], derivnameIndex[, i]]))
+    colnames(deriv.prediction) <- pars
+    
+    deriv.data <- data.frame(time = data$time, name = data$name, deriv.prediction)
   }
-  residuals <- data$value - nout
-  residuals[is.na(residuals)] <- 0
-  weighted.residuals <- (data$value - nout)/data$sigma
-  weighted.residuals[is.na(weighted.residuals)] <- 0
-  data <- cbind(data, prediction = nout, residual = residuals, 
+  
+  # Compute residuals
+  residuals <- prediction - data$value 
+  weighted.residuals <- (prediction - data$value)/data$sigma
+  data <- cbind(data, prediction = prediction, residual = residuals, 
                 weighted.residual = weighted.residuals)
   data <- data[c("time", "name", "value", "prediction", "sigma", 
                  "residual", "weighted.residual")]
-  attr(data, "deriv") <- sensData
+  attr(data, "deriv") <- deriv.data
   return(data)
 }
+
 
 #' Compute the weighted residual sum of squares
 #' 
@@ -75,7 +78,7 @@ wrss <- function(nout) {
     nout$sigma[is.na(nout$sigma)] <- 1 #replace by neutral element
   
     sens <- as.matrix(attr(nout, "deriv")[,-(1:2)])
-    grad <- -as.vector(2*matrix(nout$residual/nout$sigma^2, nrow=1)%*%sens)
+    grad <- as.vector(2*matrix(nout$residual/nout$sigma^2, nrow=1)%*%sens)
     names(grad) <- colnames(sens)
     hessian <- 2*t(sens/nout$sigma)%*%(sens/nout$sigma)
     
