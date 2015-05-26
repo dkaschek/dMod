@@ -248,7 +248,7 @@ plotProfile <- function(..., maxvalue = 5) {
   
 }
 
-plotPaths <- function(..., whichPar = NULL) {
+plotPaths <- function(..., whichPar = NULL, sort = FALSE) {
   
   require(ggplot2)
   
@@ -262,7 +262,8 @@ plotPaths <- function(..., whichPar = NULL) {
       # chose a profile
       paths <- proflist[[n]][,-(1:4)]
       values <- proflist[[n]][,1]
-      combinations <- apply(expand.grid.alt(whichPar, colnames(paths)), 1, sort)
+      combinations <- expand.grid.alt(whichPar, colnames(paths))
+      if(sort) combinations <- apply(combinations, 1, sort) else combinations <- apply(combinations, 1, identity)
       combinations <- combinations[,-which(combinations[1,] == combinations[2,])]
       combinations <- combinations[,!duplicated(paste(combinations[1,], combinations[2,]))]
       

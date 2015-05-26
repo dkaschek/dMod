@@ -183,6 +183,7 @@ funC.algebraic <- function(x, compile = TRUE) {
     names(x) <- paste0("y[", (1:length(outnames)) - 1, "+i* *l]")
     
     # Paste into equation
+    x <- x[x != "0"]
     expr <- paste(names(x), "=", x, ";")
     
     # Put equation into loop, body of the C function
