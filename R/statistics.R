@@ -214,9 +214,12 @@ profile.trust <- function(obj, pars, whichPar, alpha = 0.05,
       stepsize <- min(c(stepsize*2, sControl$max))
     }
     
-    # Compute progress
-    diff.thres <- 1 - max(c(0, min(c(1, (threshold - lagrange.out.try$value)/delta))))
-    diff.steps <- i/sControl$limit
+    # Compute progres
+    diff.thres <- diff.steps <- diff.limit <- 0
+    if(threshold < Inf)
+      diff.thres <- 1 - max(c(0, min(c(1, (threshold - lagrange.out.try$value)/delta))))
+    if(sControl$limit < Inf)
+      diff.steps <- i/sControl$limit
     diff.limit <- switch(as.character(sign(constraint.out$value)),
                          "1"  = 1 - (limits[2] - constraint.out$value)/limits[2],
                          "-1" = diff.limit <- 1 - (limits[1] - constraint.out$value)/limits[1],
@@ -267,7 +270,7 @@ profile.trust <- function(obj, pars, whichPar, alpha = 0.05,
   lagrange.out <- lagrange.out
   constraint.out <- constraint.out
   
-  for(i in 1:sControl$limit) {
+  while(i < sControl$limit) {
     
     ## Iteration step
     dy <- stepsize*lagrange.out$dy
@@ -301,7 +304,7 @@ profile.trust <- function(obj, pars, whichPar, alpha = 0.05,
   lagrange.out <- lagrange(ini)
   constraint.out <- constraint(pars)
     
-  for(i in 1:sControl$limit) {
+  while(i < sControl$limit) {
     
     ## Iteration step
     dy <- stepsize*lagrange.out$dy
