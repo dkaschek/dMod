@@ -378,3 +378,63 @@ datapointL2 <- function(p, prediction, mu, time = 0, sigma = 1, fixed = NULL) {
   return(out)
   
 }
+
+#' L2 objective function for prior value
+#' 
+#' @description As a prior function, it returns derivatives with respect to
+#' the penalty parameter in addition to parameter derivatives.
+#' 
+#' @param p Namec numeric, the parameter value
+#' @param mu Named numeric, the prior values
+#' @param lambda Character of length one. The name of the penalty paramter in \code{p}.
+#' @param fixed Named numeric with fixed parameter values (contribute to the prior value
+#' but not to gradient and Hessian)
+#' @return List of class \code{obj}, i.e. objective value, gradient and Hessian as list.
+#' @seealso \link{wrss}, \link{summation}, \link{constraintL1}, \link{constraintExp2}
+#' @details Computes the constraint value 
+#' \deqn{\lambda \| p-\mu \|^2}{lambda*sum((p-mu)^2)}
+#' and its derivatives with respect to p and lambda.
+#' @examples
+#' p <- c(A = 1, B = 2, C = 3, lambda = 1)
+#' mu <- c(A = 0, B = 0)
+#' priorL2(p, mu, lambda = "lambda")
+priorL2 <- function(p, mu, lambda = "lambda", fixed = NULL) {
+  
+  ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
+  par.fixed <- intersect(names(mu), names(fixed))
+  sumOfFixed <- 0
+  if(!is.null(par.fixed)) sumOfFixed <- sum(c(fixed, p)[lambda]*(fixed[par.fixed] - mu[par.fixed])^2)
+  
+  
+  # Compute prior value and derivatives
+  par <- intersect(names(mu), names(p))
+  par0 <- setdiff(par, lambda)
+  
+  val <- sum((c(fixed, p)[lambda]*(p[par]-mu[par])^2)) + sumOfFixed
+  gr <- rep(0, length(p)); names(gr) <- names(p)
+  gr[par] <- 2*c(fixed, p)[lambda]*(p[par]-mu[par])
+  if(lambda %in% names(p)) {
+    gr[lambda] <- sum((p[par0]-mu[par0])^2) + sum((fixed[par.fixed] - mu[par.fixed])^2)
+  }
+  
+  hs <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
+  diag(hs)[par] <- 2*c(fixed, p)[lambda]
+  if(lambda %in% names(p)) {
+    hs[lambda, lambda] <- 0 
+    hs[lambda, par0] <- hs[par0, lambda] <- 2*(p[par0]-mu[par0])
+  }
+  
+  dP <- attr(p, "deriv")
+  if(!is.null(dP)) {
+    gr <- as.vector(gr%*%dP); names(gr) <- colnames(dP)
+    hs <- t(dP)%*%hs%*%dP; colnames(hs) <- colnames(dP); rownames(hs) <- colnames(dP)
+  }
+  
+  out <- list(value=val,gradient=gr,hessian=hs)
+  class(out) <- c("obj", "list")
+  
+  return(out)
+  
+  
+}
+

@@ -502,6 +502,71 @@ constraintL1 <- function(p, mu, lambda = 1, fixed = NULL) {
   
 }
 
+
+
+#' Soft L1 prior on parameters
+#' 
+#' @param p Namec numeric, the parameter value
+#' @param mu Named numeric, the prior values
+#' @param lambda Named numeric of length of mu or numeric of length one.
+#' @param fixed Named numeric with fixed parameter values (contribute to the prior value
+#' but not to gradient and Hessian)
+#' @return List of class \code{obj}, i.e. objective value, gradient and Hessian as list.
+#' @details Computes the constraint value 
+#' \deqn{\lambda\|p-\mu\|}{lambda*abs(p-mu)}
+#' and its derivatives with respect to p.
+#' @seealso \link{wrss}, \link{summation}, \link{constraintL2}, \link{constraintExp2}
+#' @examples
+#' p <- c(A = 1, B = 2, C = 3)
+#' mu <- c(A = 0, B = 0)
+#' lambda <- c(A = 0.1, B = 1)
+#' constraintL1(p, mu, lambda)
+# priorL1 <- function(p, mu, lambda = "lambda", fixed = NULL) {
+#    
+#   ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
+#   par.fixed <- intersect(names(mu), names(fixed))
+#   sumOfFixed <- 0
+#   if(!is.null(par.fixed)) sumOfFixed <- sum(c(fixed, p)[lambda]*abs(fixed[par.fixed] - mu[par.fixed]))
+#   
+#   ## Compute constraint value and derivatives
+#   par <- intersect(names(p), names(mu))
+#   par0 <- setdiff(par, lambda)
+#     
+#   value <- sum(c(fixed, p)[lambda]*abs(p[par] - mu[par])) + sumOfFixed
+#   
+# 
+#   direction <- rep(0, length(p)); names(direction) <- names(p)
+#   direction[par][p[par] >  mu[par]] <-  1
+#   direction[par][p[par] <  mu[par]] <- -1
+#   gradient <- c(fixed, p)[lambda]*direction
+#   if(lambda %in% names(p)) 
+#     gradient[lambda] <- value
+#   
+#   hessian <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
+#   diag(hessian)[par] <- 0
+#   if(lambda %in% names(p)) {
+#     hessian[lambda, lambda] <- 0 
+#     hessian[lambda, par0] <- hessian[par0, lambda] <- direction[par0] 
+#   }
+#   
+#   dP <- attr(p, "deriv") 
+#   if(!is.null(dP)) {
+#     gradient <- as.vector(gradient %*% dP)
+#     names(gradient) <- colnames(dP)
+#     hessian <- t(dP) %*% hessian %*% dP
+#     colnames(hessian) <- colnames(dP)
+#     rownames(hessian) <- colnames(dP)
+#   }
+#   
+#   out <- list(value = value, gradient = gradient, hessian = hessian)
+#   class(out) <- c("obj", "list")
+#   
+#   return(out)
+#   
+#   
+# }
+#
+#
 # constraintLeins <- function(p, mu, lambda = 1, tol = 1e-3) {
 #   
 #   parameters <- intersect(names(p), names(mu))
