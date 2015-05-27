@@ -149,7 +149,7 @@ print.eqnList <- function(x, ...) {
   v <- MASS::Null(t(S))
   if(ncol(v) > 0) {
     
-    v <- v/abs(min(v))
+    v <- round(v/min(abs(v)[round(abs(v), 2) > 0]), 2)
     cq <- sapply(1:ncol(v), function(i) {
       paste(paste(v[,i], names(x), sep = "*"), collapse = "+")
     })

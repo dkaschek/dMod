@@ -70,6 +70,7 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
     if(!deriv) {
     
       # Evaluate model without sensitivities
+      loadDLL(func)
       if(!is.null(myforcings)) forc <- setForcings(func, myforcings) else forc <- NULL
       out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=mypars, forcings=forc, events = list(data = events)), optionsOde))
       #out <- cbind(out, out.inputs)
@@ -78,6 +79,7 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
     } else {
       
       # Evaluate extended model
+      loadDLL(extended)
       if(!is.null(myforcings)) forc <- setForcings(extended, myforcings) else forc <- NULL
       outSens <- do.call(odeC, c(list(y=c(yini, yiniSens), times=times, func=extended, parms=mypars, forcings=forc, events = list(data = events)), optionsSens))
       #out <- cbind(outSens[,c("time", variables)], out.inputs)
@@ -454,6 +456,7 @@ Xf <- function(func, forcings=NULL, events=NULL, optionsOde=list(method="lsoda")
 #       out.inputs <- matrix(out.inputs, ncol=length(inputs), dimnames = list(NULL, inputs))    
 #     }
 #     
+    loadDLL(func)
     if(!is.null(myforcings)) forc <- setForcings(func, myforcings) else forc <- NULL
     out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = events)), optionsOde))
     #out <- cbind(out, out.inputs)      

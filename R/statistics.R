@@ -269,7 +269,8 @@ profile.trust <- function(obj, pars, whichPar, alpha = 0.05,
   
   lagrange.out <- lagrange.out
   constraint.out <- constraint.out
-  
+ 
+  i <- 0 
   while(i < sControl$limit) {
     
     ## Iteration step
@@ -291,6 +292,8 @@ profile.trust <- function(obj, pars, whichPar, alpha = 0.05,
     
     if(lagrange.out$value > threshold | constraint.out$value > limits[2]) break
     
+    i <- i + 1
+    
     
   }
   
@@ -304,6 +307,7 @@ profile.trust <- function(obj, pars, whichPar, alpha = 0.05,
   lagrange.out <- lagrange(ini)
   constraint.out <- constraint(pars)
     
+  i <- 0
   while(i < sControl$limit) {
     
     ## Iteration step
@@ -325,6 +329,7 @@ profile.trust <- function(obj, pars, whichPar, alpha = 0.05,
     
     if(lagrange.out$value > threshold  | constraint.out$value < limits[1]) break
     
+    i <- i + 1
     
   }
   
