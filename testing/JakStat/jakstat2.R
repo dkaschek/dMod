@@ -13,7 +13,11 @@
 ## Prepare equations ----------------------------------------
   setwd("~/dMod/testing/JakStat")
 # Generate equations from csv
-  eq <- generateEquations(read.csv("topology_inputModel.csv"))
+  reactions <- read.csv("topology_inputModel.csv")
+  states <- colnames(reactions)[-(1:2)]
+  volumes <- structure(rep(1, length(states)), names = states)
+  volumes[-(1:5)] <- "Vnuc"
+  eq <- generateEquations(reactions, volumes = volumes)
 # Define observables
   observables <- c(tSTAT = "STAT + pSTAT + 2*pSTATdimer + offsettSTAT",
                    tpSTAT = "sSTAT*(pSTAT + 2*pSTATdimer + offsettpSTAT)",
@@ -24,7 +28,8 @@
   onePars <- c("y2")
 # Add observables to ODE  
   eq <- addObservable(observables, eq)
-  model <- generateModel(eq, fixed = c(zeroPars, onePars), nGridpoints = 101, jacobian = "inz.lsodes")
+  model <- generateModel(eq, fixed = c(zeroPars, onePars), nGridpoints = 101, 
+                         jacobian = "inz.lsodes")
   
 ## Get data --------------------------------------------------
   
@@ -100,8 +105,10 @@
 
 ## Compute profiles of best fit -----------------------------
   
+  
   bestfit <- unlist(fitlist[1,-1])
-  proflist.approx <- do.call(c, mclapply(names(bestfit), function(n) profile.trust(myfn, bestfit, n, limits=c(-3, 3), algoControl = list(gamma = 0)), mc.cores=4))
-  proflist.exact  <- do.call(c, mclapply(names(bestfit), function(n) profile.trust(myfn, bestfit, n, limits=c(-3, 3), algoControl = list(gamma = 0, reoptimize = TRUE), optControl = list(iterlim = 100)), mc.cores=4))
+  proflist.approx <- do.call(c, mclapply(names(bestfit), function(n) profile.trust(myfn, bestfit, n, limits=c(-3, 3), algoControl = list(gamma = 1, reg = 0.1)), mc.cores=4))
+  proflist.exact  <- do.call(c, mclapply(names(bestfit), function(n) profile.trust(myfn, bestfit, n, limits=c(-3, 3), algoControl = list(gamma = 0, reoptimize = TRUE), optControl = list(iterlim = 5)), mc.cores=4))
   
   plotProfile(proflist.approx, proflist.exact)
+  

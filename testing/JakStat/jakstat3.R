@@ -21,7 +21,7 @@
   forcings <- "pEpoR"
 # Add observables to ODE  
   eq <- addObservable(observables, eq)
-  model <- generateModel(eq, forcings = forcings)
+  model <- generateModel(eq, forcings = forcings, fcontrol = "einspline")
   
 ## Get data --------------------------------------------------
   
