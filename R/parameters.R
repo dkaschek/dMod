@@ -224,5 +224,5 @@ Pi <- function(trafo, parameters=NULL, compile = FALSE) {
 #' p.outerValue <- c(logk1 = 1, logk2 = -1, logA = 0, logB = 0)
 #' (P.log)(p.outerValue)
 #' (P.steadyState %o% P.log)(p.outerValue)
-"%o%" <- function(p1, p2) function(p, fixed=NULL, deriv = TRUE) p1(p2(p, fixed, deriv), fixed, deriv)
+"%o%" <- function(p1, p2) function(p, fixed=NULL, deriv = TRUE) p1(p2(p, fixed = fixed, deriv = deriv), deriv = deriv)
 
