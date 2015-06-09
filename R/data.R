@@ -12,6 +12,8 @@
 #' by sigma). If "deriv" was given, the returned data.frame has an 
 #' attribute "deriv" (data.frame with the derivatives of the residuals with 
 #' respect to the parameters).
+#' @export
+#' @import cOde
 res <- function (data, out) {
   
   # Unique times, names and parameter names
@@ -68,6 +70,7 @@ res <- function (data, out) {
 #' @return list with entries value (numeric, the weighted residual sum of squares), 
 #' gradient (numeric, gradient) and 
 #' hessian (matrix of type numeric).
+#' @export
 wrss <- function(nout) {
   
   obj <- sum(nout$weighted.residual^2)
@@ -102,6 +105,7 @@ wrss <- function(nout) {
 #' @examples
 #' p <- c(A = 1, B = 2)
 #' as.obj(p)
+#' @export
 as.obj <- function(p) {
   
   obj <- list(

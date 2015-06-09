@@ -4,8 +4,10 @@
 #' @param forcings Character vector with the names of the forcings
 #' @param fixed Character vector with the names of parameters (initial values and dynamic) for which
 #' no sensitivities are required (will speed up the integration).
+#' @param modelname Character, the name of the C file being generated.
 #' @param ... Further arguments being passed to funC.
 #' @return list with \code{func} (ODE object) and \code{extended} (ODE+Sensitivities object)
+#' @export
 generateModel <- function(f, forcings=NULL, fixed=NULL, modelname = "f", ...) {
   
   modelname_s <- paste0(modelname, "_s")
@@ -317,11 +319,12 @@ constraintL2 <- function(p, mu, sigma = 1, fixed=NULL) {
 #' @param fixed Named numeric with fixed parameter values (contribute to the prior value
 #' but not to gradient and Hessian)
 #' @return List of class \code{obj}, i.e. objective value, gradient and Hessian as list.
-#' @seealso \link{wrss}, \link{summation}, \link{constraintL1}, \link{constraintExp2}, \link{constraintL2}
+#' @seealso \link{wrss}, \link{constraintL2}
 #' @details Computes the constraint value 
 #' \deqn{\left(\frac{x(t)-\mu}{\sigma}\right)^2}{(pred-p[names(mu)])^2/sigma^2}
 #' and its derivatives with respect to p.
 #' @examples
+#' \dontrun{
 #' prediction <- matrix(c(0, 1), nrow = 1, dimnames = list(NULL, c("time", "A")))
 #' derivs <- matrix(c(0, 1, 0.1), nrow = 1, dimnames = list(NULL, c("time", "A.A", "A.k1")))
 #' attr(prediction, "deriv") <- derivs
@@ -332,6 +335,8 @@ constraintL2 <- function(p, mu, sigma = 1, fixed=NULL) {
 #' datapointL2(p = c(p, newpoint = 2), prediction, mu, timepoint)
 #' datapointL2(p = c(p, newpoint = 1), prediction, mu, timepoint)
 #' datapointL2(p = c(p, newpoint = 0), prediction, mu, timepoint)
+#' }
+#' @export
 datapointL2 <- function(p, prediction, mu, time = 0, sigma = 1, fixed = NULL) {
   
   
@@ -390,7 +395,7 @@ datapointL2 <- function(p, prediction, mu, time = 0, sigma = 1, fixed = NULL) {
 #' @param fixed Named numeric with fixed parameter values (contribute to the prior value
 #' but not to gradient and Hessian)
 #' @return List of class \code{obj}, i.e. objective value, gradient and Hessian as list.
-#' @seealso \link{wrss}, \link{summation}, \link{constraintL1}, \link{constraintExp2}
+#' @seealso \link{wrss}, \link{constraintExp2}
 #' @details Computes the constraint value 
 #' \deqn{\lambda \| p-\mu \|^2}{lambda*sum((p-mu)^2)}
 #' and its derivatives with respect to p and lambda.
@@ -398,6 +403,7 @@ datapointL2 <- function(p, prediction, mu, time = 0, sigma = 1, fixed = NULL) {
 #' p <- c(A = 1, B = 2, C = 3, lambda = 1)
 #' mu <- c(A = 0, B = 0)
 #' priorL2(p, mu, lambda = "lambda")
+#' @export
 priorL2 <- function(p, mu, lambda = "lambda", fixed = NULL) {
   
   ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
@@ -438,3 +444,50 @@ priorL2 <- function(p, mu, lambda = "lambda", fixed = NULL) {
   
 }
 
+#' Add two lists element by element
+#' 
+#' @param out1 List of numerics or matrices
+#' @param out2 List with the same structure as out1 (there will be no warning when mismatching)
+#' @details If out1 has names, out2 is assumed to share these names. Each element of the list out1
+#' is inspected. If it has a \code{names} attributed, it is used to do a matching between out1 and out2.
+#' The same holds for the attributed \code{dimnames}. In all other cases, the "+" operator is applied
+#' the corresponding elements of out1 and out2 as they are.
+#' @return List of length of out1. 
+#' @aliases summation
+#' @export
+"+.obj" <- function(out1, out2) {
+  
+  allnames <- c(names(out1), names(out2))
+  what <- allnames[duplicated(allnames)]
+  what.names <- what
+  if(is.null(what)) {
+    what <- 1:min(c(length(out1), length(out2)))
+    what.names <- NULL
+  }
+  
+  out12 <- lapply(what, function(w) {
+    sub1 <- out1[[w]]
+    sub2 <- out2[[w]]
+    n <- names(sub1)
+    dn <- dimnames(sub1)
+    if(!is.null(n) && !is.null(sub1) %% !is.null(sub2)) {
+      #print("case1: sum of vectors")
+      sub1[n] + sub2[n]
+    } else if(!is.null(dn) && !is.null(sub1) && !is.null(sub2)) {
+      #print("case2: sum of matrices")
+      matrix(sub1[dn[[1]], dn[[2]]] + sub2[dn[[1]], dn[[2]]], 
+             length(dn[[1]]), length(dn[[2]]), dimnames = list(dn[[1]], dn[[2]]))
+    } else if(!is.null(sub1) && !is.null(sub2)) {
+      #print("case3: sum of scalars")
+      sub1 + sub2
+    } else {
+      #print("case4")
+      NULL
+    }
+  })
+  names(out12) <- what.names
+  
+  class(out12) <- c("obj", "list")
+  
+  return(out12)
+}

@@ -7,7 +7,7 @@
 #' The ODE forcings.
 #' @param events data.frame of events with columns "var" (character, the name of the state to be
 #' affected), "time" (numeric, time point), "value" (numeric, value), "method" (character, either
-#' "replace", "add" or "multiply"). See \link{events}.
+#' "replace", "add" or "multiply"). See \link[deSolve]{events}.
 #' @param optionsOde list with arguments to be passed to odeC() for the ODE integration.
 #' @param optionsSens list with arguments to be passed to odeC() for integration of the extended system
 #' @return A model prediction function \code{x(times, pars, forcings, events, deriv = TRUE)} representing 
@@ -20,6 +20,7 @@
 #' and the sensitivities of the ODE are multiplied according to the chain rule for
 #' differentiation. The result is saved in the attributed "deriv", 
 #' i.e. in this case the attibutes "deriv" and "sensitivities" do not coincide. 
+#' @export
 Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(method="lsoda"), optionsSens=list(method="lsodes")) {
   
   myforcings <- forcings
@@ -55,17 +56,6 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
     yini <- pars[variables]
     mypars <- pars[parameters]
     
-    # Interpolate forcings for output with the prediction
-#     out.inputs <- NULL
-#     if(!is.null(myforcings)) {
-#       inputs <- unique(myforcings$name)
-#       out.inputs <- unlist(lapply(inputs, function(inp) {
-#         t <- myforcings[myforcings$name == inp, "time"]
-#         y <- myforcings[myforcings$name == inp, "value"]
-#         approx(t, y, times)$y
-#       }))
-#       out.inputs <- matrix(out.inputs, ncol=length(inputs), dimnames = list(NULL, inputs))    
-#     }
     
     if(!deriv) {
     
@@ -116,9 +106,10 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
 
 #' Observation functions. 
 #' @description Creates a function \code{y(out, pars)} that evaluates an observation function
-#' and its derivatives based on the output of a model function \code{x(times, pars)}, see \link{X} and \link{Xs}.
+#' and its derivatives based on the output of a model function \code{x(times, pars)}, see \link{Xf} and \link{Xs}.
 #' @param g Named character vector defining the observation function
 #' @param f Named character, the underlying ODE
+#' @param compile Logical, compile the function (see \link{funC.algebraic})
 #' @return a function \code{y(out, pars, attach=FALSE)} representing the evaluation of the observation function. 
 #' If \code{out} has the attribute  "sensitivities", the result of
 #' \code{y(out, pars)}, will have an attributed "deriv" which reflec the sensitivities of 
@@ -128,7 +119,10 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
 #' of the parameter transformation and the sensitivities of the observation function
 #' are multiplied according to the chain rule for differentiation.
 #' If \code{attach = TRUE}, the original argument \code{out} will be attached to the evaluated observations.
-Y <- function(g, f, compile = FALSE, warnings = FALSE) {
+#' @export
+Y <- function(g, f, compile = FALSE) {
+  
+  warnings <- FALSE
   
   # Get potential paramters from g, forcings are treated as parameters because
   # sensitivities dx/dp with respect to forcings are zero.
@@ -445,17 +439,6 @@ Xf <- function(func, forcings=NULL, events=NULL, optionsOde=list(method="lsoda")
     pars <- P[parameters]
     #alltimes <- unique(sort(c(times, forctimes)))
     
-#     out.inputs <- NULL
-#     if(!is.null(myforcings)) {
-#       inputs <- unique(myforcings$name)
-#       out.inputs <- unlist(lapply(inputs, function(inp) {
-#         t <- myforcings[myforcings$name == inp, "time"]
-#         y <- myforcings[myforcings$name == inp, "value"]
-#         approx(t, y, times)$y
-#       }))
-#       out.inputs <- matrix(out.inputs, ncol=length(inputs), dimnames = list(NULL, inputs))    
-#     }
-#     
     loadDLL(func)
     if(!is.null(myforcings)) forc <- setForcings(func, myforcings) else forc <- NULL
     out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = events)), optionsOde))

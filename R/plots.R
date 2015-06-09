@@ -236,7 +236,7 @@ plotProfile <- function(..., maxvalue = 5) {
   
   threshold <- c(1, 2.7, 3.84)
   
-  p <- ggplot(data, aes(x=par, y=delta, group=proflist, color=proflist)) + facet_wrap(~name, scales="free_x") + 
+  ggplot2::ggplot(data, aes(x=par, y=delta, group=proflist, color=proflist)) + facet_wrap(~name, scales="free_x") + 
     geom_line() + geom_point(aes=aes(size=1), alpha=1/3) +
     geom_hline(yintercept=threshold, lty=2, color="gray") + 
     ylab(expression(paste("CL /", Delta*chi^2))) +
@@ -244,13 +244,17 @@ plotProfile <- function(..., maxvalue = 5) {
     xlab("parameter value")
   
   
-  return(p)
-  
 }
 
+#' Profile likelihood: plot of the parameter paths.
+#' 
+#' @param ... Lists of profiles as being returned by \link{profile.trust}.
+#' @param whichPar Character, the name of the parameter taken as a reference (x-axis)
+#' @param sort Logical. If paths from different parameter profiles are plotted together, possible
+#' combinations are either sorted or all combinations are taken as they are.
+#' @return A plot object of class \code{ggplot}.
+#' @export
 plotPaths <- function(..., whichPar = NULL, sort = FALSE) {
-  
-  require(ggplot2)
   
   arglist <- list(...)
   
@@ -336,4 +340,5 @@ plotFluxes <- function(out, fluxEquations, pars) {
   return(P)
   
 }
+
 
