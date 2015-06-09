@@ -1,9 +1,9 @@
-
 #' Embed two matrices into one blockdiagonal matrix
 #' 
 #' @param M matrix of type character
 #' @param N matrix of type character
 #' @return Matrix of type character containing M and N as upper left and lower right block
+#' @export
 blockdiagSymb <- function(M, N) {
   
   red <- sapply(list(M, N), is.null)
@@ -27,24 +27,49 @@ blockdiagSymb <- function(M, N) {
 #' Translate wide output format (e.g. from ode) into long format 
 #' 
 #' @param out data.frame or matrix or list of matrices in wide format 
+#' @param keep Index vector, the columns to keep
+#' @param na.rm Logical, if \code{TRUE}, missing values are removed in the long format.
 #' @details The function assumes that out[,1] represents a time-like vector
 #' whereas out[,-1] represents the values. Useful for plotting with ggplot. If 
 #' a list is supplied, the names of the list are added as extra column names "condition"
 #' @return data.frame in long format, i.e. columns "time" (out[,1]), "name" (colnames(out[,-1])), 
 #' "value" (out[,-1]) and, if out was a list, "condition" (names(out))
-wide2long <- function(out) {
+#' @export
+wide2long <- function(out, keep, na.rm) {
   
   UseMethod("wide2long", out)
   
   
 }
 
-wide2long.data.frame <- function(out) {
+#' Translate wide output format (e.g. from ode) into long format 
+#' 
+#' @param out data.frame or matrix or list of matrices in wide format 
+#' @param keep Index vector, the columns to keep
+#' @param na.rm Logical, if \code{TRUE}, missing values are removed in the long format.
+#' @details The function assumes that out[,1] represents a time-like vector
+#' whereas out[,-1] represents the values. Useful for plotting with ggplot. If 
+#' a list is supplied, the names of the list are added as extra column names "condition"
+#' @return data.frame in long format, i.e. columns "time" (out[,1]), "name" (colnames(out[,-1])), 
+#' "value" (out[,-1]) and, if out was a list, "condition" (names(out))
+#' @export
+wide2long.data.frame <- function(out, keep = 1, na.rm = FALSE) {
   
-  wide2long.matrix(out)
+  wide2long.matrix(out, keep = keep, na.rm = na.rm)
   
 }
 
+#' Translate wide output format (e.g. from ode) into long format 
+#' 
+#' @param out data.frame or matrix or list of matrices in wide format 
+#' @param keep Index vector, the columns to keep
+#' @param na.rm Logical, if \code{TRUE}, missing values are removed in the long format.
+#' @details The function assumes that out[,1] represents a time-like vector
+#' whereas out[,-1] represents the values. Useful for plotting with ggplot. If 
+#' a list is supplied, the names of the list are added as extra column names "condition"
+#' @return data.frame in long format, i.e. columns "time" (out[,1]), "name" (colnames(out[,-1])), 
+#' "value" (out[,-1]) and, if out was a list, "condition" (names(out))
+#' @export
 wide2long.matrix <- function(out, keep = 1, na.rm = FALSE) {
   
   timenames <- colnames(out)[keep]
@@ -61,23 +86,37 @@ wide2long.matrix <- function(out, keep = 1, na.rm = FALSE) {
   
 }
 
-wide2long.list <- function(out) {
+#' Translate wide output format (e.g. from ode) into long format 
+#' 
+#' @param out list of matrices in wide format 
+#' @param keep Index vector, the columns to keep
+#' @param na.rm Logical, if \code{TRUE}, missing values are removed in the long format.
+#' @details The function assumes that out[,1] represents a time-like vector
+#' whereas out[,-1] represents the values. Useful for plotting with ggplot. If 
+#' a list is supplied, the names of the list are added as extra column names "condition"
+#' @return data.frame in long format, i.e. columns "time" (out[,1]), "name" (colnames(out[,-1])), 
+#' "value" (out[,-1]) and, if out was a list, "condition" (names(out))
+#' @export
+
+wide2long.list <- function(out, keep = 1, na.rm = FALSE) {
   
   conditions <- names(out)
   
   outlong <- do.call(rbind, lapply(conditions, function(cond) {
     
-    myout <- out[[cond]]
-    timename <- colnames(myout)[1]
-    allnames <- colnames(myout)[-1]
-    times <- myout[,1]
-    values <- unlist(myout[,allnames])
-    myoutlong <- data.frame(time = times, 
-                            name = rep(allnames, each=length(times)), 
-                            value = as.numeric(values), 
-                            condition = cond)
-    colnames(myoutlong)[1] <- timename
-    return(myoutlong)
+    cbind(wide2long.matrix(out[[cond]]), condition = cond)
+    
+    #myout <- out[[cond]]
+    #timename <- colnames(myout)[1]
+    #allnames <- colnames(myout)[-1]
+    #times <- myout[,1]
+    #values <- unlist(myout[,allnames])
+    #myoutlong <- data.frame(time = times, 
+    #                        name = rep(allnames, each=length(times)), 
+    #                        value = as.numeric(values), 
+    #                        condition = cond)
+    #colnames(myoutlong)[1] <- timename
+    #return(myoutlong)
     
   }))
   
@@ -92,6 +131,7 @@ wide2long.list <- function(out) {
 #' 
 #' @param out data.frame in long format 
 #' @return data.frame in wide format 
+#' @export
 long2wide <- function(out) {
   
   timename <- colnames(out)[1]
@@ -112,6 +152,7 @@ long2wide <- function(out) {
 #' @details Each data.frame ist augented by a "condition" column containing the name attributed of
 #' the list entry. Subsequently, the augmented data.frames are bound together by \code{rbind}.
 #' @return data.frame with the originial columns augmented by a "condition" column.
+#' @export
 lbind <- function(mylist) {
   
   conditions <- names(mylist)
@@ -130,13 +171,7 @@ lbind <- function(mylist) {
 }
 
 
-#' Faster version of expand.grid
-#' 
-#' @param seq1 Vector
-#' @param seq1 Vector
-#' @details See \link{expand.grid} for a description of the functionality.
-#' @return data.frame with the combinations of \code{seq1} and \code{seq2}.
-expand.grid.alt <- function(seq1,seq2) {
+expand.grid.alt <- function(seq1, seq2) {
   cbind(Var1=rep.int(seq1, length(seq2)), Var2=rep(seq2, each=length(seq1)))
 }
 
@@ -145,16 +180,13 @@ expand.grid.alt <- function(seq1,seq2) {
 #' @param i Integer, choose a template to be loaded
 #' @details Possible templates are:
 #' i = 1: Do parameter estimation in a dynamic model with fixed forcings
+#' @export
 loadTemplate <- function(i = 1) {
   
   path <- path.package("dMod")
   if(i == 1) {
     system(paste0("cp ", path, "/templates/R2CTemplate.R mymodel.R"))
     file.edit("mymodel.R")
-  }
-  if(i == 2) {
-    system(paste0("cp ", path, "/templates/R2CTemplateIE.R mymodelIE.R"))
-    file.edit("mymodelIE.R")
   }
   
 }
@@ -163,6 +195,22 @@ loadTemplate <- function(i = 1) {
 
 
 
+#' Evaluation of algebraic expressions defined by characters
+#' 
+#' @param x Name character vector, the algebraic expressions
+#' @param compile Logical. The function is either compiled (requires the \code{inline} package) or
+#' evaluated in raw R.
+#' @return A prediction function \code{f(mylist)} where \code{mylist} is a list of numeric vectors that can
+#' be coerced into a matrix. The names correspond to the symbols used in the algebraic expressions. The
+#' function \code{f} returns a matrix.
+#' @examples 
+#' \dontrun{
+#' myfun <- funC.algebraic(c(x = "x", y = "a*x^4 + b*x^2 + c"))
+#' out <- myfun(list(a = -1, b = 2, c = 3, x = seq(-2, 2, .1)))
+#' plot(out[, 1], out[, 2])
+#' }
+#' 
+#' @export
 funC.algebraic <- function(x, compile = TRUE) {
     
   # Get symbols to be substituted by x[] and y[]

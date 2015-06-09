@@ -6,6 +6,7 @@
 #' @param parameters Character vector. Optional. If given, the generated parameter
 #' transformation returns values for each element in \code{parameters}. If elements of
 #' \code{parameters} are not in \code{names(trafo)} the identity transformation is assumed.
+#' @param compile Logical, compile the function (see \link{funC.algebraic})
 #' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)} representing the parameter 
 #' transformation. Here, \code{p} is a named numeric vector with the values of the outer parameters,
 #' \code{fixed} is a named numeric vector with values of the outer parameters being considered
@@ -14,11 +15,14 @@
 #' @seealso \link{Pi} for implicit parameter transformations and
 #' \link{concatenation} for the concatenation of parameter transformations
 #' @examples
+#' \dontrun{
 #' logtrafo <- c(k1 = "exp(logk1)", k2 = "exp(logk2)", A = "exp(logA)", B = "exp(logB)")
 #' P.log <- P(logtrafo)
 #' 
 #' p.outerValue <- c(logk1 = 1, logk2 = -1, logA = 0, logB = 0)
 #' (P.log)(p.outerValue)
+#' }
+#' @export
 P <- function(trafo, parameters=NULL, compile = FALSE) {
   
   # get outer parameters
@@ -89,6 +93,7 @@ P <- function(trafo, parameters=NULL, compile = FALSE) {
 #' @param trafo Named character vector defining the equations to be set to zero. 
 #' Names correspond to dependent variables.
 #' @param parameters Character vector, the independent variables.  
+#' @param compile Logical, compile the function (see \link{funC.algebraic})
 #' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)} representing the parameter 
 #' transformation. Here, \code{p} is a named numeric vector with the values of the outer parameters,
 #' \code{fixed} is a named numeric vector with values of the outer parameters being considered
@@ -98,12 +103,13 @@ P <- function(trafo, parameters=NULL, compile = FALSE) {
 #' other parameters. The argument \code{p} of \code{p2p} must provide values for the independent
 #' variables and the parameters but ALSO FOR THE DEPENDENT VARIABLES. Those serve as initial guess
 #' for the dependent variables. The dependent variables are then numerically computed by 
-#' \link{rootSolve::multiroot}. The Jacobian of the solution with respect to dependent variables
+#' \link[rootSolve]{multiroot}. The Jacobian of the solution with respect to dependent variables
 #' and parameters is computed by the implicit function theorem. The function \code{p2p} returns
 #' all parameters as they are with corresponding 1-entries in the Jacobian.
 #' #' @seealso \link{P} for explicit parameter transformations and
 #' \link{concatenation} for the concatenation of parameter transformations
 #' @examples
+#' \dontrun{
 #' ########################################################################
 #' ## Example 1: Steady-state trafo
 #' ########################################################################
@@ -127,10 +133,10 @@ P <- function(trafo, parameters=NULL, compile = FALSE) {
 #' p.outerValue <- c(logk1 = 1, logk2 = -1, logA = 0, logB = 0)
 #' (P.log)(p.outerValue)
 #' (P.steadyState %o% P.log)(p.outerValue)
+#' }
+#' @export
 Pi <- function(trafo, parameters=NULL, compile = FALSE) {
 
-  
-  
   states <- names(trafo)
   nonstates <- getSymbols(trafo, exclude = states)
   dependent <- setdiff(states, parameters)
@@ -211,6 +217,7 @@ Pi <- function(trafo, parameters=NULL, compile = FALSE) {
 #' \code{p2}.
 #' @aliases concatenation
 #' @examples
+#' \dontrun{
 #' #' ########################################################################
 #' ## Example: Steady-state trafo combined with log-transform
 #' ########################################################################
@@ -224,5 +231,7 @@ Pi <- function(trafo, parameters=NULL, compile = FALSE) {
 #' p.outerValue <- c(logk1 = 1, logk2 = -1, logA = 0, logB = 0)
 #' (P.log)(p.outerValue)
 #' (P.steadyState %o% P.log)(p.outerValue)
+#' }
+#' @export
 "%o%" <- function(p1, p2) function(p, fixed=NULL, deriv = TRUE) p1(p2(p, fixed = fixed, deriv = deriv), deriv = deriv)
 

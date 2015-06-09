@@ -8,7 +8,10 @@
 #' @return list with entries: value (numeric, the weighted residual sum of squares), 
 #' gradient (numeric, gradient) and 
 #' hessian (matrix of type numeric).
-constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, kmin=1e-5, fixed=NULL) {
+#' @export
+constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, fixed=NULL) {
+  
+  kmin <- 1e-5
   
   ## Augment sigma if length = 1
   if(length(sigma) == 1) 

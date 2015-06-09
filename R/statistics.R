@@ -39,6 +39,8 @@
 #' the original value), "stepsize" (the stepsize take for the iteration), "gamma" (the gamma value employed for the
 #' iteration), one column per parameter (the profile paths).
 #' @examples 
+#' 
+#' \dontrun{
 #' ## ----------------------
 #' ## Example 1 
 #' ## ----------------------
@@ -53,6 +55,7 @@
 #'    profile.trust(obj, myfit$argument, whichPar = i, limits = c(-5, 5), 
 #'                  algoControl=list(gamma=1, reoptimize=FALSE), verbose=TRUE))
 #' plotProfile(profiles)
+#' plotPaths(profiles)
 #' 
 #' ## ----------------------------
 #' ## Example 2
@@ -76,7 +79,8 @@
 #'                 verbose=TRUE, fixed = ini[1], sigma = 10))
 #' 
 #' plotProfile(profiles.approx, profiles.exact)
-#' 
+#' }
+#' @export
 profile.trust <- function(obj, pars, whichPar, alpha = 0.05, 
                           limits = c(lower = -Inf, upper = Inf), 
                           stepControl = NULL, 
@@ -84,8 +88,6 @@ profile.trust <- function(obj, pars, whichPar, alpha = 0.05,
                           optControl  = NULL,
                           verbose = FALSE,
                           ...) {
-  
-  require(trust)
   
   sControl <- list(stepsize = 1e-4, min = 0, max = Inf, atol = 1e-1, rtol = 1e-1, limit = 100)
   aControl <- list(gamma = 1, W = c("hessian", "identity"), reoptimize = FALSE, correction = 1, reg = 1e-6)
@@ -181,7 +183,7 @@ profile.trust <- function(obj, pars, whichPar, alpha = 0.05,
                    oControl[names(oControl)!="rinit"],
                    list(...)[names(list(...)) != "fixed"])
       
-      myfit <- try(do.call(trust, arglist), silent=FALSE)
+      myfit <- try(do.call(trust::trust, arglist), silent=FALSE)
       if(!inherits(myfit, "try-error")) {
         y.try[names(myfit$argument)] <- as.vector(myfit$argument)  
       } else {
