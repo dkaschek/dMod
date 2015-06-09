@@ -6,7 +6,7 @@
 #' @param parameters Character vector. Optional. If given, the generated parameter
 #' transformation returns values for each element in \code{parameters}. If elements of
 #' \code{parameters} are not in \code{names(trafo)} the identity transformation is assumed.
-#' @param compile Logical, compile the function (see \link{funC.algebraic})
+#' @param compile Logical, compile the function (see \link{funC0})
 #' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)} representing the parameter 
 #' transformation. Here, \code{p} is a named numeric vector with the values of the outer parameters,
 #' \code{fixed} is a named numeric vector with values of the outer parameters being considered
@@ -48,8 +48,8 @@ P <- function(trafo, parameters=NULL, compile = FALSE) {
   
   dtrafo <- jacobian; names(dtrafo) <- jacNames
   
-  PEval <- funC.algebraic(trafo, compile = compile)
-  dPEval <- funC.algebraic(dtrafo, compile = compile)
+  PEval <- funC0(trafo, compile = compile)
+  dPEval <- funC0(dtrafo, compile = compile)
   
   # the parameter transformation function to be returned
   p2p <- function(p, fixed=NULL, deriv = TRUE) {
@@ -93,7 +93,7 @@ P <- function(trafo, parameters=NULL, compile = FALSE) {
 #' @param trafo Named character vector defining the equations to be set to zero. 
 #' Names correspond to dependent variables.
 #' @param parameters Character vector, the independent variables.  
-#' @param compile Logical, compile the function (see \link{funC.algebraic})
+#' @param compile Logical, compile the function (see \link{funC0})
 #' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)} representing the parameter 
 #' transformation. Here, \code{p} is a named numeric vector with the values of the outer parameters,
 #' \code{fixed} is a named numeric vector with values of the outer parameters being considered
@@ -141,7 +141,7 @@ Pi <- function(trafo, parameters=NULL, compile = FALSE) {
   nonstates <- getSymbols(trafo, exclude = states)
   dependent <- setdiff(states, parameters)
   
-  trafo.alg <- funC.algebraic(trafo[dependent], compile = compile)
+  trafo.alg <- funC0(trafo[dependent], compile = compile)
   ftrafo <- function(x, parms) {
     out <- trafo.alg(as.list(c(x, parms)))
     structure(as.numeric(out), names = colnames(out))

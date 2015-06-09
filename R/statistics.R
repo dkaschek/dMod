@@ -52,7 +52,7 @@
 #' ini <- c(loga = 1, logb = 1, logc = 1)   
 #' myfit <- trust(obj, ini, rinit=1, rmax=10)   
 #' profiles <- sapply(1:3, function(i) 
-#'    profile.trust(obj, myfit$argument, whichPar = i, limits = c(-5, 5), 
+#'    profile(obj, myfit$argument, whichPar = i, limits = c(-5, 5), 
 #'                  algoControl=list(gamma=1, reoptimize=FALSE), verbose=TRUE))
 #' plotProfile(profiles)
 #' plotPaths(profiles)
@@ -70,18 +70,19 @@
 #' ini <- c(loga = 1, logb = 1, logc = 1)
 #' myfit <- trust(obj, ini[-1], rinit=1, rmax=10, fixed = ini[1], sigma = 10)
 #' profiles.approx <- sapply(1:2, function(i) 
-#'   profile.trust(obj, myfit$argument, whichPar = i, limits = c(-10, 10), 
+#'   profile(obj, myfit$argument, whichPar = i, limits = c(-10, 10), 
 #'                 algoControl=list(gamma=1, reoptimize=FALSE), 
 #'                 verbose=TRUE, fixed = ini[1], sigma = 10))
 #' profiles.exact  <- sapply(1:2, function(i) 
-#'   profile.trust(obj, myfit$argument, whichPar = i, limits = c(-10, 10), 
+#'   profile(obj, myfit$argument, whichPar = i, limits = c(-10, 10), 
 #'                 algoControl=list(gamma=0, reoptimize=TRUE), 
 #'                 verbose=TRUE, fixed = ini[1], sigma = 10))
 #' 
 #' plotProfile(profiles.approx, profiles.exact)
 #' }
 #' @export
-profile.trust <- function(obj, pars, whichPar, alpha = 0.05, 
+#' @import trust
+profile <- function(obj, pars, whichPar, alpha = 0.05, 
                           limits = c(lower = -Inf, upper = Inf), 
                           stepControl = NULL, 
                           algoControl = NULL,

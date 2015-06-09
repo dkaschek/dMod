@@ -69,7 +69,7 @@ plotData <- function (data, ...) {
 
 #' Profile likelihood plot
 #' 
-#' @param ... Lists of profiles as being returned by \link{profile.trust}.
+#' @param ... Lists of profiles as being returned by \link{profile}.
 #' @param maxvalue Numeric, the value where profiles are cut off.
 #' @return A plot object of class \code{ggplot}.
 #' @export
@@ -110,7 +110,7 @@ plotProfile <- function(..., maxvalue = 5) {
 
 #' Profile likelihood: plot of the parameter paths.
 #' 
-#' @param ... Lists of profiles as being returned by \link{profile.trust}.
+#' @param ... Lists of profiles as being returned by \link{profile}.
 #' @param whichPar Character, the name of the parameter taken as a reference (x-axis)
 #' @param sort Logical. If paths from different parameter profiles are plotted together, possible
 #' combinations are either sorted or all combinations are taken as they are.

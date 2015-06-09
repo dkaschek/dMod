@@ -8,6 +8,7 @@
 #' @param ... Further arguments being passed to funC.
 #' @return list with \code{func} (ODE object) and \code{extended} (ODE+Sensitivities object)
 #' @export
+#' @import cOde
 generateModel <- function(f, forcings=NULL, fixed=NULL, modelname = "f", ...) {
   
   modelname_s <- paste0(modelname, "_s")

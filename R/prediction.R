@@ -109,7 +109,7 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
 #' and its derivatives based on the output of a model function \code{x(times, pars)}, see \link{Xf} and \link{Xs}.
 #' @param g Named character vector defining the observation function
 #' @param f Named character, the underlying ODE
-#' @param compile Logical, compile the function (see \link{funC.algebraic})
+#' @param compile Logical, compile the function (see \link{funC0})
 #' @return a function \code{y(out, pars, attach=FALSE)} representing the evaluation of the observation function. 
 #' If \code{out} has the attribute  "sensitivities", the result of
 #' \code{y(out, pars)}, will have an attributed "deriv" which reflec the sensitivities of 
@@ -131,7 +131,7 @@ Y <- function(g, f, compile = FALSE) {
     
   # Observables defined by g
   observables <- names(g)
-  gEval <- funC.algebraic(g, compile = compile)
+  gEval <- funC0(g, compile = compile)
   
   # Character matrices of derivatives
   dxdp <- dgdx <- dgdp <- NULL
@@ -153,7 +153,7 @@ Y <- function(g, f, compile = FALSE) {
   derivs <- as.vector(sumSymb(prodSymb(dgdx, dxdp), dgdp))
   if(length(derivs) == 0) stop("Nor states or parameters involved")
   names(derivs) <- apply(expand.grid.alt(observables, c(states, parameters)), 1, paste, collapse = ".")
-  derivsEval <- funC.algebraic(derivs, compile = compile)
+  derivsEval <- funC0(derivs, compile = compile)
     
   # Vector with zeros for possibly missing derivatives
   zeros <- rep(0, length(dxdp))
