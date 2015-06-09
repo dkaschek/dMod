@@ -1,3 +1,29 @@
+similarity <- function(fitlist, x, times, fixed, deriv = FALSE) {
+  
+  combinations <- combn(1:nrow(fitlist), 2)
+  out <- do.call(rbind, lapply(1:ncol(combinations), function(j) {
+    
+    i1 <- combinations[1, j]
+    i2 <- combinations[2, j]
+    
+    par1 <- unlist(fitlist[i1, -1])
+    par2 <- unlist(fitlist[i2, -1])
+    
+    pred1 <- wide2long(x(times, par1, fixed = fixed, deriv = deriv))
+    pred2 <- wide2long(x(times, par2, fixed = fixed, deriv = deriv))
+    
+    rss <- sum(((pred1$value - pred2$value)/(pred1$value + pred2$value + 1))^2)
+
+    data.frame(i1 = c(i1, i2), i2 = c(i2, i1), rss = rss)    
+    
+  }))
+  
+  return(out)
+  
+}
+
+
+
 coupleReactions <- function(what, to, f, couplingParameter = "alpha") {
   
   
@@ -44,7 +70,7 @@ myexpr <- expression({
   }
 })
 
-runbg <- function(expr, filename = "tmp") {
+runbg <- function(expr, filename = "tmp", machine = "localhost") {
   
   # Save current workspace
   save.image(file = paste0(filename, ".RData"))
@@ -56,8 +82,9 @@ runbg <- function(expr, filename = "tmp") {
   
   # Write program into character
   program <- paste(
-    pack,
-    paste0("load('", filename, ".RData')"),
+    #pack,
+    paste0("setwd('~/", filename, "_folder')"),
+    #paste0("load('", filename, ".RData')"),
     as.character(expr),
     paste0("save.image(file = '", filename, ".RData')"),
     sep = "\n"
@@ -66,10 +93,22 @@ runbg <- function(expr, filename = "tmp") {
   # Write program code into file
   cat(program, file = paste0(filename, ".R"))
   
-  # Run in background
-  system(paste0("R CMD BATCH ", filename, ".R"), intern = FALSE, wait = FALSE)
+  # Copy files to temporal folder
+  system(paste0("scp -r ", getwd(), " ", machine, ":", filename, "_folder"))
   
-  out <- parse(text = paste0("load('", filename, ".RData')"))
+  # Run in background
+  system(paste0("ssh ", machine, " R CMD BATCH ", filename, "_folder/", filename, ".R --vanilla"), intern = FALSE, wait = FALSE)
+  
+  out <- structure(vector("list", 2), names = c("get", "purge"))
+  
+  out[[1]] <- parse(text = paste(sep = "\n",
+                            paste0("system('scp ", machine, ":", filename, "_folder/", filename, ".RData ", getwd(), "/')"),
+                            paste0("load('", filename, ".RData')")))
+  
+  out[[2]] <- parse(text = paste(sep = "\n",
+                                 paste0("system('ssh ", machine, " rm -r ", filename, "_folder')")
+                                 ))
+
   attr(out, "code") <- program
   
   return(out)
