@@ -205,13 +205,13 @@ loadTemplate <- function(i = 1) {
 #' function \code{f} returns a matrix.
 #' @examples 
 #' \dontrun{
-#' myfun <- funC.algebraic(c(x = "x", y = "a*x^4 + b*x^2 + c"))
+#' myfun <- funC0(c(x = "x", y = "a*x^4 + b*x^2 + c"))
 #' out <- myfun(list(a = -1, b = 2, c = 3, x = seq(-2, 2, .1)))
 #' plot(out[, 1], out[, 2])
 #' }
 #' 
 #' @export
-funC.algebraic <- function(x, compile = TRUE) {
+funC0 <- function(x, compile = TRUE) {
     
   # Get symbols to be substituted by x[] and y[]
   outnames <- names(x)
