@@ -12,8 +12,8 @@
 #' @param cores maximal number of cores used for the analysis
 #' @param allTrafos do not remove transformations with a common parameter factor
 #' @return NULL
+#' @export
 symmetryDetection <- function(f, obsvect = NULL, prediction = NULL, initial = NULL, ansatz = 'uni', pMax = 2, inputs = c(), fixed = c(), cores = 1, allTrafos = FALSE){
-  library(rPython)
   
   if (is.element("observables", names(attributes(f)))){
     f <- f[1:(length(f)-length(attr(f,"observables")))]
@@ -24,12 +24,12 @@ symmetryDetection <- function(f, obsvect = NULL, prediction = NULL, initial = NU
   prediction <- as.character(lapply(1:length(prediction), function(i) paste(names(prediction)[i],'=',prediction[i])))
   initial <- as.character(lapply(1:length(initial), function(i) paste(names(initial)[i],'=',initial[i]))) 
   
-  python.load(paste(system.file(package="R2CdeSolve"),"/code/functions.py", sep = ""))
-  python.load(paste(system.file(package="R2CdeSolve"),"/code/readData.py", sep = ""))
-  python.load(paste(system.file(package="R2CdeSolve"),"/code/buildSystem.py", sep = ""))
-  python.load(paste(system.file(package="R2CdeSolve"),"/code/symmetryDetection.py", sep = ""))
+  rPython::python.load(paste(system.file(package="R2CdeSolve"),"/code/functions.py", sep = ""))
+  rPython::python.load(paste(system.file(package="R2CdeSolve"),"/code/readData.py", sep = ""))
+  rPython::python.load(paste(system.file(package="R2CdeSolve"),"/code/buildSystem.py", sep = ""))
+  rPython::python.load(paste(system.file(package="R2CdeSolve"),"/code/symmetryDetection.py", sep = ""))
   
-  python.call("symmetryDetection", f, obsvect, prediction, initial, ansatz, pMax, inputs, fixed, cores, allTrafos)
+  rPython::python.call("symmetryDetection", f, obsvect, prediction, initial, ansatz, pMax, inputs, fixed, cores, allTrafos)
 }
 
 #' Do a variable transformation in the ODE
@@ -53,20 +53,20 @@ symmetryDetection <- function(f, obsvect = NULL, prediction = NULL, initial = NU
 #' @return Named character vector with the ODE expressed in the new variables. In addition,
 #' attributes "variables" (the variable transformation) and "inverse" (the inverse transformation)
 #' are returned.
+#' @export
 variableTransformation <- function(observables, f = NULL, dynvar = NULL, stoi = NULL, flows = NULL, conserved=TRUE){
   
-  library(rPython)
   observation <- paste(names(observables), "=", observables) 
   if(is.null(dynvar)) dynvar <- attr(f, "species")
   if(is.null(stoi)) stoi <- c(t(attr(f, "SMatrix"))); stoi[is.na(stoi)] <- 0
   if(is.null(flows)) flows <- attr(f, "rates")
   
   
-  python.load(paste(system.file(package="R2CdeSolve"),"/code/functions_obs.py", sep = ""))
-  python.load(paste(system.file(package="R2CdeSolve"),"/code/extendObservation.py", sep = ""))
+  rPython::python.load(paste(system.file(package="R2CdeSolve"),"/code/functions_obs.py", sep = ""))
+  rPython::python.load(paste(system.file(package="R2CdeSolve"),"/code/extendObservation.py", sep = ""))
   
   
-  out <- python.call("getObservation", observation, dynvar, stoi, flows, conserved)
+  out <- rPython::python.call("getObservation", observation, dynvar, stoi, flows, conserved)
   
   variables <- out[[3]]; names(variables) <- out[[1]]
   f <- out[[4]]; names(f) <- out[[1]]

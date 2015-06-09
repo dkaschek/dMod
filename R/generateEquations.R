@@ -15,7 +15,8 @@
 #' #######################################
 #' # Example 1
 #' #######################################
-#' reactions <- data.frame(Description = c("Activation", "Deactivation"), Rate = c("act*A", "deact*pA"), A=c(-1,1), pA=c(1, -1) )
+#' reactions <- data.frame(Description = c("Activation", "Deactivation"), 
+#'                         Rate = c("act*A", "deact*pA"), A=c(-1,1), pA=c(1, -1) )
 #' f <- generateEquations(reactions)
 #' f
 #' 
@@ -29,6 +30,7 @@
 #' volumes <- c(A = "V1", pA = "V2")
 #' f <- generateEquations(reactions, volumes = volumes)
 #' f[1:length(f)]
+#' @export
 generateEquations <- function(..., volumes = NULL) {
   
   mylist <- list(...)
@@ -109,6 +111,11 @@ generateEquations <- function(..., volumes = NULL) {
   
 }
 
+#' Print function for eqnList
+#' 
+#' @param x equation list
+#' @param ... Argument not used right now
+#' @export
 print.eqnList <- function(x, ...) {
   
   S <- attr(x, "SMatrix")
@@ -169,11 +176,14 @@ print.eqnList <- function(x, ...) {
 #' 
 #' @return An object of class \code{eqnList}, a named vector with the equations. Contains attributes "SMatrix"
 #' (the stoichiometric matrix), "species" (the state names), "rates" (the rate expressions) and "description".
-#' @examples reactions <- data.frame(Description = c("Activation", "Deactivation"), Rate = c("act*A", "deact*pA"), A=c(-1,1), pA=c(1, -1) )
+#' @examples 
+#' reactions <- data.frame(Description = c("Activation", "Deactivation"), 
+#'                         Rate = c("act*A", "deact*pA"), A=c(-1,1), pA=c(1, -1) )
 #' f <- generateEquations(reactions)
 #' subset(f, "A"%in%Educt)
 #' subset(f, "pA"%in%Product)
 #' subset(f, grepl("act", Rate))
+#' @export
 subset.eqnList <- function(x, ...) {
   
   SMatrix <- attr(x, "SMatrix")
@@ -187,11 +197,11 @@ subset.eqnList <- function(x, ...) {
   
   ind <- which(eval(substitute(...), list(Description=Description, Educt=Educt, Product=Product, Rate=Rate)))
   
-  
-  
-  S <- attr(x, "SMatrix")[ind,]
+  if(length(ind) == 0) return()
+    
+  S <- matrix(SMatrix[ind,], nrow = length(ind), dimnames = list(NULL, colnames(SMatrix)))
   ind2 <- which(sapply(1:ncol(S), function(j) !all(is.na(S[, j]))))
-  S <- S[,ind2]
+  S <- matrix(S[,ind2], ncol = length(ind2), dimnames = list(NULL, colnames(SMatrix)[ind2]))
   rates <- Rate[ind]
   description <- Description[ind]
   volumes <- Volume[colnames(S)]
@@ -200,23 +210,6 @@ subset.eqnList <- function(x, ...) {
 
   generateEquations(reactions, volumes = volumes)
    
-  
-  # newf <- x[ind]
-  # newS <- attr(x, "SMatrix")[ind,]
-  # ind2 <- which(sapply(1:ncol(newS), function(j) all(is.na(newS[, j]))))
-  # 
-  # attr(newf, "SMatrix") <- attr(x, "SMatrix")[ind, ind2]
-  # #attr(newf, "species") <- attr(x, "species")[ind]
-  # attr(newf, "rates") <- attr(x, "rates")[ind]
-  # attr(newf, "description") <- attr(x, "description")[ind]
-  # attr(newf, "exclmarks") <- attr(x, "exclmarks")[ind]
-  # attr(newf, "observables") <- attr(x, "observables")
-  # 
-  # class(newf) <- "eqnList"
-  # 
-  # return(newf)
-  
-  
   
 }
 
@@ -229,6 +222,7 @@ subset.eqnList <- function(x, ...) {
 #' 
 #' @return A \code{data.frame} with columns "Description", "Rate" and one column for each
 #' ODE state in the model. See \link{generateEquations}.
+#' @export
 combine <- function(...) {
   
   mylist <- list(...)
@@ -271,15 +265,16 @@ combine <- function(...) {
 #' @details Observables are translated into an ODE and added to the list of equations
 #' @return An object of class \code{eqnList}, a named vector with the equations. Contains attributes "SMatrix"
 #' (the stoichiometric matrix), "species" (the state names), "rates" (the rate expressions) and "description".
-#' @examples reactions <- data.frame(Description = c("Activation", "Deactivation"), Rate = c("act*A", "deact*pA"), A=c(-1,1), pA=c(1, -1) )
+#' @examples 
+#' reactions <- data.frame(Description = c("Activation", "Deactivation"), 
+#'                         Rate = c("act*A", "deact*pA"), A=c(-1,1), pA=c(1, -1))
 #' f <- generateEquations(reactions)
 #' myobs <- c(tA = "s1*(pA + A)", dA = "s2*(pA-A)")
 #' f <- addObservable(myobs, f)
+#' @export
 addObservable <- function(observable, f) {
   
-  #myattr <- c("class", "SMatrix", "species", "rates", "description", "exclmarks", "observables")
   myattr <- names(attributes(f))[-1]
-  
   allattr <- attributes(f)[myattr]
   
   if(any(names(observable) %in% names(allattr$observables))) {
@@ -289,49 +284,35 @@ addObservable <- function(observable, f) {
     
   }
   
-  
-  
   # Analyze the observable character expression
   parsedata <- getParseData(parse(text=as.character(observable)))
   symbols <- unique(parsedata[parsedata$token == "SYMBOL","text"])
   species <- symbols[symbols%in%attr(f, "species")]
   derivatives <- lapply(observable, function(obs) {
-    out <- lapply(as.list(species), function(x) paste(deparse(D(parse(text=obs), x), width=500),collapse=""))
+    out <- lapply(as.list(species), function(x) paste(deparse(D(parse(text=obs), x), width.cutoff = 500),collapse=""))
     names(out) <- species
     return(out)
   })
-  #names(derivatives) <- species
-  #print(derivatives)
   
   newodes <- sapply(derivatives, function(der) {
+    
     out <- sapply(names(der), function(n) {
       d <- der[n]
       if(d != "0") paste( paste("(", d, ")", sep="") , paste("(", f[names(d)], ")",sep=""), sep="*") else return("0")
     })
-    
-    
     out <- paste(out, collapse = "+")
     
     return(out)
-    
     
   })
   
   
   
-  #odes <- paste("(", f[match(species, attr(f, "species"))] , ")", sep="")
-  
-  #newodes <- unlist(replaceSymbols(species, odes, observable))
-  #names(newodes) <- names(observable)
   allattr$species <- c(allattr$species, names(observable))
-  
   f <- c(f, newodes)
-  
   for(i in 1:length(myattr)) attr(f, myattr[i]) <- allattr[[i]]
-  
   attr(f, "observables") <- c(attr(f, "observables"), observable)
   
-  # attr(f, "species") <- c(attr(f, "species"), names(observable))
   
   return(f)
   
@@ -348,8 +329,12 @@ addObservable <- function(observable, f) {
 #' @param f equation list, see \link{generateEquations}
 #' @return An object of class \code{eqnList}, a named vector with the equations. Contains attributes "SMatrix"
 #' (the stoichiometric matrix), "species" (the state names), "rates" (the rate expressions) and "description".
-#' @examples f <- addReaction("2*A+B", "C + 2*D", "k1*B*A^2", NULL)
+#' @examples 
+#' \dontrun{
+#' f <- addReaction("2*A+B", "C + 2*D", "k1*B*A^2", NULL)
 #' f <- addReaction("C + A", "B + A", "k2*C*A", f)
+#' }
+#' @export
 addReaction <- function(from, to, rate, f=NULL) {
   
   myattr <- c("class", "SMatrix", "species", "rates", "description", "exclmarks", "observables")
