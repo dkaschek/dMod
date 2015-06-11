@@ -130,6 +130,7 @@ as.obj <- function(p) {
 #' @param ngrid The number of time points returned.
 #' @param type Character, the type of interpolation, i.e. "linear", "spline", "logspline" or "smooth".
 #' @return a \code{data.frame} with columns "name", "time" and "value".
+#' @export
 data2forc <- function(data, tau=NULL, ngrid = 1e3, type="linear") {
   
   obs <- unique(data$name)

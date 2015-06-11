@@ -79,11 +79,13 @@ generateModelIE <- function(f, observed, inputs, forcings, scale=1, modelname = 
   
 }
 
-
 #' Return some useful forcing functions as strings
 #' 
 #' @param type Which function to be returned
+#' @param parameters Named vector, character or numeric. Replace parameters by the corresponding valus
+#' in \code{parameters}.
 #' @return String with the function
+#' @export
 forcingsSymb <- function(type =c("Gauss", "Fermi", "1-Fermi", "MM", "Signal"), parameters = NULL) {
   
   type <- match.arg(type)
@@ -259,7 +261,7 @@ normalizeData <- function(data) {
 #' @param fixed Named numeric with fixed parameter values (contribute to the prior value
 #' but not to gradient and Hessian)
 #' @return List of class \code{obj}, i.e. objective value, gradient and Hessian as list.
-#' @seealso \link{wrss}, \link{summation}, \link{constraintL1}, \link{constraintExp2}
+#' @seealso \link{wrss}
 #' @details Computes the constraint value 
 #' \deqn{\frac{1}{2}\left(\frac{p-\mu}{\sigma}\right)^2}{0.5*(p-mu)^2/sigma^2}
 #' and its derivatives with respect to p.
@@ -268,6 +270,7 @@ normalizeData <- function(data) {
 #' mu <- c(A = 0, B = 0)
 #' sigma <- c(A = 0.1, B = 1)
 #' constraintL2(p, mu, sigma)
+#' @export
 constraintL2 <- function(p, mu, sigma = 1, fixed=NULL) {
 
   ## Augment sigma if length = 1
