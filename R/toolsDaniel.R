@@ -455,6 +455,7 @@ priorL2 <- function(p, mu, lambda = "lambda", fixed = NULL) {
 #' the corresponding elements of out1 and out2 as they are.
 #' @return List of length of out1. 
 #' @aliases summation
+#' @export "+.obj"
 #' @export
 "+.obj" <- function(out1, out2) {
   

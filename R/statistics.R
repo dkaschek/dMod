@@ -344,6 +344,12 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
 
 }
 
+#' Progress bar
+#' 
+#' @param percentage Numeric between 0 and 100
+#' @param size Integer, the size of the bar print-out
+#' @param number Logical, Indicates whether the percentage should be printed out.
+#' @export
 progressBar <- function(percentage, size = 50, number = TRUE) {
   
   if(percentage < 0) percentage <- 0
