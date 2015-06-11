@@ -115,6 +115,7 @@ generateEquations <- function(..., volumes = NULL) {
 #' 
 #' @param x equation list
 #' @param ... Argument not used right now
+#' @export print.eqnList
 #' @export
 print.eqnList <- function(x, ...) {
   
@@ -183,6 +184,7 @@ print.eqnList <- function(x, ...) {
 #' subset(f, "A"%in%Educt)
 #' subset(f, "pA"%in%Product)
 #' subset(f, grepl("act", Rate))
+#' @export subset.eqnList
 #' @export
 subset.eqnList <- function(x, ...) {
   

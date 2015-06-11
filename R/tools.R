@@ -52,6 +52,7 @@ wide2long <- function(out, keep, na.rm) {
 #' a list is supplied, the names of the list are added as extra column names "condition"
 #' @return data.frame in long format, i.e. columns "time" (out[,1]), "name" (colnames(out[,-1])), 
 #' "value" (out[,-1]) and, if out was a list, "condition" (names(out))
+#' @export wide2long.data.frame
 #' @export
 wide2long.data.frame <- function(out, keep = 1, na.rm = FALSE) {
   
@@ -69,6 +70,7 @@ wide2long.data.frame <- function(out, keep = 1, na.rm = FALSE) {
 #' a list is supplied, the names of the list are added as extra column names "condition"
 #' @return data.frame in long format, i.e. columns "time" (out[,1]), "name" (colnames(out[,-1])), 
 #' "value" (out[,-1]) and, if out was a list, "condition" (names(out))
+#' @export wide2long.matrix
 #' @export
 wide2long.matrix <- function(out, keep = 1, na.rm = FALSE) {
   
@@ -96,8 +98,8 @@ wide2long.matrix <- function(out, keep = 1, na.rm = FALSE) {
 #' a list is supplied, the names of the list are added as extra column names "condition"
 #' @return data.frame in long format, i.e. columns "time" (out[,1]), "name" (colnames(out[,-1])), 
 #' "value" (out[,-1]) and, if out was a list, "condition" (names(out))
+#' @export wide2long.list
 #' @export
-
 wide2long.list <- function(out, keep = 1, na.rm = FALSE) {
   
   conditions <- names(out)
@@ -170,7 +172,10 @@ lbind <- function(mylist) {
   
 }
 
-
+#' Alternative version of expand.grid
+#' @param seq1 Vector, numeric or character
+#' @param seq2 Vector, numeric or character
+#' @return Matrix ob combinations of elemens of \code{seq1} and \code{seq2}
 expand.grid.alt <- function(seq1, seq2) {
   cbind(Var1=rep.int(seq1, length(seq2)), Var2=rep(seq2, each=length(seq1)))
 }
