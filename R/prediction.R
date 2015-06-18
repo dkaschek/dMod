@@ -211,7 +211,8 @@ Y <- function(g, f, compile = FALSE) {
     # Format output
     values <- cbind(time = out[,"time"], values)
     if(attach) 
-      values <- cbind(values, out[,-1])
+      values <- cbind(values, submatrix(out, cols = -1))
+    
     
     
     if(!is.null(dout) && !attach) {
@@ -219,7 +220,7 @@ Y <- function(g, f, compile = FALSE) {
       if(is.null(dP)) attr(values, "parameters") <- names(pars) else attr(values, "parameters") <- colnames(dP)
     }
     if(!is.null(dout) && attach) {
-      attr(values, "deriv") <- cbind(time = out[,"time"], dvalues, attr(out, "deriv")[,-1])
+      attr(values, "deriv") <- cbind(time = out[,"time"], dvalues, submatrix(attr(out, "deriv"), cols = -1))
       if(is.null(dP)) attr(values, "parameters") <- names(pars) else attr(values, "parameters") <- colnames(dP)
     }
     return(values)        

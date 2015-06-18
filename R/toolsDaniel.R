@@ -171,7 +171,7 @@ datapointL2 <- function(p, prediction, mu, time = 0, sigma = 1, fixed = NULL) {
   }
   
   # Compute prior value and derivatives
-  res <- pred - c(fixed, p)[names(mu)]
+  res <- as.numeric(pred - c(fixed, p)[names(mu)])
   val <- as.numeric((res/sigma)^2)
   gr <- NULL
   hs <- NULL
