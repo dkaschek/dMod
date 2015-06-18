@@ -1,3 +1,25 @@
+#' Submatrix of a matrix returning ALWAYS a matrix
+#' 
+#' @param M matrix
+#' @param rows Index vector
+#' @param cols Index vector
+#' @return The matrix \code{M[rows, cols]}, keeping/adjusting attributes like ncol nrow and dimnames.
+#' @export
+submatrix <- function(M, rows = 1:nrow(M), cols = 1:ncol(M)) {
+  
+  
+  
+  myrows <- (structure(1:nrow(M), names = rownames(M)))[rows]
+  mycols <- (structure(1:ncol(M), names = colnames(M)))[cols]
+  
+  if(any(is.na(myrows)) | any(is.na(mycols))) stop("subscript out of bounds")
+  
+  matrix(M[myrows, mycols], 
+         nrow = length(myrows), ncol = length(mycols), 
+         dimnames = list(rownames(M)[myrows], colnames(M)[mycols]))
+}
+
+
 #' Embed two matrices into one blockdiagonal matrix
 #' 
 #' @param M matrix of type character

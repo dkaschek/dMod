@@ -26,7 +26,8 @@
 #' an optimization run when \code{reoptimize = TRUE}. The correction factor \code{gamma} is adapted
 #' based on the amount of actual correction. If this exceeds the value \code{correction}, \code{gamma} is
 #' reduced. In some cases, the Hessian becomes singular. This leads to problems when inverting the
-#' Hessian. To avoid this problem, the matrix \code{reg*Id} is added to the Hessian.
+#' Hessian. To avoid this problem, the pseudoinverse is computed by removing all singular values lower
+#' than \code{reg}.
 #' 
 #' \code{stepControl}: The Euler integration starts with \code{stepsize}. In each step the predicted change
 #' of the objective function is compared with the actual change. If this is larger than \code{atol}, the
@@ -117,6 +118,18 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                           "identity" = Id)
     return(out)    
   }
+  
+  pseudoinverse <- function(m, tol) {
+    msvd <- svd(m)
+    index <- which(abs(msvd$d) > tol) 
+    if (length(index) == 0) {
+      return(array(0, dim(m)[2:1]))
+    }
+    else {
+      return(msvd$u[,index] %*% (1/msvd$d[index] * t(msvd$v)[index,]))
+    }
+  }
+  
   constraint <- function(p) {
     value <- p[whichPar] - pars[whichPar]
     gradient <- rep(0, length(p))
@@ -144,8 +157,8 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     v <- c(-rep(gamma, length(p))*(ldot + lambda*gdot), 1)
     v0 <- c(-rep(0, length(p))*(ldot + lambda*gdot), 1)
     
-    dy <- try(as.vector(solve(M)%*%v)[1:length(p)], silent=FALSE)
-    dy0 <- try(as.vector(solve(M)%*%v0)[1:length(p)], silent=FALSE)
+    dy <- try(as.vector(pseudoinverse(M, tol = aControl$reg)%*%v)[1:length(p)], silent=FALSE)
+    dy0 <- try(as.vector(pseudoinverse(M, tol = aControl$reg)%*%v0)[1:length(p)], silent=FALSE)
     
     if(!inherits(dy, "try-error")) {
       names(dy) <- names(y) 
