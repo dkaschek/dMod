@@ -74,14 +74,14 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
       outSens <- do.call(odeC, c(list(y=c(yini, yiniSens), times=times, func=extended, parms=mypars, forcings=forc, events = list(data = events)), optionsSens))
       #out <- cbind(outSens[,c("time", variables)], out.inputs)
       out <- outSens[,c("time", c(variables, forcnames))]
-      attr(out, "sensitivities") <- outSens[,!colnames(outSens)%in%c(variables, forcnames)]
+      attr(out, "sensitivities") <- submatrix(outSens, cols = !colnames(outSens)%in%c(variables, forcnames))
       
       
       # Apply parameter transformation to the derivatives
       sensLong <- matrix(outSens[,sensNames], nrow=dim(outSens)[1]*length(variables))
       dP <- attr(pars, "deriv")
       if(!is.null(dP)) {
-        sensLong <- sensLong%*%(dP[c(svariables, sparameters),])
+        sensLong <- sensLong%*%submatrix(dP, rows = c(svariables, sparameters))
         sensGrid <- expand.grid(variables, colnames(dP), stringsAsFactors=FALSE)
         sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")
       }
@@ -196,7 +196,7 @@ Y <- function(g, f, compile = FALSE) {
       
       # Multiplication with tangent map
       sensLong <- matrix(dvalues, nrow=dim(out)[1]*length(observables))
-      sensLong <- sensLong%*%(dP[parameters.all,])
+      sensLong <- sensLong%*%submatrix(dP, rows = parameters.all)
       dvalues <- matrix(sensLong, nrow=dim(out)[1])
       
       # Naming

@@ -13,7 +13,7 @@ plotPrediction <- function(prediction, ...) {
 
   prediction <- subset(wide2long.list(prediction), ...)
   
-  ggplot2::ggplot(prediction, aes(x=time, y=value, group=condition, color=condition)) + facet_wrap(~name, scales="free") + geom_line()
+  ggplot(prediction, aes(x=time, y=value, group=condition, color=condition)) + facet_wrap(~name, scales="free") + geom_line()
   
 }
 
@@ -41,7 +41,7 @@ plotCombined <- function (prediction, data, ...) {
   prediction <- subset(prediction, ...)
   data <- subset(data, ...)
   
-  ggplot2::ggplot(rbind(prediction[, mynames], data[, mynames]), 
+  ggplot(rbind(prediction[, mynames], data[, mynames]), 
                   aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma, group = condition, color = condition)) + 
     facet_wrap(~name, scales = "free") + geom_line(data = prediction) + geom_point(data = data) + 
     geom_errorbar(data = data, width = 0)
@@ -62,7 +62,7 @@ plotCombined <- function (prediction, data, ...) {
 plotData <- function (data, ...) {
   
   data <- subset(lbind(data), ...)
-  ggplot2::ggplot(data, aes(x = time, y = value, ymin = value - sigma, 
+  ggplot(data, aes(x = time, y = value, ymin = value - sigma, 
                      ymax = value + sigma, group = condition, color = condition)) + 
     facet_wrap(~name, scales = "free") + geom_point() + geom_errorbar(width = 0)
 }
@@ -126,12 +126,12 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE) {
     if(is.null(whichPar)) whichPar <- names(proflist)
     subdata <- do.call(rbind, lapply(whichPar, function(n) {
       # chose a profile
-      paths <- proflist[[n]][,-(1:4)]
+      paths <- submatrix(proflist[[n]], cols = -(1:4))
       values <- proflist[[n]][,1]
       combinations <- expand.grid.alt(whichPar, colnames(paths))
       if(sort) combinations <- apply(combinations, 1, sort) else combinations <- apply(combinations, 1, identity)
-      combinations <- combinations[,-which(combinations[1,] == combinations[2,])]
-      combinations <- combinations[,!duplicated(paste(combinations[1,], combinations[2,]))]
+      combinations <- submatrix(combinations, cols = -which(combinations[1,] == combinations[2,]))
+      combinations <- submatrix(combinations, cols = !duplicated(paste(combinations[1,], combinations[2,])))
       
       
         
@@ -141,8 +141,8 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE) {
                    name = n,
                    proflist = i,
                    combination = paste(combinations[,j], collapse = " - "),
-                   x = paths[,combinations[1,j]],
-                   y = paths[,combinations[2,j]])
+                   x = paths[, combinations[1,j]],
+                   y = paths[, combinations[2,j]])
       }))
       
       return(path.data)
@@ -156,7 +156,7 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE) {
   data$proflist <- as.factor(data$proflist)
   
   
-  ggplot2::ggplot(data, aes(x=x, y=y, group=interaction(name, proflist), color=name, lty=proflist)) + 
+  ggplot(data, aes(x=x, y=y, group=interaction(name, proflist), color=name, lty=proflist)) + 
     facet_wrap(~combination, scales="free") + 
     geom_path() + geom_point(aes=aes(size=1), alpha=1/3) +
     xlab("parameter 1") + ylab("parameter 2") +

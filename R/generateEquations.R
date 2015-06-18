@@ -201,9 +201,9 @@ subset.eqnList <- function(x, ...) {
   
   if(length(ind) == 0) return()
     
-  S <- matrix(SMatrix[ind,], nrow = length(ind), dimnames = list(NULL, colnames(SMatrix)))
+  S <- submatrix(SMatrix, ind)
   ind2 <- which(sapply(1:ncol(S), function(j) !all(is.na(S[, j]))))
-  S <- matrix(S[,ind2], ncol = length(ind2), dimnames = list(NULL, colnames(SMatrix)[ind2]))
+  S <- submatrix(S, cols = ind2)
   rates <- Rate[ind]
   description <- Description[ind]
   volumes <- Volume[colnames(S)]
