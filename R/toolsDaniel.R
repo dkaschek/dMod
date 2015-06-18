@@ -17,7 +17,7 @@ generateModel <- function(f, forcings=NULL, fixed=NULL, modelname = "f", ...) {
   s <- sensitivitiesSymb(f, 
                          states = setdiff(attr(func, "variables"), fixed), 
                          parameters = setdiff(attr(func, "parameters"), fixed), 
-                         inputs=forcings,
+                         inputs = forcings,
                          reduce = TRUE)
   fs <- c(f, s)
   outputs <- attr(s, "outputs")

@@ -24,10 +24,10 @@ symmetryDetection <- function(f, obsvect = NULL, prediction = NULL, initial = NU
   prediction <- as.character(lapply(1:length(prediction), function(i) paste(names(prediction)[i],'=',prediction[i])))
   initial <- as.character(lapply(1:length(initial), function(i) paste(names(initial)[i],'=',initial[i]))) 
   
-  rPython::python.load(paste(system.file(package="R2CdeSolve"),"/code/functions.py", sep = ""))
-  rPython::python.load(paste(system.file(package="R2CdeSolve"),"/code/readData.py", sep = ""))
-  rPython::python.load(paste(system.file(package="R2CdeSolve"),"/code/buildSystem.py", sep = ""))
-  rPython::python.load(paste(system.file(package="R2CdeSolve"),"/code/symmetryDetection.py", sep = ""))
+  rPython::python.load(paste(system.file(package="dMod"),"/code/functions.py", sep = ""))
+  rPython::python.load(paste(system.file(package="dMod"),"/code/readData.py", sep = ""))
+  rPython::python.load(paste(system.file(package="dMod"),"/code/buildSystem.py", sep = ""))
+  rPython::python.load(paste(system.file(package="dMod"),"/code/symmetryDetection.py", sep = ""))
   
   rPython::python.call("symmetryDetection", f, obsvect, prediction, initial, ansatz, pMax, inputs, fixed, cores, allTrafos)
 }
@@ -62,8 +62,8 @@ variableTransformation <- function(observables, f = NULL, dynvar = NULL, stoi = 
   if(is.null(flows)) flows <- attr(f, "rates")
   
   
-  rPython::python.load(paste(system.file(package="R2CdeSolve"),"/code/functions_obs.py", sep = ""))
-  rPython::python.load(paste(system.file(package="R2CdeSolve"),"/code/extendObservation.py", sep = ""))
+  rPython::python.load(paste(system.file(package="dMod"),"/code/functions_obs.py", sep = ""))
+  rPython::python.load(paste(system.file(package="dMod"),"/code/extendObservation.py", sep = ""))
   
   
   out <- rPython::python.call("getObservation", observation, dynvar, stoi, flows, conserved)

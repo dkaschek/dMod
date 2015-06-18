@@ -40,13 +40,13 @@ res <- function (data, out) {
   if (!is.null(deriv)) {
     sensnames <- as.vector(outer(names, pars, paste, sep="."))
     # Match names to the corresponding sensitivities in sensnames
-    names.sensnames <- apply(matrix(1:length(sensnames), nrow = length(names), ncol = length(pars)), 1, identity)
+    names.sensnames <- t(matrix(1:length(sensnames), nrow = length(names), ncol = length(pars)))
     # Get positions of sensnames in colnames of deriv
     sensnames.deriv <- match(sensnames, colnames(deriv))
     # Get the columns in deriv corresponding to data names
     derivnameIndex <- matrix(sensnames.deriv[names.sensnames[, data.name]], ncol = length(data.name))
     # Derivatives of the prediction
-    deriv.prediction <- do.call(rbind, lapply(1:nrow(data), function(i) deriv[timeIndex[i], derivnameIndex[, i]]))
+    deriv.prediction <- do.call(rbind, lapply(1:nrow(data), function(i) submatrix(deriv, timeIndex[i], derivnameIndex[, i])))
     colnames(deriv.prediction) <- pars
     
     deriv.data <- data.frame(time = data$time, name = data$name, deriv.prediction)

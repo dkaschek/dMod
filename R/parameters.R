@@ -71,7 +71,7 @@ P <- function(trafo, parameters=NULL, compile = FALSE) {
     jac.matrix <- matrix(jac.vector, length(pinner), length(p), dimnames = list(names(pinner), names(p)))
     
     
-    if(!is.null(dP)) jac.matrix <- jac.matrix%*%dP[colnames(jac.matrix),]
+    if(!is.null(dP)) jac.matrix <- jac.matrix%*%submarix(dP, rows = colnames(jac.matrix))
     if(deriv) attr(pinner, "deriv") <- jac.matrix
     
     return(pinner)
@@ -188,10 +188,10 @@ Pi <- function(trafo, parameters=NULL, compile = FALSE) {
     rownames(jacobian) <- names(out)
     for(ep in emptypars) jacobian[ep, ep] <- 1
     jacobian[rownames(dxdp), colnames(dxdp)] <- dxdp 
-    jacobian <- jacobian[,setdiff(names(p), names(fixed))]
+    jacobian <- submatrix(jacobian, cols = setdiff(names(p), names(fixed)))
     
     # Multiplication with deriv of p
-    if(!is.null(dP)) jacobian <- jacobian%*%dP[colnames(jacobian),]
+    if(!is.null(dP)) jacobian <- jacobian%*%submatrix(dP, rows = colnames(jacobian))
     
     
     if(deriv) attr(out, "deriv") <- jacobian

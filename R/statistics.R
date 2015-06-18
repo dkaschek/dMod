@@ -148,7 +148,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     g     <- direction * g.original$value
     gdot  <- direction * g.original$gradient
     ldot  <- out$gradient
-    lddot <- out$hessian  + diag(aControl$reg, length(out$gradient)) 
+    lddot <- out$hessian 
     
     # compute rhs of profile ODE
     M <- rbind(cbind(lddot, gdot), 
