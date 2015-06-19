@@ -13,8 +13,10 @@ plotPrediction <- function(prediction, ...) {
   
   prediction <- subset(wide2long.list(prediction), ...)
   
-  ggplot(prediction, aes(x=time, y=value, group=condition, color=condition)) + facet_wrap(~name, scales="free") + geom_line()
-  
+  p <- ggplot(prediction, aes(x=time, y=value, group=condition, color=condition)) + facet_wrap(~name, scales="free") + geom_line()
+  attr(p, "data") <- prediction
+  return(p)
+   
 }
 
 
@@ -41,10 +43,13 @@ plotCombined <- function (prediction, data, ...) {
   prediction <- subset(prediction, ...)
   data <- subset(data, ...)
   
-  ggplot(rbind(prediction[, mynames], data[, mynames]), 
+  p <- ggplot(rbind(prediction[, mynames], data[, mynames]), 
                   aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma, group = condition, color = condition)) + 
     facet_wrap(~name, scales = "free") + geom_line(data = prediction) + geom_point(data = data) + 
     geom_errorbar(data = data, width = 0)
+  
+  attr(p, "data") <- list(data = data, prediction = prediction)
+  return(p)
   
 }
 
@@ -62,8 +67,13 @@ plotCombined <- function (prediction, data, ...) {
 plotData <- function (data, ...) {
   
   data <- subset(lbind(data), ...)
-  ggplot(data, aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma, group = condition, color = condition)) + 
+  p <- ggplot(data, aes(x = time, y = value, ymin = value - sigma, 
+                        ymax = value + sigma, group = condition, color = condition)) + 
     facet_wrap(~name, scales = "free") + geom_point() + geom_errorbar(width = 0)
+  
+  attr(p, "data") <- data
+  return(p)
+  
 }
 
 #' Profile likelihood plot
@@ -97,13 +107,15 @@ plotProfile <- function(..., maxvalue = 5) {
   
   threshold <- c(1, 2.7, 3.84)
   
-  ggplot(data, aes(x=par, y=delta, group=proflist, color=proflist)) + facet_wrap(~name, scales="free_x") + 
+  p <- ggplot(data, aes(x=par, y=delta, group=proflist, color=proflist)) + facet_wrap(~name, scales="free_x") + 
     geom_line() + geom_point(aes=aes(size=1), alpha=1/3) +
     geom_hline(yintercept=threshold, lty=2, color="gray") + 
     ylab(expression(paste("CL /", Delta*chi^2))) +
     scale_y_continuous(breaks=c(1, 2.7, 3.84), labels = c("68% / 1   ", "90% / 2.71", "95% / 3.84")) +
     xlab("parameter value")
   
+  attr(p, "data") <- data
+  return(p)
   
 }
 
@@ -155,12 +167,15 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE) {
   data$proflist <- as.factor(data$proflist)
   
   
-  ggplot(data, aes(x=x, y=y, group=interaction(name, proflist), color=name, lty=proflist)) + 
+  p <- ggplot(data, aes(x=x, y=y, group=interaction(name, proflist), color=name, lty=proflist)) + 
     facet_wrap(~combination, scales="free") + 
     geom_path() + geom_point(aes=aes(size=1), alpha=1/3) +
     xlab("parameter 1") + ylab("parameter 2") +
     scale_linetype_discrete(name = "profile\nlist") +
     scale_color_discrete(name = "profiled\nparameter")
+  
+  attr(p, "data") <- data
+  return(p)
   
 }
 

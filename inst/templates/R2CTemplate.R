@@ -8,8 +8,7 @@ library(ggthemes)
 library(cOde)
 library(dMod)
 
-ggplot <- function(...) ggplot2::ggplot(...) + theme_few() + scale_color_colorblind() + scale_fill_colorblind()
-qplot <- function(...) ggplot2::qplot(...) + theme_few() + scale_color_colorblind() + scale_fill_colorblind()
+printP <- function(myplot) print(myplot + theme_few() + scale_color_colorblind() + scale_fill_colorblind())
 
 
 ## Model Definition ------------------------------------------------------
@@ -50,7 +49,6 @@ model0 <- generateModel(f, fixed = fixed, forcings = forcings, jacobian = "inz.l
 # Define inner parameters (parameters occurring in the equations except forcings)
 # Add names(observables) if addObservables(observables, f) is used
 innerpars <- getSymbols(c(f, names(f), observables), exclude=c(forcings, "time"))
-names(innerpars) <- innerpars
 
 # Define additional parameter constraints, e.g. steady-state conditions
 # Parameters (left-hand side) are replaced in the right-hand side of consecutive lines by resolveRecurrence() 
@@ -60,7 +58,9 @@ constraints <- resolveRecurrence(c(
   ))
 
 # Build up a parameter transformation (constraints, log-transform, etc.)
-# Start with replacing initial value parameters of the observables
+# Start with the identity
+trafo <- structure(innerpars, names = innerpars)
+# Replace initial value parameters of the observables (if treated as states)
 trafo <- replaceSymbols(names(observables), observables, innerpars)
 # Then employ the other parameter constraints
 trafo <- replaceSymbols(names(constraints), constraints, trafo)
