@@ -140,12 +140,13 @@ print.eqnList <- function(x, ...) {
   products <- reactions[2,]
 
   
-  exclMarks <- rep(" ", length(reactions[[1]]))
+  exclMarks <- rep(" ", ncol(reactions))
   exclMarks[attr(x, "exclmarks")] <- "!"
   
   cat("Reaction table:\n")
   out <- data.frame(educts, "->", products, attr(x, "rates"), attr(x, "description"), exclMarks)
   colnames(out) <- c("Educt",  "->",  "Product", "Rate", "Description", "Check")
+  rownames(out) <- 1:nrow(out)
   print(out)
   
   if(!is.null(attr(x, "observables")))
