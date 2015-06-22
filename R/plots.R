@@ -96,7 +96,7 @@ plotProfile <- function(..., maxvalue = 5) {
       parvalues <- proflist[[n]][,n]
       deltavalues <- values - zerovalue
       
-      subset(data.frame(name = n, delta = deltavalues, par = parvalues, proflist = i), delta <= maxvalue)
+      subset(data.frame(name = n, delta = deltavalues, par = parvalues, proflist = i))
       
     }))
     return(subdata)
@@ -111,7 +111,7 @@ plotProfile <- function(..., maxvalue = 5) {
     geom_line() + geom_point(aes=aes(size=1), alpha=1/3) +
     geom_hline(yintercept=threshold, lty=2, color="gray") + 
     ylab(expression(paste("CL /", Delta*chi^2))) +
-    scale_y_continuous(breaks=c(1, 2.7, 3.84), labels = c("68% / 1   ", "90% / 2.71", "95% / 3.84")) +
+    scale_y_continuous(breaks=c(1, 2.7, 3.84), labels = c("68% / 1   ", "90% / 2.71", "95% / 3.84"), limits = c(NA, maxvalue)) +
     xlab("parameter value")
   
   attr(p, "data") <- data
