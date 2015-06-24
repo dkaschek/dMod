@@ -95,9 +95,11 @@ getSigmaFromProfileList <- function(proflist, alpha=0.32) {
 
 #' Print without attributes
 #' 
+#' @param x The object to be printed out
 #' @param list_attributes prints a list of attribute names if TRUE (default=TRUE)
 #' @details To suppress the printout of attributes like "deriv". 
-print.noattributes <- function(x, list_attributes=TRUE ) {
+#' @export
+print0 <- function(x, list_attributes=TRUE ) {
   attributes_all <- names(attributes(x))
   attributes_rm <- attributes_all[!(attributes_all %in% c("dim","names","dimnames","row.names","col.names"))]
   attributes(x)[attributes_rm] <- NULL

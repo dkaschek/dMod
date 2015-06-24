@@ -398,3 +398,62 @@ addReaction <- function(from, to, rate, f=NULL) {
   
   
 }
+
+coupleReactions <- function(what, to, f, couplingParameter = "alpha") {
+  
+  
+  
+}
+
+
+#' @export
+mergeReactions <- function(what, f) {
+  
+  
+  description <- attr(f, "description")
+  rates <- attr(f, "rates")
+  S <- attr(f, "SMatrix")
+  volumes <- attr(f, "volumes")
+  
+  S[is.na(S)] <- 0
+  s <- S[what,]
+  s.merged <- apply(s, 2, sum)
+  
+  rest <- (1:length(rates))[-unique(what)[-1]]
+  description <- description[rest]
+  rates <- rates[rest]
+  volumes <- volumes[rest]
+  S <- rbind(S[rest[rest < unique(what)[1]], ],
+             s.merged,
+             S[rest[rest > unique(what)[1]], ])
+  
+  S <- S[, apply(S, 2, function(v) any(v != 0))]
+  S[S == 0] <- NA
+  rownames(S) <- NULL
+  
+  data <- data.frame(Description = description, Rate = rates, S)
+
+  generateEquations(data, volumes = volumes)
+  
+  
+  
+  
+}
+
+#' @export
+removeReactions <- function(what, f) {
+  
+  
+  description <- attr(f, "description")
+  rates <- attr(f, "rates")
+  S <- attr(f, "SMatrix")
+  volumes <- attr(f, "volumes")
+  
+  data <- data.frame(Description = description[-what], Rate = rates[-what], S[-what, ])
+  
+  generateEquations(data, volumes = volumes[-what])
+  
+  
+  
+  
+}

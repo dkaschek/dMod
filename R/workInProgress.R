@@ -24,45 +24,6 @@ similarity <- function(fitlist, x, times, fixed, deriv = FALSE) {
 
 
 
-coupleReactions <- function(what, to, f, couplingParameter = "alpha") {
-  
-  
-  
-}
-
-mergeReactions <- function(what, f) {
-  
-  
-  description <- attr(f, "description")
-  rates <- attr(f, "rates")
-  S <- attr(f, "SMatrix")
-  volumes <- attr(f, "volumes")
-  
-  S[is.na(S)] <- 0
-  s <- S[what,]
-  s.merged <- apply(s, 2, sum)
-  
-  rest <- (1:length(rates))[-unique(what)[-1]]
-  description <- description[rest]
-  rates <- rates[rest]
-  volumes <- volumes[rest]
-  S <- rbind(S[rest[rest < unique(what)[1]], ],
-             s.merged,
-             S[rest[rest > unique(what)[1]], ])
-  
-  S <- S[, apply(S, 2, function(v) any(v != 0))]
-  S[S == 0] <- NA
-  rownames(S) <- NULL
-  
-  data <- data.frame(Description = description, Rate = rates, S)
-
-  generateEquations(data, volumes = volumes)
-  
-  
-  
-  
-}
-
 myexpr <- expression({
   for(i in 1:1e3) {
     M <- matrix(rnorm(1e4, 0, 1), 100, 100)

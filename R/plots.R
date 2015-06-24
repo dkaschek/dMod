@@ -1,3 +1,26 @@
+theme_dMod <- function (base_size = 12, base_family = "") {
+  colors <- list(
+    medium = c(gray = '#737373', red = '#F15A60', green = '#7AC36A', blue = '#5A9BD4', orange = '#FAA75B', purple = '#9E67AB', maroon = '#CE7058', magenta = '#D77FB4'),
+    dark = c(black = '#010202', red = '#EE2E2F', green = '#008C48', blue = '#185AA9', orange = '#F47D23', purple = '#662C91', maroon = '#A21D21', magenta = '#B43894'),
+    light = c(gray = '#CCCCCC', red = '#F2AFAD', green = '#D9E4AA', blue = '#B8D2EC', orange = '#F3D1B0', purple = '#D5B2D4', maroon = '#DDB9A9', magenta = '#EBC0DA')
+  )
+  gray <- colors$medium["gray"]
+  black <- colors$dark["black"]
+  
+  theme_bw(base_size = base_size, base_family = base_family) + 
+    theme(line = element_line(colour = gray), 
+          rect = element_rect(fill = "white", colour = NA), 
+          text = element_text(colour = black), 
+          axis.ticks = element_line(colour = gray), 
+          legend.key = element_rect(colour = NA), 
+          panel.border = element_rect(colour = gray), 
+          panel.grid = element_line(colour = gray, size = 0.2), 
+          strip.background = element_rect(fill = "white", colour = NA))
+}
+
+ggplot <- function(...) ggplot2::ggplot(...) + theme_dMod()
+
+
 #' Plot a list of model predictions
 #' 
 #' @param prediction Named list of matrices or data.frames, usually the output of a prediction function
