@@ -452,3 +452,91 @@ Xf <- function(func, forcings=NULL, events=NULL, optionsOde=list(method="lsoda")
   return(P2X)
   
 }
+
+#' @export
+Xd <- function(data) {
+  
+  states <- unique(as.character(data$name))
+  
+  
+  # List of prediction functions with sensitivities
+  predL <- lapply(states, function(s) {
+    subdata <- subset(data, as.character(name) == s)
+    val <- approxfun(data$time, data$value)
+    
+    M <- diag(1, nrow(subdata), nrow(subdata))
+    parameters <- rownames(data)
+    if(is.null(parameters)) parameters <- paste("par", s, 1:nrow(subdata), sep = "_")
+    sensnames <- paste(s, parameters, sep = ".")
+    
+    out <- function(times, pars) {
+      value <- approx(x = subdata$time, y= pars[parameters], xout = times)$y
+      grad <- do.call(cbind, lapply(1:nrow(subdata), function(i) {
+        approx(x = subdata$time, y = M[, i], xout = times)$y
+      }))
+      colnames(grad) <- sensnames
+      attr(value, "sensitivities") <- grad
+      attr(value, "sensnames") <- sensnames
+      
+      return(value)
+    }
+    
+    attr(out, "parameters") <- parameters
+    
+    return(out)
+    
+  }); names(predL) <- states
+  
+  # Collect parameters
+  parameters <- unlist(lapply(predL, function(p) attr(p, "parameters")))
+  
+  
+  sensGrid <- expand.grid(states, parameters, stringsAsFactors=FALSE)
+  sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")  
+  
+  
+  
+  P2X <- function(times, pars, deriv=TRUE){
+    
+    
+    predictions <- lapply(states, function(s) predL[[s]](times, pars)); names(predictions) <- states
+    
+    out <- cbind(times, do.call(cbind, predictions))
+    colnames(out) <- c("time", states)
+    
+    if(deriv) {
+      
+      # Fill in sensitivities
+      outSens <- matrix(0, nrow = length(times), ncol = length(sensNames), dimnames = list(NULL, c(sensNames)))
+      for(s in states) {
+        mysens <- attr(predictions[[s]], "sensitivities")
+        mynames <- attr(predictions[[s]], "sensnames")
+        outSens[, mynames] <- mysens
+      }
+      
+      attr(out, "sensitivities") <- cbind(time = times, outSens)
+      
+      # Apply parameter transformation to the derivatives
+      sensLong <- matrix(outSens, nrow = nrow(outSens)*length(states))
+      dP <- attr(pars, "deriv")
+      if(!is.null(dP)) {
+        sensLong <- sensLong%*%submatrix(dP, rows = parameters)
+        sensGrid <- expand.grid(states, colnames(dP), stringsAsFactors = FALSE)
+        sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")
+      }
+      outSens <- cbind(times, matrix(sensLong, nrow=dim(outSens)[1]))
+      colnames(outSens) <- c("time", sensNames)
+      
+      
+      attr(out, "deriv") <- outSens
+      attr(out, "parameters") <- unique(sensGrid[,2])
+    }
+    
+    return(out)
+    
+  }
+  
+  attr(P2X, "parameters") <- structure(parameters, names = NULL)
+  return(P2X)
+  
+}
