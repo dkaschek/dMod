@@ -120,14 +120,19 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
 #' are multiplied according to the chain rule for differentiation.
 #' If \code{attach = TRUE}, the original argument \code{out} will be attached to the evaluated observations.
 #' @export
-Y <- function(g, f, compile = FALSE) {
+Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE) {
   
   warnings <- FALSE
   
   # Get potential paramters from g, forcings are treated as parameters because
   # sensitivities dx/dp with respect to forcings are zero.
-  states <- names(f)
-  parameters <- getSymbols(c(g, f), exclude = c(states, "time"))
+  if(is.null(f)) {
+    states <- states
+    parameters <- parameters
+  } else {
+    states <- names(f)
+    parameters <- getSymbols(c(g, f), exclude = c(states, "time"))
+  }
     
   # Observables defined by g
   observables <- names(g)
@@ -453,6 +458,11 @@ Xf <- function(func, forcings=NULL, events=NULL, optionsOde=list(method="lsoda")
   
 }
 
+
+#' Model prediction from data.frame
+#' 
+#' @param data data.frame with columns "name", "times", and row names that are taken as parameter names
+#' @return Prediction function
 #' @export
 Xd <- function(data) {
   
@@ -462,17 +472,17 @@ Xd <- function(data) {
   # List of prediction functions with sensitivities
   predL <- lapply(states, function(s) {
     subdata <- subset(data, as.character(name) == s)
-    val <- approxfun(data$time, data$value)
     
     M <- diag(1, nrow(subdata), nrow(subdata))
-    parameters <- rownames(data)
-    if(is.null(parameters)) parameters <- paste("par", s, 1:nrow(subdata), sep = "_")
-    sensnames <- paste(s, parameters, sep = ".")
+    parameters.specific <- rownames(subdata)
+    if(is.null(parameters.specific)) parameters.specific <- paste("par", s, 1:nrow(subdata), sep = "_")
+    sensnames <- paste(s, parameters.specific, sep = ".")
     
     out <- function(times, pars) {
-      value <- approx(x = subdata$time, y= pars[parameters], xout = times)$y
+      
+      value <- approx(x = subdata$time, y = pars[parameters.specific], xout = times, rule = 2)$y
       grad <- do.call(cbind, lapply(1:nrow(subdata), function(i) {
-        approx(x = subdata$time, y = M[, i], xout = times)$y
+        approx(x = subdata$time, y = M[, i], xout = times, rule = 2)$y
       }))
       colnames(grad) <- sensnames
       attr(value, "sensitivities") <- grad
@@ -481,7 +491,7 @@ Xd <- function(data) {
       return(value)
     }
     
-    attr(out, "parameters") <- parameters
+    attr(out, "parameters") <- parameters.specific
     
     return(out)
     
