@@ -80,14 +80,11 @@ strpad <- function(string, width, where = "right", padding = " ", autoelide = FA
 strelide <- function(string, width, where = "right", force = FALSE) {
   
   # Functions for eliding
-  # Eliding on the left
-  elideLeft <- function(string, width) {
-    substr(string, 1, 3) <- "..."
-    return(strtrim(string, width))
-  }
-  
-  # Eliding in the middle 
+    # Eliding in the middle 
   elideMiddle <- function(string, width) {
+    if (width == 1) {
+      return('.')
+    }
     strWidth <- nchar(string)
     frontWidth <- max(ceiling((width - 3) / 2), 1)
     endWitdh <- floor((width - 3) / 2)
@@ -105,6 +102,13 @@ strelide <- function(string, width, where = "right", force = FALSE) {
       substr(string, width - 2, width) <- "..."
       return(strtrim(string, width))
     }
+  }
+  
+  # Eliding on the left
+  elideLeft <- function(string, width) {
+    string <- paste(rev(substring(string, 1:nchar(string), 1:nchar(string))), collapse="")
+    string <- elideRight(string, width)
+    return(paste(rev(substring(string, 1:nchar(string), 1:nchar(string))), collapse=""))
   }
   
   # Check function argumets
