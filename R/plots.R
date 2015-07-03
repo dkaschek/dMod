@@ -70,6 +70,8 @@ plotPrediction <- function(prediction, ..., scales = "free", facet = "wrap") {
 #' @export
 plotCombined <- function (prediction, data = NULL, ..., scales = "free", facet = "wrap") {
   
+  mynames <- c("time", "name", "value", "sigma", "condition")
+  
   if(!is.null(prediction)) {
     prediction <- cbind(wide2long(prediction), sigma = NA)
     prediction <- subset(prediction, ...)
@@ -79,7 +81,7 @@ plotCombined <- function (prediction, data = NULL, ..., scales = "free", facet =
     data <- subset(data, ...)
   }
   
-  total <- rbind(prediction, data)
+  total <- rbind(prediction[, mynames], data[, mynames])
   
   if(facet == "wrap")
     p <- ggplot(total, aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma, 
