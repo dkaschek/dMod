@@ -478,8 +478,8 @@ Xd <- function(data) {
     if(is.null(parameters.specific)) parameters.specific <- paste("par", s, 1:nrow(subdata), sep = "_")
     sensnames <- paste(s, parameters.specific, sep = ".")
     
+    # return function
     out <- function(times, pars) {
-      
       value <- approx(x = subdata$time, y = pars[parameters.specific], xout = times, rule = 2)$y
       grad <- do.call(cbind, lapply(1:nrow(subdata), function(i) {
         approx(x = subdata$time, y = M[, i], xout = times, rule = 2)$y
@@ -487,7 +487,6 @@ Xd <- function(data) {
       colnames(grad) <- sensnames
       attr(value, "sensitivities") <- grad
       attr(value, "sensnames") <- sensnames
-      
       return(value)
     }
     
@@ -499,8 +498,7 @@ Xd <- function(data) {
   
   # Collect parameters
   parameters <- unlist(lapply(predL, function(p) attr(p, "parameters")))
-  
-  
+ 
   sensGrid <- expand.grid(states, parameters, stringsAsFactors=FALSE)
   sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")  
   

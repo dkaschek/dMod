@@ -38,15 +38,16 @@ P <- function(trafo, parameters=NULL, compile = FALSE) {
   
   
   # expression list for parameter and jacobian evaluation
-  trafo.list <- lapply(trafo, function(myrel) parse(text=as.character(myrel)))
-  jacobian <- unlist(lapply(parameters, function(var) {
-    unlist(lapply(trafo.list, function(myexp) paste(deparse(D(myexp, as.character(var))), collapse="")))
-  }))
+  #trafo.list <- lapply(trafo, function(myrel) parse(text=as.character(myrel)))
+  #jacobian <- unlist(lapply(parameters, function(var) {
+  #  unlist(lapply(trafo.list, function(myexp) paste(deparse(D(myexp, as.character(var))), collapse="")))
+  #}))
+  dtrafo <- jacobianSymb(trafo, parameters)
   
-  jacNames <- expand.grid.alt(names(trafo), parameters)
-  jacNames <- paste(jacNames[,1], jacNames[,2], sep=".")
+  #jacNames <- expand.grid.alt(names(trafo), parameters)
+  #jacNames <- paste(jacNames[,1], jacNames[,2], sep=".")
   
-  dtrafo <- jacobian; names(dtrafo) <- jacNames
+  #dtrafo <- jacobian; names(dtrafo) <- jacNames
   
   PEval <- funC0(trafo, compile = compile)
   dPEval <- funC0(dtrafo, compile = compile)
