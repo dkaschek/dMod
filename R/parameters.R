@@ -210,6 +210,37 @@ Pi <- function(trafo, parameters=NULL, compile = FALSE) {
 }
 
 
+
+#' Pretty printing of parameter transformations, class par
+#' 
+#' @export
+print.par <- function(p) {
+  
+  # Assemble parameters
+  linewidth <- 79
+  hInner <- "Inner"
+  hOuter <- "Outer"
+  
+  equations <- attr(p, "equations")
+  maxNameWidth <- max(nchar(names(equations)), nchar(hInner))  
+  equationWidth <- if (linewidth - maxNameWidth - 3 > 9) linewidth - maxNameWidth -3
+  else 10
+  
+  
+  # Assemble and print parameter transformation table
+  cat("Table of parameter transformations\n")
+  for (i in seq(1, length(equations))) {
+    eq <- strelide(equations[i], equationWidth, where = "right")
+    eqName <- strpad(names(equations[i]), maxNameWidth, where = "left")
+    cat(eqName, "=", eq, "\n")
+    if (!(i %% 10)) {
+      cat("\n")
+    }
+  }
+}
+
+
+
 #' Concatenation of parameter transformations
 #' 
 #' @param p1 Return value of \link{P} or \link{Pi}
