@@ -1,0 +1,3 @@
+Description,Rate,Fe
+Fp uptake,up_Fe,1
+Fe degradation,dg_Fe * Fe,-1
