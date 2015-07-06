@@ -232,7 +232,7 @@ print.par <- function(p) {
   for (i in seq(1, length(equations))) {
     eq <- strelide(equations[i], equationWidth, where = "right")
     eqName <- strpad(names(equations[i]), maxNameWidth, where = "left")
-    cat(eqName, "=", eq, "\n")
+    cat(eqName, " = ", eq, "\n", sep = "")
     if (!(i %% 10)) {
       cat("\n")
     }
