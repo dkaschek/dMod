@@ -110,7 +110,8 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
 #' @param g Named character vector defining the observation function
 #' @param f Named character, the underlying ODE
 #' @param compile Logical, compile the function (see \link{funC0})
-#' @return a function \code{y(out, pars, attach=FALSE)} representing the evaluation of the observation function. 
+#' @return a function \code{y(out, pars, attach.input = FALSE)} representing the evaluation of the 
+#' observation function. 
 #' If \code{out} has the attribute  "sensitivities", the result of
 #' \code{y(out, pars)}, will have an attributed "deriv" which reflec the sensitivities of 
 #' the observation with respect to the parameters.
@@ -118,7 +119,7 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
 #' the Jacobian 
 #' of the parameter transformation and the sensitivities of the observation function
 #' are multiplied according to the chain rule for differentiation.
-#' If \code{attach = TRUE}, the original argument \code{out} will be attached to the evaluated observations.
+#' If \code{attach.input = TRUE}, the original argument \code{out} will be attached to the evaluated observations.
 #' @export
 Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE) {
   
@@ -165,7 +166,7 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE) {
   names(zeros) <- dxdp
   
   
-  X2Y <- function(out, pars, attach=FALSE) {
+  X2Y <- function(out, pars, attach.input = FALSE) {
     
     # Prepare list for with()
     nOut <- dim(out)[2]
@@ -220,11 +221,11 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE) {
     
     
     
-    if(!is.null(dout) && !attach) {
+    if(!is.null(dout) && !attach.input) {
       attr(values, "deriv") <- cbind(time = out[,"time"], dvalues)
       if(is.null(dP)) attr(values, "parameters") <- names(pars) else attr(values, "parameters") <- colnames(dP)
     }
-    if(!is.null(dout) && attach) {
+    if(!is.null(dout) && attach.input) {
       attr(values, "deriv") <- cbind(time = out[,"time"], dvalues, submatrix(attr(out, "deriv"), cols = -1))
       if(is.null(dP)) attr(values, "parameters") <- names(pars) else attr(values, "parameters") <- colnames(dP)
     }

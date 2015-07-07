@@ -227,14 +227,16 @@ loadTemplate <- function(i = 1) {
 #' @param x Name character vector, the algebraic expressions
 #' @param compile Logical. The function is either compiled (requires the \code{inline} package) or
 #' evaluated in raw R.
-#' @return A prediction function \code{f(mylist)} where \code{mylist} is a list of numeric vectors that can
-#' be coerced into a matrix. The names correspond to the symbols used in the algebraic expressions. The
-#' function \code{f} returns a matrix.
+#' @return A prediction function \code{f(mylist, attach.input = FALSE)} where \code{mylist} is a list of numeric 
+#' vectors that can
+#' be coerced into a matrix. The names correspond to the symbols used in the algebraic expressions. 
+#' The argument \code{attach.input} determines whether \code{mylist} is attached to the output.
+#' The function \code{f} returns a matrix.
 #' @examples 
 #' \dontrun{
-#' myfun <- funC0(c(x = "x", y = "a*x^4 + b*x^2 + c"))
-#' out <- myfun(list(a = -1, b = 2, c = 3, x = seq(-2, 2, .1)))
-#' plot(out[, 1], out[, 2])
+#' myfun <- funC0(c(y = "a*x^4 + b*x^2 + c"))
+#' out <- myfun(list(a = -1, b = 2, c = 3, x = seq(-2, 2, .1)), attach.input = TRUE)
+#' plot(out[, "x"], out[, "y"])
 #' }
 #' 
 #' @export
@@ -276,7 +278,7 @@ funC0 <- function(x, compile = TRUE) {
     )
     
     # Generate output function
-    myRfun <- function(x) {
+    myRfun <- function(x, attach.input = FALSE) {
       
       # Translate the list into matrix and then into vector
       M <- do.call(rbind, x[innames])
@@ -297,6 +299,11 @@ funC0 <- function(x, compile = TRUE) {
       out <- matrix(myCfun(x, y, n, k, l)$y, nrow=length(outnames), ncol=n)
       rownames(out) <- outnames
       
+      rownames(M) <- innames
+      if(attach.input)
+        out <- rbind(M, out)
+        
+      
       return(t(out))    
       
     }
@@ -306,12 +313,20 @@ funC0 <- function(x, compile = TRUE) {
   } else {
     
     # Generate output function
-    myRfun <- function(x) {
+    myRfun <- function(x, attach.input = FALSE) {
+      
+      # Translate the list into matrix and then into vector
+      M <- do.call(rbind, x[innames])
+      if(length(M) == 0) M <- matrix(0)
       
       out.list <- with(x, eval(x.expr))
       out.matrix <- do.call(cbind, out.list)
       colnames(out.matrix) <- outnames
       rownames(out.matrix) <- NULL
+      
+      rownames(M) <- innames
+      if(attach.input)
+        out.matrix <- cbind(t(M), out.matrix)
       
       return(out.matrix)
       
