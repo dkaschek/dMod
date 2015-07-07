@@ -71,7 +71,7 @@ P <- function(trafo, parameters=NULL, compile = FALSE) {
     jac.matrix <- matrix(jac.vector, length(pinner), length(p), dimnames = list(names(pinner), names(p)))
     
     
-    if(!is.null(dP)) jac.matrix <- jac.matrix%*%submarix(dP, rows = colnames(jac.matrix))
+    if(!is.null(dP)) jac.matrix <- jac.matrix%*%submatrix(dP, rows = colnames(jac.matrix))
     if(deriv) attr(pinner, "deriv") <- jac.matrix
     
     return(pinner)
