@@ -216,7 +216,7 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE) {
   
     # Format output
     values <- cbind(time = out[,"time"], values)
-    if(attach) 
+    if(attach.input)
       values <- cbind(values, submatrix(out, cols = -1))
     
     
