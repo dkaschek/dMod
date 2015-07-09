@@ -146,6 +146,14 @@ plotProfile <- function(..., maxvalue = 5) {
   
   data <- do.call(rbind, lapply(1:length(arglist), function(i) {
     proflist <- arglist[[i]]
+    
+    # Discard faulty profiles
+    proflistidx <- sapply(proflist, function(prf) grepl(class(prf), "matrix"))
+    proflist <- proflist[proflistidx]
+    if (sum(!proflistidx) > 0) {
+      warning(sum(!proflistidx), " profiles discarded.", call. = FALSE)
+    }
+    
     subdata <- do.call(rbind, lapply(names(proflist), function(n) {
       
       values <- proflist[[n]][,1]
