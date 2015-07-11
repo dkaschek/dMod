@@ -291,8 +291,9 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     
     ## Iteration step
     dy <- stepsize*lagrange.out$dy
-    y.try <- doIteration()
-    out.try <- doAdaption()
+    y.try <- try(doIteration(), silent = TRUE)
+    out.try <- try(doAdaption(), silent = TRUE)
+    if(inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
     
     ## Set values
     y <- y.try
@@ -328,8 +329,9 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     
     ## Iteration step
     dy <- stepsize*lagrange.out$dy
-    y.try <- doIteration()
-    out.try <- doAdaption()
+    y.try <- try(doIteration(), silent = TRUE)
+    out.try <- try(doAdaption(), silent = TRUE)
+    if(inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
     
     ## Set values
     y <- y.try
