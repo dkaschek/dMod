@@ -107,7 +107,7 @@ P <- function(trafo, parameters=NULL, compile = FALSE) {
 #' \link[rootSolve]{multiroot}. The Jacobian of the solution with respect to dependent variables
 #' and parameters is computed by the implicit function theorem. The function \code{p2p} returns
 #' all parameters as they are with corresponding 1-entries in the Jacobian.
-#' #' @seealso \link{P} for explicit parameter transformations and
+#' @seealso \link{P} for explicit parameter transformations and
 #' \link{concatenation} for the concatenation of parameter transformations
 #' @examples
 #' \dontrun{
@@ -134,6 +134,16 @@ P <- function(trafo, parameters=NULL, compile = FALSE) {
 #' p.outerValue <- c(logk1 = 1, logk2 = -1, logA = 0, logB = 0)
 #' (P.log)(p.outerValue)
 #' (P.steadyState %o% P.log)(p.outerValue)
+#' 
+#' ########################################################################
+#' ## Example 3: Steady-states with conserved quantitites
+#' ########################################################################
+#' f <- c(A = "-k1*A + k2*B", B = "k1*A - k2*B")
+#' replacement <- c(B = "A + B - total")
+#' f[names(replacement)] <- replacement
+#' 
+#' pSS <- Pi(f, "total")
+#' pSS(c(k1 = 1, k2 = 2, A = 5, B = 5, total = 3))
 #' }
 #' @export
 Pi <- function(trafo, parameters=NULL, compile = FALSE) {

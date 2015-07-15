@@ -413,7 +413,7 @@ priorL2 <- function(p, mu, lambda = "lambda", fixed = NULL) {
   ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
   par.fixed <- intersect(names(mu), names(fixed))
   sumOfFixed <- 0
-  if(!is.null(par.fixed)) sumOfFixed <- sum(c(fixed, p)[lambda]*(fixed[par.fixed] - mu[par.fixed])^2)
+  if(!is.null(par.fixed)) sumOfFixed <- sum(exp(c(fixed, p)[lambda])*(fixed[par.fixed] - mu[par.fixed])^2)
   
   
   # Compute prior value and derivatives
