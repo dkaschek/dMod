@@ -198,7 +198,266 @@ plSelectMin <- function(prf, context = FALSE) {
   if (context) {
     return(chi2MinBest)
   } else {
-    return(chi2MinBest[-(1:4)])  
+    return(chi2MinBest[-(1:4)])
   }
-  
+
+}
+
+
+
+#' Non-Linear Optimization, multi start
+#'
+#' @description
+#' Wrapper around \code{\link{trust}} allowing for multiple fits from randomly
+#' chosen initial values.
+#'
+#' @param objfun Objective function, see \code{\link{trust}}.
+#' @param center Parameter values around which the initial values for each fit
+#'        are randomly sampled. The initial values handed to \link{trust} are
+#'        the sum of center and the output of <samplefun>, center + <samplefun>.
+#'        See \code{\link{trust}}, parinit.
+#'
+#' @param rinit Starting trust region radius, see \code{\link{trust}}.
+#' @param rmax Maximum allowed trust region radius, see \code{\link{trust}}.
+#' @param fits Number of fits (jobs).
+#' @param cores Number of cores for job parallelization.
+#' @param samplefun Function to sample random initial values. It is assumed,
+#'        that <samplefun> has a named parameter "n" which defines how many
+#'        random numbers are to be returned, such as for \code{\link{rnorm}},
+#'        which is also the default sampling function.
+#' @param logfile Name of the file to which all jobs log their output. The file
+#'        is handy to investigate the different jobs in some detail. Since the
+#'        jobs are carried out in parallel, their output may occurre in
+#'        non-consecutive order. At the end of the file, a summary of the fits
+#'        is given.
+#' @param fitsfile Name of the file to which the result of all completed fits
+#'        are written to. An empy string "" suppresses the write.
+#' @param stats If true, the same summary statistic as written to the logfile is
+#'        printed to command line.
+#' @param msgtag A string prepending the logging output written to file.
+#' @param ... Additional parameters which are handed to trust() or samplefun()
+#'        by matching parameter names. All remaining parameters are handed to
+#'        the objective function objfun().
+#'
+#' @details
+#' By running multiple fits starting with randomly chosen inital parameters, the
+#' chisquare landscape can be explored using a deterministic optimizer. In this
+#' case, \code{\link{trust}} is used for optimization. The standard procedure to
+#' obtain random initial values is to sample random variables from a uniform
+#' distribution (\code{\link{rnorm}}) and adding these to <center>. It is,
+#' however, possible, to employ any other sampling strategy by handing the
+#' respective function to mstrust(), <samplefun>.
+#'
+#' All started fits are either faulty, aborted, or complete. Faulty fits return
+#' a "try-error" object and fail somewhere outside trust(). Aborted fits fail
+#' withing trust(), and complete fits return from trust() correctly. Completed
+#' fits can still be unconverged, in case the maximum number of iteration is
+#' reached before the convergence criterion.
+#'
+#' @return fitlist A data frame of all completed fits sorted by their chi^2.
+#'
+#' @seealso
+#' The optimization is carried out by \code{\link{trust}}.
+#'
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#'
+#' @export
+mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
+                    samplefun = "rnorm", logfile = "mstrust.log",
+                    fitsfile = "fitlist.rda", stats = FALSE, msgtag = "",
+                    ...) {
+
+  # Argument parsing, sorting, and enhancing
+  # Gather all function arguments
+  varargslist <- list(...)
+
+  argslist <- as.list(formals())
+  argslist <- argslist[names(argslist) != "..."]
+
+  argsmatch <- as.list(match.call(expand.dots = TRUE))
+  namesinter <- intersect(names(argslist), names(argsmatch))
+
+  argslist[namesinter] <- argsmatch[namesinter]
+  argslist <- c(argslist, varargslist)
+
+  # Add extra arguments
+  argslist$n <- length(center) # How many inital values do we need?
+
+  # Determine target function for each function argument.
+  # First, define argument names used locally in mstrust().
+  # Second, check what trust() and samplefun() accept and check for names clash.
+  # Third, whatever is unused is passed to the objective function objfun().
+  nameslocal <- c("center", "fits", "cores", "samplefun", "logfile", "msgtag", "stats", "writeres")
+  namestrust <- intersect(names(formals(trust)), names(argslist))
+  namessample <- intersect(names(formals(samplefun)), names(argslist))
+  if (length(intersect(namestrust, namessample) != 0)) {
+    stop("Argument names of trust() and ", samplefun, "() clash.")
+  }
+  namesobj <- setdiff(names(argslist), c(namestrust, namessample, nameslocal))
+
+
+  # Assemble argument lists common to all calls in mclapply
+  # Sample function
+  argssample <- structure(vector("list", length = length(namessample)), names = namessample)
+  for (name in namessample) {
+    argssample[[name]] <- argslist[[name]]
+  }
+
+  # Objective function
+  argsobj <- structure(vector("list", length = length(namesobj)), names = namesobj)
+  for (name in namesobj) {
+    argsobj[[name]] <- argslist[[name]]
+  }
+
+  # Trust optimizer, except for initial values
+  argstrust <- structure(vector("list", length = length(namestrust)), names = namestrust)
+  for (name in namestrust){
+    argstrust[[name]] <- argslist[[name]]
+  }
+
+
+  # Apply trust optimizer in parallel
+  # The error checking leverages that mclappy runs each job in a try().
+  file.create(argslist$logfile) #Truncate log file
+  logfile <- file(argslist$logfile, open = "a")
+
+  fitlist <- mclapply(1:fits, function(i) {
+    argstrust$parinit <- center + do.call(samplefun, argssample)
+    fit <- do.call(trust, argstrust)
+    fit$index = i
+
+    # Reporting
+    # With concurent jobs and everyone reporting, this is a classic race
+    # condition. Assembling the message beforhand lowers the risk of interleaved
+    # output to the log.
+    msgTag <- argslist$msgtag
+    msgSep <- "-------"
+    if (any(names(fit) == "error")) {
+      msg <- paste0(msgTag, msgSep, "\n",
+                    msgTag, "Fit ", i, " failed after ", fit$iterations, " iterations with error\n",
+                    msgTag, "--> ", fit$error,
+                    msgTag, msgSep, "\n")
+
+      writeLines(msg, logfile)
+      flush(logfile)
+    } else {
+      msg <- paste0(msgTag, msgSep, "\n",
+                    msgTag, "Fit ", i, " completed\n",
+                    msgTag, "--> iterations : ", fit$iterations, "\n",
+                    msgTag, "-->  converged : ", fit$converged, "\n",
+                    msgTag, "-->      chi^2 : ", round(fit$value, digits = 2), "\n",
+                    msgTag, msgSep)
+
+      writeLines(msg, logfile)
+      flush(logfile)
+    }
+
+    return(fit)
+  },mc.preschedule=FALSE, mc.silent = FALSE, mc.cores=cores)
+  close(logfile)
+
+
+  # Cull failed, aborted, and completed fits
+  # Failed jobs return an object of class "try-error". The reason for these
+  # failures are unknown to me.
+  # Aborted fits, in contrast, return a list of results from trust(), where one
+  # name of the list is error holding an object of class "try-error". These
+  # abortions are due to errors which are captured within trust().
+  # Completed fits return with a valid result list from trust(), with error is
+  # not part of its names. These fits, however, can still be unconverged, if the
+  # maximim number of iterations was the reason for the return of trust().
+  # Failed: try-error, find and remove
+  idxerr <- sapply(fitlist, function(fit) inherits(fit, "try-error"))
+  fitlist <- fitlist[!idxerr]
+
+  # Aborted: Due to some error condition handled inside trust()
+  idxabrt <- sapply(fitlist, function(fit) {
+    if (any(names(fit) == "error")) {
+      return(TRUE)
+    } else {
+      return(FALSE)
+    }
+  })
+
+  # Properly returned from trust(), possibly unconverged.
+  idxcmp <- !idxabrt
+
+
+  # Stash results of completed fits in a data.frame
+  complist <- lapply(fitlist[idxcmp], function(fit) {
+    data.frame(
+      index = fit$index,
+      chisquare = fit$value,
+      converged = fit$converged,
+      iterations = fit$iterations,
+      as.data.frame(as.list(fit$argument))
+    )
+  })
+  compframe <- do.call(rbind, complist)
+  if (nrow(compframe) > 0) {
+    compframe <- compframe[order(compframe$chisquare),]
+  }
+
+
+  # Wrap up
+  # Write out results
+  if (nchar(fitsfile) > 0) {
+    save(fitlist, file = fitsfile)
+  }
+
+  # Show summary
+  msg <- paste0("Mutli start trust summary\n",
+                "Outcome   : Occurrence\n",
+                "Faulty    :", sum(idxerr), "\n",
+                "Aborted   :", sum(idxabrt), "\n",
+                "Completed :", sum(idxcmp), "\n",
+                "           -----------\n",
+                "Total     :", sum(idxerr) + sum(idxabrt) + sum(idxcmp), paste0("[", fits, "]"), "\n")
+  logfile <- file(argslist$logfile, open = "a")
+  writeLines(msg, logfile)
+  flush(logfile)
+  close(logfile)
+
+  if (stats) {
+    cat(msg)
+#     cat("Mutli start trust summary\n")
+#     cat("Outcome    : Occurrence\n")
+#     cat(" Faulty    :", sum(idxerr), "\n")
+#     cat(" Aborted   :", sum(idxabrt), "\n")
+#     cat(" Completed :", sum(idxcmp), "\n")
+#     cat("             -----------\n")
+#     cat(" Total     :", sum(idxerr) + sum(idxabrt) + sum(idxcmp), paste0("[", fits, "]"), "\n")
+  }
+
+  return(compframe)
+}
+
+
+
+#' Select best fit.
+#'
+#' @description
+#' Select the fit with lowest chi^2 form the result of \code{\link{mstrust}}.
+#'
+#' @param fitlist A data frame of fits as returned from \code{\link{mstrust}}.
+#'        The data frame does not need to be ordered and can include unconverged
+#'        fits.
+#'
+#' @return The converged fit with lowest chisquare as a named numeric vector.
+#'
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#'
+#' @export
+
+msbest <- function(fitlist) {
+  fitlistconv <- fitlist[fitlist$converged == TRUE,]
+  if (is.null(nrow(fitlistconv))) {
+    return(NULL)
+  }
+
+  idxbest <- order(fitlistconv$chisquare)
+  best <- fitlistconv[idxbest[1],]
+  best <- unlist(best[1, -(4:1)])
+
+  return(best)
 }
