@@ -223,6 +223,8 @@ Pi <- function(trafo, parameters=NULL, compile = FALSE) {
 
 #' Pretty printing of parameter transformations, class par
 #' 
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#' 
 #' @export
 print.par <- function(p) {
   
