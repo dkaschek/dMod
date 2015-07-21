@@ -235,6 +235,9 @@ plSelectMin <- function(prf, context = FALSE) {
 #' @param stats If true, the same summary statistic as written to the logfile is
 #'        printed to command line.
 #' @param msgtag A string prepending the logging output written to file.
+#' @param narrowing If NULL, we are not in narrowing mode, see
+#'        \code{\link{msnarrow}}. In narrowing mode, this parameter indicates
+#'        the narrowing status.
 #' @param ... Additional parameters which are handed to trust() or samplefun()
 #'        by matching parameter names. All remaining parameters are handed to
 #'        the objective function objfun().
@@ -265,7 +268,7 @@ plSelectMin <- function(prf, context = FALSE) {
 mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
                     samplefun = "rnorm", logfile = "mstrust.log",
                     fitsfile = "fitlist.rda", stats = FALSE, msgtag = "",
-                    ...) {
+                    narrowing = NULL, ...) {
 
   # Argument parsing, sorting, and enhancing
   # Gather all function arguments
@@ -287,7 +290,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
   # First, define argument names used locally in mstrust().
   # Second, check what trust() and samplefun() accept and check for names clash.
   # Third, whatever is unused is passed to the objective function objfun().
-  nameslocal <- c("center", "fits", "cores", "samplefun", "logfile", "msgtag", "stats", "writeres")
+  nameslocal <- c("center", "fits", "cores", "samplefun", "logfile", "msgtag", "stats", "writeres", "narrowing", "fitsfile")
   namestrust <- intersect(names(formals(trust)), names(argslist))
   namessample <- intersect(names(formals(samplefun)), names(argslist))
   if (length(intersect(namestrust, namessample) != 0)) {
@@ -318,8 +321,18 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
 
   # Apply trust optimizer in parallel
   # The error checking leverages that mclappy runs each job in a try().
-  file.create(argslist$logfile) #Truncate log file
+  if (is.null(narrowing) || narrowing[1] == 1) {
+    file.create(argslist$logfile) #Truncate log file
+  }
   logfile <- file(argslist$logfile, open = "a")
+
+  # Write narrowing status information to file
+  if (!is.null(narrowing)) {
+    msg <- paste0("--> Narrowing, run ", narrowing[1], " of ", narrowing[2], "\n",
+                  "--> " , fits, " fits to run\n")
+    writeLines(msg, logfile)
+    flush(logfile)
+  }
 
   fitlist <- mclapply(1:fits, function(i) {
     argstrust$parinit <- center + do.call(samplefun, argssample)
@@ -394,7 +407,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
     )
   })
   compframe <- do.call(rbind, complist)
-  if (nrow(compframe) > 0) {
+  if (!is.null(compframe)) {
     compframe <- compframe[order(compframe$chisquare),]
   }
 
@@ -408,11 +421,11 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
   # Show summary
   msg <- paste0("Mutli start trust summary\n",
                 "Outcome   : Occurrence\n",
-                "Faulty    :", sum(idxerr), "\n",
-                "Aborted   :", sum(idxabrt), "\n",
-                "Completed :", sum(idxcmp), "\n",
+                "Faulty    : ", sum(idxerr), "\n",
+                "Aborted   : ", sum(idxabrt), "\n",
+                "Completed : ", sum(idxcmp), "\n",
                 "           -----------\n",
-                "Total     :", sum(idxerr) + sum(idxabrt) + sum(idxcmp), paste0("[", fits, "]"), "\n")
+                "Total     : ", sum(idxerr) + sum(idxabrt) + sum(idxcmp), paste0("[", fits, "]"), "\n")
   logfile <- file(argslist$logfile, open = "a")
   writeLines(msg, logfile)
   flush(logfile)
@@ -430,6 +443,89 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
   }
 
   return(compframe)
+}
+
+
+
+#' Discover promissing regions in parameter space
+#'
+#' @description
+#' Use consecutive multi start (ms) fits to arrive in a well-behaved region in
+#' parameter space.
+#'
+#' @param center Parameter values for the first ms fit.
+#' @param spread Vector giving the spread of initial parameters for consecutive
+#'        ms fits. The length of <spread> defines how many consecutive ms fits
+#'        are run.
+#' @param fits Number of fits carried out per ms fit. If <fits> is a integer the
+#'        same number of fits are used for all ms fits. If a different number of
+#'        fits are desired for each ms fit, <fits> must be a vector of the same
+#'        length as <spread>.
+#' @param safety If a non-empty string is given, the fitlist of each ms fit is
+#'        written to a file <safety> with number of the current run appended.
+#' @param ... Parameters handed to the mulit start optimizer. Right now
+#'        \code{\link{mstrust}} is the only option available.
+#'
+#' @details
+#' It might be desirable to start a multi start (ms) fit in a region in
+#' parameter space yielding reasonable fit results. If such a region is unknown,
+#' it can be hoped, that the best fit of a ms fit with a large spread of inital
+#' values identifies such a region. In order to explore the region in greater
+#' detail, a consecutive ms fit about the best fit can be used. The procedure of
+#' consecutive ms-fits about the best fit of the last can be iterated. Thus, it 
+#' is expected to arrive in a region in parameter space which gives reasonable
+#' fits.
+#'
+#' In case any of the ms fits return without a single valid result, the
+#' algorithm stops, and the fitlist of the last ms fit is returned. Moreover, a
+#' warning is issued. In case the first fit failes in such a way, NULL is
+#' returned.
+#'
+#' @return fitlist A data frame of the fits of the last multi start fit.
+#'
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#'
+#' @export
+msnarrow <- function(center, spread, fits = 100, safety = "", ...) {
+  nnarrow <- length(spread)
+
+  # Parse arguments
+  if (length(fits) == 1) {
+    fits <- rep(fits, nnarrow)
+  } else if (length(fits) != nnarrow) {
+    stop("<fits> is a vector of different length than <spread>.")
+  }
+
+  # Assemble inital parameter list
+  trustargs <- list(...)
+  trustargs$center <- center
+
+  for (ms in 1:length(spread)) {
+    cat("Narrowing step ", ms, " of ", nnarrow, ", ", fits[ms], " fits to run.\n", sep = "")
+
+    trustargs$sd <- spread[ms]
+    trustargs$fits <- fits[ms]
+    trustargs$narrowing <- c(ms, nnarrow)
+    fitlist <- do.call(mstrust, trustargs)
+
+    if (nchar(safety) > 0) {
+      outname <- paste0(safety, ms, ".rda")
+      save(fitlist, file = outname)
+    }
+
+    trustargs$center <- msbest(fitlist)
+
+    if (is.null(trustargs$center)) {
+      cat("Narrowing aborted at run", ms)
+      if (ms == 1) {
+        return(NULL)
+      } else {
+        return(fitlist)
+      }
+    }
+  }
+
+  return(fitlist)
 }
 
 
