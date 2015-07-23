@@ -333,10 +333,10 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
     writeLines(msg, logfile)
     flush(logfile)
   }
-
+  
   fitlist <- mclapply(1:fits, function(i) {
     argstrust$parinit <- center + do.call(samplefun, argssample)
-    fit <- do.call(trust, argstrust)
+    fit <- do.call(trust, c(argstrust, argsobj))
     fit$index = i
 
     # Reporting
@@ -400,7 +400,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
   complist <- lapply(fitlist[idxcmp], function(fit) {
     data.frame(
       index = fit$index,
-      chisquare = fit$value,
+      value = fit$value,
       converged = fit$converged,
       iterations = fit$iterations,
       as.data.frame(as.list(fit$argument))
@@ -408,7 +408,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
   })
   compframe <- do.call(rbind, complist)
   if (!is.null(compframe)) {
-    compframe <- compframe[order(compframe$chisquare),]
+    compframe <- compframe[order(compframe$value),]
   }
 
 
@@ -441,7 +441,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
 #     cat("             -----------\n")
 #     cat(" Total     :", sum(idxerr) + sum(idxabrt) + sum(idxcmp), paste0("[", fits, "]"), "\n")
   }
-
+  
   return(compframe)
 }
 
@@ -551,7 +551,7 @@ msbest <- function(fitlist) {
     return(NULL)
   }
 
-  idxbest <- order(fitlistconv$chisquare)
+  idxbest <- order(fitlistconv$value)
   best <- fitlistconv[idxbest[1],]
   best <- unlist(best[1, -(4:1)])
 
