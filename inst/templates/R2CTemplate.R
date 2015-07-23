@@ -8,9 +8,6 @@ library(ggthemes)
 library(cOde)
 library(dMod)
 
-printP <- function(myplot) print(myplot + theme_few() + scale_color_colorblind() + scale_fill_colorblind())
-
-
 ## Model Definition ------------------------------------------------------
 
 # Read in model csv
@@ -61,7 +58,7 @@ constraints <- resolveRecurrence(c(
 # Start with the identity
 trafo <- structure(innerpars, names = innerpars)
 # Replace initial value parameters of the observables (if treated as states)
-trafo <- replaceSymbols(names(observables), observables, innerpars)
+trafo <- replaceSymbols(names(observables), observables, trafo)
 # Then employ the other parameter constraints
 trafo <- replaceSymbols(names(constraints), constraints, trafo)
 # Then do a log-transform of all parameters (if defined as positive numbers)
@@ -201,8 +198,8 @@ qplot(y = fitlist$chisquare)
 
 # Profile likelihood
 bestfit <- myfit$argument
-profiles.approx <- do.call(c, mclapply(names(bestfit), function(n) profile.trust(obj, bestfit, n, limits=c(-3, 3), algoControl = list(gamma = 0)), mc.cores=4))
-profiles.exact  <- do.call(c, mclapply(names(bestfit), function(n) profile.trust(obj, bestfit, n, limits=c(-3, 3), algoControl = list(gamma = 0, reoptimize = TRUE), optControl = list(iterlim = 10)), mc.cores=4))
+profiles.approx <- do.call(c, mclapply(names(bestfit), function(n) profile(obj, bestfit, n, limits=c(-3, 3), algoControl = list(gamma = 0)), mc.cores=4))
+profiles.exact  <- do.call(c, mclapply(names(bestfit), function(n) profile(obj, bestfit, n, limits=c(-3, 3), algoControl = list(gamma = 0, reoptimize = TRUE), optControl = list(iterlim = 10)), mc.cores=4))
 plotProfile(profiles.approx, profiles.exact)
 plotPaths(profiles.approx[1])
 plotPaths(profiles.approx[c(1,3)])
