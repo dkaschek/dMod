@@ -125,10 +125,17 @@ wide2long.matrix <- function(out, keep = 1, na.rm = FALSE) {
 wide2long.list <- function(out, keep = 1, na.rm = FALSE) {
   
   conditions <- names(out)
+  numconditions <- suppressWarnings(as.numeric(conditions))
   
-  outlong <- do.call(rbind, lapply(conditions, function(cond) {
+  if(!any(is.na(numconditions))) 
+    numconditions <- as.numeric(numconditions) 
+  else 
+    numconditions <- conditions
+  
+  
+  outlong <- do.call(rbind, lapply(1:length(conditions), function(cond) {
     
-    cbind(wide2long.matrix(out[[cond]]), condition = cond)
+    cbind(wide2long.matrix(out[[cond]]), condition = numconditions[cond])
     
     #myout <- out[[cond]]
     #timename <- colnames(myout)[1]
@@ -180,11 +187,18 @@ long2wide <- function(out) {
 lbind <- function(mylist) {
   
   conditions <- names(mylist)
+  numconditions <- suppressWarnings(as.numeric(conditions))
   
-  outlong <- do.call(rbind, lapply(conditions, function(cond) {
+  if(!any(is.na(numconditions))) 
+    numconditions <- as.numeric(numconditions) 
+  else 
+    numconditions <- conditions
+
+  
+  outlong <- do.call(rbind, lapply(1:length(conditions), function(cond) {
     
     myout <- mylist[[cond]]
-    myoutlong <- cbind(myout, condition = cond)
+    myoutlong <- cbind(myout, condition = numconditions[cond])
     
     return(myoutlong)
     

@@ -296,59 +296,109 @@ plotPredictionCont <- function(out, ...) {
 }
 
 
-plotArray <- function(x, times, fitlist, data = NULL, fixed=NULL, binwidth=10) {
+
+#' Plot an array of model predictions for a list of parameters
+#' 
+#' @param parlist Matrix or data.frame with a "value" column and columns for the parameters
+#' @param x The model prediction function \code{x(times, pars, fixed, ...)}
+#' @param times Numeric vector of time points for the model prediction
+#' @param data Named list of data.frames as being used in \link{res}, i.e. with columns \code{name}, \code{time}, 
+#' \code{value} and \code{sigma}.
+#' @param ... Further arguments going to \code{subset}.
+#' @param fixed Named numeric vector with fixed parameters
+#' @param deriv Logical. If \code{x} supports the argument \code{deriv}, it is used.
+#' @param scales The scales argument of \code{facet_wrap} or \code{facet_grid}, i.e. \code{"free"}, \code{"fixed"}, 
+#' \code{"free_x"} or \code{"free_y"}
+#' @param facet Either \code{"wrap"} or \code{"grid"}
+#' @details The data.frame being plotted has columns \code{time}, \code{value}, \code{sigma},
+#' \code{name} and \code{condition}.
+#'  
+#' 
+#' @return A plot object of class \code{ggplot}.
+#' @export
+plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv = FALSE, scales = "free", facet = "wrap") {
+
+  parlist <- lapply(1:nrow(parlist), function(i) rev(unlist(parlist[i, ])))
   
-  require("ggplot2")
-  require("wq")
-  
-  n <- dim(fitlist)[1]
-  chisquare <- as.data.frame(log10(fitlist[,1]))
-  colnames(chisquare) <- "logchisquare"
-  
-  
-  out <- do.call(rbind, lapply(1:n, function(i) {
-    myout <- x(times, c(fitlist[i,-1], fixed), deriv=FALSE)
-    myout <- wide2long(myout)
-    myout <- cbind(myout, logchisquare = log10(fitlist[i,1]))
-    return(myout)
-  }))
+  prediction <- lapply(parlist, function(p) {
+    pred <- x(times, p, fixed, deriv = deriv)
+    newnames <- sapply(names(pred), function(cond) paste(colnames(pred[[cond]])[-1], cond, sep = ", "))
+    pred <- do.call(cbind, pred)
+    pred <- pred[, -which(colnames(pred) == "time")]
+    pred <- cbind(times, pred)
+    colnames(pred) <- c("time", newnames)
+    return(pred)
+  }); names(prediction) <- parlist[ ,"value"]
   
   
-  P1 <- ggplot(out, aes(x=time, y=value, group=logchisquare, color=logchisquare)) +
-    facet_wrap(~name, scales="free") 
   if(!is.null(data)) {
-    data <- cbind(data, logchisquare = NA)
-    P1 <- P1 + 
-      geom_point(aes(x=time, y=value), data = data, color="gray") + 
-      geom_errorbar(aes(x=time, y=value, ymin=value-sigma, ymax=value+sigma), data=data, color="gray", width=0)
+    for(n in names(data)) data[[n]]$name <- paste(data[[n]]$name, n, sep = ", ")
+    data <- do.call(rbind, data)
+    data <- list(data)
+    names(data) <- names(prediction)[1]
   }
-  P1 <- P1 +
-    geom_line(alpha=.3) +
-    scale_color_gradientn(colours = rainbow(7)) +
-    theme(legend.position="none")
+  
+  plotCombined(prediction, data, ..., scales = scales, facet = facet)
   
   
-  #   P3 <- ggplot(out, aes(x=logchisquare, group=logchisquare, fill=logchisquare)) + 
-  #     geom_histogram(binwidth=binwidth) + 
-  #     scale_fill_gradientn(colours = rainbow(7)) +
-  #     theme(legend.position="none") +
-  #     xlab("") +
-  #     coord_flip()
-  
-  
-  
-  P2 <- ggplot(chisquare, aes(x = 1:length(logchisquare), y=logchisquare, color=logchisquare)) +
-    geom_point() +
-    scale_color_gradientn(colours = rainbow(7)) + 
-    theme(legend.position="none") +
-    xlab("sorted index") +
-    ylab(expression(log[10](chi^2)))
-  
-  layOut(list(P2, 1, 1),
-         list(P1, 1, 2:5))
   
   
 }
+
+
+#plotArray <- function(x, times, fitlist, data = NULL, fixed=NULL, binwidth=10) {
+#  
+#  require("ggplot2")
+#  require("wq")
+#  
+#  n <- dim(fitlist)[1]
+#  chisquare <- as.data.frame(log10(fitlist[,1]))
+#  colnames(chisquare) <- "logchisquare"
+#  
+#  
+#  out <- do.call(rbind, lapply(1:n, function(i) {
+#    myout <- x(times, c(fitlist[i,-1], fixed), deriv=FALSE)
+#    myout <- wide2long(myout)
+#    myout <- cbind(myout, logchisquare = log10(fitlist[i,1]))
+#    return(myout)
+#  }))
+#  
+#  
+#  P1 <- ggplot(out, aes(x=time, y=value, group=logchisquare, color=logchisquare)) +
+#    facet_wrap(~name, scales="free") 
+#  if(!is.null(data)) {
+#    data <- cbind(data, logchisquare = NA)
+#    P1 <- P1 + 
+#      geom_point(aes(x=time, y=value), data = data, color="gray") + 
+#      geom_errorbar(aes(x=time, y=value, ymin=value-sigma, ymax=value+sigma), data=data, color="gray", width=0)
+#  }
+#  P1 <- P1 +
+#    geom_line(alpha=.3) +
+#    scale_color_gradientn(colours = rainbow(7)) +
+#    theme(legend.position="none")
+#  
+#  
+#  #   P3 <- ggplot(out, aes(x=logchisquare, group=logchisquare, fill=logchisquare)) + 
+#  #     geom_histogram(binwidth=binwidth) + 
+#  #     scale_fill_gradientn(colours = rainbow(7)) +
+#  #     theme(legend.position="none") +
+#  #     xlab("") +
+#  #     coord_flip()
+#  
+#  
+#  
+#  P2 <- ggplot(chisquare, aes(x = 1:length(logchisquare), y=logchisquare, color=logchisquare)) +
+#    geom_point() +
+#    scale_color_gradientn(colours = rainbow(7)) + 
+#    theme(legend.position="none") +
+#    xlab("sorted index") +
+#    ylab(expression(log[10](chi^2)))
+#  
+#  layOut(list(P2, 1, 1),
+#         list(P1, 1, 2:5))
+#  
+#  
+#}
 
 
 plotObjective <- function(out) {
