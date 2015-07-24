@@ -472,7 +472,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
 #' it can be hoped, that the best fit of a ms fit with a large spread of inital
 #' values identifies such a region. In order to explore the region in greater
 #' detail, a consecutive ms fit about the best fit can be used. The procedure of
-#' consecutive ms-fits about the best fit of the last can be iterated. Thus, it 
+#' consecutive ms-fits about the best fit of the last can be iterated. Thus, it
 #' is expected to arrive in a region in parameter space which gives reasonable
 #' fits.
 #'
@@ -556,4 +556,107 @@ msbest <- function(fitlist) {
   best <- unlist(best[1, -(4:1)])
 
   return(best)
+}
+
+
+
+#' Reduce replicated measurements to mean and standard deviation
+#'
+#' @description
+#' Obtain the mean and standard deviation from replicates per condition.
+#'
+#' @param file Data file of csv. See Format for details.
+#' @param select Names of the columns in the data file used to define
+#'        conditions, see Details.
+#' @param datatrans Character vector describing a function to transform data.
+#'        Use \kbd{x} to refere to data.
+#'
+#'
+#' @format
+#' The following columns are mandatory for the data file.
+#' \describe{
+#'  \item{Species}{Name of the observed species.}
+#'  \item{Time}{Measurement time point.}
+#'  \item{Value}{Measurement value.}
+#'  \item{Condition}{The condition under which the observation was made.}
+#' }
+#'
+#' In addition to these columns, any number of columns can follow to allow a
+#' fine grained definition of conditions. The values of all columns named in
+#' \option{select} are then merged to get the set of conditions.
+#'
+#' @details
+#' Experiments are usually repeated multiple times possibly under different
+#' conditions leading to replicted measurements. The column "Condition" in the
+#' data allows to group the data by their condition. However, sometimes, a more
+#' fine grained grouping is desirable. In this case, any number of additional
+#' columns can be append to the data. These columns are referred to as
+#' "condition identifier". Which of the condition identifiers are used to do the
+#' grouping is user defined by anouncing the to \option{select}. The mandatory
+#' column "Condition" is always used. The total set of different conditions is
+#' thus defined by all combinations of values occuring in the selected condition
+#' identifiers. The replicates of each condition are then reduced to mean and
+#' variance.New conditions names are derived by merging all conditions which
+#' were used in mean and std.
+#'
+#' @return
+#' A data frame of the following variables
+#' \describe{
+#'  \item{Species}{Name of the observed species.}
+#'  \item{Time}{Measurement time point.}
+#'  \item{Mean}{Mean of replicates.}
+#'  \item{Sd}{Standard deviation of replicates, NA for single measurements.}
+#'  \item{df}{Degrees of freedom. The number of replictes reduced.}
+#'  \item{Condition}{The condition for which the mean and sd were calculated. If
+#'        more than one column were used to define the condition, this variable
+#'        holds the effecive condition which is the combination of all applied
+#'        single conditions. }
+#' }
+#'
+#' @export
+reduceReplicates <- function(file, select = "Condition", datatrans = NA) {
+
+  # File format definiton
+  fmtnames <- c("Species", "Time",  "Value", "Condition")
+  fmtnamesnumber <- length(fmtnames)
+
+  # Read data and sanity checks
+  data <- read.csv(file)
+  if (length(intersect(names(data), fmtnames)) != fmtnamesnumber) {
+    stop(paste("Mandatory column names are:", paste(fmtnames, collapse = ", ")))
+  }
+
+  # Transform data if requested
+  if (is.character(datatrans)) {
+    x <- data$Value
+    data$Value <- eval(parse(text = datatrans))
+  }
+
+  # Experiments are usually repeated multiple times possibly under different
+  # conditions. The column "Condition" in the data thus groups the data per
+  # condition. However, sometimes, a more fine grained grouping is desirable. In
+  # this case, any number of additional columns can be append to the data. These
+  # columns are referred to as "condition identifier". Which of the condition
+  # identifiers are used to do the grouping is user defined by giving their
+  # names in <select>. The mandatory column "Condition" is always used. The
+  # total set of different conditions is thus defined by all combinations of
+  # values occuring in the condition identifiers named for grouping. Mean and
+  # variance is computed for each condition by averaging over measurements
+  # recorded at the same time point. New conditions names are derived by merging
+  # all conditions which were used in mean and std.
+  select <- unique(c("Species", "Time", "Condition", select))
+  condidnt <- Reduce(paste, subset(data, select = select))
+  conditions <- unique(condidnt)
+  reduct <- do.call(rbind, lapply(conditions, function(cond) {
+    conddata <- data[condidnt == cond,]
+    mergecond <- Reduce(paste, conddata[1, setdiff(select, c("Species", "Time"))])
+    data.frame(Species = conddata[1, "Species"],
+               Time = conddata[1, "Time"],
+               Mean = mean(conddata[, "Value"]),
+               Sd = sd(conddata[, "Value"]),
+               df = nrow(conddata),
+               Condition = mergecond)
+  }))
+
+  return(reduct)
 }
