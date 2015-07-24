@@ -318,9 +318,9 @@ plotPredictionCont <- function(out, ...) {
 #' @export
 plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv = FALSE, scales = "free", facet = "wrap") {
 
-  parlist <- lapply(1:nrow(parlist), function(i) rev(unlist(parlist[i, ])))
+  pars<- lapply(1:nrow(parlist), function(i) rev(unlist(parlist[i, ])))
   
-  prediction <- lapply(parlist, function(p) {
+  prediction <- lapply(pars, function(p) {
     pred <- x(times, p, fixed, deriv = deriv)
     newnames <- sapply(names(pred), function(cond) paste(colnames(pred[[cond]])[-1], cond, sep = ", "))
     pred <- do.call(cbind, pred)
