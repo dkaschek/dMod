@@ -92,7 +92,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                           ...) {
   
   sControl <- list(stepsize = 1e-4, min = 0, max = Inf, atol = 1e-1, rtol = 1e-1, limit = 100)
-  aControl <- list(gamma = 1, W = c("hessian", "identity"), reoptimize = FALSE, correction = 1, reg = 1e-6)
+  aControl <- list(gamma = 1, W = c("hessian", "identity"), reoptimize = FALSE, correction = 1, reg = .Machine$double.eps)
   oControl <- list(rinit = .1, rmax = 10, iterlim = 10, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))
   
   if(!is.null(stepControl)) sControl[match(names(stepControl), names(sControl))] <- stepControl
@@ -121,13 +121,15 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   
   pseudoinverse <- function(m, tol) {
     msvd <- svd(m)
-    index <- which(abs(msvd$d) > tol) 
+    index <- which(abs(msvd$d) > max(dim(m))*max(msvd$d)*tol) 
     if (length(index) == 0) {
-      return(array(0, dim(m)[2:1]))
+      out <- array(0, dim(m)[2:1])
     }
     else {
-      return(msvd$u[,index] %*% (1/msvd$d[index] * t(msvd$v)[index,]))
+      out <- msvd$u[,index] %*% (1/msvd$d[index] * t(msvd$v)[index,])
     }
+    attr(out, "valid") <- 1:length(msvd$d) %in% index
+    return(out)
   }
   
   constraint <- function(p) {
@@ -157,8 +159,19 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     v <- c(-rep(gamma, length(p))*(ldot + lambda*gdot), 1)
     v0 <- c(-rep(0, length(p))*(ldot + lambda*gdot), 1)
     
-    dy <- try(as.vector(pseudoinverse(M, tol = aControl$reg)%*%v)[1:length(p)], silent=FALSE)
-    dy0 <- try(as.vector(pseudoinverse(M, tol = aControl$reg)%*%v0)[1:length(p)], silent=FALSE)
+    W <- pseudoinverse(M, tol = aControl$reg)
+    valid <- attr(W, "valid")
+    if(any(!valid)) {
+      dy <- try(as.vector(W%*%v)[1:length(p)], silent=FALSE)
+      dy0 <- try(as.vector(W%*%v0)[1:length(p)], silent=FALSE)
+      dy[!valid[1:length(p)]] <- dy0[!valid[1:length(p)]] <- 0
+      dy[whichPar] <- dy0[whichPar] <- direction
+      warning(paste0("Iteration ", i, ": Some singular values of the Hessian are below the threshold. Optimization will be performed."))
+    } else {
+      dy <- try(as.vector(W%*%v)[1:length(p)], silent=FALSE)
+      dy0 <- try(as.vector(W%*%v0)[1:length(p)], silent=FALSE)
+    }
+    
     
     if(!inherits(dy, "try-error")) {
       names(dy) <- names(y) 
@@ -166,10 +179,10 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     } else {
       dy <- NA
       correction <- 0
-      warning("Impossible to invert Hessian. Trying to optimize instead.")
+      warning(paste0("Iteration ", i, ": Impossible to invert Hessian. Trying to optimize instead."))
     }
     
-    return(list(dy = dy, value = out$value, gradient = out$gradient, correction = correction))
+    return(list(dy = dy, value = out$value, gradient = out$gradient, correction = correction, valid = valid))
     
   }
   doIteration <- function() {
@@ -186,6 +199,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       dy.norm <- sqrt(sum(dy^2))
       rinit <- min(c(oControl$rinit, 3*dy.norm))
       y.try <- y + dy
+      if(any(!lagrange.out$valid)) optimize <- TRUE
     }
     
     # Do reoptimization if requested or necessary
@@ -250,7 +264,8 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       myvalue <- format(substr(lagrange.out$value  , 0, 8), width=8)
       myconst <- format(substr(constraint.out$value, 0, 8), width=8)
       mygamma <- format(substr(gamma               , 0, 8), width=8)
-      cat("\tvalue:", myvalue, "constraint:", myconst, "gamma:", mygamma) 
+      myvalid <- all(lagrange.out$valid)
+      cat("\tvalue:", myvalue, "constraint:", myconst, "gamma:", mygamma, "valid:", myvalid) 
     }
     
     
@@ -263,6 +278,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   ## Compute profile -------------------------------------------------
     
   # Initialize profile
+  i <- 0 
   direction <- 1
   gamma <- aControl$gamma
   stepsize <- sControl$stepsize
@@ -286,7 +302,6 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   lagrange.out <- lagrange.out
   constraint.out <- constraint.out
  
-  i <- 0 
   while(i < sControl$limit) {
     
     ## Iteration step
@@ -316,6 +331,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   
   # Compute left profile
   cat("\nComputer left profile\n")
+  i <- 0
   direction <- -1
   gamma <- aControl$gamma
   stepsize <- sControl$stepsize
@@ -324,7 +340,6 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   lagrange.out <- lagrange(ini)
   constraint.out <- constraint(pars)
     
-  i <- 0
   while(i < sControl$limit) {
     
     ## Iteration step
