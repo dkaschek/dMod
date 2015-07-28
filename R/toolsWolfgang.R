@@ -333,7 +333,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
     writeLines(msg, logfile)
     flush(logfile)
   }
-  
+
   fitlist <- mclapply(1:fits, function(i) {
     argstrust$parinit <- center + do.call(samplefun, argssample)
     fit <- do.call(trust, c(argstrust, argsobj))
@@ -441,7 +441,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
 #     cat("             -----------\n")
 #     cat(" Total     :", sum(idxerr) + sum(idxabrt) + sum(idxcmp), paste0("[", fits, "]"), "\n")
   }
-  
+
   return(compframe)
 }
 
@@ -612,9 +612,11 @@ msbest <- function(fitlist) {
 #'        holds the effecive condition which is the combination of all applied
 #'        single conditions. }
 #' }
+#' 
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'
 #' @export
-reduceReplicates <- function(file, select = "Condition", datatrans = NA) {
+reduceReplicates <- function(file, select = "Condition", datatrans = NULL) {
 
   # File format definiton
   fmtnames <- c("Species", "Time",  "Value", "Condition")
@@ -654,7 +656,7 @@ reduceReplicates <- function(file, select = "Condition", datatrans = NA) {
                Time = conddata[1, "Time"],
                Mean = mean(conddata[, "Value"]),
                Sd = sd(conddata[, "Value"]),
-               df = nrow(conddata),
+               df = nrow(conddata) - 1,
                Condition = mergecond)
   }))
 
