@@ -187,7 +187,7 @@ plotProfile <- function(..., maxvalue = 5) {
 #' Profile likelihood: plot of the parameter paths.
 #' 
 #' @param ... Lists of profiles as being returned by \link{profile}.
-#' @param whichPar Character, the name of the parameter taken as a reference (x-axis)
+#' @param whichPar Character or index vector, indicating the parameters that are taken as possible reference (x-axis)
 #' @param sort Logical. If paths from different parameter profiles are plotted together, possible
 #' combinations are either sorted or all combinations are taken as they are.
 #' @return A plot object of class \code{ggplot}.
@@ -201,6 +201,7 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scale
     # choose a proflist
     proflist <- arglist[[i]]
     if(is.null(whichPar)) whichPar <- names(proflist)
+    if(is.numeric(whichPar)) whichPar <- names(proflist)[whichPar]
     subdata <- do.call(rbind, lapply(whichPar, function(n) {
       # chose a profile
       paths <- submatrix(proflist[[n]], cols = -(1:4))
