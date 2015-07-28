@@ -371,7 +371,7 @@ plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv =
 #' plotFluxes(bestfit,times,attr(subset(f,"B"%in%Product), "rates"),nameFlux="B production")
 #' }
 #' @export
-plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux="Fluxes:",fixed=NULL){
+plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux = "Fluxes:", fixed = NULL){
   if(is.null(names(fluxEquations))) names(fluxEquations) <- fluxEquations
   flux <- funC0(fluxEquations, compile=TRUE )
   prediction.all <- x(times, pouter, fixed, deriv = FALSE)
@@ -381,7 +381,7 @@ plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux="Fluxes:",fixed
     pinner <- attr(prediction,"pinner")
     pinner.list <- as.list(pinner)
     prediction.list <- as.list(as.data.frame(prediction))
-    fluxes <- cbind(time=times,flux(c(prediction.list, pinner.list), attach = FALSE))
+    fluxes <- cbind(time=prediction[,"time"],flux(c(prediction.list, pinner.list), attach = FALSE))
     return(fluxes)
   }); names(out) <- names(prediction.all)
   out <- wide2long(out)
@@ -391,6 +391,7 @@ plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux="Fluxes:",fixed
     facet_wrap(~condition) + scale_fill_manual(values=cbPalette, name=nameFlux) +
     geom_density(stat="identity", position="stack", alpha=0.3, color="darkgrey", size=0.4) +
     xlab("time [min]") + ylab("contribution [a.u.]")
+  return(P)
 }
 
 #plotArray <- function(x, times, fitlist, data = NULL, fixed=NULL, binwidth=10) {
