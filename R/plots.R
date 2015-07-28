@@ -338,13 +338,59 @@ plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv =
     names(data) <- names(prediction)[1]
   }
   
-  plotCombined(prediction, data, ..., scales = scales, facet = facet)
-  
-  
+  plotCombined(prediction, data, ..., scales = scales, facet = facet) 
   
   
 }
 
+#' Plot Fluxes given a list of flux Equations
+#' 
+#' @param pouter parameters
+#' @param x The model prediction function \code{x(times, pouter, fixed, ...)} needs to return pinner as attribute,
+#' e.g.:\cr
+#'  \code{x <- function(times, pouter, fixed=NULL, attach=TRUE, ...) {\cr
+#'  out <- lapply(conditions, function(cond) { \cr
+#'  pinner <- pL[[cond]](pouter, fixed) \cr
+#'  prediction <- xL[[cond]](times, pinner, ...)\cr
+#'  observation <- g(prediction, pinner, attach.input = attach)\cr
+#'  attr(observation, "pinner") <- pinner\cr
+#'  return(observation)\cr
+#' }); names(out) <- conditions\cr
+#' return(out)}
+#' }
+#' @param fluxEquations list of chars containing expressions for the fluxes, 
+#' if names are given, they are shown in the legend. Easy to obtain via \link{subset.eqnList}, see Examples.
+#' @param times Numeric vector of time points for the model prediction
+#' @param fixed Named numeric vector with fixed parameters
+#'  
+#' 
+#' @return A plot object of class \code{ggplot}.
+#' @examples 
+#' \dontrun{
+#' plotFluxes(bestfit,times,attr(subset(f,"B"%in%Product), "rates"),nameFlux="B production")
+#' }
+#' @export
+plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux="Fluxes:",fixed=NULL){
+  if(is.null(names(fluxEquations))) names(fluxEquations) <- fluxEquations
+  flux <- funC0(fluxEquations, compile=TRUE )
+  prediction.all <- x(times, pouter, fixed, deriv = FALSE)
+  
+  out <- lapply(names(prediction.all), function(cond) {
+    prediction <- prediction.all[[cond]]
+    pinner <- attr(prediction,"pinner")
+    pinner.list <- as.list(pinner)
+    prediction.list <- as.list(as.data.frame(prediction))
+    fluxes <- cbind(time=times,flux(c(prediction.list, pinner.list), attach = FALSE))
+    return(fluxes)
+  }); names(out) <- names(prediction.all)
+  out <- wide2long(out)
+  
+  cbPalette <- c("#999999", "#E69F00", "#F0E442", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7","#CC6666", "#9999CC", "#66CC99","red", "blue", "green","black")
+  P <- ggplot(out, aes(x=time, y=value, group=name, fill=name, log="y"))+ ylab("flux") + 
+    facet_wrap(~condition) + scale_fill_manual(values=cbPalette, name=nameFlux) +
+    geom_density(stat="identity", position="stack", alpha=0.3, color="darkgrey", size=0.4) +
+    xlab("time [min]") + ylab("contribution [a.u.]")
+}
 
 #plotArray <- function(x, times, fitlist, data = NULL, fixed=NULL, binwidth=10) {
 #  
@@ -447,7 +493,7 @@ plotFitList <- function(fitlist) {
 }
 
 
-plotFluxes <- function(out, fluxEquations, pars) {
+plotFluxesOld <- function(out, fluxEquations, pars) {
   
   require(scales)
   
