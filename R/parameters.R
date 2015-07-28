@@ -175,7 +175,7 @@ Pi <- function(trafo, parameters=NULL, compile = FALSE) {
     emptypars <- names(p)[!names(p)%in%c(dependent, fixed)]
     
     # Compute steady state concentrations
-    myroot <- rootSolve::multiroot(ftrafo, 
+    myroot <- rootSolve::multiroot(ftrafo, positive = TRUE,
                                    start = p[dependent], 
                                    parms = p[setdiff(names(p), dependent)])
     
