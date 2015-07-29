@@ -137,9 +137,11 @@ plotData <- function (data, ..., scales = "free", facet = "wrap") {
 #' 
 #' @param ... Lists of profiles as being returned by \link{profile}.
 #' @param maxvalue Numeric, the value where profiles are cut off.
+#' @param parlist Matrix or data.frame with columns for the parameters to be added to the plot as points.
+#' If a "value" column is contained, deltas are calculated with respect to lowest chisquare of profiles.
 #' @return A plot object of class \code{ggplot}.
 #' @export
-plotProfile <- function(..., maxvalue = 5) {
+plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
   
   
   arglist <- list(...)
@@ -168,8 +170,7 @@ plotProfile <- function(..., maxvalue = 5) {
   }))
   
   data$proflist <- as.factor(data$proflist)
-  
-  
+
   threshold <- c(1, 2.7, 3.84)
   
   p <- ggplot(data, aes(x=par, y=delta, group=proflist, color=proflist)) + facet_wrap(~name, scales="free_x") + 
@@ -179,6 +180,19 @@ plotProfile <- function(..., maxvalue = 5) {
     scale_y_continuous(breaks=c(1, 2.7, 3.84), labels = c("68% / 1   ", "90% / 2.71", "95% / 3.84")) +
     xlab("parameter value")
   
+  if(!is.null(parlist)){
+    delta <- 0
+    if("value" %in% colnames(parlist)){
+      minval <- min(unlist(lapply(1:length(arglist), function(i){ zerovalue <- arglist[[i]][[1]]["out",1]   })))
+      values <- parlist[,"value"]
+      parlist <- parlist[,!(colnames(parlist) %in% "value")]
+      delta <- as.numeric(values - minval)
+    }
+    points <- data.frame(par = as.numeric(parlist), name = rep(colnames(parlist), each = nrow(parlist)), delta = delta)
+
+    #points <- data.frame(name = colnames(parlist), par = as.numeric(parlist), delta=0)
+    p <- p + geom_point(data=points, aes(x=par, y=delta, group=NULL), color = "black")
+  }
   attr(p, "data") <- data
   return(p)
   
