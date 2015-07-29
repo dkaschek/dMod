@@ -188,7 +188,7 @@ plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
       parlist <- parlist[,!(colnames(parlist) %in% "value")]
       delta <- as.numeric(values - minval)
     }
-    points <- data.frame(par = as.numeric(parlist), name = rep(colnames(parlist), each = nrow(parlist)), delta = delta)
+    points <- data.frame(par = as.numeric(as.matrix(parlist)), name = rep(colnames(parlist), each = nrow(parlist)), delta = delta)
 
     #points <- data.frame(name = colnames(parlist), par = as.numeric(parlist), delta=0)
     p <- p + geom_point(data=points, aes(x=par, y=delta, group=NULL), color = "black")
