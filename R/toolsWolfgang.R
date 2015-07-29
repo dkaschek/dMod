@@ -692,3 +692,116 @@ reduceReplicates <- function(file, select = "Condition", datatrans = NULL) {
 
   return(reduct)
 }
+
+
+
+#' Fit an error model
+#'
+#' @description Fit an error model to reduced replicate data, see
+#'   \code{\link{reduceReplicates}}.
+#'
+#' @param data Reduced replicate data, see \code{\link{reduceData}}.
+#' @param factors \option{data} is pooled with respect to the columns named
+#'   here, see Details.
+#' @param errorModel Character vector defining the error model. Use \kbd{x} to
+#'   reference the independend variable, see Details.
+#' @param par Inital values for the parameters of the error model.
+#' @param plotting If TRUE, a plot of the pooled variance together with the fit
+#'   of the error model is shown.
+#' @param ... Parameters handed to the optimizer \code{\link{optim}}.
+#'
+#' @details The variance estimator using \eqn{n-1} data points is \eqn{chi^2}
+#'   distributed with \eqn{n-1} degrees of freedom. Given replicates for
+#'   consecutive time points, the sample variance can be assumed a function of
+#'   the sample mean. By defining an error model which must hold for all time
+#'   points, a maximum likelihood estimator for the parameters of the error
+#'   model can be derived. The parameter \option{errorModel} takes the error
+#'   model as a character vector, where the mean (independent variable) is
+#'   refered to as \kbd{x}.
+#'
+#'   It is desireable to estimate the variance from many replicates. The
+#'   parameter \option{data} must provide one or more columns which define the
+#'   pooling of data. In case more than one column is announced by
+#'   \option{factors}, all combinations are constructed. If, e.g.,
+#'   \option{factors = c("Condition", "Species")} is used, where "Condition" is
+#'   "a", "b", "c" and repeating and Species is "d", "e" and repeating, the
+#'   effective conditions used for pooling are "a d", "b e", "c d", "a e", "b
+#'   d", and "c e".
+#'
+#'   By default, a plot of the pooled data, Sigma and its confidence bound at
+#'   68\% and 95\% is shown.
+#'
+#' @return Returned is a data frame with the first columns identical to
+#'   \option{data}. Appended are fit values of the parameters of the error
+#'   model, with the column names equal to the parameter names and the estimated
+#'   uncertainty Sigma. Sigma is derived by evaluating the error model with the
+#'   fit parameters. The error model is appended as the attribute "errorModel".
+#'
+#'   Confidence bounds for Sigma at confidence level 68\% and 95\% are
+#'   calculated, Their values come next in the returned data frame. Finally, the
+#'   effective conditions are appended to easily check how the pooling was done.
+#'
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#'
+#' @export
+fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
+                          par = c(s0 = 1, srel = .1), plotting = TRUE, ...) {
+
+  # Assemble conditions
+  condidnt <- Reduce(paste, subset(data, select = factors))
+  conditions <- unique(condidnt)
+
+
+  # Fit error model
+  nColData <- ncol(data)
+  data <- cbind(data, as.list(par), Sigma = NA)
+
+  for (cond in conditions) {
+    subdata <- data[condidnt == cond,]
+    x <- subdata$Mean
+    y <- subdata$Sd
+    df <- subdata$df
+
+    obj <- function(par) {
+      value <- with(as.list(par), {
+        z <- eval(parse(text = errorModel))
+        sum(log(z)-log(dchisq((df)*(y^2)/z, df = df)), na.rm = TRUE)
+      })
+      return(value)
+    }
+
+    fit <- optim(par = par, fn = obj, ...)
+    sigma <- sqrt(with(as.list(fit$par), eval(parse(text = errorModel))))
+    data[condidnt == cond, -(nColData:1)] <- data.frame(as.list(fit$par), Sigma = sigma)
+  }
+
+
+  # Calculate confidence bounds about sigma
+  p68 <- (1-.683)/2
+  p95 <- (1-.955)/2
+  data$cbLower68 <- sqrt(data$Sigma^2*qchisq(p = p68, df = data$df)/data$df)
+  data$cbUpper68 <- sqrt(data$Sigma^2*qchisq(p = p68, df = data$df, lower.tail = FALSE)/data$df)
+  data$cbLower95 <- sqrt(data$Sigma^2*qchisq(p = p95, df = data$df)/data$df)
+  data$cbUpper95 <- sqrt(data$Sigma^2*qchisq(p = p95, df = data$df, lower.tail = FALSE)/data$df)
+
+
+  # Assemble result
+  data <- cbind(data, condidnt)
+  attr(data, "errorModel") <- errorModel
+
+
+  # Plot if requested
+  if (plotting) {
+    print(ggplot(data, aes(x=Mean)) +
+            geom_point(aes(y=Sd)) +
+            geom_line(aes(y=Sigma)) +
+            geom_ribbon(aes(ymin=cbLower95, ymax=cbUpper95), alpha=.3) +
+            geom_ribbon(aes(ymin=cbLower68, ymax=cbUpper68), alpha=.3) +
+            facet_wrap(~condidnt, scales = "free") +
+            scale_y_log10() +
+            theme_dMod()
+    )}
+
+  return(data)
+}
+
