@@ -148,6 +148,8 @@ plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
   
   data <- do.call(rbind, lapply(1:length(arglist), function(i) {
     proflist <- arglist[[i]]
+    do.valueData <- "valueData" %in% colnames(proflist[[1]])
+    do.valuePrior <- "valuePrior" %in% colnames(proflist[[1]])
     
     # Discard faulty profiles
     proflistidx <- sapply(proflist, function(prf) grepl(class(prf), "matrix"))
@@ -162,19 +164,33 @@ plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
       zerovalue <- proflist[[n]]["out",1]
       parvalues <- proflist[[n]][,n]
       deltavalues <- values - zerovalue
-      
-      subset(data.frame(name = n, delta = deltavalues, par = parvalues, proflist = i), delta <= maxvalue)
-      
+
+      sub <- subset(data.frame(name = n, delta = deltavalues, par = parvalues, proflist = i, mode="total", is.zero = rownames(proflist[[n]]) == "out"), delta <= maxvalue)
+      if(do.valueData){
+        valuesD <- proflist[[n]][,"valueData"]
+        zerovalueD <- proflist[[n]]["out","valueData"]
+        deltavaluesD <- valuesD - zerovalueD
+        sub <- rbind(sub,subset(data.frame(name = n, delta = deltavaluesD, par = parvalues, proflist = i, mode="Data", is.zero = rownames(proflist[[n]]) == "out"), delta <= maxvalue))
+      }
+      if(do.valuePrior){
+        valuesP <- proflist[[n]][,"valuePrior"]
+        zerovalueP <- proflist[[n]]["out","valuePrior"]
+        deltavaluesP <- valuesP - zerovalueP
+        sub <- rbind(sub,subset(data.frame(name = n, delta = deltavaluesP, par = parvalues, proflist = i, mode="Prior", is.zero = rownames(proflist[[n]]) == "out"), delta <= maxvalue))
+      }
+      return(sub)
     }))
     return(subdata)
   }))
   
   data$proflist <- as.factor(data$proflist)
+  data.zero <- subset(data, is.zero)
 
   threshold <- c(1, 2.7, 3.84)
   
-  p <- ggplot(data, aes(x=par, y=delta, group=proflist, color=proflist)) + facet_wrap(~name, scales="free_x") + 
-    geom_line() + geom_point(aes=aes(size=1), alpha=1/3) +
+  p <- ggplot(data, aes(x=par, y=delta, group=interaction(proflist,mode), color=proflist, linetype=mode)) + facet_wrap(~name, scales="free_x") + 
+    geom_line() + #geom_point(aes=aes(size=1), alpha=1/3) +
+    geom_point(data = data.zero) +
     geom_hline(yintercept=threshold, lty=2, color="gray") + 
     ylab(expression(paste("CL /", Delta*chi^2))) +
     scale_y_continuous(breaks=c(1, 2.7, 3.84), labels = c("68% / 1   ", "90% / 2.71", "95% / 3.84")) +
@@ -191,7 +207,7 @@ plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
     points <- data.frame(par = as.numeric(as.matrix(parlist)), name = rep(colnames(parlist), each = nrow(parlist)), delta = delta)
 
     #points <- data.frame(name = colnames(parlist), par = as.numeric(parlist), delta=0)
-    p <- p + geom_point(data=points, aes(x=par, y=delta, group=NULL), color = "black")
+    p <- p + geom_point(data=points, aes(x=par, y=delta, group=NULL, linetype = NULL), color = "black")
   }
   attr(p, "data") <- data
   return(p)
