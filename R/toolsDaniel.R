@@ -498,3 +498,17 @@ priorL2 <- function(p, mu, lambda = "lambda", fixed = NULL) {
   
   return(out12)
 }
+
+
+
+#' @export
+mssample <- function(center, samplefun = "rnorm", fits = 20, ...) {
+  
+  sample.matrix <- do.call(rbind, lapply(1:fits, function(i) 
+    do.call(samplefun, c(list(n = length(center), mean = center), list(...)))))
+  
+  colnames(sample.matrix) <- names(center)
+  
+  return(sample.matrix)
+
+}

@@ -1,7 +1,7 @@
 #' Profile-likelihood (PL) computation
 #' 
 #' @param obj Objective function \code{obj(pars, fixed, ...)} returning a list with "value",
-#' "gradient" and "hessian".
+#' "gradient" and "hessian". If attribute "valueData" and/or "valuePrior are returned they are attached to the return value.
 #' @param pars Parameter vector corresponding to the log-liklihood optimum.
 #' @param whichPar Numeric or character. The parameter for which the profile is computed.
 #' @param alpha Numeric, the significance level based on the chisquare distribution with df=1
@@ -38,7 +38,7 @@
 #' @return Named list of length one. The name is the parameter name. The list enty is a
 #' matrix with columns "value" (the objective value), "constraint" (deviation of the profiled paramter from
 #' the original value), "stepsize" (the stepsize take for the iteration), "gamma" (the gamma value employed for the
-#' iteration), one column per parameter (the profile paths).
+#' iteration), "valueData" and "valuePrior" (if specified in obj), one column per parameter (the profile paths).
 #' @examples 
 #' 
 #' \dontrun{
@@ -182,7 +182,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       warning(paste0("Iteration ", i, ": Impossible to invert Hessian. Trying to optimize instead."))
     }
     
-    return(list(dy = dy, value = out$value, gradient = out$gradient, correction = correction, valid = valid))
+    return(list(dy = dy, value = out$value, gradient = out$gradient, correction = correction, valid = valid, valueData = attr(out,"valueData"), valuePrior = attr(out,"valuePrior")))
     
   }
   doIteration <- function() {
@@ -290,8 +290,8 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   delta <- qchisq(1-alpha, 1)
   threshold <- lagrange.out$value + delta
   
-  out <- c(value = lagrange.out$value, constraint = as.vector(constraint.out$value), stepsize = stepsize, gamma = gamma, ini)
-    
+  out <- c(value = lagrange.out$value, constraint = as.vector(constraint.out$value), stepsize = stepsize, gamma = gamma, valueData = lagrange.out$valueData, valuePrior = lagrange.out$valuePrior, ini)
+
   # Compute right profile
   cat("Computer right profile\n")
   direction <- 1
@@ -319,7 +319,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     
     ## Return values 
     out <- rbind(out, 
-                 c(value = lagrange.out$value, constraint = as.vector(constraint.out$value), stepsize = stepsize, gamma = gamma, y))
+                 c(value = lagrange.out$value, constraint = as.vector(constraint.out$value), stepsize = stepsize, gamma = gamma, valueData = lagrange.out$valueData, valuePrior = lagrange.out$valuePrior, y))
     
     
     if(lagrange.out$value > threshold | constraint.out$value > limits[2]) break
@@ -357,7 +357,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     
     
     ## Return values
-    out <- rbind(c(value = lagrange.out$value, constraint = as.vector(constraint.out$value), stepsize = stepsize, gamma = gamma, y), 
+    out <- rbind(c(value = lagrange.out$value, constraint = as.vector(constraint.out$value), stepsize = stepsize, gamma = gamma, valueData = lagrange.out$valueData, valuePrior = lagrange.out$valuePrior, y), 
                  out)
     
     if(lagrange.out$value > threshold  | constraint.out$value < limits[1]) break

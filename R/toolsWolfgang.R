@@ -157,7 +157,7 @@ strelide <- function(string, width, where = "right", force = FALSE) {
 
 #' Select parameter values with lowest Chi^2 among profiles.
 #'
-#' @param prf A profiles as returned from \link[dMod]{profile}.
+#' @param prf A profile as returned from \link[dMod]{profile}.
 #' @param context If TRUE, the chi^2 and other context of the profile is
 #'                returned. This parameter defaults to FALSE in which case the
 #'                output can be used as outer parameters directly.
@@ -206,66 +206,80 @@ plSelectMin <- function(prf, context = FALSE) {
 
 #' Non-Linear Optimization, multi start
 #'
-#' @description
-#' Wrapper around \code{\link{trust}} allowing for multiple fits from randomly
-#' chosen initial values.
+#' @description Wrapper around \code{\link{trust}} allowing for multiple fits
+#'   from randomly chosen initial values.
 #'
 #' @param objfun Objective function, see \code{\link{trust}}.
 #' @param center Parameter values around which the initial values for each fit
-#'        are randomly sampled. The initial values handed to \link{trust} are
-#'        the sum of center and the output of <samplefun>, center + <samplefun>.
-#'        See \code{\link{trust}}, parinit.
+#'   are randomly sampled. The initial values handed to \link{trust} are the sum
+#'   of center and the output of \option{samplefun}, center +
+#'   \option{samplefun}. See \code{\link{trust}}, parinit.
 #'
 #' @param rinit Starting trust region radius, see \code{\link{trust}}.
 #' @param rmax Maximum allowed trust region radius, see \code{\link{trust}}.
 #' @param fits Number of fits (jobs).
 #' @param cores Number of cores for job parallelization.
 #' @param samplefun Function to sample random initial values. It is assumed,
-#'        that <samplefun> has a named parameter "n" which defines how many
-#'        random numbers are to be returned, such as for \code{\link{rnorm}},
-#'        which is also the default sampling function.
+#'   that \option{samplefun} has a named parameter "n" which defines how many
+#'   random numbers are to be returned, such as for \code{\link{rnorm}}, which
+#'   is also the default sampling function.
+#' @param resfld If provided, temporary files, log file, and results are saved
+#'   under that path. The current working directory is the default.
 #' @param logfile Name of the file to which all jobs log their output. The file
-#'        is handy to investigate the different jobs in some detail. Since the
-#'        jobs are carried out in parallel, their output may occurre in
-#'        non-consecutive order. At the end of the file, a summary of the fits
-#'        is given.
+#'   is handy to investigate the different jobs in some detail. Since the jobs
+#'   are carried out in parallel, their output may occurre in non-consecutive
+#'   order. At the end of the file, a summary of the fits is given.
 #' @param fitsfile Name of the file to which the result of all completed fits
-#'        are written to. An empy string "" suppresses the write.
+#'   are written to. An empy string "" suppresses the write.
 #' @param stats If true, the same summary statistic as written to the logfile is
-#'        printed to command line.
+#'   printed to command line.
 #' @param msgtag A string prepending the logging output written to file.
 #' @param narrowing If NULL, we are not in narrowing mode, see
-#'        \code{\link{msnarrow}}. In narrowing mode, this parameter indicates
-#'        the narrowing status.
+#'   \code{\link{msnarrow}}. In narrowing mode, this parameter indicates the
+#'   narrowing status.
 #' @param ... Additional parameters which are handed to trust() or samplefun()
-#'        by matching parameter names. All remaining parameters are handed to
-#'        the objective function objfun().
+#'   by matching parameter names. All remaining parameters are handed to the
+#'   objective function objfun().
 #'
-#' @details
-#' By running multiple fits starting with randomly chosen inital parameters, the
-#' chisquare landscape can be explored using a deterministic optimizer. In this
-#' case, \code{\link{trust}} is used for optimization. The standard procedure to
-#' obtain random initial values is to sample random variables from a uniform
-#' distribution (\code{\link{rnorm}}) and adding these to <center>. It is,
-#' however, possible, to employ any other sampling strategy by handing the
-#' respective function to mstrust(), <samplefun>.
+#' @details By running multiple fits starting with randomly chosen inital
+#'   parameters, the chisquare landscape can be explored using a deterministic
+#'   optimizer. In this case, \code{\link{trust}} is used for optimization. The
+#'   standard procedure to obtain random initial values is to sample random
+#'   variables from a uniform distribution (\code{\link{rnorm}}) and adding
+#'   these to \option{center}. It is, however, possible, to employ any other
+#'   sampling strategy by handing the respective function to mstrust(),
+#'   \option{samplefun}.
 #'
-#' All started fits are either faulty, aborted, or complete. Faulty fits return
-#' a "try-error" object and fail somewhere outside trust(). Aborted fits fail
-#' withing trust(), and complete fits return from trust() correctly. Completed
-#' fits can still be unconverged, in case the maximum number of iteration is
-#' reached before the convergence criterion.
+#'   All started fits are either faulty, aborted, or complete. Faulty fits
+#'   return a "try-error" object and fail somewhere outside trust(). Aborted
+#'   fits fail withing trust(), and complete fits return from trust() correctly.
+#'   Completed fits can still be unconverged, in case the maximum number of
+#'   iteration is reached before the convergence criterion.
 #'
-#' @return fitlist A data frame of all completed fits sorted by their chi^2.
+#'   In case a special sampling is required, a customized sampling function can
+#'   be used. If, e.g., inital values leading to a non-physical systems are to
+#'   be discarded upfront, the objective function can be addapted accordingly.
 #'
-#' @seealso
-#' The optimization is carried out by \code{\link{trust}}.
+#'   On fitting, a folder for temporary files is created under \option{resfld}.
+#'   The name of the folder ist tmp- followed by the current date and time.
+#'   There, the result of each fit is saved. After a crash, results completed
+#'   before the crash can be restored., see \code{\link{msrestore}}.
+#'
+#' @return A data frame of all completed fits sorted by their objective value.
+#'   The data frame carries an attribute "fitlist" returning the raw output of
+#'   trust(). This length of the fitlist equals \option{fits}. The colunm
+#'   index in the returned data frame can be used to index the fitlist to
+#'   retrive the corresponding result from \code{\link{trust}}.
+#'
+#'
+#' @seealso \code{\link{trust}}, \code{\link{rnorm}},, \code{\link{msnarrow}},
+#'   \code{\link{msbest}}
 #'
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'
 #' @export
 mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
-                    samplefun = "rnorm", logfile = "mstrust.log",
+                    samplefun = "rnorm", resfld = ".", logfile = "mstrust.log",
                     fitsfile = "fitlist.rda", stats = FALSE, msgtag = "",
                     narrowing = NULL, ...) {
 
@@ -289,7 +303,8 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
   # First, define argument names used locally in mstrust().
   # Second, check what trust() and samplefun() accept and check for names clash.
   # Third, whatever is unused is passed to the objective function objfun().
-  nameslocal <- c("center", "fits", "cores", "samplefun", "logfile", "msgtag", "stats", "writeres", "narrowing", "fitsfile")
+  nameslocal <- c("center", "fits", "cores", "samplefun", "resfld", "logfile",
+                  "msgtag", "stats", "narrowing", "fitsfile")
   namestrust <- intersect(names(formals(trust)), names(argslist))
   namessample <- intersect(names(formals(samplefun)), names(argslist))
   if (length(intersect(namestrust, namessample) != 0)) {
@@ -318,12 +333,20 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
   }
 
 
+  # Assemble and create output file and folders
+  dir.create(path = argslist$resfld, showWarnings = FALSE)
+  fileLog <- file.path(argslist$resfld, argslist$logfile)
+  fileFits <- file.path(argslist$resfld, argslist$fitsfile)
+  tmpfld <- file.path(argslist$resfld, paste0("tmp-", format(Sys.time(), "%d-%m-%Y-%H%M%S")))
+  dir.create(path = tmpfld, showWarnings = FALSE)
+
+
   # Apply trust optimizer in parallel
   # The error checking leverages that mclappy runs each job in a try().
   if (is.null(narrowing) || narrowing[1] == 1) {
-    file.create(argslist$logfile) #Truncate log file
+    file.create(fileLog) #Truncate log file
   }
-  logfile <- file(argslist$logfile, open = "a")
+  logfile <- file(fileLog, open = "a")
 
   # Write narrowing status information to file
   if (!is.null(narrowing)) {
@@ -332,11 +355,15 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
     writeLines(msg, logfile)
     flush(logfile)
   }
-  
+
   fitlist <- mclapply(1:fits, function(i) {
     argstrust$parinit <- center + do.call(samplefun, argssample)
     fit <- do.call(trust, c(argstrust, argsobj))
     fit$index = i
+    fit$parinit <- argstrust$parinit
+
+    # Write current fit to disk
+    save(fit, file = file.path(tmpfld, paste0("fit-", i, ".Rda")))
 
     # Reporting
     # With concurent jobs and everyone reporting, this is a classic race
@@ -365,7 +392,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
     }
 
     return(fit)
-  },mc.preschedule=FALSE, mc.silent = FALSE, mc.cores=cores)
+  }, mc.preschedule=FALSE, mc.silent = FALSE, mc.cores=cores)
   close(logfile)
 
 
@@ -379,6 +406,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
   # not part of its names. These fits, however, can still be unconverged, if the
   # maximim number of iterations was the reason for the return of trust().
   # Failed: try-error, find and remove
+  fitlistfull <- fitlist
   idxerr <- sapply(fitlist, function(fit) inherits(fit, "try-error"))
   fitlist <- fitlist[!idxerr]
 
@@ -391,12 +419,13 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
     }
   })
 
-  # Properly returned from trust(), possibly unconverged.
-  idxcmp <- !idxabrt
+  # Remaining fits are properly returned from trust(), possibly unconverged.
+  fitlist <- fitlist[!idxabrt]
+  idxcmp <- !idxabrt # We need this for counting, see summary statistics.
 
 
   # Stash results of completed fits in a data.frame
-  complist <- lapply(fitlist[idxcmp], function(fit) {
+  complist <- lapply(fitlist, function(fit) {
     data.frame(
       index = fit$index,
       value = fit$value,
@@ -413,9 +442,12 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
 
   # Wrap up
   # Write out results
-  if (nchar(fitsfile) > 0) {
-    save(fitlist, file = fitsfile)
+  if (nchar(argslist$fitsfile) > 0) {
+    save(fitlist, file = fileFits)
   }
+
+  # Remove temporary files
+  unlink(tmpfld, recursive = TRUE)
 
   # Show summary
   msg <- paste0("Mutli start trust summary\n",
@@ -425,22 +457,19 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
                 "Completed : ", sum(idxcmp), "\n",
                 "           -----------\n",
                 "Total     : ", sum(idxerr) + sum(idxabrt) + sum(idxcmp), paste0("[", fits, "]"), "\n")
-  logfile <- file(argslist$logfile, open = "a")
+  logfile <- file(fileLog, open = "a")
   writeLines(msg, logfile)
   flush(logfile)
   close(logfile)
 
   if (stats) {
     cat(msg)
-#     cat("Mutli start trust summary\n")
-#     cat("Outcome    : Occurrence\n")
-#     cat(" Faulty    :", sum(idxerr), "\n")
-#     cat(" Aborted   :", sum(idxabrt), "\n")
-#     cat(" Completed :", sum(idxcmp), "\n")
-#     cat("             -----------\n")
-#     cat(" Total     :", sum(idxerr) + sum(idxabrt) + sum(idxcmp), paste0("[", fits, "]"), "\n")
   }
-  
+
+  if (!is.null(compframe)) {
+    attr(compframe, "fitlist") <- fitlistfull
+  }
+
   return(compframe)
 }
 
@@ -461,7 +490,8 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
 #'        fits are desired for each ms fit, <fits> must be a vector of the same
 #'        length as <spread>.
 #' @param safety If a non-empty string is given, the fitlist of each ms fit is
-#'        written to a file <safety> with number of the current run appended.
+#'        written to a file <safety> with the number of the current run
+#'        appended.
 #' @param ... Parameters handed to the mulit start optimizer. Right now
 #'        \code{\link{mstrust}} is the only option available.
 #'
@@ -612,8 +642,10 @@ msbest <- function(fitlist) {
 #'        single conditions. }
 #' }
 #'
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#'
 #' @export
-reduceReplicates <- function(file, select = "Condition", datatrans = NA) {
+reduceReplicates <- function(file, select = "Condition", datatrans = NULL) {
 
   # File format definiton
   fmtnames <- c("Species", "Time",  "Value", "Condition")
@@ -653,9 +685,122 @@ reduceReplicates <- function(file, select = "Condition", datatrans = NA) {
                Time = conddata[1, "Time"],
                Mean = mean(conddata[, "Value"]),
                Sd = sd(conddata[, "Value"]),
-               df = nrow(conddata),
+               df = nrow(conddata) - 1,
                Condition = mergecond)
   }))
 
   return(reduct)
 }
+
+
+
+#' Fit an error model
+#'
+#' @description Fit an error model to reduced replicate data, see
+#'   \code{\link{reduceReplicates}}.
+#'
+#' @param data Reduced replicate data, see \code{\link{reduceData}}.
+#' @param factors \option{data} is pooled with respect to the columns named
+#'   here, see Details.
+#' @param errorModel Character vector defining the error model. Use \kbd{x} to
+#'   reference the independend variable, see Details.
+#' @param par Inital values for the parameters of the error model.
+#' @param plotting If TRUE, a plot of the pooled variance together with the fit
+#'   of the error model is shown.
+#' @param ... Parameters handed to the optimizer \code{\link{optim}}.
+#'
+#' @details The variance estimator using \eqn{n-1} data points is \eqn{chi^2}
+#'   distributed with \eqn{n-1} degrees of freedom. Given replicates for
+#'   consecutive time points, the sample variance can be assumed a function of
+#'   the sample mean. By defining an error model which must hold for all time
+#'   points, a maximum likelihood estimator for the parameters of the error
+#'   model can be derived. The parameter \option{errorModel} takes the error
+#'   model as a character vector, where the mean (independent variable) is
+#'   refered to as \kbd{x}.
+#'
+#'   It is desireable to estimate the variance from many replicates. The
+#'   parameter \option{data} must provide one or more columns which define the
+#'   pooling of data. In case more than one column is announced by
+#'   \option{factors}, all combinations are constructed. If, e.g.,
+#'   \option{factors = c("Condition", "Species")} is used, where "Condition" is
+#'   "a", "b", "c" and repeating and Species is "d", "e" and repeating, the
+#'   effective conditions used for pooling are "a d", "b e", "c d", "a e", "b
+#'   d", and "c e".
+#'
+#'   By default, a plot of the pooled data, Sigma and its confidence bound at
+#'   68\% and 95\% is shown.
+#'
+#' @return Returned is a data frame with the first columns identical to
+#'   \option{data}. Appended are fit values of the parameters of the error
+#'   model, with the column names equal to the parameter names and the estimated
+#'   uncertainty Sigma. Sigma is derived by evaluating the error model with the
+#'   fit parameters. The error model is appended as the attribute "errorModel".
+#'
+#'   Confidence bounds for Sigma at confidence level 68\% and 95\% are
+#'   calculated, Their values come next in the returned data frame. Finally, the
+#'   effective conditions are appended to easily check how the pooling was done.
+#'
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#'
+#' @export
+fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
+                          par = c(s0 = 1, srel = .1), plotting = TRUE, ...) {
+
+  # Assemble conditions
+  condidnt <- Reduce(paste, subset(data, select = factors))
+  conditions <- unique(condidnt)
+
+
+  # Fit error model
+  nColData <- ncol(data)
+  data <- cbind(data, as.list(par), Sigma = NA)
+
+  for (cond in conditions) {
+    subdata <- data[condidnt == cond,]
+    x <- subdata$Mean
+    y <- subdata$Sd
+    df <- subdata$df
+
+    obj <- function(par) {
+      value <- with(as.list(par), {
+        z <- eval(parse(text = errorModel))
+        sum(log(z)-log(dchisq((df)*(y^2)/z, df = df)), na.rm = TRUE)
+      })
+      return(value)
+    }
+
+    fit <- optim(par = par, fn = obj, ...)
+    sigma <- sqrt(with(as.list(fit$par), eval(parse(text = errorModel))))
+    data[condidnt == cond, -(nColData:1)] <- data.frame(as.list(fit$par), Sigma = sigma)
+  }
+
+
+  # Calculate confidence bounds about sigma
+  p68 <- (1-.683)/2
+  p95 <- (1-.955)/2
+  data$cbLower68 <- sqrt(data$Sigma^2*qchisq(p = p68, df = data$df)/data$df)
+  data$cbUpper68 <- sqrt(data$Sigma^2*qchisq(p = p68, df = data$df, lower.tail = FALSE)/data$df)
+  data$cbLower95 <- sqrt(data$Sigma^2*qchisq(p = p95, df = data$df)/data$df)
+  data$cbUpper95 <- sqrt(data$Sigma^2*qchisq(p = p95, df = data$df, lower.tail = FALSE)/data$df)
+
+
+  # Assemble result
+  data <- cbind(data, condidnt)
+  attr(data, "errorModel") <- errorModel
+
+
+  # Plot if requested
+  if (plotting) {
+    print(ggplot(data, aes(x=Mean)) +
+            geom_point(aes(y=Sd)) +
+            geom_line(aes(y=Sigma)) +
+            geom_ribbon(aes(ymin=cbLower95, ymax=cbUpper95), alpha=.3) +
+            geom_ribbon(aes(ymin=cbLower68, ymax=cbUpper68), alpha=.3) +
+            facet_wrap(~condidnt, scales = "free") +
+            scale_y_log10() +
+            theme_dMod()
+    )}
+
+  return(data)
+}
+

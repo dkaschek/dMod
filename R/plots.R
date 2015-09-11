@@ -137,15 +137,19 @@ plotData <- function (data, ..., scales = "free", facet = "wrap") {
 #' 
 #' @param ... Lists of profiles as being returned by \link{profile}.
 #' @param maxvalue Numeric, the value where profiles are cut off.
+#' @param parlist Matrix or data.frame with columns for the parameters to be added to the plot as points.
+#' If a "value" column is contained, deltas are calculated with respect to lowest chisquare of profiles.
 #' @return A plot object of class \code{ggplot}.
 #' @export
-plotProfile <- function(..., maxvalue = 5) {
+plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
   
   
   arglist <- list(...)
   
   data <- do.call(rbind, lapply(1:length(arglist), function(i) {
     proflist <- arglist[[i]]
+    do.valueData <- "valueData" %in% colnames(proflist[[1]])
+    do.valuePrior <- "valuePrior" %in% colnames(proflist[[1]])
     
     # Discard faulty profiles
     proflistidx <- sapply(proflist, function(prf) grepl(class(prf), "matrix"))
@@ -160,25 +164,51 @@ plotProfile <- function(..., maxvalue = 5) {
       zerovalue <- proflist[[n]]["out",1]
       parvalues <- proflist[[n]][,n]
       deltavalues <- values - zerovalue
-      
-      subset(data.frame(name = n, delta = deltavalues, par = parvalues, proflist = i), delta <= maxvalue)
-      
+
+      sub <- subset(data.frame(name = n, delta = deltavalues, par = parvalues, proflist = i, mode="total", is.zero = rownames(proflist[[n]]) == "out"), delta <= maxvalue)
+      if(do.valueData){
+        valuesD <- proflist[[n]][,"valueData"]
+        zerovalueD <- proflist[[n]]["out","valueData"]
+        deltavaluesD <- valuesD - zerovalueD
+        sub <- rbind(sub,subset(data.frame(name = n, delta = deltavaluesD, par = parvalues, proflist = i, mode="Data", is.zero = rownames(proflist[[n]]) == "out"), delta <= maxvalue))
+      }
+      if(do.valuePrior){
+        valuesP <- proflist[[n]][,"valuePrior"]
+        zerovalueP <- proflist[[n]]["out","valuePrior"]
+        deltavaluesP <- valuesP - zerovalueP
+        sub <- rbind(sub,subset(data.frame(name = n, delta = deltavaluesP, par = parvalues, proflist = i, mode="Prior", is.zero = rownames(proflist[[n]]) == "out"), delta <= maxvalue))
+      }
+      return(sub)
     }))
     return(subdata)
   }))
   
   data$proflist <- as.factor(data$proflist)
-  
-  
+  data.zero <- subset(data, is.zero)
+
   threshold <- c(1, 2.7, 3.84)
   
-  p <- ggplot(data, aes(x=par, y=delta, group=proflist, color=proflist)) + facet_wrap(~name, scales="free_x") + 
-    geom_line() + geom_point(aes=aes(size=1), alpha=1/3) +
+  p <- ggplot(data, aes(x=par, y=delta, group=interaction(proflist,mode), color=proflist, linetype=mode)) + facet_wrap(~name, scales="free_x") + 
+    geom_line() + #geom_point(aes=aes(size=1), alpha=1/3) +
+    geom_point(data = data.zero) +
     geom_hline(yintercept=threshold, lty=2, color="gray") + 
     ylab(expression(paste("CL /", Delta*chi^2))) +
     scale_y_continuous(breaks=c(1, 2.7, 3.84), labels = c("68% / 1   ", "90% / 2.71", "95% / 3.84")) +
     xlab("parameter value")
   
+  if(!is.null(parlist)){
+    delta <- 0
+    if("value" %in% colnames(parlist)){
+      minval <- min(unlist(lapply(1:length(arglist), function(i){ zerovalue <- arglist[[i]][[1]]["out",1]   })))
+      values <- parlist[,"value"]
+      parlist <- parlist[,!(colnames(parlist) %in% "value")]
+      delta <- as.numeric(values - minval)
+    }
+    points <- data.frame(par = as.numeric(as.matrix(parlist)), name = rep(colnames(parlist), each = nrow(parlist)), delta = delta)
+
+    #points <- data.frame(name = colnames(parlist), par = as.numeric(parlist), delta=0)
+    p <- p + geom_point(data=points, aes(x=par, y=delta, group=NULL, linetype = NULL), color = "black")
+  }
   attr(p, "data") <- data
   return(p)
   
@@ -381,7 +411,7 @@ plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux = "Fluxes:", fi
     pinner <- attr(prediction,"pinner")
     pinner.list <- as.list(pinner)
     prediction.list <- as.list(as.data.frame(prediction))
-    fluxes <- cbind(time=times,flux(c(prediction.list, pinner.list)))
+    fluxes <- cbind(time=prediction[,"time"],flux(c(prediction.list, pinner.list)))
     return(fluxes)
   }); names(out) <- names(prediction.all)
   out <- wide2long(out)
