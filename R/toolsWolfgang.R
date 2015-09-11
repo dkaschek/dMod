@@ -204,7 +204,6 @@ plSelectMin <- function(prf, context = FALSE) {
 }
 
 
-
 #' Non-Linear Optimization, multi start
 #'
 #' @description

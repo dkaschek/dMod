@@ -226,12 +226,13 @@ Pi <- function(trafo, parameters=NULL, compile = FALSE) {
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 
 #' @export
-print.par <- function(p) {
+print.par <- function(p, ...) {
   
   # Assemble parameters
-  linewidth <- 79
   hInner <- "Inner"
   hOuter <- "Outer"
+  arglist <- list(...)
+  if("linewidth" %in% names(arglist)) linewidth <- arglist$linewidth else linewidth <- 79
   
   equations <- attr(p, "equations")
   maxNameWidth <- max(nchar(names(equations)), nchar(hInner))  
