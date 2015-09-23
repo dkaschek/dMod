@@ -121,7 +121,7 @@ x <- function(times, pouter, fixed=NULL, ...) {
 
 ## Data ----------------------------------------------------------------------
 
-datasheet <- read.table("datafile.csv") # with columns condition, name, time, value, sigma
+datasheet <- read.table("datafile.csv") # with columns name, time, value, sigma
 data <- lapply(conditions, function(mycondition) subset(datasheet, condition == mycondition))
 names(data) <- conditions
 

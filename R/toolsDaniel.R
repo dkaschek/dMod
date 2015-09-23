@@ -512,3 +512,10 @@ mssample <- function(center, samplefun = "rnorm", fits = 20, ...) {
   return(sample.matrix)
 
 }
+
+#' @export
+ggopen <- function(plot = last_plot(), command = "xdg-open", ...) {
+  filename <- tempfile(pattern = "Rplot", fileext = ".pdf")
+  ggsave(filename = filename, plot = plot, ...)
+  system(command = paste(command, filename))
+}
