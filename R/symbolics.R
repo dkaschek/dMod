@@ -7,7 +7,7 @@
 #' @export
 getCoefficients <- function(char, symbol) {
   
-  pdata <- getParseData(parse(text = char))
+  pdata <- getParseData(parse(text = char, keep.source = TRUE))
   pdata <- pdata[pdata$terminal == TRUE, ] #  subset(pdata, terminal == TRUE)
   symbolPos <- which(pdata$text == symbol)
   coefficients <- rep(1, length(symbolPos))

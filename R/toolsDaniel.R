@@ -44,7 +44,7 @@ generateModelIE <- function(f, observed, inputs, forcings, scale=1, modelname = 
   nf <- length(f)
   ni <- length(inputs)
   
-  fparse <- getParseData(parse(text=f))
+  fparse <- getParseData(parse(text=f), keep.source = TRUE)
   variables <- names(f)
   symbols <- unique(fparse$text[fparse$token == "SYMBOL"])
   forcings.t <- paste(c(forcings, inputs), "t", sep=".")

@@ -50,7 +50,7 @@ generateEquations <- function(..., volumes = NULL) {
   exclmark <- unlist(lapply(1:length(rate), function(i) {
     
     myrate <- rate[i]
-    parsedRate <- getParseData(parse(text=myrate))
+    parsedRate <- getParseData(parse(text=myrate, keep.source = TRUE))
     symbols <- parsedRate$text[parsedRate$token=="SYMBOL"]
     
     educts <- variables[which(SMatrix[i,]<0)]
@@ -288,7 +288,7 @@ addObservable <- function(observable, f) {
   }
   
   # Analyze the observable character expression
-  parsedata <- getParseData(parse(text=as.character(observable)))
+  parsedata <- getParseData(parse(text=as.character(observable), keep.source = TRUE))
   symbols <- unique(parsedata[parsedata$token == "SYMBOL","text"])
   species <- symbols[symbols%in%attr(f, "species")]
   derivatives <- lapply(observable, function(obs) {
