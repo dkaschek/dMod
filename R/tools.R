@@ -239,7 +239,7 @@ loadTemplate <- function(i = 1) {
 #' Evaluation of algebraic expressions defined by characters
 #' 
 #' @param x Name character vector, the algebraic expressions
-#' @param compile Logical. The function is either compiled (requires the \code{inline} package) or
+#' @param compile Logical. The function is either translated into a C file to be compiled or is
 #' evaluated in raw R.
 #' @return A prediction function \code{f(mylist, attach.input = FALSE)} where \code{mylist} is a list of numeric 
 #' vectors that can
@@ -254,7 +254,7 @@ loadTemplate <- function(i = 1) {
 #' }
 #' 
 #' @export
-funC0 <- function(x, compile = TRUE) {
+funC0 <- function(x, compile = FALSE, modelname = NULL) {
     
   # Get symbols to be substituted by x[] and y[]
   outnames <- names(x)
@@ -277,19 +277,36 @@ funC0 <- function(x, compile = TRUE) {
     x <- x[x != "0"]
     expr <- paste(names(x), "=", x, ";")
     
-    # Put equation into loop, body of the C function
+    # Put equation into C function
+    if(is.null(modelname)) {
+      funcname <- paste0("funC0_", paste(sample(c(0:9, letters), 8, replace = TRUE), collapse = ""))
+    } else {
+      funcname <- modelname
+    }
     body <- paste(
-      "for(int i = 0; i< *n; i++) {",
-      paste(expr, collapse=""),
-      "}"
+      "#include <R.h>\n", 
+      "#include <math.h>\n", 
+      "void", funcname, "( double * x, double * y, int * n, int * k, int * l ) {\n",
+      "for(int i = 0; i< *n; i++) {\n",
+      paste(expr, collapse="\n"),
+      "\n}\n}"
     )
     
+    filename <- paste(funcname, "c", sep = ".")
+    sink(file = filename)
+    cat(body)
+    sink()
+    system(paste0(R.home(component="bin"), "/R CMD SHLIB ", filename))
+    .so <- .Platform$dynlib.ext
+    dyn.load(paste0(funcname, .so))
+    
     # Generate the C function by the inline package
-    myCfun <- inline::cfunction(sig=c(x = "double", y = "double", n = "integer", k = "integer", l = "integer"),
-                                body=body,
-                                language="C",
-                                convention=".C"
-    )
+    #myCfun <- inline::cfunction(sig=c(x = "double", y = "double", n = "integer", k = "integer", l = "integer"),
+    #                            body=body,
+    #                            language="C",
+    #                            convention=".C"
+    #)
+    
     
     # Generate output function
     myRfun <- function(x, attach.input = FALSE) {
@@ -310,7 +327,7 @@ funC0 <- function(x, compile = TRUE) {
       y <- double(l*n)
       
       # Evaluate C function and write into matrix
-      out <- matrix(myCfun(x, y, n, k, l)$y, nrow=length(outnames), ncol=n)
+      out <- matrix(.C(funcname, x = x, y = y, n = n, k = k, l = l)$y, nrow=length(outnames), ncol=n)
       rownames(out) <- outnames
       
       rownames(M) <- innames

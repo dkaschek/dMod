@@ -110,6 +110,8 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
 #' @param g Named character vector defining the observation function
 #' @param f Named character, the underlying ODE
 #' @param compile Logical, compile the function (see \link{funC0})
+#' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
+#' C file.
 #' @return a function \code{y(out, pars, attach.input = FALSE)} representing the evaluation of the 
 #' observation function. 
 #' If \code{out} has the attribute  "sensitivities", the result of
@@ -121,7 +123,7 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
 #' are multiplied according to the chain rule for differentiation.
 #' If \code{attach.input = TRUE}, the original argument \code{out} will be attached to the evaluated observations.
 #' @export
-Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE) {
+Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname = NULL) {
   
   warnings <- FALSE
   
@@ -137,7 +139,7 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE) {
     
   # Observables defined by g
   observables <- names(g)
-  gEval <- funC0(g, compile = compile)
+  gEval <- funC0(g, compile = compile, modelname = modelname)
   
   # Character matrices of derivatives
   dxdp <- dgdx <- dgdp <- NULL
@@ -159,7 +161,7 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE) {
   derivs <- as.vector(sumSymb(prodSymb(dgdx, dxdp), dgdp))
   if(length(derivs) == 0) stop("Nor states or parameters involved")
   names(derivs) <- apply(expand.grid.alt(observables, c(states, parameters)), 1, paste, collapse = ".")
-  derivsEval <- funC0(derivs, compile = compile)
+  derivsEval <- funC0(derivs, compile = compile, modelname = paste(modelname, "deriv", sep = "_"))
     
   # Vector with zeros for possibly missing derivatives
   zeros <- rep(0, length(dxdp))

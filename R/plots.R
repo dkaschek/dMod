@@ -403,7 +403,7 @@ plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv =
 #' @export
 plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux = "Fluxes:", fixed = NULL){
   if(is.null(names(fluxEquations))) names(fluxEquations) <- fluxEquations
-  flux <- funC0(fluxEquations, compile=TRUE )
+  flux <- funC0(fluxEquations)
   prediction.all <- x(times, pouter, fixed, deriv = FALSE)
   
   out <- lapply(names(prediction.all), function(cond) {

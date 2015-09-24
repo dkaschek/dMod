@@ -35,11 +35,11 @@ fixed <- c(
 # Choose one of the three options, or combine them
 f <- variableTransformation(observables, f)
 f <- addObservable(observables, f)
-g <- Y(observables, f)
+g <- Y(observables, f, compile = TRUE, modelname = "obsfn")
 
 
 # Generate the model C files, compile them and return a list with func and extended.
-model0 <- generateModel(f, fixed = fixed, forcings = forcings, jacobian = "inz.lsodes")
+model0 <- generateModel(f, fixed = fixed, forcings = forcings, jacobian = "inz.lsodes", modelname = "odefn")
 
 ## Parameter Transformations -------------------------------------------
 

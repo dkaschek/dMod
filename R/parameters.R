@@ -7,6 +7,8 @@
 #' transformation returns values for each element in \code{parameters}. If elements of
 #' \code{parameters} are not in \code{names(trafo)} the identity transformation is assumed.
 #' @param compile Logical, compile the function (see \link{funC0})
+#' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
+#' C file.
 #' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)} representing the parameter 
 #' transformation. Here, \code{p} is a named numeric vector with the values of the outer parameters,
 #' \code{fixed} is a named numeric vector with values of the outer parameters being considered
@@ -23,7 +25,7 @@
 #' (P.log)(p.outerValue)
 #' }
 #' @export
-P <- function(trafo, parameters=NULL, compile = FALSE) {
+P <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
   
   # get outer parameters
   symbols <- getSymbols(trafo)
@@ -49,8 +51,8 @@ P <- function(trafo, parameters=NULL, compile = FALSE) {
   
   #dtrafo <- jacobian; names(dtrafo) <- jacNames
   
-  PEval <- funC0(trafo, compile = compile)
-  dPEval <- funC0(dtrafo, compile = compile)
+  PEval <- funC0(trafo, compile = compile, modelname = modelname)
+  dPEval <- funC0(dtrafo, compile = compile, modelname = paste(modelname, "deriv", sep = "_"))
   
   # the parameter transformation function to be returned
   p2p <- function(p, fixed=NULL, deriv = TRUE) {
@@ -95,6 +97,8 @@ P <- function(trafo, parameters=NULL, compile = FALSE) {
 #' Names correspond to dependent variables.
 #' @param parameters Character vector, the independent variables.  
 #' @param compile Logical, compile the function (see \link{funC0})
+#' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
+#' C file.
 #' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)} representing the parameter 
 #' transformation. Here, \code{p} is a named numeric vector with the values of the outer parameters,
 #' \code{fixed} is a named numeric vector with values of the outer parameters being considered
@@ -146,13 +150,13 @@ P <- function(trafo, parameters=NULL, compile = FALSE) {
 #' pSS(c(k1 = 1, k2 = 2, A = 5, B = 5, total = 3))
 #' }
 #' @export
-Pi <- function(trafo, parameters=NULL, compile = FALSE) {
+Pi <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
 
   states <- names(trafo)
   nonstates <- getSymbols(trafo, exclude = states)
   dependent <- setdiff(states, parameters)
   
-  trafo.alg <- funC0(trafo[dependent], compile = compile)
+  trafo.alg <- funC0(trafo[dependent], compile = compile, modelname = modelname)
   ftrafo <- function(x, parms) {
     out <- trafo.alg(as.list(c(x, parms)))
     structure(as.numeric(out), names = colnames(out))
