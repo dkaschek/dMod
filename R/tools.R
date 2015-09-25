@@ -327,6 +327,7 @@ funC0 <- function(x, compile = FALSE, modelname = NULL) {
       y <- double(l*n)
       
       # Evaluate C function and write into matrix
+      loadDLL(func = funcname, cfunction = funcname)
       out <- matrix(.C(funcname, x = x, y = y, n = n, k = k, l = l)$y, nrow=length(outnames), ncol=n)
       rownames(out) <- outnames
       
