@@ -353,7 +353,7 @@ plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv =
   
   prediction <- lapply(pars, function(p) {
     pred <- x(times, p, fixed, deriv = deriv)
-    newnames <- sapply(names(pred), function(cond) paste(colnames(pred[[cond]])[-1], cond, sep = ", "))
+    newnames <- sapply(names(pred), function(cond) paste(colnames(pred[[cond]])[-1], cond, sep = ",\n "))
     pred <- do.call(cbind, pred)
     pred <- pred[, -which(colnames(pred) == "time")]
     pred <- cbind(times, pred)
@@ -363,7 +363,7 @@ plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv =
   
   
   if(!is.null(data)) {
-    for(n in names(data)) data[[n]]$name <- paste(data[[n]]$name, n, sep = ", ")
+    for(n in names(data)) data[[n]]$name <- paste(data[[n]]$name, n, sep = ",\n ")
     data <- do.call(rbind, data)
     data <- list(data)
     names(data) <- names(prediction)[1]
