@@ -48,23 +48,26 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
   names(yiniSens) <- sensvar
   
   #Additional events for resetting the sensitivities when events are supplied
-  if(!is.null(myevents)) myevents.addon <- lapply(1:nrow(events), function(i) {
-    newevent <- with(myevents[i, ], {
-      newvar <- sensvar[senssplit.1 == var]
-      newtime <- time
-      newvalue <- switch(as.character(method), replace = 0, add = 0, multiply = value)
-      newmethod <- method
-      if(length(newvar) > 0 && method != "add") {
-        data.frame(var = newvar, time = newtime, value = newvalue, method = newmethod)
-      } else {
-        NULL
-      }
+  myevents.addon <- NULL
+  if(!is.null(myevents)) {
+    myevents.addon <- lapply(1:nrow(events), function(i) {
+      newevent <- with(myevents[i, ], {
+        newvar <- sensvar[senssplit.1 == var]
+        newtime <- time
+        newvalue <- switch(as.character(method), replace = 0, add = 0, multiply = value)
+        newmethod <- method
+        if(length(newvar) > 0 && method != "add") {
+          data.frame(var = newvar, time = newtime, value = newvalue, method = newmethod)
+        } else {
+          NULL
+        }
+      })
+      
+      return(newevent)
+      
     })
-    
-    return(newevent)
-    
-  })
-  myevents.addon <- do.call(rbind, myevents.addon)
+    myevents.addon <- do.call(rbind, myevents.addon)
+  }
 
   # Names for deriv output
   sensGrid <- expand.grid(variables, c(svariables, sparameters), stringsAsFactors=FALSE)
