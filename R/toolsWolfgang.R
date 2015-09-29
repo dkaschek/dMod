@@ -574,7 +574,7 @@ msnarrow <- function(center, spread, fits = 100, safety = "", ...) {
 #'   
 #' @return A fitlist as data frame.
 #'   
-#' @seealso \code{\link{mstrust}},, \code{\link{msnarrow}}
+#' @seealso \code{\link{mstrust}}, \code{\link{msnarrow}}
 #'   
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'   
@@ -632,6 +632,31 @@ msbest <- function(fitlist) {
   best <- unlist(best[1, -(4:1)])
 
   return(best)
+}
+
+
+
+#' Strip extra attributes from a fitlist.
+#' 
+#' @description Strip attributes from a fitlist returned by
+#' \code{\link{mstrust}} only needed to introspect the fit itself. Only the fit
+#' parameters with some status information are retained.
+#' 
+#' @param fitlist A data frame of fits as returned from \code{\link{mstrust}}.
+#'   
+#' @return A stripped-down version of  \option{fitlist}.
+#'   
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#'   
+#' @export
+stripfitlist <- function(fitlist) {
+  myNames <- c("names", "row.names", "class")
+  attrNames <- names(attributes(fitlist))
+  for (i in setdiff(attrNames, myNames)){
+    attr(fitlist, i) <- NULL
+  }
+  
+  return(fitlist)
 }
 
 
