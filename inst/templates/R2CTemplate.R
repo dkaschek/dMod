@@ -4,13 +4,12 @@ library(deSolve)
 library(trust)
 library(parallel)
 library(ggplot2)
-library(ggthemes)
 library(cOde)
 library(dMod)
 
 ## Model Definition ------------------------------------------------------
 
-# Read in model csv
+# Read in model csv, see help(generateEquation) to find out about the structure of topology.csv
 reactionlist <- read.csv("topology.csv") 
 
 # Translate data.frame into equations
@@ -26,7 +25,7 @@ forcings <- c(
   # "u1", "u2", "u3", ...
   )
 
-# List of fixed parameters which are known beforehand
+# List of names of fixed parameters like control parameters for which no sensitivities will be computed
 fixed <- c(
   # "fixed1", "fixed2", ...
   )
@@ -121,8 +120,9 @@ x <- function(times, pouter, fixed=NULL, ...) {
 
 ## Data ----------------------------------------------------------------------
 
-datasheet <- read.table("datafile.csv") # with columns name, time, value, sigma
-data <- lapply(conditions, function(mycondition) subset(datasheet, condition == mycondition))
+datasheet <- read.table("datafile.csv") # with columns condition, name, time, value, sigma
+data <- lapply(conditions, function(mycondition) 
+  subset(datasheet, condition == mycondition, select = c("name", "time", "value", "sigma")))
 names(data) <- conditions
 
 ## Objective Functions -------------------------------------------------------
@@ -139,12 +139,19 @@ pouter <- rnorm(length(prior), prior, 1); names(pouter) <- outerpars
 obj <- function(pouter, fixed=NULL, deriv=TRUE) {
   
   prediction <- x(timesD, pouter, fixed = fixed, deriv = deriv)
-  out <- lapply(names(data), function(cn) wrss(res(data[[cn]], prediction[[cn]])))
+  out.data <- lapply(names(data), function(cn) wrss(res(data[[cn]], prediction[[cn]])))
   
   # Working with weak prior (helps avoiding runaway solutions of the optimization problem)
-  cOuter <- constraintL2(pouter, prior, sigma = 10)
+  out.prior <- constraintL2(pouter, prior, sigma = 10)
   
-  cOuter + Reduce("+", out)
+  out <- out.prior + Reduce("+", out.data)
+  
+  # Comment in if you want to see the contribution of prior and data
+  # e.g. in profile() and plotProfile()
+  # attr(out, "valueData") <- out.data$value
+  # attr(out, "valuePrior") <- out.prior$value
+  
+  return(out)
   
 }
 
@@ -164,41 +171,17 @@ prediction <- x(times, myfit$argument)
 plotCombined(prediction, data)
 plotCombined(prediction, data, name%in%names(observables))
 plotCombined(prediction, data, name%in%names(observables)) + facet_grid(name~condition, scales="free")
-plotObjective(myfit)
 
 # Fitting from random positions
-center <- pouter
-sink("output.txt")
-fitlist <- mclapply(1:100, function(i) {
-  
-  deviation <- rnorm(length(center), 0, 1)
-  pars <- center + deviation
-  
-  out <- NULL
-  myfit <- try(trust(obj, pars, rinit=1, rmax=10, iterlim=1000), silent=TRUE)
-  if(!inherits(myfit, "try-error")) {
-    out <- data.frame(index = i, 
-                      chisquare = myfit$value, 
-                      converged = myfit$converged, 
-                      iterations = myfit$iterations, 
-                      as.data.frame(as.list(myfit$argument)))
-    cat("out", i, myfit$value, myfit$converged, myfit$iterations, "\n")
-  }
-  
-  return(out)
-  
-}, mc.cores=24, mc.preschedule=FALSE)
-sink()
-fitlist <- do.call(rbind, fitlist[sapply(fitlist, class) == "data.frame"])
-fitlist <- fitlist[order(fitlist$chisquare),]
-save(fitlist, file="fitlist.rda")
-bestfit <- unlist(fitlist[1,-(1:4)])
-qplot(y = fitlist$chisquare)
-
+fitlist <- mstrust(obj, pouter, cores = 1, sd = 1)
+bestfit <- unlist(fitlist[1, -(1:4)])
+prediction <- x(times, bestfit)
+plotCombined(prediction, data)
+plotArray(fitlist[1:10, ], x, times, data)
 
 # Profile likelihood
 bestfit <- myfit$argument
-profiles.approx <- do.call(c, mclapply(names(bestfit), function(n) profile(obj, bestfit, n, limits=c(-3, 3), algoControl = list(gamma = 0)), mc.cores=4))
+profiles.approx <- do.call(c, mclapply(names(bestfit), function(n) profile(obj, bestfit, n, limits=c(-3, 3)), mc.cores=4))
 profiles.exact  <- do.call(c, mclapply(names(bestfit), function(n) profile(obj, bestfit, n, limits=c(-3, 3), algoControl = list(gamma = 0, reoptimize = TRUE), optControl = list(iterlim = 10)), mc.cores=4))
 plotProfile(profiles.approx, profiles.exact)
 plotPaths(profiles.approx[1])
