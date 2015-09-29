@@ -363,7 +363,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
     fit$parinit <- argstrust$parinit
 
     # Write current fit to disk
-    save(fit, file = file.path(tmpfld, paste0("fit-", i, ".Rda")))
+    saveRDS(fit, file = file.path(tmpfld, paste0("fit-", i, ".Rda")))
 
     # Reporting
     # With concurent jobs and everyone reporting, this is a classic race
@@ -559,6 +559,53 @@ msnarrow <- function(center, spread, fits = 100, safety = "", ...) {
 
 
 
+#' Construct fitlist from temporary files.
+#' 
+#' @description An aborted \code{\link{mstrust}} or \code{\link{msnarrow}} 
+#'   leaves behind results of already completed fits. This command loads these 
+#'   fits into a fitlist.
+#'   
+#' @param folder Path to the folder where the fit has left its results.
+#'   
+#' @details The commands \code{\link{mstrust}} or \code{\link{msnarrow}} save
+#'   each completed fit along the multi-start sequence such that the results can
+#'   be resurected on abortion. This commands loads a fitlist from these
+#'   intermediate results.
+#'   
+#' @return A fitlist as data frame.
+#'   
+#' @seealso \code{\link{mstrust}}, \code{\link{msnarrow}}
+#'   
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#'   
+#' @export
+msrestore <- function(folder) {
+  
+  # Read in all fits
+  fileList <- dir(folder)
+  fullFitList <- sapply(fileList, function(file) {
+    return(readRDS(file.path(folder, file)))
+    if (any(names(fit) == "value")) {
+      data.frame(
+        index = fit$index,
+        value = fit$value,
+        converged = fit$converged,
+        iterations = fit$iterations,
+        as.data.frame(as.list(fit$argument))
+      )
+    }
+  })
+    
+  # Sort fitlist
+  if (!is.null(fitlist)) {
+    fitlist <- fitlist[order(fitlist$value),]
+  }
+  
+  return(fitlist)
+}
+
+
+
 #' Select best fit.
 #'
 #' @description
@@ -585,6 +632,31 @@ msbest <- function(fitlist) {
   best <- unlist(best[1, -(4:1)])
 
   return(best)
+}
+
+
+
+#' Strip extra attributes from a fitlist.
+#' 
+#' @description Strip attributes from a fitlist returned by
+#' \code{\link{mstrust}} only needed to introspect the fit itself. Only the fit
+#' parameters with some status information are retained.
+#' 
+#' @param fitlist A data frame of fits as returned from \code{\link{mstrust}}.
+#'   
+#' @return A stripped-down version of  \option{fitlist}.
+#'   
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#'   
+#' @export
+stripfitlist <- function(fitlist) {
+  myNames <- c("names", "row.names", "class")
+  attrNames <- names(attributes(fitlist))
+  for (i in setdiff(attrNames, myNames)){
+    attr(fitlist, i) <- NULL
+  }
+  
+  return(fitlist)
 }
 
 
