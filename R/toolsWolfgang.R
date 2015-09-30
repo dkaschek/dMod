@@ -636,27 +636,60 @@ msbest <- function(fitlist) {
 
 
 
-#' Strip extra attributes from a fitlist.
+#' Select attributes.
 #' 
-#' @description Strip attributes from a fitlist returned by
-#' \code{\link{mstrust}} only needed to introspect the fit itself. Only the fit
-#' parameters with some status information are retained.
-#' 
-#' @param fitlist A data frame of fits as returned from \code{\link{mstrust}}.
+#' @description Select or discard attributes from an object.
 #'   
-#' @return A stripped-down version of  \option{fitlist}.
+#' @param x The object to work on
+#' @param atr An optional list of attributes which are either kept or removed. 
+#'   This parameter defaults to dim, dimnames, names,  col.names, and row.names.
+#' @param keep For keep = TRUE, atr is a positive list on attributes which are 
+#'   kept, for keep = FALSE, \option{atr} are removed.
+#'   
+#' @return x with selected attributes.
 #'   
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#' @author Mirjam Fehling-Kaschek, \email{mirjam.fehling@@physik.uni-freiburg.de}
 #'   
 #' @export
-stripfitlist <- function(fitlist) {
-  myNames <- c("names", "row.names", "class")
-  attrNames <- names(attributes(fitlist))
-  for (i in setdiff(attrNames, myNames)){
-    attr(fitlist, i) <- NULL
+attrs <- function(x, atr = NULL, keep = TRUE) {
+
+  if (is.null(atr)) {
+    atr <- c("class", "dim", "dimnames", "names", "col.names", "row.names")
   }
   
-  return(fitlist)
+  xattr <- names(attributes(x))
+  if (keep == TRUE) {
+    attributes(x)[!xattr %in% atr] <- NULL
+  } else {
+    attributes(x)[xattr %in% atr] <- NULL
+  }
+  
+  return(x)
+}
+
+
+
+#' Print object and its "default" attributes only.
+#' 
+#' @param x Object to be printed
+#' @param list_attributes Prints the names of all attribute of x, defaults to 
+#'   TRUE
+#'   
+#' @details Before the \option{x} is printed by print.default, all its arguments
+#'   not in the default list of \code{\link{attrs}} are removed.
+#'   
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#' @author Mirjam Fehling-Kaschek, 
+#'   \email{mirjam.fehling@@physik.uni-freiburg.de}
+#'   
+#' @export
+print0 <- function(x, list_attributes = TRUE ) {
+  if (list_attributes == TRUE) {
+    cat("List of all attributes: ", names(attributes(x)), "\n")
+  }
+  
+  print.default(attrs(x))
 }
 
 
