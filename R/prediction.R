@@ -489,11 +489,34 @@ Xf <- function(func, forcings=NULL, events=NULL, optionsOde=list(method="lsoda")
 }
 
 
-#' Model prediction from data.frame
+#' Model prediction function from data.frame
 #' 
-#' @param data data.frame with columns "name", "times", and row names that are taken as parameter names
-#' @return Prediction function
+#' @param data data.frame with columns "name", "times", and row names that 
+#' are taken as parameter names. The data frame can contain a column "value"
+#' to initialize the parameters.
+#' @return Prediction function, a function \code{x(times pars, deriv = TRUE)}, 
+#' see also \link{Xs}. Attributes are "parameters", the parameter names (row names of
+#' the data frame), and possibly "pouter", a named numeric vector which is generated
+#' from \code{data$value}.
+#' @examples 
+#' # Generate a data.frame and corresponding prediction function
+#' timesD <- seq(0, 2*pi, 0.5)
+#' mydata <- data.frame(name = "A", time = timesD, value = sin(timesD), 
+#'                      row.names = paste0("par", 1:length(timesD)))
+#' x <- Xd(mydata)
+#' 
+#' # Evaluate the prediction function at different time points
+#' times <- seq(0, 2*pi, 0.01)
+#' pouter <- attr(x, "pouter")
+#' prediction <- x(times, pouter)
+#' plotPrediction(list(prediction = prediction))
+#' 
+#' # Evaluate the sensitivities at these time points
+#' sensitivities <- attr(prediction, "deriv")
+#' plotPrediction(list(sens = sensitivities))
+#' 
 #' @export
+#' 
 Xd <- function(data) {
   
   states <- unique(as.character(data$name))
@@ -528,6 +551,11 @@ Xd <- function(data) {
   
   # Collect parameters
   parameters <- unlist(lapply(predL, function(p) attr(p, "parameters")))
+  
+  # Initialize parameters if available
+  pouter <- NULL
+  if(any(colnames(data) == "value")) 
+    pouter <- structure(data$value[match(parameters, rownames(data))], names = parameters)
  
   sensGrid <- expand.grid(states, parameters, stringsAsFactors=FALSE)
   sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")  
@@ -575,6 +603,7 @@ Xd <- function(data) {
   }
   
   attr(P2X, "parameters") <- structure(parameters, names = NULL)
+  attr(P2X, "pouter") <- pouter
   return(P2X)
   
 }
