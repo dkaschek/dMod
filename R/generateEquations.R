@@ -216,46 +216,36 @@ subset.eqnList <- function(x, ...) {
   
 }
 
-#' Combine several data.frames from csv read-in
+#' Combine several data.frames by rowbind
 #' 
-#' @param ... data.frames from csv read-in
-#' @details This function is useful when separating the model into independent csv model files,
-#' e.g.~a receptor model and several downstream paths. Then, the models can be recombined 
+#' @param ... data.frames with not necessarily overlapping colnames
+#' @details This function is useful when separating models into independent csv model files,
+#' e.g.~a receptor model and several downstream pathways. Then, the models can be recombined 
 #' into one model by \code{combine()}.
 #' 
-#' @return A \code{data.frame} with columns "Description", "Rate" and one column for each
-#' ODE state in the model. See \link{generateEquations}.
+#' @return A \code{data.frame}
 #' @export
+#' @examples
+#' data1 <- data.frame(Description = "reaction 1", Rate = "k1*A", A = -1, B = 1)
+#' data2 <- data.frame(Description = "reaction 2", Rate = "k2*B", B = -1, C = 1)
+#' combine(data1, data2)
 combine <- function(...) {
   
+  # List of input data.frames
   mylist <- list(...)
+  mynames <- unique(unlist(lapply(mylist, function(S) colnames(S))))
   
-  species <- unique(unlist(lapply(mylist, function(S) colnames(S)[-(1:2)])))
+  mylist <- lapply(mylist, function(l) {
+    present.list <- as.list(l)
+    missing.names <- setdiff(mynames, names(present.list))
+    missing.list <- structure(as.list(rep(NA, length(missing.names))), names = missing.names)
+    combined.data <- do.call(cbind.data.frame, c(present.list, missing.list))
+    return(combined.data)
+  })
   
+  out <- do.call(rbind, mylist)
   
-  S <- rep(NA, length(species)+2)
-  allnames <- c("Description", "Rate", species)
-  names(S) <- allnames
-  S <- as.data.frame(as.list(S))
-  
-  
-  for(i in 1:length(mylist)) {
-    single <- mylist[[i]]
-    snames <- colnames(single)
-    tofill <- which(!(allnames%in%snames))
-    
-    if(length(tofill)>0) {
-      fill <- rep(NA, length(tofill))
-      names(fill) <- allnames[!(allnames%in%snames)]
-      fill <- as.data.frame(as.list(fill))
-      single <- cbind(single, fill)
-    }
-        
-    S <- rbind(S, single[,allnames])
-  }
-  
-  S <- S[-1, ]
-  return(S)
+  return(out)
   
   
 }
