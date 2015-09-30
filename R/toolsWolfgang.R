@@ -12,8 +12,6 @@
 #' @return Padded string of length <width>.
 #'
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
-#'
-#' @export
 strpad <- function(string, width, where = "right", padding = " ", autoelide = FALSE) {
 
   # Check function arguments
@@ -77,8 +75,6 @@ strpad <- function(string, width, where = "right", padding = " ", autoelide = FA
 #' in any case.
 #'
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
-#'
-#' @export
 strelide <- function(string, width, where = "right", force = FALSE) {
 
   # Functions for eliding
