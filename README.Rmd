@@ -14,10 +14,10 @@ library(dMod)
 ```{r model}
 
 f <- NULL
-f <- addReaction(from = "E + S", to = "C", rate = c("production of complex" = "k1*E*S"), f)
-f <- addReaction(from = "C", to = "E + S", rate = c("decay of complex" = "k2*C"), f)
-f <- addReaction(from = "C", to = "E + P", rate = c("production of product" = "k3*C"), f)
-f <- addReaction(from = "E", to = ""     , rate = c("enzyme degradation" = "k4*E"), f)
+f <- addReaction(from = "Enz + Sub", to = "Compl", rate = c("production of complex" = "k1*Enz*Sub"), f)
+f <- addReaction(from = "Compl", to = "Enz + Sub", rate = c("decay of complex" = "k2*Compl"), f)
+f <- addReaction(from = "Compl", to = "Enz + Prod", rate = c("production of product" = "k3*Compl"), f)
+f <- addReaction(from = "Enz", to = ""     , rate = c("enzyme degradation" = "k4*Enz"), f)
 model <- generateModel(f, modelname = "enzymeKinetics")
 
 ```
@@ -25,9 +25,9 @@ model <- generateModel(f, modelname = "enzymeKinetics")
 ### Define observables and generate observation function `g`
 ```{r observables}
 
-observables <- c(product = "P", substrate = "S + C", enzyme = "E + C")
+observables <- c(product = "s1*Prod", substrate = "s2*(Sub + Compl)", enzyme = "s3*(Enz + Compl)")
 
-# Generate observation function
+# Generate observation functions2
 g <- Y(observables, f, compile = TRUE, modelname = "obsfn")
 
 ```
@@ -40,8 +40,8 @@ innerpars <- getSymbols(c(f, names(f)))
 # Symbolically write down a log-transform
 trafo1 <- trafo2 <- structure(paste0("exp(log", innerpars, ")"), names = innerpars)
 # Set some initial parameters
-trafo1["C"] <- trafo2["C"] <- "0"
-trafo1["P"] <- trafo2["P"] <- "0"
+trafo1["Compl"] <- trafo2["Compl"] <- "0"
+trafo1["Prod"] <- trafo2["Prod"] <- "0"
 # Set the degradation rate in the first condition to 0
 trafo1["k4"] <- "0"
 # Get names of the new parameters
