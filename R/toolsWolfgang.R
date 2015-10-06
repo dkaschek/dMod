@@ -610,6 +610,7 @@ msrestore <- function(folder) {
 #' @param fitlist A data frame of fits as returned from \code{\link{mstrust}}.
 #'        The data frame does not need to be ordered and can include unconverged
 #'        fits.
+#' @param index Integer, the \code{index}th best fit.
 #'
 #' @return The converged fit with lowest chisquare as a named numeric vector.
 #'
@@ -617,7 +618,7 @@ msrestore <- function(folder) {
 #'
 #' @export
 
-msbest <- function(fitlist) {
+msbest <- function(fitlist, index = 1) {
   fitlistconv <- fitlist[fitlist$converged == TRUE,]
   if (is.null(nrow(fitlistconv))) {
     return(NULL)
@@ -625,7 +626,7 @@ msbest <- function(fitlist) {
 
   idxbest <- order(fitlistconv$value)
   best <- fitlistconv[idxbest[1],]
-  best <- unlist(best[1, -(4:1)])
+  best <- unlist(best[index, -(4:1)])
 
   return(best)
 }

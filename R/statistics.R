@@ -357,7 +357,13 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     
     
     ## Return values
-    out <- rbind(c(value = lagrange.out$value, constraint = as.vector(constraint.out$value), stepsize = stepsize, gamma = gamma, valueData = lagrange.out$valueData, valuePrior = lagrange.out$valuePrior, y), 
+    out <- rbind(c(value = lagrange.out$value, 
+                   constraint = as.vector(constraint.out$value), 
+                   stepsize = stepsize, 
+                   gamma = gamma, 
+                   valueData = lagrange.out$valueData, 
+                   valuePrior = lagrange.out$valuePrior, 
+                   y), 
                  out)
     
     if(lagrange.out$value > threshold  | constraint.out$value < limits[1]) break
