@@ -340,7 +340,8 @@ addObservable <- function(observable, f) {
 #' @export
 addReaction <- function(from, to, rate, f=NULL) {
   
-  myattr <- c("class", "SMatrix", "species", "rates", "description", "exclmarks", "observables")
+  myattr <- c("class", "SMatrix", "species", "rates", "description", "exclmarks", "observables", "volumes")
+  volumes <- attr(f, "volumes")
   
   allattr <- attributes(f)[myattr]
   
@@ -391,7 +392,7 @@ addReaction <- function(from, to, rate, f=NULL) {
   }
   
   
-  out <- generateEquations(mydata)
+  out <- generateEquations(mydata, volumes = volumes)
   
   return(out)
 
