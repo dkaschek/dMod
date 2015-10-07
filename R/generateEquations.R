@@ -63,6 +63,7 @@ generateEquations <- function(..., volumes = NULL) {
   terme <- lapply(1:length(variables), function(j) {
     v <- SMatrix[,j]
     nonZeros <- which(!is.na(v))
+    var.description <- description[nonZeros]
     positives <- which(v > 0)
     negatives <- which(v < 0)
     volumes.destin <- volumes.origin <- rep(volumes[j], length(v))
@@ -87,8 +88,13 @@ generateEquations <- function(..., volumes = NULL) {
     } else {
       numberchar[positives] <- paste("+", numberchar[positives], sep = "")
     }
-    paste0(numberchar[nonZeros], "*(",  rate[nonZeros], ")", volumes.ratios[nonZeros])
+    var.flux <- paste0(numberchar[nonZeros], "*(",  rate[nonZeros], ")", volumes.ratios[nonZeros])
+    names(var.flux) <- var.description
+    return(var.flux)
   })
+  
+  fluxes <- terme
+  names(fluxes) <- variables
   
   terme <- lapply(terme, function(t) paste(t, collapse=" "))
   names(terme) <- variables
@@ -102,6 +108,7 @@ generateEquations <- function(..., volumes = NULL) {
   attr(terme, "rates") <- rate
   attr(terme, "description") <- description
   attr(terme, "exclmarks") <- which(exclmark)
+  attr(terme, "fluxes") <- fluxes
   
   
   if(length(exclmark) == 0) cat("There might be a problem with one or more of the reactions.\n")
