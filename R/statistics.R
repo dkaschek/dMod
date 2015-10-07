@@ -182,7 +182,12 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       warning(paste0("Iteration ", i, ": Impossible to invert Hessian. Trying to optimize instead."))
     }
     
-    return(list(dy = dy, value = out$value, gradient = out$gradient, correction = correction, valid = valid, valueData = attr(out,"valueData"), valuePrior = attr(out,"valuePrior")))
+    # Get attributes of the returned objective value (only if numeric)
+    out.attributes <- attributes(out)[sapply(attributes(out), is.numeric)]
+    out.attributes.names <- names(out.attributes)
+    
+    return(c(list(dy = dy, value = out$value, gradient = out$gradient, correction = correction, valid = valid, attributes = out.attributes.names),
+             out.attributes))
     
   }
   doIteration <- function() {
@@ -289,11 +294,15 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   
   delta <- qchisq(1-alpha, 1)
   threshold <- lagrange.out$value + delta
+  out.attributes <- unlist(lagrange.out[lagrange.out$attributes])
   
-  out <- c(value = lagrange.out$value, constraint = as.vector(constraint.out$value), stepsize = stepsize, gamma = gamma, valueData = lagrange.out$valueData, valuePrior = lagrange.out$valuePrior, ini)
+  out <- c(value = lagrange.out$value, 
+           constraint = as.vector(constraint.out$value), 
+           stepsize = stepsize, 
+           gamma = gamma, out.attributes, ini)
 
   # Compute right profile
-  cat("Computer right profile\n")
+  cat("Compute right profile\n")
   direction <- 1
   gamma <- aControl$gamma
   stepsize <- sControl$stepsize
@@ -316,10 +325,16 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     constraint.out <- constraint(y.try)
     stepsize <- out.try$stepsize
     gamma <- out.try$gamma
+    out.attributes <- unlist(lagrange.out[lagrange.out$attributes])
     
     ## Return values 
     out <- rbind(out, 
-                 c(value = lagrange.out$value, constraint = as.vector(constraint.out$value), stepsize = stepsize, gamma = gamma, valueData = lagrange.out$valueData, valuePrior = lagrange.out$valuePrior, y))
+                 c(value = lagrange.out$value, 
+                   constraint = as.vector(constraint.out$value), 
+                   stepsize = stepsize, 
+                   gamma = gamma, 
+                   out.attributes, 
+                   y))
     
     
     if(lagrange.out$value > threshold | constraint.out$value > limits[2]) break
@@ -330,7 +345,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   }
   
   # Compute left profile
-  cat("\nComputer left profile\n")
+  cat("\nCompute left profile\n")
   i <- 0
   direction <- -1
   gamma <- aControl$gamma
@@ -354,6 +369,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     constraint.out <- constraint(y.try)
     stepsize <- out.try$stepsize
     gamma <- out.try$gamma
+    out.attributes <- unlist(lagrange.out[lagrange.out$attributes])
     
     
     ## Return values
@@ -361,8 +377,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                    constraint = as.vector(constraint.out$value), 
                    stepsize = stepsize, 
                    gamma = gamma, 
-                   valueData = lagrange.out$valueData, 
-                   valuePrior = lagrange.out$valuePrior, 
+                   out.attributes,
                    y), 
                  out)
     
@@ -372,8 +387,13 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     
   }
   
+  attr(out, "metanames") <- c("value", "constraint", "stepsize", "gamma")
+  attr(out, "parameters") <- names(pars)
+  attr(out, "obj.attributes") <- names(out.attributes)
+  
   out.list <- list(out)
   names(out.list) <- whichPar.name
+  
   
   return(out.list)
   

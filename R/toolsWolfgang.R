@@ -185,7 +185,11 @@ plSelectMin <- function(prf, context = FALSE) {
 
   # Minium chi^2 parameter values sets per profile.
   chi2MinAllProfiles <- sapply(prf, function(species) {
-    return(species[which.min(species[, "value"]), ])
+    
+    col.select <- c("value", attr(species, "parameters"))
+    row.select <- which.min(species[, "value"])
+    
+    return(species[row.select, col.select])
   })
 
   # Minimum chi^2 parameter values set accross all profiles.
@@ -194,7 +198,7 @@ plSelectMin <- function(prf, context = FALSE) {
   if (context) {
     return(chi2MinBest)
   } else {
-    return(chi2MinBest[-(1:4)])
+    return(chi2MinBest[-1])
   }
 
 }
@@ -435,7 +439,8 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
     compframe <- compframe[order(compframe$value),]
   }
 
-
+  
+  
   # Wrap up
   # Write out results
   if (nchar(argslist$fitsfile) > 0) {
@@ -464,6 +469,9 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
 
   if (!is.null(compframe)) {
     attr(compframe, "fitlist") <- fitlistfull
+    attr(compframe, "metanames") <- c("index", "value", "converged", "iterations")
+    attr(compframe, "parameters") <- names(center)
+    
   }
 
   return(compframe)
@@ -626,7 +634,7 @@ msbest <- function(fitlist, index = 1) {
 
   idxbest <- order(fitlistconv$value)
   best <- fitlistconv[idxbest[1],]
-  best <- unlist(best[index, -(4:1)])
+  best <- unlist(best[index, attr(fitlist, "parameters")])
 
   return(best)
 }

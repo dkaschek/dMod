@@ -150,6 +150,7 @@ plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
     proflist <- arglist[[i]]
     do.valueData <- "valueData" %in% colnames(proflist[[1]])
     do.valuePrior <- "valuePrior" %in% colnames(proflist[[1]])
+    obj.attributes <- 
     
     # Discard faulty profiles
     proflistidx <- sapply(proflist, function(prf) grepl(class(prf), "matrix"))
@@ -166,18 +167,17 @@ plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
       deltavalues <- values - zerovalue
 
       sub <- subset(data.frame(name = n, delta = deltavalues, par = parvalues, proflist = i, mode="total", is.zero = rownames(proflist[[n]]) == "out"), delta <= maxvalue)
-      if(do.valueData){
-        valuesD <- proflist[[n]][,"valueData"]
-        zerovalueD <- proflist[[n]]["out","valueData"]
-        deltavaluesD <- valuesD - zerovalueD
-        sub <- rbind(sub,subset(data.frame(name = n, delta = deltavaluesD, par = parvalues, proflist = i, mode="Data", is.zero = rownames(proflist[[n]]) == "out"), delta <= maxvalue))
+      
+      obj.attributes <- attr(proflist[[n]], "obj.attributes")
+      if(!is.null(obj.attributes)) {
+        for(mode in obj.attributes) {
+          valuesO <- proflist[[n]][, mode]
+          zerovalueO <- proflist[[n]]["out", mode]
+          deltavaluesO <- valuesO - zerovalueO
+          sub <- rbind(sub,subset(data.frame(name = n, delta = deltavaluesO, par = parvalues, proflist = i, mode=mode, is.zero = rownames(proflist[[n]]) == "out"), delta <= maxvalue))
+        }
       }
-      if(do.valuePrior){
-        valuesP <- proflist[[n]][,"valuePrior"]
-        zerovalueP <- proflist[[n]]["out","valuePrior"]
-        deltavaluesP <- valuesP - zerovalueP
-        sub <- rbind(sub,subset(data.frame(name = n, delta = deltavaluesP, par = parvalues, proflist = i, mode="Prior", is.zero = rownames(proflist[[n]]) == "out"), delta <= maxvalue))
-      }
+      
       return(sub)
     }))
     return(subdata)
@@ -234,7 +234,8 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scale
     if(is.numeric(whichPar)) whichPar <- names(proflist)[whichPar]
     subdata <- do.call(rbind, lapply(whichPar, function(n) {
       # chose a profile
-      paths <- submatrix(proflist[[n]], cols = -(1:4))
+      parameters <- attr(proflist[[n]], "parameters")
+      paths <- submatrix(proflist[[n]], cols = parameters)
       values <- proflist[[n]][,1]
       if(relative) 
         for(j in 1:ncol(paths)) paths[, j] <- paths[, j] - paths[which.min(values), j]
