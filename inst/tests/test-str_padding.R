@@ -8,6 +8,11 @@ paddingBlank <- paste0(rep(" ", 10), collapse = "")
 paddingDots <- paste0(rep(".", 10), collapse = "")
 
 
+# Access not exported function
+strpad <- function(...) {strpad(...)}
+environment(strpad) <- asNamespace('dMod')
+
+
 test_that("string padding with default filling works properly", {
   expect_that(strpad(src, 20), equals(paste0(src, paddingBlank)))
   expect_that(strpad(src, 20, where = "right"), equals(paste0(src, paddingBlank)))

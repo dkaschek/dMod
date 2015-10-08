@@ -5,6 +5,11 @@ context("String eliding")
 src <- "1234567890"
 
 
+# Access not exported function
+strelide <- function(...) {strelide(...)}
+environment(strelide) <- asNamespace('dMod')
+
+
 test_that("basic eliding works for all positions", {
   expect_that(strelide(src, 6), equals("123..."))
   expect_that(strelide(src, 6, where = "right"), equals("123..."))
