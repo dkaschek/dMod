@@ -10,8 +10,11 @@
 #' @param output Character vector, the objects in the workspace after evaluation of the
 #' code that are stored into a results file. If \code{NULL}, just objects with names
 #' different from elements in \code{input} are stored.
-#' @return List of functions \code{get()} and \code{purge()}. \code{get()} copies the result file
-#' to the working directory and loads it into the workspace. \code{purge()} deletes the temporary folder
+#' @return List of functions \code{check}, \code{get()} and \code{purge()}. 
+#' \code{check()} checks, if the result is ready.
+#' \code{get()} copies the result file
+#' to the working directory and loads it into the workspace. 
+#' \code{purge()} deletes the temporary folder
 #' from the working directory and the remote machine.
 #' @export
 #' @examples
@@ -23,7 +26,7 @@
 #' out$get()
 #' print(M)
 #' out$purge()
-runbg <- function(expr, filename = "tmp", machine = "localhost", input = ls(), output = NULL) {
+runbg <- function(expr, filename = "tmp", machine = "localhost", input = ls(.GlobalEnv), output = NULL) {
   
   # Save current workspace
   save(list = input, file = paste0(filename, ".RData"))
@@ -63,16 +66,26 @@ runbg <- function(expr, filename = "tmp", machine = "localhost", input = ls(), o
   # Run in background
   system(paste0("ssh ", machine, " R CMD BATCH ", filename, "_folder/", filename, ".R --vanilla"), intern = FALSE, wait = FALSE)
   
-  out <- structure(vector("list", 2), names = c("get", "purge"))
+  out <- structure(vector("list", 3), names = c("check", "get", "purge"))
   
   out[[1]] <- function() {
+    
+    check.out <- suppressWarnings(
+      system(paste0("ssh ", machine, " ls ", filename, "_folder/ | grep -x ", filename, "_result.RData"), 
+             intern = TRUE))
+    
+    if(length(check.out) > 0) cat("Result is ready!\n") else cat("Not ready!\n")
+    
+  }
+  
+  out[[2]] <- function() {
     
     system(paste0("scp ", machine, ":", filename, "_folder/", filename, "_result.RData ./"))
     load(file = paste0(filename, "_result.RData"), envir = .GlobalEnv, verbose = TRUE)
     
   }
   
-  out[[2]] <- function() {
+  out[[3]] <- function() {
     
     system(paste0("ssh ", machine, " rm -r ", filename, "_folder"))
     system(paste0("rm ", filename, ".R*"))
