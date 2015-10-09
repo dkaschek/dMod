@@ -1,3 +1,92 @@
+#' Run an R expression in the background (only on UNIX)
+#' 
+#' @description Generate an R code of the expression that is copied via \code{scp}
+#' to any machine (ssh-key needed). Then collect the results.
+#' @param expr An R expression
+#' @param filename Character, defining the filename of the temporary file
+#' @param machine Character, e.g. \code{"localhost"} or \code{"knecht1.fdm.uni-freiburg.de"}
+#' @param input Character vector, the objects in the workspace that are stored
+#' into an R data file and copied to the remove machine.
+#' @param output Character vector, the objects in the workspace after evaluation of the
+#' code that are stored into a results file. If \code{NULL}, just objects with names
+#' different from elements in \code{input} are stored.
+#' @return List of functions \code{get()} and \code{purge()}. \code{get()} copies the result file
+#' to the working directory and loads it into the workspace. \code{purge()} deletes the temporary folder
+#' from the working directory and the remote machine.
+#' @export
+#' @examples
+#' 
+#' out <- runbg(expression(M <- matrix(9:1, 3, 3)), 
+#'              filename = "testrunbg", 
+#'              machine = "localhost", 
+#'              output = c("M"))
+#' out$get()
+#' print(M)
+#' out$purge()
+runbg <- function(expr, filename = "tmp", machine = "localhost", input = ls(), output = NULL) {
+  
+  # Save current workspace
+  save(list = input, file = paste0(filename, ".RData"))
+  
+  # Get loaded packages
+  pack <- sapply(strsplit(search(), "package:", fixed = TRUE), function(v) v[2])
+  pack <- pack[!is.na(pack)]
+  pack <- paste(paste0("library(", pack, ")"), collapse = "\n")
+  
+  # Define outputs
+  if(is.null(output))
+    output <- "setdiff(.newobjects, .oldobjects)"
+  else
+    output <- paste0("c('", paste(output, collapse = "', '"), "')")
+  
+  # Write program into character
+  program <- paste(
+    pack,
+    paste0("setwd('~/", filename, "_folder')"),
+    paste0("load('", filename, ".RData')"),
+    ".oldobjects <- ls()",
+    as.character(expr),
+    ".newobjects <- ls()",
+    
+    paste0("save(list =", output ,", file = '", filename, "_result.RData')"),
+    sep = "\n"
+  )
+  
+  # Write program code into file
+  cat(program, file = paste0(filename, ".R"))
+  
+  # Copy files to temporal folder
+  system(paste0("ssh ", machine, " mkdir ", filename, "_folder/"))
+  system(paste0("scp ", getwd(), "/", filename, ".R* ", machine, ":", filename, "_folder/"))
+  system(paste0("scp ", getwd(), "/*.so ", machine, ":", filename, "_folder/"))
+  
+  # Run in background
+  system(paste0("ssh ", machine, " R CMD BATCH ", filename, "_folder/", filename, ".R --vanilla"), intern = FALSE, wait = FALSE)
+  
+  out <- structure(vector("list", 2), names = c("get", "purge"))
+  
+  out[[1]] <- function() {
+    
+    system(paste0("scp ", machine, ":", filename, "_folder/", filename, "_result.RData ./"))
+    load(file = paste0(filename, "_result.RData"), envir = .GlobalEnv, verbose = TRUE)
+    
+  }
+  
+  out[[2]] <- function() {
+    
+    system(paste0("ssh ", machine, " rm -r ", filename, "_folder"))
+    system(paste0("rm ", filename, ".R*"))
+    
+  }
+  
+  return(out)
+  
+}
+
+
+
+
+
 #' Generate the model objects for use in Xs (models with sensitivities)
 #' 
 #' @param f Named character vector with the ODE
