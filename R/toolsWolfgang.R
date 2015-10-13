@@ -328,7 +328,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
 
   # Trust optimizer, except for initial values
   argstrust <- structure(vector("list", length = length(namestrust)), names = namestrust)
-  for (name in namestrust){
+  for (name in namestrust) {
     argstrust[[name]] <- argslist[[name]]
   }
 
@@ -392,7 +392,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
     }
 
     return(fit)
-  }, mc.preschedule=FALSE, mc.silent = FALSE, mc.cores=cores)
+  }, mc.preschedule = FALSE, mc.silent = FALSE, mc.cores = cores)
   close(logfile)
 
 
@@ -493,7 +493,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
 #'        same number of fits are used for all ms fits. If a different number of
 #'        fits are desired for each ms fit, <fits> must be a vector of the same
 #'        length as <spread>.
-#' @param safety If a non-empty string is given, the fitlist of each ms fit is
+#' @param safety If a non-empty string is given, the fitlist of each mstrust is
 #'        written to a file <safety> with the number of the current run
 #'        appended.
 #' @param ... Parameters handed to the mulit start optimizer. Right now
@@ -533,6 +533,7 @@ msnarrow <- function(center, spread, fits = 100, safety = "", ...) {
   trustargs <- list(...)
   trustargs$center <- center
 
+  # Fitting: run mstrust for all values in spread.
   for (ms in 1:length(spread)) {
     cat("Narrowing step ", ms, " of ", nnarrow, ", ", fits[ms], " fits to run.\n", sep = "")
 
