@@ -10,6 +10,8 @@
 #' @param output Character vector, the objects in the workspace after evaluation of the
 #' code that are stored into a results file. If \code{NULL}, just objects with names
 #' different from elements in \code{input} are stored.
+#' @param compile Logical. If \code{TRUE}, C files are copied and compiled on the remote machine.
+#' Otherwise, the .so files are copied.
 #' @return List of functions \code{check}, \code{get()} and \code{purge()}. 
 #' \code{check()} checks, if the result is ready.
 #' \code{get()} copies the result file
@@ -26,7 +28,7 @@
 #' out$get()
 #' print(M)
 #' out$purge()
-runbg <- function(expr, filename = "tmp", machine = "localhost", input = ls(.GlobalEnv), output = NULL) {
+runbg <- function(expr, filename = "tmp", machine = "localhost", input = ls(.GlobalEnv), output = NULL, compile = FALSE) {
   
   # Save current workspace
   save(list = input, file = paste0(filename, ".RData"))
@@ -41,11 +43,16 @@ runbg <- function(expr, filename = "tmp", machine = "localhost", input = ls(.Glo
     output <- "setdiff(.newobjects, .oldobjects)"
   else
     output <- paste0("c('", paste(output, collapse = "', '"), "')")
-  
+ 
+  compile.line <- NULL
+  if(compile)
+    compile.line <- "cfiles <- list.files(pattern = '.c$'); for(cf in cfiles) system(paste('R CMD SHLIB', cf))"
+   
   # Write program into character
   program <- paste(
     pack,
     paste0("setwd('~/", filename, "_folder')"),
+    compile.line,
     paste0("load('", filename, ".RData')"),
     ".oldobjects <- ls()",
     as.character(expr),
@@ -61,7 +68,11 @@ runbg <- function(expr, filename = "tmp", machine = "localhost", input = ls(.Glo
   # Copy files to temporal folder
   system(paste0("ssh ", machine, " mkdir ", filename, "_folder/"))
   system(paste0("scp ", getwd(), "/", filename, ".R* ", machine, ":", filename, "_folder/"))
-  system(paste0("scp ", getwd(), "/*.so ", machine, ":", filename, "_folder/"))
+  if(compile) {
+    system(paste0("scp ", getwd(), "/*.c ", machine, ":", filename, "_folder/"))
+  } else {
+    system(paste0("scp ", getwd(), "/*.so ", machine, ":", filename, "_folder/"))
+  }
   
   # Run in background
   system(paste0("ssh ", machine, " R CMD BATCH ", filename, "_folder/", filename, ".R --vanilla"), intern = FALSE, wait = FALSE)
@@ -96,7 +107,21 @@ runbg <- function(expr, filename = "tmp", machine = "localhost", input = ls(.Glo
   
 }
 
-
+#' Write equation list into a csv file
+#' 
+#' @param eqnList Object of class \code{eqnList}
+#' @param ... Arguments going to \link[utils]{write.csv}
+#' 
+#' @export
+write.eqnList <- function(eqnList, ...) {
+  
+  data <- data.frame(Description = attr(eqnList, "description"),
+                     Rate = attr(eqnList, "rate"),
+                     attr(eqnList, "SMatrix"))
+  
+  write.csv(data, ...)
+                     
+}
 
 
 
