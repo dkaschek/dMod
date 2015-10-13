@@ -915,3 +915,88 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
   return(data)
 }
 
+
+
+#' Merge fitlists
+#'
+#' @description Fitlists carry an fit index which must be held unique on merging
+#' multiple fitlists.
+#'
+#' @param ... Fitlists
+#' @param shiftrownames If true (default) the row names of the returned data frame equal the fit index.
+
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#'
+#' @export
+rbind.fitlist <-
+  function(..., shiftrownames = TRUE) {
+    fllist <- list(...)
+    
+    ## Check input arguments
+    # Behave as bind on empty lists
+    if (length(fllist) == 0) {
+      return(NULL)
+    }
+    
+    # Ensure, we work only on data.frames
+    inhDf <- lapply(fllist, function(fl)
+      inherits(fl, "data.frame"))
+    if (!all(inhDf == TRUE)) {
+      stop("Only data.frames can be bound")
+    }
+    
+    # Do we have the column index?
+    if (!any(names(fllist[[1]]) == "index")) {
+      stop("Column index not present.")
+    }
+    
+    # Now we are sure we handle a fitlist. If there is only one, return it.
+    if (length(fllist) == 1) {
+      return(fllist[[1]])
+    }
+    
+    
+    ## Check the consistency of a whitelisted set of attributes.
+    # Right now, we check
+    # - metanames
+    # - parameters
+    refMetanames <- attr(fllist[[1]], "metanames")
+    refParameters <- attr(fllist[[1]], "parameters")
+
+    lapply(fllist, function(fl) {
+      if (!all(attr(fl, "metanames") == refMetanames) ||
+          !all(attr(fl, "parameters") == refParameters)) {
+        stop("Can not merge fitlists with differing metanames or parameters.")
+      }
+    })
+    
+    
+    ## Merge
+    # Shift indices in all but the first fitlists
+    shift <- max(fllist[[1]]$index)
+    print(shift)
+    fitlistattr <- attr(fllist[[1]], "fitlist")
+    
+    for (i in 2:length(fllist)) {
+      # The fitlist
+      fllist[[i]]$index <- fllist[[i]]$index + (i - 1)*shift
+      
+      # fitlist, an attribute to the fitlist
+      flattr <- attr(fllist[[i]], "fitlist")
+      flattr <- lapply(flattr, function(l) {
+          l$index = l$index + shift; return(l)
+        })
+      fitlistattr <- c(fitlistattr, flattr)
+      
+      # The rownames of fitlist
+      if (shiftrownames) {
+        row.names(fllist[[i]]) <- fllist[[i]]$index
+      }
+    }
+    
+    # Merge fitlist and its arguments
+    fitlist <- do.call(rbind, fllist)
+    attr(fitlist, "fitlist") <- fitlistattr
+    
+    return(fitlist)
+  }
