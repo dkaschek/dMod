@@ -19,7 +19,7 @@ par.fn (par):
   attributes: NULL
   comes from: P(), Pi()
   goes to:    print(), %o%
-  
+
 prd.fn:
   structure:  function(times "numeric", pars "named numeric", deriv "logical", ...) {
                 prediction "matrix"
@@ -29,10 +29,10 @@ prd.fn:
                 class(out) "prd.list"
                 return(out)
               }
-  attributes: NULL            
+  attributes: NULL
   comes from: Xs(), Xd()
   goes to:    print()
-  
+
 obs.fn:
   structure:  function(prediction "prd.list", pars "named numeric", ...) {
                 observation "matrix"
@@ -42,7 +42,7 @@ obs.fn:
                 class(out) "prd.list"
                 return(out)
               }
-  attributes: NULL            
+  attributes: NULL
   comes from: Y()
   goes to:    print()
 
@@ -62,20 +62,20 @@ eqn.frame (eqnList):
   strucure:   list(smatrix "matrix", states "character", rates "character", description "character", volumes "character", fluxes "character")
   attributes: NULL
   comes from: generateEquations(), addReaction(), addObservables(), as.eqn.frame(), mergeReactions(), removeReactions(), subset()
-  goes to:    generateModel(), as.character(), addReaction(), addObservable(), rbind(), removeReactions(), subset(), write.eqn.frame()
+  goes to:    generateModel(), as.eqn.vec(), addReaction(), addObservable(), rbind(), removeReactions(), subset(), write.eqn.frame(), print(), steadyStatesSymb(?)
 
 obj.frame:
   structure:  data.frame(... "numeric")
   attributes: deriv "matrix"
   comes from: res()
   goes to:    print(), plot(), wrss(), nls.lm(?), lm.geodesic(?)
-  
+
 par.frame:
   structure:  data.frame(metanames "numeric/character", obj.attributes "numeric", parameters "numeric")
   attributes: metanames "character", obj.attributes "character", parameters "character"
   comes from: mstrust(), profile(), msnarrow()
-  goes to:    plot(), print(), plotArray(), plotProfile(), plotPaths(), rbind(), msbest(), plSelectMin,   
-  
+  goes to:    plot(), print(), plotArray(), plotProfile(), plotPaths(), rbind(), msbest(), plSelectMin,
+
 -------------- Lists ----------------------------------
 
 obj.list (obj)
@@ -83,25 +83,25 @@ obj.list (obj)
   attributes: numeric attributes of length 1
   comes from: obj() user defined funtion, wrss(), constraintL2(), priorL2(), constraintExp2(), datapointL2()
   goes to:    print(), plot()
-  
+
 prd.list:
   structure:  list(prediction "matrix")
   attributes: deriv "matrix", parameters "character"
   comes from: Xs()(), Xd()(), Y()()
   goes to:    plot(), print(), res(), lbind(), wide2long(), plotPrediction(), plotCombined(), plotFluxes(?)
-  
+
 data.list:
-  structure:  list(data "data.frame")
+  structure:  list(condition = data.frame(name, time, value, sigma))
   attributes: NULL
-  comes from: user-defined
+  comes from: user-defined, simulateData(), reduceReplicates()
   goes to:    plot(), print(), res(), data2forc(), lbind(), plotData(), plotCombined()
-  
+
 par.list:
-  structure:  par.table
+  structure:  par.frame
   attributes: fitlist "list"
   comes from: mstrust(), msnarrow()
   goes to:    rbind()
-  
+
 -------------- Vectors ----------------------------------
 
 par.vec:
