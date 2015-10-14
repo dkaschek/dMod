@@ -548,65 +548,70 @@ msnarrow <- function(center, spread, fits = 100, safety = "", ...) {
     }
 
     trustargs$center <- msbest(fitlist)
+    
+    if (ms == 1) {
+      fitlistAll <- fitlist
+    } else {
+      fitlistAll <- rbind.fitlist(fitlistAll, fitlist)
+    }
 
     if (is.null(trustargs$center)) {
       cat("Narrowing aborted at run", ms)
       if (ms == 1) {
         return(NULL)
       } else {
-        return(fitlist)
+        return(fitlistAll)
       }
     }
   }
 
-  return(fitlist)
+  return(fitlistAll)
 }
 
 
 
 #' Construct fitlist from temporary files.
-#' 
-#' @description An aborted \code{\link{mstrust}} or \code{\link{msnarrow}} 
-#'   leaves behind results of already completed fits. This command loads these 
+#'
+#' @description An aborted \code{\link{mstrust}} or \code{\link{msnarrow}}
+#'   leaves behind results of already completed fits. This command loads these
 #'   fits into a fitlist.
-#'   
+#'
 #' @param folder Path to the folder where the fit has left its results.
-#'   
+#'
 #' @details The commands \code{\link{mstrust}} or \code{\link{msnarrow}} save
 #'   each completed fit along the multi-start sequence such that the results can
 #'   be resurected on abortion. This commands loads a fitlist from these
 #'   intermediate results.
-#'   
+#'
 #' @return A fitlist as data frame.
-#'   
+#'
 #' @seealso \code{\link{mstrust}}, \code{\link{msnarrow}}
-#'   
+#'
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
-#'   
+#'
 #' @export
 msrestore <- function(folder) {
-  
   # Read in all fits
-  fileList <- dir(folder)
-  fullFitList <- sapply(fileList, function(file) {
-    return(readRDS(file.path(folder, file)))
-    if (any(names(fit) == "value")) {
-      data.frame(
-        index = fit$index,
-        value = fit$value,
-        converged = fit$converged,
-        iterations = fit$iterations,
-        as.data.frame(as.list(fit$argument))
-      )
-    }
-  })
-    
-  # Sort fitlist
-  if (!is.null(fitlist)) {
-    fitlist <- fitlist[order(fitlist$value),]
-  }
+#   fileList <- dir(folder)
+#   fullFitList <- sapply(fileList, function(file) {
+#     return(readRDS(file.path(folder, file)))
+#     if (any(names(fit) == "value")) {
+#       data.frame(
+#         index = fit$index,
+#         value = fit$value,
+#         converged = fit$converged,
+#         iterations = fit$iterations,
+#         as.data.frame(as.list(fit$argument))
+#       )
+#     }
+#   })
+# 
+#   # Sort fitlist
+#   if (!is.null(fitlist)) {
+#     fitlist <- fitlist[order(fitlist$value),]
+#   }
   
-  return(fitlist)
+  return(NULL)
 }
 
 
@@ -974,7 +979,6 @@ rbind.fitlist <-
     ## Merge
     # Shift indices in all but the first fitlists
     shift <- max(fllist[[1]]$index)
-    print(shift)
     fitlistattr <- attr(fllist[[1]], "fitlist")
     
     for (i in 2:length(fllist)) {
