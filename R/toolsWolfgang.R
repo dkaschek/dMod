@@ -592,26 +592,29 @@ msnarrow <- function(center, spread, fits = 100, safety = "", ...) {
 #' @export
 msrestore <- function(folder) {
   # Read in all fits
-#   fileList <- dir(folder)
-#   fullFitList <- sapply(fileList, function(file) {
-#     return(readRDS(file.path(folder, file)))
-#     if (any(names(fit) == "value")) {
-#       data.frame(
-#         index = fit$index,
-#         value = fit$value,
-#         converged = fit$converged,
-#         iterations = fit$iterations,
-#         as.data.frame(as.list(fit$argument))
-#       )
-#     }
-#   })
-# 
-#   # Sort fitlist
-#   if (!is.null(fitlist)) {
-#     fitlist <- fitlist[order(fitlist$value),]
-#   }
+  m_fileList <- dir(folder)
+  m_fitList <- sapply(m_fileList, function(file) {
+    fit <- readRDS(file.path(folder, file))
+    if (any(names(fit) == "value")) {
+      return(data.frame(
+        index = fit$index,
+        value = fit$value,
+        converged = fit$converged,
+        iterations = fit$iterations,
+        as.data.frame(as.list(fit$argument))
+      ))
+    } else {
+      return(NULL)
+    }
+  })
+  m_fitList <- do.call(rbind, m_fitList)
   
-  return(NULL)
+  # Sort m_fitList
+  if (!is.null(m_fitList)) {
+    m_fitList <- m_fitList[order(m_fitList$value),]
+  }
+  
+  return(m_fitList)
 }
 
 
