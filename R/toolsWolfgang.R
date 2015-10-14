@@ -328,7 +328,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
 
   # Trust optimizer, except for initial values
   argstrust <- structure(vector("list", length = length(namestrust)), names = namestrust)
-  for (name in namestrust){
+  for (name in namestrust) {
     argstrust[[name]] <- argslist[[name]]
   }
 
@@ -392,7 +392,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
     }
 
     return(fit)
-  }, mc.preschedule=FALSE, mc.silent = FALSE, mc.cores=cores)
+  }, mc.preschedule = FALSE, mc.silent = FALSE, mc.cores = cores)
   close(logfile)
 
 
@@ -493,7 +493,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
 #'        same number of fits are used for all ms fits. If a different number of
 #'        fits are desired for each ms fit, <fits> must be a vector of the same
 #'        length as <spread>.
-#' @param safety If a non-empty string is given, the fitlist of each ms fit is
+#' @param safety If a non-empty string is given, the fitlist of each mstrust is
 #'        written to a file <safety> with the number of the current run
 #'        appended.
 #' @param ... Parameters handed to the mulit start optimizer. Right now
@@ -533,6 +533,7 @@ msnarrow <- function(center, spread, fits = 100, safety = "", ...) {
   trustargs <- list(...)
   trustargs$center <- center
 
+  # Fitting: run mstrust for all values in spread.
   for (ms in 1:length(spread)) {
     cat("Narrowing step ", ms, " of ", nnarrow, ", ", fits[ms], " fits to run.\n", sep = "")
 
@@ -547,65 +548,73 @@ msnarrow <- function(center, spread, fits = 100, safety = "", ...) {
     }
 
     trustargs$center <- msbest(fitlist)
+    
+    if (ms == 1) {
+      fitlistAll <- fitlist
+    } else {
+      fitlistAll <- rbind.fitlist(fitlistAll, fitlist)
+    }
 
     if (is.null(trustargs$center)) {
       cat("Narrowing aborted at run", ms)
       if (ms == 1) {
         return(NULL)
       } else {
-        return(fitlist)
+        return(fitlistAll)
       }
     }
   }
 
-  return(fitlist)
+  return(fitlistAll)
 }
 
 
 
 #' Construct fitlist from temporary files.
-#' 
-#' @description An aborted \code{\link{mstrust}} or \code{\link{msnarrow}} 
-#'   leaves behind results of already completed fits. This command loads these 
+#'
+#' @description An aborted \code{\link{mstrust}} or \code{\link{msnarrow}}
+#'   leaves behind results of already completed fits. This command loads these
 #'   fits into a fitlist.
-#'   
+#'
 #' @param folder Path to the folder where the fit has left its results.
-#'   
+#'
 #' @details The commands \code{\link{mstrust}} or \code{\link{msnarrow}} save
 #'   each completed fit along the multi-start sequence such that the results can
 #'   be resurected on abortion. This commands loads a fitlist from these
 #'   intermediate results.
-#'   
+#'
 #' @return A fitlist as data frame.
-#'   
+#'
 #' @seealso \code{\link{mstrust}}, \code{\link{msnarrow}}
-#'   
+#'
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
-#'   
+#'
 #' @export
 msrestore <- function(folder) {
-  
   # Read in all fits
-  fileList <- dir(folder)
-  fullFitList <- sapply(fileList, function(file) {
-    return(readRDS(file.path(folder, file)))
+  m_fileList <- dir(folder)
+  m_fitList <- sapply(m_fileList, function(file) {
+    fit <- readRDS(file.path(folder, file))
     if (any(names(fit) == "value")) {
-      data.frame(
+      return(data.frame(
         index = fit$index,
         value = fit$value,
         converged = fit$converged,
         iterations = fit$iterations,
         as.data.frame(as.list(fit$argument))
-      )
+      ))
+    } else {
+      return(NULL)
     }
   })
-    
-  # Sort fitlist
-  if (!is.null(fitlist)) {
-    fitlist <- fitlist[order(fitlist$value),]
+  m_fitList <- do.call(rbind, m_fitList)
+  
+  # Sort m_fitList
+  if (!is.null(m_fitList)) {
+    m_fitList <- m_fitList[order(m_fitList$value),]
   }
   
-  return(fitlist)
+  return(m_fitList)
 }
 
 
@@ -914,3 +923,87 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
   return(data)
 }
 
+
+
+#' Merge fitlists
+#'
+#' @description Fitlists carry an fit index which must be held unique on merging
+#' multiple fitlists.
+#'
+#' @param ... Fitlists
+#' @param shiftrownames If true (default) the row names of the returned data frame equal the fit index.
+
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#'
+#' @export
+rbind.fitlist <-
+  function(..., shiftrownames = TRUE) {
+    fllist <- list(...)
+    
+    ## Check input arguments
+    # Behave as bind on empty lists
+    if (length(fllist) == 0) {
+      return(NULL)
+    }
+    
+    # Ensure, we work only on data.frames
+    inhDf <- lapply(fllist, function(fl)
+      inherits(fl, "data.frame"))
+    if (!all(inhDf == TRUE)) {
+      stop("Only data.frames can be bound")
+    }
+    
+    # Do we have the column index?
+    if (!any(names(fllist[[1]]) == "index")) {
+      stop("Column index not present.")
+    }
+    
+    # Now we are sure we handle a fitlist. If there is only one, return it.
+    if (length(fllist) == 1) {
+      return(fllist[[1]])
+    }
+    
+    
+    ## Check the consistency of a whitelisted set of attributes.
+    # Right now, we check
+    # - metanames
+    # - parameters
+    refMetanames <- attr(fllist[[1]], "metanames")
+    refParameters <- attr(fllist[[1]], "parameters")
+
+    lapply(fllist, function(fl) {
+      if (!all(attr(fl, "metanames") == refMetanames) ||
+          !all(attr(fl, "parameters") == refParameters)) {
+        stop("Can not merge fitlists with differing metanames or parameters.")
+      }
+    })
+    
+    
+    ## Merge
+    # Shift indices in all but the first fitlists
+    shift <- max(fllist[[1]]$index)
+    fitlistattr <- attr(fllist[[1]], "fitlist")
+    
+    for (i in 2:length(fllist)) {
+      # The fitlist
+      fllist[[i]]$index <- fllist[[i]]$index + (i - 1)*shift
+      
+      # fitlist, an attribute to the fitlist
+      flattr <- attr(fllist[[i]], "fitlist")
+      flattr <- lapply(flattr, function(l) {
+          l$index = l$index + shift; return(l)
+        })
+      fitlistattr <- c(fitlistattr, flattr)
+      
+      # The rownames of fitlist
+      if (shiftrownames) {
+        row.names(fllist[[i]]) <- fllist[[i]]$index
+      }
+    }
+    
+    # Merge fitlist and its arguments
+    fitlist <- do.call(rbind, fllist)
+    attr(fitlist, "fitlist") <- fitlistattr
+    
+    return(fitlist)
+  }
