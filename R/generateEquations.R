@@ -223,39 +223,36 @@ subset.eqnList <- function(x, ...) {
   
 }
 
-#' Combine several data.frames by rowbind
+
+
+#' Write equation list into a csv file
 #' 
-#' @param ... data.frames with not necessarily overlapping colnames
-#' @details This function is useful when separating models into independent csv model files,
-#' e.g.~a receptor model and several downstream pathways. Then, the models can be recombined 
-#' into one model by \code{combine()}.
+#' @param eqnList Object of class \code{eqnList}
+#' @param ... Arguments going to \link[utils]{write.csv}
 #' 
-#' @return A \code{data.frame}
 #' @export
-#' @examples
-#' data1 <- data.frame(Description = "reaction 1", Rate = "k1*A", A = -1, B = 1)
-#' data2 <- data.frame(Description = "reaction 2", Rate = "k2*B", B = -1, C = 1)
-#' combine(data1, data2)
-combine <- function(...) {
+write.eqnList <- function(eqnList, ...) {
   
-  # List of input data.frames
-  mylist <- list(...)
-  mynames <- unique(unlist(lapply(mylist, function(S) colnames(S))))
+  data <- data.frame(Description = attr(eqnList, "description"),
+                     Rate = attr(eqnList, "rate"),
+                     attr(eqnList, "SMatrix"))
   
-  mylist <- lapply(mylist, function(l) {
-    present.list <- as.list(l)
-    missing.names <- setdiff(mynames, names(present.list))
-    missing.list <- structure(as.list(rep(NA, length(missing.names))), names = missing.names)
-    combined.data <- do.call(cbind.data.frame, c(present.list, missing.list))
-    return(combined.data)
-  })
-  
-  out <- do.call(rbind, mylist)
-  
-  return(out)
-  
+  write.csv(data, ...)
   
 }
+
+#' @export
+as.data.frame.eqnList <- function(eqnList) {
+  data <- data.frame(Description = attr(eqnList, "description"),
+                     Rate = attr(eqnList, "rate"),
+                     attr(eqnList, "SMatrix"))
+  return(data)
+}
+
+
+
+
+
 
 #' Add observables to ODEs
 #' 

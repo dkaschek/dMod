@@ -1,3 +1,4 @@
+#' @export
 theme_dMod <- function (base_size = 12, base_family = "") {
   colors <- list(
     medium = c(gray = '#737373', red = '#F15A60', green = '#7AC36A', blue = '#5A9BD4', orange = '#FAA75B', purple = '#9E67AB', maroon = '#CE7058', magenta = '#D77FB4'),
@@ -17,6 +18,7 @@ theme_dMod <- function (base_size = 12, base_family = "") {
           panel.grid = element_line(colour = gray, size = 0.2), 
           strip.background = element_rect(fill = "white", colour = NA))
 }
+
 
 ggplot <- function(...) ggplot2::ggplot(...) + theme_dMod()
 
