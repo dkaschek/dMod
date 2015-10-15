@@ -260,7 +260,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                          "-1" = diff.limit <- 1 - (limits[1] - constraint.out$value)/limits[1],
                          "0"  = 0)
     
-    percentage <- max(c(diff.thres, diff.steps, diff.limit))*100
+    percentage <- max(c(diff.thres, diff.steps, diff.limit), na.rm = TRUE)*100
     progressBar(percentage)
     
     ## Verbose
@@ -293,6 +293,10 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   constraint.out <- constraint(pars)
   
   delta <- qchisq(1-alpha, 1)
+  #delta.t <- qf(1 - alpha, 1L, nobs - npar)
+  
+  
+  
   threshold <- lagrange.out$value + delta
   out.attributes <- unlist(lagrange.out[lagrange.out$attributes])
   
