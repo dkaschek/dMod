@@ -1,9 +1,10 @@
 
-## Class "eqnlist" and its constructure ------------------------------------------
+## Class "eqnlist" and its constructor ------------------------------------------
 
 #' Generate eqnlist object
 #' 
-#'
+#' @description The eqnlist object stores an ODE as a list of stoichiometric matrix,
+#' rate expressions, state names and compartment volumes.
 #' @export
 #' @param smatrix Matrix of class numeric. The stoichiometric matrix, 
 #' one row per reaction/process and one column per state.
@@ -384,6 +385,9 @@ pander.eqnlist<- function(eqnlist) {
 
 #' Generate equation vector object
 #' 
+#' @description The eqnvec object stores explicit algebraic equations, like the
+#' right-hand sides of an ODE, observation functions or parameter transformations
+#' as named character vectors.
 #' @param equations (named) character of symbolic mathematical expressions, 
 #' the right-hand sides of the equations
 #' @param names character, the left-hand sides of the equation
@@ -559,4 +563,143 @@ c.eqnvec <- function(...) {
   as.eqnvec(out)
   
 }
+
+
+#' Evaluation of algebraic expressions defined by characters
+#' 
+#' @param x Name character vector, the algebraic expressions
+#' @param compile Logical. The function is either translated into a C file to be compiled or is
+#' evaluated in raw R.
+#' @return A prediction function \code{f(mylist, attach.input = FALSE)} where \code{mylist} is a list of numeric 
+#' vectors that can
+#' be coerced into a matrix. The names correspond to the symbols used in the algebraic expressions. 
+#' The argument \code{attach.input} determines whether \code{mylist} is attached to the output.
+#' The function \code{f} returns a matrix.
+#' @examples 
+#' \dontrun{
+#' myfun <- funC0(c(y = "a*x^4 + b*x^2 + c"))
+#' out <- myfun(list(a = -1, b = 2, c = 3, x = seq(-2, 2, .1)), attach.input = TRUE)
+#' plot(out[, "x"], out[, "y"])
+#' }
+#' 
+#' @export
+funC0 <- function(x, compile = FALSE, modelname = NULL) {
+    
+  # Get symbols to be substituted by x[] and y[]
+  outnames <- names(x)
+  innames <- getSymbols(x)
+  
+  x.new <- paste0(x, collapse = ", ")
+  x.new <- paste0("list(", x.new, ")")
+  x.expr <- parse(text = x.new)
+  
+  ## Compiled version based on inline package
+  ## Non-compiled version based on with() and eval()
+  if(compile) {
+    
+    # Do the replacement to obtain C syntax
+    x <- replaceOperation("^", "pow", x)
+    x <- replaceSymbols(innames, paste0("x[", (1:length(innames))-1, "+i* *k]"), x)
+    names(x) <- paste0("y[", (1:length(outnames)) - 1, "+i* *l]")
+    
+    # Paste into equation
+    x <- x[x != "0"]
+    expr <- paste(names(x), "=", x, ";")
+    
+    # Put equation into C function
+    if(is.null(modelname)) {
+      funcname <- paste0("funC0_", paste(sample(c(0:9, letters), 8, replace = TRUE), collapse = ""))
+    } else {
+      funcname <- modelname
+    }
+    body <- paste(
+      "#include <R.h>\n", 
+      "#include <math.h>\n", 
+      "void", funcname, "( double * x, double * y, int * n, int * k, int * l ) {\n",
+      "for(int i = 0; i< *n; i++) {\n",
+      paste(expr, collapse="\n"),
+      "\n}\n}"
+    )
+    
+    filename <- paste(funcname, "c", sep = ".")
+    sink(file = filename)
+    cat(body)
+    sink()
+    system(paste0(R.home(component="bin"), "/R CMD SHLIB ", filename))
+    .so <- .Platform$dynlib.ext
+    dyn.load(paste0(funcname, .so))
+    
+    # Generate the C function by the inline package
+    #myCfun <- inline::cfunction(sig=c(x = "double", y = "double", n = "integer", k = "integer", l = "integer"),
+    #                            body=body,
+    #                            language="C",
+    #                            convention=".C"
+    #)
+    
+    
+    # Generate output function
+    myRfun <- function(x, attach.input = FALSE) {
+      
+      # Translate the list into matrix and then into vector
+      M <- do.call(rbind, x[innames])
+      if(length(M) == 0) M <- matrix(0)
+      x <- as.double(as.vector(M))
+      
+      # Get integers for the array sizes
+      n <- as.integer(dim(M)[2])
+      k <- as.integer(length(innames))
+      if(length(k) == 0) k <- as.integer(0)
+      l <- as.integer(length(outnames))
+      
+      
+      # Initialize output vector
+      y <- double(l*n)
+      
+      # Evaluate C function and write into matrix
+      loadDLL(func = funcname, cfunction = funcname)
+      out <- matrix(.C(funcname, x = x, y = y, n = n, k = k, l = l)$y, nrow=length(outnames), ncol=n)
+      rownames(out) <- outnames
+      
+      rownames(M) <- innames
+      if(attach.input)
+        out <- rbind(M, out)
+        
+      
+      return(t(out))    
+      
+    }
+    
+    
+    
+  } else {
+    
+    # Generate output function
+    myRfun <- function(x, attach.input = FALSE) {
+      
+      # Translate the list into matrix and then into vector
+      M <- do.call(rbind, x[innames])
+      if(length(M) == 0) M <- matrix(0)
+      
+      out.list <- with(x, eval(x.expr))
+      out.matrix <- do.call(cbind, out.list)
+      colnames(out.matrix) <- outnames
+      rownames(out.matrix) <- NULL
+      
+      rownames(M) <- innames
+      if(attach.input)
+        out.matrix <- cbind(t(M), out.matrix)
+      
+      return(out.matrix)
+      
+    }
+    
+  }
+  
+  
+  attr(myRfun, "equations") <- x
+  
+  return(myRfun)
+  
+}
+
 

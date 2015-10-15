@@ -64,61 +64,6 @@ res <- function (data, out) {
 }
 
 
-#' Compute the weighted residual sum of squares
-#' 
-#' @param nout data.frame (result of \link{res})
-#' @return list with entries value (numeric, the weighted residual sum of squares), 
-#' gradient (numeric, gradient) and 
-#' hessian (matrix of type numeric).
-#' @export
-wrss <- function(nout) {
-  
-  obj <- sum(nout$weighted.residual^2)
-  grad <- NULL
-  hessian <- NULL
-  
-  if(!is.null(attr(nout, "deriv"))) {
-    nout$sigma[is.na(nout$sigma)] <- 1 #replace by neutral element
-  
-    sens <- as.matrix(attr(nout, "deriv")[,-(1:2)])
-    grad <- as.vector(2*matrix(nout$residual/nout$sigma^2, nrow=1)%*%sens)
-    names(grad) <- colnames(sens)
-    hessian <- 2*t(sens/nout$sigma)%*%(sens/nout$sigma)
-    
-    
-  }
-  
-  out <- list(value=obj, gradient=grad, hessian=hessian)
-  class(out) <- c("obj", "list")
-  
-  return(out)
-
-}
-
-
-#' Generate dummy list of class \code{obj} from named numeric
-#' 
-#' @param p Names numeric vector
-#' @return list with entries value (\code{0}), 
-#' gradient (\code{rep(0, length(p))}) and 
-#' hessian (\code{matrix(0, length(p), length(p))}) of class \code{obj}.
-#' @examples
-#' p <- c(A = 1, B = 2)
-#' as.obj(p)
-#' @export
-as.obj <- function(p) {
-  
-  obj <- list(
-    value = 0,
-    gradient = structure(rep(0, length(p)), names = names(p)),
-    hessian = matrix(0, length(p), length(p), dimnames = list(names(p), names(p))))
-  
-  class(obj) <- "obj"
-  
-  return(obj)
-  
-}
-
 
 
 
