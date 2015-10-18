@@ -2,35 +2,6 @@
 ## Class "datalist" and its constructor ------------------------------------------
 
 
-#' Generate a datalist object
-#' 
-#' @description The datalist object stores time-course data in a list of data.frames.
-#' The names of the list serve as identifiers, e.g. of an experimental condition, etc.
-#' @param mylist list of data.frame, each data.frame is expected to have columns "name" (factor or character),
-#' "time" (numeric), "value" (numeric) and "sigma" (numeric).
-#' @param mynames character vector of the length of mylist.
-#' @return Object of class \code{datalist}.
-#' @export
-datalist <- function(mylist, mynames = names(mylist)) {
-  
-  ## Check properties
-  is.data.frame <- all(sapply(mylist, class) == "data.frame")
-  if(!is.data.frame) stop("list of data.frame expected")
-  
-  correct.names <- c("name", "time", "value", "sigma")
-  have.correct.names <- sapply(mylist, function(d) all(colnames(d) %in% correct.names))
-  if(!all(have.correct.names)) stop(paste("data.frames should have names:", correct.names, collapse = " "))
-  
-  if(length(mynames) != length(mylist)) stop("names argument has wrong length")
-  
-  ## Prepare output
-  names(mylist) <- mynames
-  class(mylist) <- "datalist"
-  
-  return(mylist)
-  
-}
-
 #' Split a data.frame into a datalist
 #' 
 #' @param dataframe data.frame 

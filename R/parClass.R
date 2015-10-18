@@ -1,3 +1,12 @@
+
+
+
+
+## The parfn class and its constructors -----------------------------------------
+
+
+
+
 #' Parameter transformation
 #' 
 #' @param trafo Named character vector. Names correspond to the parameters being fed into
@@ -75,12 +84,15 @@ P <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
     
     
     if(!is.null(dP)) jac.matrix <- jac.matrix%*%submatrix(dP, rows = colnames(jac.matrix))
-    if(deriv) attr(pinner, "deriv") <- jac.matrix
     
-    return(pinner)
+    myderiv <- NULL
+    if(deriv) myderiv <- jac.matrix
+    
+    parvec(pinner, deriv = myderiv)
+    
   }
   
-  class(p2p) <- "par" 
+  class(p2p) <- "parfn" 
   attr(p2p, "equations") <- trafo
   attr(p2p, "parameters") <- parameters
   
@@ -89,7 +101,35 @@ P <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
   
 }
 
-
+# P.list <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
+#   
+#   # Check names
+#   trafo.names <- names(trafo)
+#   if(is.null(trafo.names) || any(is.na(trafo.names))) stop("trafo must be named list")
+#   
+#   trafo.length <- length(trafo)
+#   modelname <- paste(modelname, trafo.names, sep = "_")
+#   
+#   p2p <- lapply(1:trafo.length, function(i) P.character(trafo[[i]], parameters, compile, modelname[i]))
+#   names(p2p) <- trafo.names
+#   
+#   
+#   p2p.list <- function(p, fixed=NULL, deriv = TRUE) {
+#     
+#     if(!is.list(p)) p <- lapply(p2p, function(i) p)
+#     if(!is.list(fixed)) fixed <- lapply(p2p, function(i) fixed)
+#     
+#     allnames <- intersect(union(names(p), names(fixed)), names(p2p))
+#     
+#     out.list <- lapply(allnames, function(n) p2p[[n]](p[[n]], fixed[[n]], deriv))
+#     names(out.list) <- allnames
+#     
+#     return(out.list)
+#     
+#     
+#   }
+#   
+# }
 
 #' Parameter transformation (implicit)
 #' 
@@ -208,13 +248,14 @@ Pi <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
     # Multiplication with deriv of p
     if(!is.null(dP)) jacobian <- jacobian%*%submatrix(dP, rows = colnames(jacobian))
     
+    myderiv <- NULL
+    if(deriv) myderiv <- jacobian
     
-    if(deriv) attr(out, "deriv") <- jacobian
-    return(out)
+    parvec(out, deriv = myderiv)
     
   }
   
-  class(p2p) <- "par"
+  class(p2p) <- "parfn"
   
   attr(p2p, "equations") <- trafo
   attr(p2p, "parameters") <- parameters
@@ -223,6 +264,7 @@ Pi <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
   
 }
 
+## Methods for the class parfn ------------------------------------------------
 
 
 #' Pretty printing of parameter transformations, class par
@@ -230,7 +272,7 @@ Pi <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 
 #' @export
-print.par <- function(p, ...) {
+print.parfn <- function(p, ...) {
   
   # Assemble parameters
   hInner <- "Inner"
@@ -255,7 +297,6 @@ print.par <- function(p, ...) {
     }
   }
 }
-
 
 
 #' Concatenation of parameter transformations
@@ -283,4 +324,11 @@ print.par <- function(p, ...) {
 #' }
 #' @export
 "%o%" <- function(p1, p2) function(p, fixed=NULL, deriv = TRUE) p1(p2(p, fixed = fixed, deriv = deriv), deriv = deriv)
+
+
+
+
+## Class parlist and its constructor ---------------------------------------------------------
+
+
 

@@ -391,15 +391,13 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     
   }
   
-  attr(out, "metanames") <- c("value", "constraint", "stepsize", "gamma")
-  attr(out, "parameters") <- names(pars)
-  attr(out, "obj.attributes") <- names(out.attributes)
-  
-  out.list <- list(out)
-  names(out.list) <- whichPar.name
-  
-  
-  return(out.list)
+  # Output
+  parframe(
+    out,
+    parameters = names(pars),
+    metanames = c("value", "constraint", "stepsize", "gamma"),
+    obj.attributes = names(out.attributes)
+  )
   
 
 }

@@ -15,6 +15,10 @@ combine <- function(...) {
   
   # List of input data.frames
   mylist <- list(...)
+  # Remove empty slots
+  is.empty <- sapply(mylist, is.null)
+  mylist <- mylist[!is.empty]
+  
   mynames <- unique(unlist(lapply(mylist, function(S) colnames(S))))
   
   mylist <- lapply(mylist, function(l) {

@@ -1,47 +1,6 @@
 
 ## Class "eqnlist" and its constructor ------------------------------------------
 
-#' Generate eqnlist object
-#' 
-#' @description The eqnlist object stores an ODE as a list of stoichiometric matrix,
-#' rate expressions, state names and compartment volumes.
-#' @export
-#' @param smatrix Matrix of class numeric. The stoichiometric matrix, 
-#' one row per reaction/process and one column per state.
-#' @param states Character vector. Names of the states.
-#' @param rates Character vector. The rate expressions.
-#' @param volumes Named character, volume parameters for states. Names must be a subset of the states.
-#' Values can be either characters, e.g. "V1", or numeric values for the volume. If \code{volumes} is not
-#' \code{NULL}, missing entries are treated as 1.
-#' @param description Character vector. Description of the single processes.
-#' @return An object of class \code{eqnlist}, basically a list.
-eqnlist <- function(smatrix, states = colnames(smatrix), rates, volumes = NULL, description = NULL) {
-  
-  # Do dimension checks
-  d1 <- dim(smatrix)
-  l2 <- length(states)
-  l3 <- length(rates)
-  
-  if(l2 != d1[2]) stop("Number of states does not coincide with number of columns of stoichiometric matrix")
-  if(l3 != d1[1]) stop("Number of rates does no coincide with number of rows of stoichiometric matrix")
-  
-  colnames(smatrix) <- states
-  
-  out <- list(smatrix = smatrix,
-              states = as.character(states),
-              rates = as.character(rates),
-              volumes = volumes,
-              description = as.character(description))
-  
-  
-  class(out) <- "eqnlist"
-  
-  
-  return(out)
-  
-  
-}
-
 
 #' Coerce to an equation list
 #' @description Translates a reaction network, e.g. defined by a data.frame, into an equation list object.
@@ -87,6 +46,8 @@ getReactions <- function(eqnlist) {
   variables <- eqnlist$states
   
   # Determine lhs and rhs of reactions
+  if(is.null(S)) return()
+  
   reactions <- apply(S, 1, function(v) {
     
     numbers <- v[which(!is.na(v))]
@@ -137,7 +98,10 @@ getReactions <- function(eqnlist) {
   
 }
 
-
+#' @export
+addReaction <- function(x, ...) {
+  UseMethod("addReaction", x)
+}
 #' Add reaction to reaction table
 #' 
 #' @param from character with the left hand side of the reaction, e.g. "2*A + B"
@@ -151,8 +115,8 @@ getReactions <- function(eqnlist) {
 #' f <- addReaction("2*A+B", "C + 2*D", "k1*B*A^2", NULL)
 #' f <- addReaction("C + A", "B + A", "k2*C*A", f)
 #' }
-#' @export addReaction.eqnlist
-addReaction.eqnlist <- function(from, to, rate, eqnlist=NULL) {
+#' @export
+addReaction.eqnlist <- function(eqnlist, from, to, rate) {
   
   volumes <- eqnlist$volumes
   
@@ -193,7 +157,6 @@ addReaction.eqnlist <- function(from, to, rate, eqnlist=NULL) {
   if(!is.null(eqnlist)) {
     mydata0 <- as.data.frame(eqnlist)
     mydata <- combine(mydata0, mydata)
-    
   }
   
   
@@ -214,6 +177,8 @@ getFluxes <- function(eqnlist) {
   variables <- eqnlist$states
   SMatrix <- eqnlist$smatrix
   volumes <- eqnlist$volumes
+  
+  if(is.null(SMatrix)) return()
   
   volumes.draft <- structure(rep("1", length(variables)), names = variables)
   volumes.draft[names(volumes)] <- volumes
@@ -272,6 +237,9 @@ getFluxes <- function(eqnlist) {
 #' The state columns correspond to the stoichiometric matrix.
 #' @export
 as.data.frame.eqnlist <- function(eqnlist) {
+  
+  if(is.null(eqnlist$smatrix)) return()
+  
   data <- data.frame(Description = eqnlist$description,
                      Rate = eqnlist$rate,
                      eqnlist$smatrix, 
@@ -317,6 +285,7 @@ subset.eqnlist <- function(eqnlist, ...) {
   
   # Do selection on data.frame
   data <- getReactions(eqnlist)
+  if(is.null(data)) return()
   
   data.list <- list(Educt = lapply(data$Educt, getSymbols), 
                     Product = lapply(data$Product, getSymbols),
@@ -383,30 +352,6 @@ pander.eqnlist<- function(eqnlist) {
 ## Class "eqnvec" and its constructors --------------------------------------------
 
 
-#' Generate equation vector object
-#' 
-#' @description The eqnvec object stores explicit algebraic equations, like the
-#' right-hand sides of an ODE, observation functions or parameter transformations
-#' as named character vectors.
-#' @param equations (named) character of symbolic mathematical expressions, 
-#' the right-hand sides of the equations
-#' @param names character, the left-hand sides of the equation
-#' @return object of class \code{eqnvec}, basically a named character.
-#' @export
-eqnvec <- function(equations, names = NULL) {
-  
-  if(is.null(names)) names <- names(equations)
-  if(is.null(names)) stop("equations need names")
-  if(length(names) != length(equations)) stop("Length of names and equations do not coincide")
-  try.parse <- try(parse(text = equations), silent = TRUE)
-  if(inherits(try.parse, "try-error")) stop("equations cannot be parsed")
-  
-  out <- structure(equations, names = names)
-  class(out) <- "eqnvec"
-  
-  return(out)
-  
-}
 
 #' Coerce to an equation vector
 #' 
@@ -430,6 +375,7 @@ as.eqnvec.character <- function(char) {
 as.eqnvec.eqnlist <- function(eqnlist) {
   
   terme <- getFluxes(eqnlist)
+  if(is.null(terme)) return()
   terme <- lapply(terme, function(t) paste(t, collapse=" "))
   
   

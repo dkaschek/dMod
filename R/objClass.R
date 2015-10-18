@@ -1,20 +1,6 @@
 ## Class "objlist" and its constructors ------------------------------------
 
-#' Generate objective list
-#' 
-#' @description An objective list contains an objective value, a gradient an a Hessian matrix
-#' @param value numeric of length 1
-#' @param gradient named numeric
-#' @param hessian matrix with rownames and colnames according to gradient names
-#' @return Object of class \code{objlist}
-#' @export
-objlist <- function(value, gradient, hessian) {
-  
-  out <- list(value = value, gradient = gradient, hessian = hessian)
-  class(out) <- "objlist"
-  return(out)
-  
-}
+
 
 #' Generate objective list from numeric vector
 #' 

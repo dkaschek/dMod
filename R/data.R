@@ -59,8 +59,10 @@ res <- function (data, out) {
                 weighted.residual = weighted.residuals)
   data <- data[c("time", "name", "value", "prediction", "sigma", 
                  "residual", "weighted.residual")]
-  attr(data, "deriv") <- deriv.data
-  return(data)
+  #attr(data, "deriv") <- deriv.data
+  
+  objframe(data, deriv = deriv.data)
+  
 }
 
 

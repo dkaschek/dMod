@@ -332,7 +332,7 @@ addObservable <- function(observable, f) {
 #' f <- addReaction("C + A", "B + A", "k2*C*A", f)
 #' }
 #' @export
-addReaction <- function(from, to, rate, f=NULL) {
+addReaction.character <- function(from, to, rate, f=NULL) {
   
   myattr <- c("class", "SMatrix", "species", "rates", "description", "exclmarks", "observables", "volumes")
   volumes <- attr(f, "volumes")
