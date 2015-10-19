@@ -9,6 +9,8 @@
 #' @return List of data points for each condition
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
+#' 
+#' @export
 simulateData <- function(timesD, pouter, vars=observables, relE = 0.05, absE = 0.001){        
   pred <- x(timesD, pouter)
   out <- lapply(conditions, function(con){
