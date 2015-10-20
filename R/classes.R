@@ -14,11 +14,11 @@ eqnvec <- function(equations = NULL, names = NULL) {
   
   if (is.null(equations)) return(c())
   
-  if(is.null(names)) names <- names(equations)
-  if(is.null(names)) stop("equations need names")
-  if(length(names) != length(equations)) stop("Length of names and equations do not coincide")
+  if (is.null(names)) names <- names(equations)
+  if (is.null(names)) stop("equations need names")
+  if (length(names) != length(equations)) stop("Length of names and equations do not coincide")
   try.parse <- try(parse(text = equations), silent = TRUE)
-  if(inherits(try.parse, "try-error")) stop("equations cannot be parsed")
+  if (inherits(try.parse, "try-error")) stop("equations cannot be parsed")
   
   out <- structure(equations, names = names)
   class(out) <- "eqnvec"
@@ -44,13 +44,13 @@ eqnvec <- function(equations = NULL, names = NULL) {
 eqnlist <- function(smatrix = NULL, states = colnames(smatrix), rates = NULL, volumes = NULL, description = NULL) {
   
   # Do dimension checks when generating non-empty eqnlist
-  if(all(!is.null(c(smatrix, states, rates)))) {
+  if (all(!is.null(c(smatrix, states, rates)))) {
     d1 <- dim(smatrix)
     l2 <- length(states)
     l3 <- length(rates)
     
-    if(l2 != d1[2]) stop("Number of states does not coincide with number of columns of stoichiometric matrix")
-    if(l3 != d1[1]) stop("Number of rates does no coincide with number of rows of stoichiometric matrix")
+    if (l2 != d1[2]) stop("Number of states does not coincide with number of columns of stoichiometric matrix")
+    if (l3 != d1[1]) stop("Number of rates does not coincide with number of rows of stoichiometric matrix")
   }
   
   colnames(smatrix) <- states
@@ -85,10 +85,10 @@ parfn <- function() {
     
     
     myderiv <- NULL
-    if(deriv) {
+    if (deriv) {
       myderiv <- diag(x = 1, nrow = length(p), ncol = length(p))
       rownames(myderiv) <- colnames(myderiv) <- names(p)
-      if(!is.null(dP)) myderiv <- myderiv%*%submatrix(dP, rows = colnames(myderiv))
+      if (!is.null(dP)) myderiv <- myderiv %*% submatrix(dP, rows = colnames(myderiv))
     }
     
     parvec(p, deriv = myderiv)
@@ -132,6 +132,7 @@ parvec <- function(p, mynames = names(p), deriv = NULL) {
   names(out) <- mynames
   attr(out, "deriv") <- deriv
   class(out) <- c("parvec", "numeric")
+  
   return(out)
   
 }
@@ -180,7 +181,7 @@ prdlist <- function(mylist = NULL, mynames = names(mylist)) {
   
   if (is.null(mylist)) mylist <- list()
   
-  if(length(mynames) != length(mylist)) stop("names argument has wrong length")
+  if (length(mynames) != length(mylist)) stop("names argument has wrong length")
   
   ## Prepare output
   names(mylist) <- mynames
@@ -246,7 +247,7 @@ datalist <- function(mylist, mynames = names(mylist)) {
 
 #' Generate objective list
 #' 
-#' @description An objective list contains an objective value, a gradient an a Hessian matrix
+#' @description An objective list contains an objective value, a gradient, and a Hessian matrix
 #' @param value numeric of length 1
 #' @param gradient named numeric
 #' @param hessian matrix with rownames and colnames according to gradient names
@@ -270,7 +271,7 @@ objframe <- function(mydata, deriv = NULL) {
                      "sigma", "residual", "weighted.residual")
   
   ok <- all(correct.names %in% names(mydata))
-  if(!ok) stop("mydata does not have required names")
+  if (!ok) stop("mydata does not have required names")
   
   out <- mydata[, correct.names]
   attr(out, "deriv") <- deriv
