@@ -162,9 +162,10 @@ prdfn <- function(pouter = NULL, parameters = names(pouter)) {
 }
 
 #' @export
-prdframe <- function(prediction, deriv = NULL, sensitivities = NULL, parameters = NULL) {
+prdframe <- function(prediction = NULL, deriv = NULL, sensitivities = NULL, parameters = NULL) {
   
-  out <- as.matrix(prediction)
+  out <- if (!is.null(prediction)) as.matrix(prediction) else matrix()
+  
   attr(out, "deriv") <- deriv
   attr(out, "sensitivities") <- sensitivities
   attr(out, "parameters") <- parameters
