@@ -100,12 +100,14 @@ parfn <- function() {
 }
 
 #' @export
-parframe <- function(x, parameters = colnames(x), metanames = NULL, obj.attributes = NULL) {
+parframe <- function(x = NULL, parameters = colnames(x), metanames = NULL, obj.attributes = NULL) {
   
-  out <- as.data.frame(x)
-  attr(x, "parameters") <- parameters
-  attr(x, "metanames") <- metanames
-  attr(x, "obj.attributes") <- obj.attributes
+  out <- if (!is.null(x)) as.data.frame(x) else data.frame()
+  
+  attr(out, "parameters") <- parameters
+  attr(out, "metanames") <- metanames
+  attr(out, "obj.attributes") <- obj.attributes
+  class(out) <- c("parframe", "data.frame")
   
   return(out)
   
