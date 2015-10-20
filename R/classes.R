@@ -10,7 +10,9 @@
 #' @param names character, the left-hand sides of the equation
 #' @return object of class \code{eqnvec}, basically a named character.
 #' @export
-eqnvec <- function(equations, names = NULL) {
+eqnvec <- function(equations = NULL, names = NULL) {
+  
+  if (is.null(equations)) return(c())
   
   if(is.null(names)) names <- names(equations)
   if(is.null(names)) stop("equations need names")
