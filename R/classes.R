@@ -176,7 +176,9 @@ prdframe <- function(prediction = NULL, deriv = NULL, sensitivities = NULL, para
 }
 
 #' @export
-prdlist <- function(mylist, mynames = names(mylist)) {
+prdlist <- function(mylist = NULL, mynames = names(mylist)) {
+  
+  if (is.null(mylist)) mylist <- list()
   
   if(length(mynames) != length(mylist)) stop("names argument has wrong length")
   
