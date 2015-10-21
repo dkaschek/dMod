@@ -140,26 +140,32 @@ parvec <- function(p, mynames = names(p), deriv = NULL) {
 
 ## Prediction classes ----------------------------------------------------
 
-
 #' @export
-prdfn <- function(pouter = NULL, parameters = names(pouter)) {
+prdfn <- function(..., pouter) {
   
-  # Empty prediction
+  myexpr <- as.expression(substitute(...))
+  
   myfn <- function(times, pars = pouter, forcings = NULL, events = NULL, deriv=TRUE){
-    
-    out <- matrix(times, ncol = 1)
-    colnames(out) <- "time"
-    
-    myderivs <- out
-    
-    prdframe(out, myderivs, names(pars))
-    
+   eval(myexpr) 
   }
   class(myfn) <- "prdfn"
   attr(myfn, "pouter") <- pouter
-  attr(myfn, "parameters") <- parameters
+  attr(myfn, "parameters") <- names(pouter)
   return(myfn)
   
+}
+
+#' @export
+prdfn0 <- function(pouter = NULL, parameters = names(pouter)) {
+  
+  # Empty prediction
+  prdfn({
+    out <- matrix(times, ncol = 1)
+    colnames(out) <- "time"
+    myderivs <- out
+    prdframe(out, myderivs, names(pars))
+  }, pouter = pouter)
+
 }
 
 #' @export
