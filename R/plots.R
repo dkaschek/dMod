@@ -250,7 +250,7 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scale
         data.frame(chisquare = values, 
                    name = n,
                    proflist = i,
-                   combination = paste(combinations[,j], collapse = " - "),
+                   combination = paste(combinations[,j], collapse = " -\n "),
                    x = paths[, combinations[1,j]],
                    y = paths[, combinations[2,j]])
       }))

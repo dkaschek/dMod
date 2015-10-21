@@ -308,7 +308,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   out <- c(value = lagrange.out$value, constraint = as.vector(constraint.out$value), stepsize = stepsize, gamma = gamma, valueData = lagrange.out$valueData, valuePrior = lagrange.out$valuePrior, ini)
 
   # Compute right profile
-  cat("Computer right profile\n")
+  cat("Compute right profile\n")
   direction <- 1
   gamma <- aControl$gamma
   stepsize <- sControl$stepsize
@@ -345,7 +345,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   }
   
   # Compute left profile
-  cat("\nComputer left profile\n")
+  cat("\nCompute left profile\n")
   i <- 0
   direction <- -1
   gamma <- aControl$gamma
