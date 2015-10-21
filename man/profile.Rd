@@ -5,8 +5,8 @@
 \title{Profile-likelihood (PL) computation}
 \usage{
 profile(obj, pars, whichPar, alpha = 0.05, limits = c(lower = -5, upper =
-  5), stepControl = NULL, algoControl = NULL, optControl = NULL,
-  verbose = FALSE, ...)
+  5), method = c("integrate", "optimize"), stepControl = NULL,
+  algoControl = NULL, optControl = NULL, verbose = FALSE, ...)
 }
 \arguments{
 \item{obj}{Objective function \code{obj(pars, fixed, ...)} returning a list with "value",
@@ -21,7 +21,10 @@ profile(obj, pars, whichPar, alpha = 0.05, limits = c(lower = -5, upper =
 \item{limits}{Numeric vector of length 2, the lower and upper deviance from the original
 value of \code{pars[whichPar]}}
 
-\item{stepControl}{List of arguments controlling the step adaption. Defaults to
+\item{method}{Character, either \code{"integrate"} or \code{"optimize"}. This is a short-cut for
+setting stepControl, algoControl and optControl by hand.}
+
+\item{stepControl}{List of arguments controlling the step adaption. Defaults to integration set-up, i.e.
 \code{list(stepsize = 1e-4, min = 0, max = Inf, atol = 1e-1, rtol = 1e-1, limit = 100)}}
 
 \item{algoControl}{List of arguments controlling the fast PL algorithm. defaults to
