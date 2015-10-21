@@ -7,7 +7,9 @@
 #' @param alpha Numeric, the significance level based on the chisquare distribution with df=1
 #' @param limits Numeric vector of length 2, the lower and upper deviance from the original 
 #' value of \code{pars[whichPar]}
-#' @param stepControl List of arguments controlling the step adaption. Defaults to 
+#' @param method Character, either \code{"integrate"} or \code{"optimize"}. This is a short-cut for
+#' setting stepControl, algoControl and optControl by hand.
+#' @param stepControl List of arguments controlling the step adaption. Defaults to integration set-up, i.e.
 #' \code{list(stepsize = 1e-4, min = 0, max = Inf, atol = 1e-1, rtol = 1e-1, limit = 100)}
 #' @param algoControl List of arguments controlling the fast PL algorithm. defaults to
 #' \code{list(gamma = 1, W = c("hessian", "identity"), reoptimize = FALSE, correction = 1, reg = 1e-6)}
@@ -85,16 +87,27 @@
 #' @import trust
 profile <- function(obj, pars, whichPar, alpha = 0.05, 
                           limits = c(lower = -Inf, upper = Inf), 
+                          method = c("integrate", "optimize"),
                           stepControl = NULL, 
                           algoControl = NULL,
                           optControl  = NULL,
                           verbose = FALSE,
                           ...) {
   
-  sControl <- list(stepsize = 1e-4, min = 0, max = Inf, atol = 1e-1, rtol = 1e-1, limit = 100)
-  aControl <- list(gamma = 1, W = c("hessian", "identity"), reoptimize = FALSE, correction = 1, reg = .Machine$double.eps)
-  oControl <- list(rinit = .1, rmax = 10, iterlim = 10, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))
+  # Initialize control parameters depending on method
+  method  <- match.arg(method)
+  if(method == "integrate") {
+    sControl <- list(stepsize = 1e-4, min = 0, max = Inf, atol = 1e-2, rtol = 1e-2, limit = 100)
+    aControl <- list(gamma = 1, W = "hessian", reoptimize = FALSE, correction = 1, reg = .Machine$double.eps)
+    oControl <- list(rinit = .1, rmax = 10, iterlim = 10, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))
+  }
+  if(method == "optimize") {
+    sControl <- list(stepsize = 1e-2, min = 0, max = Inf, atol = 1e-1, rtol = 1e-1, limit = 100)
+    aControl <- list(gamma = 0, W = "identity", reoptimize = TRUE, correction = 1, reg = 0)
+    oControl <- list(rinit = .1, rmax = 10, iterlim = 100, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))
+  }
   
+  # Substitute user-set control parameters
   if(!is.null(stepControl)) sControl[match(names(stepControl), names(sControl))] <- stepControl
   if(!is.null(algoControl)) aControl[match(names(algoControl), names(aControl))] <- algoControl
   if(!is.null(optControl )) oControl[match(names(optControl), names(oControl ))] <- optControl
@@ -109,9 +122,11 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   obj.opt <- obj
   obj.prof <- function(p, ...) {
     out <- obj(p, ...)
-    # Substitute hessian by the identity matrix
-    Id <- diag(1, length(out$gradient))
+    # If "identity", substitute hessian such that steps are in whichPar-direction.
+    Id <- diag(1/.Machine$double.eps, length(out$gradient))
+    Id[whichPar, whichPar] <- 1
     colnames(Id) <- rownames(Id) <- names(out$gradient)
+    
     W <- match.arg(aControl$W[1], c("hessian", "identity"))
     out$hessian <- switch(W,
                           "hessian" = out$hessian,
