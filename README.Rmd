@@ -56,6 +56,10 @@ pL <- list(noDegradation = P(trafo1),
 
 conditions <- names(pL)
 
+# Initialize with randomly chosen parameters
+set.seed(1)
+pouter <- structure(rnorm(length(outerpars), -2, .5), names = outerpars)
+
 ```
 
 ### Define the model prediction function
@@ -64,22 +68,14 @@ conditions <- names(pL)
 x0 <- Xs(model$func, model$extended)
 
 # Generate a high-level prediction function: trafo -> prediction -> observation
-x <- function(times, pouter, fixed=NULL, ...) {
-  
-  out <- lapply(conditions, function(cond) {
-    pinner <- pL[[cond]](pouter, fixed)
-    prediction <- x0(times, pinner, ...)
-    observation <- g(prediction, pinner, attach.input = TRUE)
-    return(observation)
-  })
-  
-  prdlist(out, conditions)
-  
-}
+x <- prdfn({
+  pinner <- pL[[condition]](pars, fixed)
+  prediction <- x0(times, pinner, ...)
+  g(prediction, pinner, attach.input = TRUE)
+}, pouter = pouter, conditions = conditions)
 
-# Initialize with randomly chosen parameters
-set.seed(1)
-pouter <- structure(rnorm(length(outerpars), -2, .5), names = outerpars)
+
+
 times <- 0:100
 
 plotPrediction(x(times, pouter))
@@ -113,27 +109,9 @@ plotCombined(x(times, pouter), data)
 
 ### Define an objective function to be minimized and run minimization by `trust()`
 ```{r trust}
-obj <- function(pouter, fixed=NULL, deriv=TRUE) {
-  
-  prediction <- x(timesD, pouter, fixed = fixed, deriv = deriv)
-  
-  # Apply res() and wrss() to compute residuals and the weighted residual sum of squares
-  out.data <- lapply(names(data), function(cn) wrss(res(data[[cn]], prediction[[cn]])))
-  out.data <- Reduce("+", out.data)
-  
-  # Working with weak prior (helps avoiding runaway solutions of the optimization problem)
-  out.prior <- constraintL2(pouter, prior, sigma = 10)
-  
-  out <- out.prior + out.data
-  
-  # Comment in if you want to see the contribution of prior and data
-  # e.g. in profile() and plotProfile()
-  attr(out, "valueData") <- out.data$value
-  attr(out, "valuePrior") <- out.prior$value
-  
-  return(out)
-  
-}
+obj <- objfn(data = data, x = x, pouter = pouter, conditions = conditions, {
+  constraintL2(pouter, prior, sigma = 10)
+})
 
 # Optimize the objective function
 prior <- structure(rep(0, length(pouter)), names = names(pouter))
@@ -148,7 +126,8 @@ plotCombined(x(times, myfit$argument), data)
 ```{r profiles}
 library(parallel)
 bestfit <- myfit$argument
-profiles <- do.call(c, mclapply(names(bestfit), function(n) profile(obj, bestfit, n, limits=c(-10, 10)), mc.cores=4))
+profiles <- mclapply(names(bestfit), function(n) profile(obj, bestfit, n, limits=c(-10, 10)), mc.cores=4)
+names(profiles) <- names(bestfit)
 
 # Take a look at each parameter
 plotProfile(profiles)

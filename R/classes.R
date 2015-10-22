@@ -75,34 +75,17 @@ eqnlist <- function(smatrix = NULL, states = colnames(smatrix), rates = NULL, vo
 ## Parameter classes --------------------------------------------------------
 
 
-#' @export
-parfn <- function() {
-  
-  myfn <- function(p, fixed=NULL, deriv = TRUE) {
-    
-    # Inherit from p
-    dP <- attr(p, "deriv", exact = TRUE)
-    
-    
-    myderiv <- NULL
-    if (deriv) {
-      myderiv <- diag(x = 1, nrow = length(p), ncol = length(p))
-      rownames(myderiv) <- colnames(myderiv) <- names(p)
-      if (!is.null(dP)) myderiv <- myderiv %*% submatrix(dP, rows = colnames(myderiv))
-    }
-    
-    parvec(p, deriv = myderiv)
-    
-  }
-  class(myfn) <- "parfn"
-  return(myfn)
-    
-}
+
 
 #' @export
 parframe <- function(x = NULL, parameters = colnames(x), metanames = NULL, obj.attributes = NULL) {
   
-  out <- if (!is.null(x)) as.data.frame(x) else data.frame()
+  if (!is.null(x)) {
+    rownames(x) <- NULL
+    out <- as.data.frame(x)
+  } else {
+    out <- data.frame()
+  }
   
   attr(out, "parameters") <- parameters
   attr(out, "metanames") <- metanames
@@ -141,12 +124,31 @@ parvec <- function(p, mynames = names(p), deriv = NULL) {
 ## Prediction classes ----------------------------------------------------
 
 #' @export
-prdfn <- function(..., pouter) {
+prdfn <- function(..., pouter = NULL, conditions = "1") {
+  
+  force(pouter)
+  force(conditions)
   
   myexpr <- as.expression(substitute(...))
   
-  myfn <- function(times, pars = pouter, forcings = NULL, events = NULL, deriv=TRUE){
-   eval(myexpr) 
+  # Dummy constructor
+  is.nullexpr <- deparse(myexpr)[1] == "expression(NULL)"
+  if (is.nullexpr) myexpr <- expression({
+    out <- matrix(times, ncol = 1)
+    colnames(out) <- "time"
+    myderivs <- out
+    prdframe(out, myderivs, names(pars))
+  })
+  
+  # Prediction function
+  myfn <- function(times, pars = pouter, fixed = NULL, deriv = TRUE, ...){
+    
+    prdlist(
+      lapply(conditions, function(condition) {
+        eval(myexpr)    
+      }),
+      conditions
+    )
   }
   class(myfn) <- "prdfn"
   attr(myfn, "pouter") <- pouter
@@ -155,18 +157,6 @@ prdfn <- function(..., pouter) {
   
 }
 
-#' @export
-prdfn0 <- function(pouter = NULL, parameters = names(pouter)) {
-  
-  # Empty prediction
-  prdfn({
-    out <- matrix(times, ncol = 1)
-    colnames(out) <- "time"
-    myderivs <- out
-    prdframe(out, myderivs, names(pars))
-  }, pouter = pouter)
-
-}
 
 #' @export
 prdframe <- function(prediction = NULL, deriv = NULL, sensitivities = NULL, parameters = NULL) {
@@ -197,23 +187,6 @@ prdlist <- function(mylist = NULL, mynames = names(mylist)) {
   
 }
 
-
-## Observation classes -------------------------------------------------
-
-#' @export
-obsfn <- function() {
-  
-  # Identity observation
-  myfn <- function(out, pars, attach.input = FALSE) {
-    
-    prdframe(out, attr(out, "deriv"), names(pars))
-    
-  }
-  
-  class(myfn) <- "obsfn"
-  return(myfn)
-    
-}
 
 
 ## Data classes ----------------------------------------------------------------
@@ -249,6 +222,44 @@ datalist <- function(mylist, mynames = names(mylist)) {
 
 
 ## Objective classes ---------------------------------------------------------
+
+
+#' @export
+objfn <- function(..., data, x, pouter = NULL, conditions = names(data)) {
+  
+  force(data)
+  force(x)
+  force(pouter)
+  force(conditions)
+  
+  myexpr <- as.expression(substitute(...))
+  timesD <- sort(c(0, unique(do.call(c, lapply(data, function(d) d$time)))))
+  
+  myfn <- function(pouter = pouter, fixed = NULL, deriv=TRUE){
+    
+    prediction <- x(times = timesD, pars = pouter, fixed = fixed, deriv = deriv)
+    
+    # Apply res() and wrss() to compute residuals and the weighted residual sum of squares
+    out.data <- lapply(conditions, function(cn) wrss(res(data[[cn]], prediction[[cn]])))
+    out.data <- Reduce("+", out.data)
+    
+    # Evaluate user-defined contributions, e.g. priors
+    out.user <- eval(myexpr)
+    #attributes.user <- attributes(out.user)
+    #attributes.user <- attributes.user[!names(attributes.user) %in% c("names", "class")]
+    
+    # Combine contributions and attach attributes
+    out <- out.data + out.user
+    attr(out, "data") <- out.data$value
+    attr(out, "user") <- out.user$value
+    return(out)
+    
+      
+  }
+  class(myfn) <- "objfn"
+  return(myfn)
+  
+}
 
 
 #' Generate objective list

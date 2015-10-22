@@ -319,7 +319,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
            constraint = as.vector(constraint.out$value), 
            stepsize = stepsize, 
            gamma = gamma, out.attributes, ini)
-
+  
   # Compute right profile
   cat("Compute right profile\n")
   direction <- 1
@@ -359,7 +359,6 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     if(lagrange.out$value > threshold | constraint.out$value > limits[2]) break
     
     i <- i + 1
-    
     
   }
   

@@ -152,10 +152,10 @@ plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
     proflist <- arglist[[i]]
     do.valueData <- "valueData" %in% colnames(proflist[[1]])
     do.valuePrior <- "valuePrior" %in% colnames(proflist[[1]])
-    obj.attributes <- 
+    
     
     # Discard faulty profiles
-    proflistidx <- sapply(proflist, function(prf) grepl(class(prf), "matrix"))
+    proflistidx <- sapply(proflist, function(prf) any(class(prf) == "data.frame"))
     proflist <- proflist[proflistidx]
     if (sum(!proflistidx) > 0) {
       warning(sum(!proflistidx), " profiles discarded.", call. = FALSE)
@@ -163,20 +163,22 @@ plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
     
     subdata <- do.call(rbind, lapply(names(proflist), function(n) {
       
-      values <- proflist[[n]][,1]
-      zerovalue <- proflist[[n]]["out",1]
-      parvalues <- proflist[[n]][,n]
+      values <- proflist[[n]][, "value"]
+      origin <- which.min(abs(proflist[[n]][, "constraint"]))
+      zerovalue <- proflist[[n]][origin, "value"]
+      parvalues <- proflist[[n]][, n]
       deltavalues <- values - zerovalue
 
-      sub <- subset(data.frame(name = n, delta = deltavalues, par = parvalues, proflist = i, mode="total", is.zero = rownames(proflist[[n]]) == "out"), delta <= maxvalue)
+      sub <- subset(data.frame(name = n, delta = deltavalues, par = parvalues, proflist = i, mode="total", is.zero = 1:nrow(proflist[[n]]) == origin), delta <= maxvalue)
       
       obj.attributes <- attr(proflist[[n]], "obj.attributes")
       if(!is.null(obj.attributes)) {
         for(mode in obj.attributes) {
           valuesO <- proflist[[n]][, mode]
-          zerovalueO <- proflist[[n]]["out", mode]
+          originO <- which.min(abs(proflist[[n]][, "constraint"]))
+          zerovalueO <- proflist[[n]][originO, mode]
           deltavaluesO <- valuesO - zerovalueO
-          sub <- rbind(sub,subset(data.frame(name = n, delta = deltavaluesO, par = parvalues, proflist = i, mode=mode, is.zero = rownames(proflist[[n]]) == "out"), delta <= maxvalue))
+          sub <- rbind(sub,subset(data.frame(name = n, delta = deltavaluesO, par = parvalues, proflist = i, mode=mode, is.zero = 1:nrow(proflist[[n]]) == originO), delta <= maxvalue))
         }
       }
       
@@ -201,7 +203,10 @@ plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
   if(!is.null(parlist)){
     delta <- 0
     if("value" %in% colnames(parlist)){
-      minval <- min(unlist(lapply(1:length(arglist), function(i){ zerovalue <- arglist[[i]][[1]]["out",1]   })))
+      minval <- min(unlist(lapply(1:length(arglist), function(i){ 
+        origin <- which.min(arglist[[i]][[1]][, "constraint"])
+        zerovalue <- arglist[[i]][[1]][origin, 1]  
+      })))
       values <- parlist[,"value"]
       parlist <- parlist[,!(colnames(parlist) %in% "value")]
       delta <- as.numeric(values - minval)
@@ -237,7 +242,8 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scale
     subdata <- do.call(rbind, lapply(whichPar, function(n) {
       # chose a profile
       parameters <- attr(proflist[[n]], "parameters")
-      paths <- submatrix(proflist[[n]], cols = parameters)
+      # matirx
+      paths <- as.matrix(proflist[[n]][, parameters])
       values <- proflist[[n]][,1]
       if(relative) 
         for(j in 1:ncol(paths)) paths[, j] <- paths[, j] - paths[which.min(values), j]
