@@ -203,14 +203,14 @@ prdlist <- function(mylist = NULL, mynames = names(mylist)) {
 datalist <- function(mylist, mynames = names(mylist)) {
   
   ## Check properties
-  is.data.frame <- all(sapply(mylist, class) == "data.frame")
-  if(!is.data.frame) stop("list of data.frame expected")
+  is.data.frame <- sapply(mylist, class) == "data.frame"
+  if (!all(is.data.frame)) stop("list of data.frame expected")
   
   correct.names <- c("name", "time", "value", "sigma")
   have.correct.names <- sapply(mylist, function(d) all(colnames(d) %in% correct.names))
-  if(!all(have.correct.names)) stop(paste("data.frames should have names:", correct.names, collapse = " "))
+  if (!all(have.correct.names)) stop(paste("data.frames should have names:", correct.names, collapse = " "))
   
-  if(length(mynames) != length(mylist)) stop("names argument has wrong length")
+  if (length(mynames) != length(mylist)) stop("names argument has wrong length")
   
   ## Prepare output
   names(mylist) <- mynames
