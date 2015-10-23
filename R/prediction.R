@@ -51,7 +51,7 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
   #Additional events for resetting the sensitivities when events are supplied
   myevents.addon <- NULL
   if(!is.null(myevents)) {
-    myevents.addon <- lapply(1:nrow(events), function(i) {
+    myevents.addon <- lapply(1:nrow(myevents), function(i) {
       newevent <- with(myevents[i, ], {
         newvar <- sensvar[senssplit.1 == var]
         newtime <- time
@@ -74,13 +74,13 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
   sensGrid <- expand.grid(variables, c(svariables, sparameters), stringsAsFactors=FALSE)
   sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")  
   
-  P2X <- function(times, pars, forcings = myforcings, events = myevents, deriv=TRUE){
-    
-    myforcings <- forcings
-    myevents <- events
+  P2X <- function(times, pars, forcings = NULL, events = NULL, deriv=TRUE){
     
     yini <- pars[variables]
     mypars <- pars[parameters]
+    
+    if(is.null(forcings)) forcings <- myforcings
+    if(is.null(events)) events <- myevents
     
     myderivs <- NULL
     mysensitivities <- NULL
@@ -88,7 +88,7 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
       
       # Evaluate model without sensitivities
       loadDLL(func)
-      if(!is.null(myforcings)) forc <- setForcings(func, myforcings) else forc <- NULL
+      if(!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
       out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=mypars, forcings=forc, events = list(data = events)), optionsOde))
       #out <- cbind(out, out.inputs)
       
@@ -97,7 +97,7 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
       
       # Evaluate extended model
       loadDLL(extended)
-      if(!is.null(myforcings)) forc <- setForcings(extended, myforcings) else forc <- NULL
+      if(!is.null(forcings)) forc <- setForcings(extended, forcings) else forc <- NULL
       outSens <- do.call(odeC, c(list(y=c(yini, yiniSens), times=times, func=extended, parms=mypars, 
                                       forcings=forc, 
                                       events = list(data = rbind(events, myevents.addon))), optionsSens))
@@ -148,16 +148,15 @@ Xf <- function(func, forcings=NULL, events=NULL, optionsOde=list(method="lsoda")
   yini <- rep(0,length(variables))
   names(yini) <- variables
   
-  P2X <- function(times, P, changedForcings = NULL, events = myevents){
+  P2X <- function(times, P, forcings = myforcings, events = myevents){
     
-    if(!is.null(changedForcings)) myforcings <- changedForcings
     yini[names(P[names(P) %in% variables])] <- P[names(P) %in% variables]
     pars <- P[parameters]
     #alltimes <- unique(sort(c(times, forctimes)))
     
     loadDLL(func)
-    if(!is.null(myforcings)) forc <- setForcings(func, myforcings) else forc <- NULL
-    out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = events)), optionsOde))
+    if(!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
+    out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = myevents)), optionsOde))
     #out <- cbind(out, out.inputs)      
       
     prdframe(out, deriv = NULL, parameters = names(P))
@@ -493,9 +492,6 @@ Xv <- function(func_fa, func_l, forcings=NULL, events=NULL, data, optionsBvp=NUL
   
   
   P2X <- function(times, pars, forcings = myforcings, events = myevents, eps = 1, atol=1e-4, nmax = 50*length(times), guess=NULL, deriv = TRUE){
-    
-    myforcings <- forcings
-    myevents <- events
     
     # Initials and parameters
     yini <- yend <- mypars <- NULL
