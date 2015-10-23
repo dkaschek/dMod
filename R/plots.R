@@ -524,6 +524,19 @@ plotObjective <- function(out) {
   
 }
 
+#' @export
+plotValues <- function(pars, values = "value") {
+  
+  mycolnames <- colnames(pars)
+  mycolnames[mycolnames == values] <- "value"
+  colnames(pars) <- mycolnames
+ 
+  pars <- cbind(index = 1:nrow(pars), pars)
+   
+  ggplot(pars, aes(x = index, y = value)) + geom_point() + 
+    xlab("index") + ylab("value")
+  
+}
 
 
 plotFitList <- function(fitlist) {
