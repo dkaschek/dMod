@@ -340,10 +340,12 @@ print.eqnlist <- function(eqnlist) {
 pander.eqnlist<- function(eqnlist) {
   
   pander::panderOptions("table.alignment.default", "left")
+  pander::panderOptions("table.split.table", Inf)
+  pander::panderOptions("table.split.cells", Inf)
   out <- getReactions(eqnlist)
   exclude <- "Check"
-  out <- out[,setdiff(colnames(out), exclude)]
-  out$Rate <- paste0("\t", format.eqnvec(as.character(out$Rate)))
+  out <- out[, setdiff(colnames(out), exclude)]
+  out$Rate <- paste0(format.eqnvec(as.character(out$Rate)))
   pander::pander(out)
   
 }
@@ -410,11 +412,12 @@ format.eqnvec <- function(eqnvec) {
   eqns <- sapply(eqnvec, function(eqn) {
     parser.out <- getParseData(parse(text = eqn, keep.source = TRUE))
     parser.out <- subset(parser.out, terminal == TRUE)
+    parser.out$text[parser.out$text == "*"] <- "·"
     out <- paste(parser.out$text, collapse = "")
     return(out)
   })
   
-  patterns <- c("+", "-", "*", "/")
+  patterns <- c("+", "-", "·", "/")
   for(p in patterns) eqns <- gsub(p, paste0(" ", p, " "), eqns, fixed = TRUE)
   
   return(eqns)
@@ -442,9 +445,11 @@ print.eqnvec <- function(eqnvec) {
 pander.eqnvec <- function(eqnvec) {
   
   pander::panderOptions("table.alignment.default", "left")
+  pander::panderOptions("table.split.table", Inf)
+  pander::panderOptions("table.split.cells", Inf)
   out <- as.data.frame(unclass(eqnvec), stringsAsFactors = FALSE)
   colnames(out) <- "" #  as.character(substitute(eqnvec))
-  out[, 1] <- paste0("\t\t", format.eqnvec(out[, 1]))
+  out[, 1] <- format.eqnvec(out[, 1])
   pander::pander(out)
   
 }
@@ -508,6 +513,13 @@ c.eqnvec <- function(...) {
   
   as.eqnvec(out)
   
+}
+
+#' @export
+"[.eqnvec" <- function(x, ...) {
+  out <- unclass(x)[...]
+  class(out) <- "eqnvec"
+  return(out)
 }
 
 
