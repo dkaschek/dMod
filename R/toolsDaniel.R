@@ -5,14 +5,12 @@
 #' 
 #' @description Generate an R code of the expression that is copied via \code{scp}
 #' to any machine (ssh-key needed). Then collect the results.
-#' @param expr An R expression
-#' @param filename Character, defining the filename of the temporary file
+#' @param ... Some R code
+#' @param filename Character, defining the filename of the temporary file. Random
+#' file name ist chosen if NULL.
 #' @param machine Character, e.g. \code{"localhost"} or \code{"knecht1.fdm.uni-freiburg.de"}
 #' @param input Character vector, the objects in the workspace that are stored
 #' into an R data file and copied to the remove machine.
-#' @param output Character vector, the objects in the workspace after evaluation of the
-#' code that are stored into a results file. If \code{NULL}, just objects with names
-#' different from elements in \code{input} are stored.
 #' @param compile Logical. If \code{TRUE}, C files are copied and compiled on the remote machine.
 #' Otherwise, the .so files are copied.
 #' @return List of functions \code{check}, \code{get()} and \code{purge()}. 
@@ -24,14 +22,20 @@
 #' @export
 #' @examples
 #' 
-#' out <- runbg(expression(M <- matrix(9:1, 3, 3)), 
-#'              filename = "testrunbg", 
-#'              machine = "localhost", 
-#'              output = c("M"))
+#' out <- runbg(machine = "localhost", {
+#'          M <- matrix(9:1, 3, 3)}
+#'        )
 #' out$get()
-#' print(M)
+#' print(.runbgOutput)
 #' out$purge()
-runbg <- function(expr, filename = "tmp", machine = "localhost", input = ls(.GlobalEnv), output = NULL, compile = FALSE) {
+runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.GlobalEnv), compile = FALSE) {
+  
+  
+  expr <- as.expression(substitute(...))
+  
+  # Set file name
+  if (is.null(filename))
+    filename <- paste0("tmp_", paste(sample(c(0:9, letters), 5, replace = TRUE), collapse = ""))
   
   # Save current workspace
   save(list = input, file = paste0(filename, ".RData"))
@@ -42,10 +46,11 @@ runbg <- function(expr, filename = "tmp", machine = "localhost", input = ls(.Glo
   pack <- paste(paste0("library(", pack, ")"), collapse = "\n")
   
   # Define outputs
-  if(is.null(output))
-    output <- "setdiff(.newobjects, .oldobjects)"
-  else
-    output <- paste0("c('", paste(output, collapse = "', '"), "')")
+  output <- ".runbgOutput"
+  # if(is.null(output))
+  #   output <- "setdiff(.newobjects, .oldobjects)"
+  # else
+  #   output <- paste0("c('", paste(output, collapse = "', '"), "')")
  
   compile.line <- NULL
   if(compile)
@@ -57,11 +62,11 @@ runbg <- function(expr, filename = "tmp", machine = "localhost", input = ls(.Glo
     paste0("setwd('~/", filename, "_folder')"),
     compile.line,
     paste0("load('", filename, ".RData')"),
-    ".oldobjects <- ls()",
-    as.character(expr),
-    ".newobjects <- ls()",
+    #".oldobjects <- ls()",
+    paste0(".runbgOutput <- ", as.character(expr)),
+    #".newobjects <- ls()",
     
-    paste0("save(list =", output ,", file = '", filename, "_result.RData')"),
+    paste0("save(", output ,", file = '", filename, "_result.RData')"),
     sep = "\n"
   )
   
