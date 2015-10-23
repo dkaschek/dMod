@@ -78,7 +78,7 @@ x <- prdfn({
 
 times <- 0:100
 
-plotPrediction(x(times, pouter))
+plot(x(times, pouter))
 
 ```
 
@@ -103,7 +103,8 @@ data <- datalist(
 timesD <- sort(unique(unlist(lapply(data, function(d) d$time))))
 
 # Compare data to prediction
-plotCombined(x(times, pouter), data)
+plot(data) + geom_line()
+plot(x(times, pouter), data)
 
 ```
 
@@ -117,7 +118,7 @@ obj <- objfn(data = data, x = x, pouter = pouter, conditions = conditions, {
 prior <- structure(rep(0, length(pouter)), names = names(pouter))
 myfit <- trust(obj, pouter, rinit = 1, rmax = 10)
 
-plotCombined(x(times, myfit$argument), data)
+plot(x(times, myfit$argument), data)
 
 ```
 
