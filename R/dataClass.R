@@ -18,7 +18,8 @@ as.datalist <- function(dataframe, split.by = "condition") {
 #' @export
 as.datalist.data.frame <- function(dataframe, split.by = "condition") {
   
-  remaining.names <- setdiff(names(dataframe), split.by)
+  #remaining.names <- setdiff(names(dataframe), split.by)
+  remaining.names <- c("name", "time", "value", "sigma")
   
   conditions <- lapply(split.by, function(n) dataframe[, n])
   splits <- do.call(interaction, c(conditions, list(sep = "_")))
@@ -42,7 +43,12 @@ print.datalist <- function(datalist) {
   }
 }
 
-
+#' @export
+"[.datalist" <- function(x, ...) {
+  out <- unclass(x)[...]
+  class(out) <- "datalist"
+  return(out)
+}
 
 #' Plot a list data points
 #' 
@@ -60,19 +66,6 @@ print.datalist <- function(datalist) {
 #' @export
 plot.datalist <- function (data, ..., scales = "free", facet = "wrap") {
   
-  data <- subset(lbind(data), ...)
-  
-  if(facet == "wrap")
-    p <-  ggplot(data, aes(x = time, y = value, ymin = value - sigma, 
-                           ymax = value + sigma, group = condition, color = condition)) + facet_wrap(~name, scales = scales)
-  if(facet == "grid")
-    p <- ggplot(data, aes(x = time, y = value, ymin = value - sigma, 
-                          ymax = value + sigma)) +  facet_grid(name~condition, scales = scales)
-  
-  p <- p + geom_point() + geom_errorbar(width = 0)
-  
-  
-  attr(p, "data") <- data
-  return(p)
+  plotCombined(prediction = NULL, data = data, ..., scales = scales, facet = facet)
   
 }

@@ -40,6 +40,13 @@ print.parvec <- function(p, ...) {
 }
 
 
+#' @export
+"[.parvec" <- function(x, ...) {
+  out <- unclass(x)[...]
+  deriv <- attr(x, "deriv")[..., ]
+  parvec(out, deriv = deriv)
+  return(out)
+}
 
 
 
