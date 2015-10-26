@@ -43,31 +43,31 @@ eqnvec <- function(equations = NULL, names = NULL) {
 #' @return An object of class \code{eqnlist}, basically a list.
 eqnlist <- function(smatrix = NULL, states = colnames(smatrix), rates = NULL, volumes = NULL, description = NULL) {
   
-  # Do dimension checks when generating non-empty eqnlist
+  # Dimension checks and preparations for non-empty argument list.
   if (all(!is.null(c(smatrix, states, rates)))) {
+    #Dimension checks
     d1 <- dim(smatrix)
     l2 <- length(states)
     l3 <- length(rates)
-    
     if (l2 != d1[2]) stop("Number of states does not coincide with number of columns of stoichiometric matrix")
     if (l3 != d1[1]) stop("Number of rates does not coincide with number of rows of stoichiometric matrix")
+    
+    # Prepare variables
+    smatrix <- as.matrix(smatrix)
+    colnames(smatrix) <- states
+    if (is.null(description)) {
+      description <- 1:nrow(smatrix)
+    }
   }
-  
-  colnames(smatrix) <- states
   
   out <- list(smatrix = smatrix,
               states = as.character(states),
               rates = as.character(rates),
               volumes = volumes,
               description = as.character(description))
-  
-  
   class(out) <- "eqnlist"
   
-  
   return(out)
-  
-  
 }
 
 
