@@ -29,6 +29,38 @@ as.eqnlist.data.frame <- function(data, volumes = NULL) {
   
 }
 
+
+#' @export
+is.eqnlist <- function(x) {
+  
+  #Empty list
+  if (is.null(x$smatrix)) {
+    if (length(x$states) == 0 &&
+        length(x$rates) == 0 &&
+        is.null(x$volumes) &&
+        length(x$description) == 0
+    ) {
+      return(TRUE)
+    } else {
+      return(FALSE)
+    }
+  } else {
+    #Non-empty list
+    if (inherits(x, "eqnlist") &&
+        all(names(x) == c("smatrix", "states", "rates", "volumes", "description")) &&
+        all(names(x$smatrix) == names(x$states)) &&
+        dim(x$smatrix)[1] == length(x$rates) &&
+        dim(x$smatrix)[2] == length(x$states) &&
+        is.matrix(x$smatrix)
+    ) {
+      return(TRUE)
+    } else {
+      return(FALSE)
+    }
+  }
+}
+
+
 ## Class "eqnlist" and its methods ------------------------------------------
 
 #' Generate a table of reactions (data.frame) from an equation list
@@ -398,6 +430,18 @@ c.eqnlist <- function(...) {
 }
 
 
+#' @export
+is.eqnvec <- function(x) {
+  if (inherits(x, "eqnvec") &&
+      length(x) == length(names(x))
+  )
+    return(TRUE)
+  
+  else
+    return(FALSE)
+}
+
+
 ## Class "eqnvec" and its methods --------------------------------------------
 
 
@@ -435,8 +479,10 @@ print.eqnvec <- function(eqnvec) {
   out <- as.data.frame(unclass(eqnvec))
   colnames(out) <- ""
   print(out)
-  
 }
+
+
+
 #' Pander on equation vector
 #'
 #' @param object of class \link{eqnvec}. 
@@ -500,19 +546,20 @@ dot.eqnvec <- function(observable, eqnlist) {
     
   })
   
- 
   as.eqnvec(newodes)
-  
 }
+
 
 #'@export
 c.eqnvec <- function(...) {
  
   out <- lapply(list(...), unclass)
   out <- do.call(c, out)
+  if (any(duplicated(names(out)))) {
+    stop("Names must be unique")
+  }
   
   as.eqnvec(out)
-  
 }
 
 #' @export
