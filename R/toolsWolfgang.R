@@ -590,31 +590,16 @@ msnarrow <- function(center, spread, fits = 100, safety = "", ...) {
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'
 #' @export
-msrestore <- function(folder) {
+load.parlist <- function(folder) {
   # Read in all fits
   m_fileList <- dir(folder)
-  m_fitList <- sapply(m_fileList, function(file) {
-    fit <- readRDS(file.path(folder, file))
-    if (any(names(fit) == "value")) {
-      return(data.frame(
-        index = fit$index,
-        value = fit$value,
-        converged = fit$converged,
-        iterations = fit$iterations,
-        as.data.frame(as.list(fit$argument))
-      ))
-    } else {
-      return(NULL)
-    }
+  m_parVec <- lapply(m_fileList, function(file) {
+    return(readRDS(file.path(folder, file)))
   })
-  m_fitList <- do.call(rbind, m_fitList)
   
-  # Sort m_fitList
-  if (!is.null(m_fitList)) {
-    m_fitList <- m_fitList[order(m_fitList$value),]
-  }
+  class(m_parVec) <- c("parlist", "list")
   
-  return(m_fitList)
+  return(m_parVec)
 }
 
 

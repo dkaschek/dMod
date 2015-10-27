@@ -1,4 +1,77 @@
+## Methods for the class parlist -----------------------------------------------
 
+
+#' export
+summary.parlist <- function(x) {
+  # Statistics
+  m_stat <- stat.parlist(x)
+  m_error <- sum(m_stat == "error")
+  m_converged <- sum(m_stat == "converged")
+  m_notConverged <- sum(m_stat == "notconverged")
+  m_sumStatus <- sum(m_error, m_converged, m_notConverged)
+  m_total <- length(m_stat)
+  
+  # Best and worst fit
+  m_parframe <- as.parframe(x)
+  m_order <- order(m_parframe$value)
+  m_bestWorst <- m_parframe[c(m_order[1], tail(m_order, 1)),]
+  rownames(m_bestWorst) <- c("best", "worst")
+  cat("Results of the best and worst fit\n")
+  print(m_bestWorst)
+  
+  cat("\nStatistics of fit outcome",
+      "\nFits aborted:       ", m_error,
+      "\nFits not converged: ", m_notConverged,
+      "\nFits converged:     ", m_converged,
+      "\nFits total:         ", m_sumStatus, " [", m_total, "]", sep = "")
+}
+
+
+
+#' Gather statistics of a fitlist
+#' @param x The fitlist
+stat.parlist <- function(x) {
+  status <- do.call(rbind, lapply(x, function(fit) {
+    if (any(names(fit) == "error")) {
+      return("error")
+    } else {
+      if (fit$converged) {
+        return("converged")
+      } else {
+        return("notconverged")
+      }
+    }
+  }))
+  
+  rownames(status) <- 1:length(status)
+  colnames(status) <- "fit status"
+  
+  return(status)
+}
+
+
+#' @export
+as.parframe <- function(x, ...) {
+  UseMethod("as.parframe", x)
+}
+
+#' @export
+as.parframe.parlist <- function(x) {
+  m_stat <- stat.parlist(x)
+  m_metanames <- c("index", "value", "converged", "iterations")
+  m_parframe <- do.call(rbind, lapply(x[m_stat != "error"], function(fit) {
+      data.frame(
+        index = fit$index,
+        value = fit$value,
+        converged = fit$converged,
+        iterations = fit$iterations,
+        as.data.frame(as.list(fit$argument))
+      )
+  }))
+  m_parframe <- parframe(m_parframe, parameters = names(x[[1]]$parinit), metanames = m_metanames)
+  
+  return(m_parframe)
+}
 
 
 
@@ -47,6 +120,10 @@ print.parvec <- function(p, ...) {
   parvec(out, deriv = deriv)
   return(out)
 }
+
+
+
+
 
 
 
