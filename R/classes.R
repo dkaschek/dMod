@@ -76,7 +76,18 @@ eqnlist <- function(smatrix = NULL, states = colnames(smatrix), rates = NULL, vo
 
 
 
-
+#' Generate a paramter frame
+#'
+#' @description A parameter frame is a data.frame where the rows correspond to different
+#' parameter specifications. The columns are divided into three parts. (1) the meta-information
+#' columns (e.g. index, value, constraint, etc.), (2) the attributes of an objective function
+#' (e.g. data contribution and prior contribution) and (3) the parameters.
+#' @param x data.frame.
+#' @param parameters character vector, the names of the parameter columns.
+#' @param metanames character vector, the names of the meta-information columns.
+#' @param obj.attributes character vector, the names of the objective function attributes.
+#' @return An object of class \code{parframe}, i.e. a data.frame with attributes for the
+#' different names. Inherits from data.frame.
 #' @export
 parframe <- function(x = NULL, parameters = colnames(x), metanames = NULL, obj.attributes = NULL) {
   
@@ -108,6 +119,17 @@ parlist <- function(mylist, myframe) {
   
 }
 
+
+#' Parameter vector
+#' 
+#' @description A parameter vector is a named numeric vector (the parameter values)
+#' together with an "deriv" attribute (the Jacobian of a parameter transformation by which
+#' the parameter vector was generated).
+#' @param p numeric or named numeric, the parameter values
+#' @param mynames character vector, the parameter names
+#' @param deriv matrix with rownames according to \code{mynames} and colnames
+#' according to the names of the parameter by which \code{p} was generated.
+#' @return An object of class \code{parvec}, i.e. a named numeric vector with attribute "deriv".
 #' @export
 parvec <- function(p, mynames = names(p), deriv = NULL) {
   
@@ -123,6 +145,22 @@ parvec <- function(p, mynames = names(p), deriv = NULL) {
 
 ## Prediction classes ----------------------------------------------------
 
+#' Prediction function
+#' 
+#' @description A prediction function is a function \code{x(times, pars, fixed, deriv, ...)}
+#' which returns a list of model predictions. Each entry of the list is a \link{prdframe}
+#' as being produced by a low-level prediction function, see e.g. \link{Xs}. The different entries
+#' correspond to different experimental conditions which are supposed to be matched to a
+#' \link{datalist}.
+#' @param ... an R code by which the prediction function is composed. Available keywords are
+#' \code{time}, \code{pars}, \code{fixed} and \code{deriv}. Any other object being used in the
+#' expression can either be passed by the \code{...} argument of the returned function or
+#' must be available in the global environment.
+#' @param pouter named numeric, optional parameter vector for initialization
+#' @param conditions character vector, names of the experimental conditions, i.e. the
+#' names of the prediction list returnd by the prediction function.
+#' @return Object of class \code{prdfn}, i.e. a function \code{x(times, pars, fixed, deriv, ...)}
+#' which returns a \link{prdlist}.
 #' @export
 prdfn <- function(..., pouter = NULL, conditions = "1") {
   
@@ -157,7 +195,19 @@ prdfn <- function(..., pouter = NULL, conditions = "1") {
   
 }
 
-
+#' Prediction frame
+#' 
+#' @description A prediction frame is used to store a model description in a matrix. The columns
+#' of the matrix are "time" and one column per state. The prediction frame has attributes "deriv",
+#' the matrix of sensitivities with respect to "outer parameters" (see \link{P}), an attribute
+#' "sensitivities", the matrix of sensitivities with respect to the "inner parameters" (the model
+#' parameters, left-hand-side of the parameter transformation) and an attributes "parameters", the
+#' names of the outer parameters.
+#' @param prediction matrix of model prediction
+#' @param deriv matrix of sensitivities wrt outer parameters
+#' @param sensitivities matrix of sensitivitie wrt inner parameters
+#' @param parameters names of the outer paramters
+#' @return Object of class \code{prdframe}, i.e. a matrix with other matrices and vectors as attributes.
 #' @export
 prdframe <- function(prediction = NULL, deriv = NULL, sensitivities = NULL, parameters = NULL) {
   
@@ -172,6 +222,14 @@ prdframe <- function(prediction = NULL, deriv = NULL, sensitivities = NULL, para
   
 }
 
+#' Prediction list
+#' 
+#' @description A description list is used to store a list of model predictions
+#' from different prediction functions or the same prediction function with different
+#' parameter specifications. Each entry of the list is a \link{prdframe}.
+#' @param mylist list of prediction frames
+#' @param mynames character vector, the list names, e.g. the names of the experimental
+#' conditions.
 #' @export
 prdlist <- function(mylist = NULL, mynames = names(mylist)) {
   
@@ -195,7 +253,8 @@ prdlist <- function(mylist = NULL, mynames = names(mylist)) {
 #' 
 #' @description The datalist object stores time-course data in a list of data.frames.
 #' The names of the list serve as identifiers, e.g. of an experimental condition, etc.
-#' @param mylist list of data.frame, each data.frame is expected to have columns "name" (factor or character),
+#' @param mylist list of data.frame, each data.frame is expected to have columns 
+#' "name" (factor or character),
 #' "time" (numeric), "value" (numeric) and "sigma" (numeric).
 #' @param mynames character vector of the length of mylist.
 #' @return Object of class \code{datalist}.
@@ -214,7 +273,7 @@ datalist <- function(mylist, mynames = names(mylist)) {
   
   ## Prepare output
   names(mylist) <- mynames
-  class(mylist) <- "datalist"
+  class(mylist) <- c("datalist", "list")
   
   return(mylist)
   
@@ -223,7 +282,22 @@ datalist <- function(mylist, mynames = names(mylist)) {
 
 ## Objective classes ---------------------------------------------------------
 
-
+#' Objective function
+#' 
+#' @description An objective function is a function \code{obj(pouter, fixed, deriv, ...)} which
+#' returns an \link{objlist}. This function is supposed to be used in an optimizer like \code{trust}
+#' from the \code{trust} package.
+#' @param ... R code expressing objectives additional to the weighted residual sum of squares of
+#' data and model prediction. Available keywords are
+#' \code{pouter}, \code{fixed} and \code{deriv}. Any other object being used in the
+#' expression can either be passed by the \code{...} argument of the returned function or
+#' must be available in the global environment.
+#' @param data object of class \link{datalist}
+#' @param x object of class \link{prdfn}
+#' @param pouter named numeric, pre-initialized parameter vector
+#' @param conditions character vector, names of the conditions to be evaluated
+#' @return Object of class \code{objfn}, i.e. a function \code{obj(pouter, fixed, deriv, ...)}
+#' which returns an \link{objlist}.
 #' @export
 objfn <- function(..., data, x, pouter = NULL, conditions = names(data)) {
   
@@ -235,7 +309,7 @@ objfn <- function(..., data, x, pouter = NULL, conditions = names(data)) {
   myexpr <- as.expression(substitute(...))
   timesD <- sort(c(0, unique(do.call(c, lapply(data, function(d) d$time)))))
   
-  myfn <- function(pouter = pouter, fixed = NULL, deriv=TRUE){
+  myfn <- function(pouter = pouter, fixed = NULL, deriv=TRUE, ...){
     
     prediction <- x(times = timesD, pars = pouter, fixed = fixed, deriv = deriv)
     
@@ -278,7 +352,13 @@ objlist <- function(value, gradient, hessian) {
   
 }
 
-
+#' Objective frame
+#' 
+#' @description An objective frame is supposed to store the residuals of a model prediction
+#' with respect to a data frame. 
+#' @param mydata data.frame as being generated by \link{res}.
+#' @param deriv matrix of the derivatives of the residuals with respect to parameters.
+#' @return An object of class \code{objframe}, i.e. a data frame with attribute "deriv".
 #' @export
 objframe <- function(mydata, deriv = NULL) {
   

@@ -373,6 +373,12 @@ as.eqnvec.character <- function(char) {
   
 }
 
+#' Transform equation list into vector of equations
+#' 
+#' @description An equation list stores an ODE in a list format. The function
+#' translates this list into the right-hand sides of the ODE.
+#' @param eqnlist equation list, see \link{eqnlist}
+#' @return An object of class \link{eqnvec}. 
 #' @export
 as.eqnvec.eqnlist <- function(eqnlist) {
   
@@ -473,6 +479,7 @@ dot <- function(observable, eqnlist) {
   UseMethod("dot", observable)
 }
 #' @export
+#' @rdname dot
 dot.eqnvec <- function(observable, eqnlist) {
   
  

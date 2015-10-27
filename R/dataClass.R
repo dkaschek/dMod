@@ -46,7 +46,7 @@ print.datalist <- function(datalist) {
 #' @export
 "[.datalist" <- function(x, ...) {
   out <- unclass(x)[...]
-  class(out) <- "datalist"
+  class(out) <- c("datalist", "list")
   return(out)
 }
 

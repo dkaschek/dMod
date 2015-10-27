@@ -18,11 +18,12 @@ c.prdlist <- function(...) {
 #' @export
 "[.prdlist" <- function(x, ...) {
   out <- unclass(x)[...]
-  class(out) <- "prdlist"
+  class(out) <- c("prdlist", "list")
   return(out)
 }
 
 #' @export
+#' @rdname plotCombined
 plot.prdlist <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap") {
   
   plotCombined(prediction = prediction, data = data, ..., scales = scales, facet = facet)
