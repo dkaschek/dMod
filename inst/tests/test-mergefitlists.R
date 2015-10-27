@@ -1,15 +1,15 @@
 context("Merge multiple mfitlists")
-
-# Set up environment
-setwd("runDMod/")
-source("constantPool.R")
-setwd("../")
-
-mfitlist <- mstrust(obj, pinit, fixed = fixed, fits = 2)
-mfitlist3 <- rbind.fitlist(mfitlist, mfitlist, mfitlist)
-
-attrNamesFl <- sort(names(attributes(mfitlist)))
-attrNamesFl3 <- sort(names(attributes(mfitlist3)))
+# 
+# # Set up environment
+# setwd("runDMod/")
+# source("constantPool.R")
+# setwd("../")
+# 
+# mfitlist <- mstrust(obj, pinit, fixed = fixed, fits = 2)
+# mfitlist3 <- rbind.fitlist(mfitlist, mfitlist, mfitlist)
+# 
+# attrNamesFl <- sort(names(attributes(mfitlist)))
+# attrNamesFl3 <- sort(names(attributes(mfitlist3)))
 
 
 test_that("Short argument list workl", {
@@ -35,8 +35,8 @@ test_that("Attributes are correct", {
 })
 
 
-fl <- attr(mfitlist, "fitlist")
-fl3 <- attr(mfitlist3, "fitlist")
+# fl <- attr(mfitlist, "fitlist")
+# fl3 <- attr(mfitlist3, "fitlist")
 test_that("Attribute mfitlist is correct", {
   expect_that(length(fl3), equals(6))
   expect_that(fl[[1]]$gradient, equals(fl3[[3]]$gradient))
@@ -46,11 +46,11 @@ test_that("Attribute mfitlist is correct", {
 })
   
 
-mfitlisterrorMeta <- mfitlist
-mfitlisterrorPara <- mfitlist
-mfitlisterrorClass <- unclass(mfitlist)
-attr(mfitlisterrorMeta, "metanames") <- c("value", "converged", "iterations")
-attr(mfitlisterrorPara, "parameters") <- c("a", "b")
+# mfitlisterrorMeta <- mfitlist
+# mfitlisterrorPara <- mfitlist
+# mfitlisterrorClass <- unclass(mfitlist)
+# attr(mfitlisterrorMeta, "metanames") <- c("value", "converged", "iterations")
+# attr(mfitlisterrorPara, "parameters") <- c("a", "b")
 test_that("Errors are handled", {
   expect_that(rbind.fitlist(mfitlist, mfitlisterrorMeta), throws_error("Can not merge fitlists with differing metanames or parameters."))
   expect_that(rbind.fitlist(mfitlist, mfitlisterrorPara), throws_error("Can not merge fitlists with differing metanames or parameters."))

@@ -1,0 +1,20 @@
+Description,Rate,Fe,SufRR,SufRP,SufBR,SufBP,SufRP_Fe,SufBP_Fe,IsaR1R,SufBR_IsaR1R
+Fp uptake,up_Fe,1,,,,,,,,
+Fe degradation,dg_Fe * Fe,-1,,,,,,,,
+SufRR uptake,up_SufRR / (1 + ih_SufRR * SufRP_Fe),,1,,,,,,,
+SufRP uptake,up_SufRP * SufRR,,,1,,,,,,
+SufRR degradation,dg_SufRR * SufRR,,-1,,,,,,,
+SufRP degradation,dg_SufRP * SufRP,,,-1,,,,,,
+SufBR uptake,up_SufBR / (1 + ih_SufBR * SufRP_Fe),,,,1,,,,,
+SufBP uptake,up_SufBP * SufBR,,,,,1,,,,
+SufBR degradation,dg_SufBR * SufBR,,,,-1,,,,,
+SufBP degradation,dg_SufBP * SufBP,,,,,-1,,,,
+Cmp SufBP Fe uptake,up_SufBP_Fe * SufBP * Fe,-1,,,,-1,,1,,
+2p reaction,up_2p * SufRP * SufBP_Fe,,,-1,,1,1,-1,,
+Cmp SufRP Fe degradation,ds_SufRP_Fe * SufRP_Fe,1,,,,,-1,,,
+SufRP rcl,s_ds_SufRP * ds_SufRP_Fe * SufRP_Fe,,,1,,,-1,,,
+IsaR1R uptake,up_IsaR1R / (1 + ih_IsaR1R * Fe),,,,,,,,1,
+IsaR1R over uptake,s_Over * up_IsaR1ROver,,,,,,,,1,
+IsaR1R degradation,dg_IsaR1R * IsaR1R,,,,,,,,-1,
+Cmp SufBR IsaR1R uptake,up_SufBR_IsaR1R * SufBR * IsaR1R,,,,-1,,,,-1,1
+Cmp SufBR IsaR1R degradation,dg_SufBR_IsaR1R * SufBR_IsaR1R,,,,,,,,,-1
