@@ -592,7 +592,7 @@ msnarrow <- function(center, spread, fits = 100, safety = "", ...) {
 #' @export
 load.parlist <- function(folder) {
   # Read in all fits
-  m_fileList <- dir(folder)
+  m_fileList <- dir(folder, pattern = "*.Rda")
   m_parVec <- lapply(m_fileList, function(file) {
     return(readRDS(file.path(folder, file)))
   })
