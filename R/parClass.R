@@ -1,7 +1,7 @@
 ## Methods for the class parlist -----------------------------------------------
 
 
-#' export
+#' @export
 summary.parlist <- function(x) {
   # Statistics
   m_stat <- stat.parlist(x)
