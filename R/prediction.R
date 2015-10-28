@@ -125,6 +125,8 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
     
   }
   
+  attr(P2X, "parameters") <- c(variables, parameters)
+  
   return(P2X)
   
   
@@ -163,7 +165,7 @@ Xf <- function(func, forcings=NULL, events=NULL, optionsOde=list(method="lsoda")
     
   }
   
-  class(P2X) <- "prdfn"
+  attr(P2X, "parameters") <- c(variables, parameters)
   return(P2X)
   
 }
@@ -434,7 +436,6 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname
     
     
   }
-  
   
   attr(X2Y, "equations") <- g
   
