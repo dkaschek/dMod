@@ -153,6 +153,9 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
 Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname = NULL) {
   
   warnings <- FALSE
+  modelname_deriv <- NULL
+  if(!is.null(modelname)) modelname_deriv <- paste(modelname, "deriv", sep = "_")
+  
   
   # Get potential paramters from g, forcings are treated as parameters because
   # sensitivities dx/dp with respect to forcings are zero.
@@ -188,7 +191,7 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname
   derivs <- as.vector(sumSymb(prodSymb(dgdx, dxdp), dgdp))
   if(length(derivs) == 0) stop("Nor states or parameters involved")
   names(derivs) <- apply(expand.grid.alt(observables, c(states, parameters)), 1, paste, collapse = ".")
-  derivsEval <- funC0(derivs, compile = compile, modelname = paste(modelname, "deriv", sep = "_"))
+  derivsEval <- funC0(derivs, compile = compile, modelname = modelname_deriv)
     
   # Vector with zeros for possibly missing derivatives
   zeros <- rep(0, length(dxdp))
