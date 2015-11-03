@@ -74,7 +74,8 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
   cat(program, file = paste0(filename, ".R"))
   
   # Copy files to temporal folder
-  system(paste0("ssh ", machine, " mkdir ", filename, "_folder/"))
+  system(paste0("ssh ", machine, " mkdir ", filename, "_folder/"), ignore.stdout = TRUE, ignore.stderr = TRUE)
+  system(paste0("ssh ", machine, " rm ", filename, "_folder/*"), ignore.stdout = TRUE, ignore.stderr = TRUE)
   system(paste0("scp ", getwd(), "/", filename, ".R* ", machine, ":", filename, "_folder/"))
   if(compile) {
     system(paste0("scp ", getwd(), "/*.c ", machine, ":", filename, "_folder/"))
