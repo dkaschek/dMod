@@ -78,11 +78,10 @@ as.parframe.parlist <- function(x) {
 ## Methods for the class parvec ------------------------------------------------
 
 
+
 #' Pretty printing of parameter transformations, class par
 #' 
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
-#' 
-#' @export
 print.parvec <- function(p, ...) {
   
   ## Diese Funktion mergen mit print.eqnvec

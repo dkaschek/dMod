@@ -179,7 +179,7 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
 #' \link[rootSolve]{multiroot}. The Jacobian of the solution with respect to dependent variables
 #' and parameters is computed by the implicit function theorem. The function \code{p2p} returns
 #' all parameters as they are with corresponding 1-entries in the Jacobian.
-#' @seealso \link{P} for explicit parameter transformations and
+#' @seealso \link{Pexpl} for explicit parameter transformations and
 #' \link{concatenation} for the concatenation of parameter transformations
 #' @examples
 #' \dontrun{
@@ -188,7 +188,7 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
 #' ########################################################################
 #' f <- c(A = "-k1*A + k2*B",
 #'        B = "k1*A - k2*B")
-#' P.steadyState <- Pi(f, "A")
+#' P.steadyState <- Pimpl(f, "A")
 #' 
 #' p.outerValues <- c(k1 = 1, k2 = 0.1, A = 10, B = 1)
 #' P.steadyState(p.outerValues)
@@ -198,7 +198,7 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
 #' ########################################################################
 #' f <- c(A = "-k1*A + k2*B",
 #'        B = "k1*A - k2*B")
-#' P.steadyState <- Pi(f, "A")
+#' P.steadyState <- Pimpl(f, "A")
 #' 
 #' logtrafo <- c(k1 = "exp(logk1)", k2 = "exp(logk2)", A = "exp(logA)", B = "exp(logB)")
 #' P.log <- P(logtrafo)
@@ -214,15 +214,18 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
 #' replacement <- c(B = "A + B - total")
 #' f[names(replacement)] <- replacement
 #' 
-#' pSS <- Pi(f, "total")
+#' pSS <- Pimpl(f, "total")
 #' pSS(c(k1 = 1, k2 = 2, A = 5, B = 5, total = 3))
 #' }
 #' @export
-Pimpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
+Pimpl <- function(trafo, parameters=NULL, keep.root = TRUE, compile = FALSE, modelname = NULL) {
 
   states <- names(trafo)
   nonstates <- getSymbols(trafo, exclude = states)
   dependent <- setdiff(states, parameters)
+  
+  # Introduce a guess where Newton method starts
+  guess <- NULL
   
   trafo.alg <- funC0(trafo[dependent], compile = compile, modelname = modelname)
   ftrafo <- function(x, parms) {
@@ -242,6 +245,12 @@ Pimpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
       if(length(is.fixed)>0) p <- p[-is.fixed]
       p <- c(p, fixed)
     }
+
+    # Set guess
+    if(!is.null(guess)) 
+      p[intersect(dependent, names(guess))] <- guess[intersect(dependent, names(guess))]
+    
+    print(p)
     
     # check for parameters which are not computed by multiroot
     emptypars <- names(p)[!names(p)%in%c(dependent, fixed)]
@@ -251,8 +260,9 @@ Pimpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
                                    start = p[dependent], 
                                    parms = p[setdiff(names(p), dependent)])
     
-    # Output parameters
+    # Output parameters, write in outer environment if doGuess
     out <- c(myroot$root, p[setdiff(names(p), names(myroot$root))])
+    if(keep.root) guess <<- out
     
     # Compute jacobian d(root)/dp
     dfdx <- rootSolve::gradient(ftrafo, 
