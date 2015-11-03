@@ -144,11 +144,12 @@ addReaction <- function(x, ...) {
 #' @return An object of class \link{eqnlist}.
 #' @examples 
 #' \dontrun{
-#' f <- addReaction("2*A+B", "C + 2*D", "k1*B*A^2", NULL)
-#' f <- addReaction("C + A", "B + A", "k2*C*A", f)
+#' f <- eqnlist()
+#' f <- addReaction(f, "2*A+B", "C + 2*D", "k1*B*A^2")
+#' f <- addReaction(f, "C + A", "B + A", "k2*C*A")
 #' }
 #' @export
-addReaction.eqnlist <- function(eqnlist, from, to, rate) {
+addReaction.eqnlist <- function(eqnlist, from, to, rate, description = names(rate)) {
   
   volumes <- eqnlist$volumes
   
@@ -165,7 +166,6 @@ addReaction.eqnlist <- function(eqnlist, from, to, rate) {
   states <- unique(c(educts, products))
   
   # Description
-  description <- names(rate)
   if(is.null(description)) description <- ""
   
   # Stoichiometric matrix
