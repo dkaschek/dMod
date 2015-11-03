@@ -126,6 +126,10 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
   }
   
   attr(P2X, "parameters") <- c(variables, parameters)
+  attr(P2X, "equations") <- as.eqnvec(attr(func, "equations"))
+  attr(P2X, "forcings") <- forcings
+  attr(P2X, "events") <- events
+  
   
   return(P2X)
   
@@ -140,6 +144,7 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
 #' @param func return value from \code{funC(f)} where \code{f} defines the ODE. 
 #' @details Can be used to integrate additional quantities, e.g. fluxes, by adding them to \code{f}. All quantities that are not initialised by pars 
 #' in \code{x(times, pars, forcings, events)} are initialized at 0.
+#' @export
 Xf <- function(func, forcings=NULL, events=NULL, optionsOde=list(method="lsoda")) {
   
   myforcings <- forcings
@@ -166,6 +171,11 @@ Xf <- function(func, forcings=NULL, events=NULL, optionsOde=list(method="lsoda")
   }
   
   attr(P2X, "parameters") <- c(variables, parameters)
+  attr(P2X, "equations") <- as.eqnvec(attr(func, "equations"))
+  attr(P2X, "forcings") <- forcings
+  attr(P2X, "events") <- events
+  
+  
   return(P2X)
   
 }
@@ -438,6 +448,8 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname
   }
   
   attr(X2Y, "equations") <- g
+  attr(X2Y, "parameters") <- parameters
+  attr(X2Y, "states") <- states
   
   return(X2Y)
   

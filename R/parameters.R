@@ -121,7 +121,7 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
   }
   
   class(p2p) <- "parfn" 
-  attr(p2p, "equations") <- trafo
+  attr(p2p, "equations") <- as.eqnvec(trafo)
   attr(p2p, "parameters") <- parameters
   
   
@@ -295,7 +295,7 @@ Pimpl <- function(trafo, parameters=NULL, keep.root = TRUE, compile = FALSE, mod
   
   class(p2p) <- "parfn"
   
-  attr(p2p, "equations") <- trafo
+  attr(p2p, "equations") <- as.eqnvec(trafo)
   attr(p2p, "parameters") <- parameters
   
   return(p2p)

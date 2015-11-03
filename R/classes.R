@@ -21,7 +21,7 @@ eqnvec <- function(equations = NULL, names = NULL) {
   if (inherits(try.parse, "try-error")) stop("equations cannot be parsed")
 
   out <- structure(equations, names = names)
-  class(out) <- "eqnvec"
+  class(out) <- c("eqnvec", "character")
 
   return(out)
 
@@ -65,7 +65,7 @@ eqnlist <- function(smatrix = NULL, states = colnames(smatrix), rates = NULL, vo
               rates = as.character(rates),
               volumes = volumes,
               description = as.character(description))
-  class(out) <- "eqnlist"
+  class(out) <- c("eqnlist", "list")
 
   return(out)
 }
@@ -347,7 +347,7 @@ objfn <- function(..., data, x, pouter = NULL, conditions = names(data)) {
 objlist <- function(value, gradient, hessian) {
 
   out <- list(value = value, gradient = gradient, hessian = hessian)
-  class(out) <- "objlist"
+  class(out) <- c("objlist", "list")
   return(out)
 
 }
@@ -372,7 +372,7 @@ objframe <- function(mydata, deriv = NULL) {
 
   out <- mydata[, correct.names]
   attr(out, "deriv") <- deriv
-  class(out) <- "objframe"
+  class(out) <- c("objframe", "data.frame")
 
   return(out)
 

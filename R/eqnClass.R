@@ -355,7 +355,7 @@ subset.eqnlist <- function(eqnlist, ...) {
 #' 
 #' @param eqnlist object of class \link{eqnlist}
 #' @export
-print.eqnlist <- function(eqnlist) {
+print.eqnlist <- function(eqnlist, ...) {
   
   cat("Reaction table:\n")
   reactions <- getReactions(eqnlist)
@@ -479,7 +479,7 @@ format.eqnvec <- function(eqnvec) {
 #' 
 #' @param object of class \link{eqnvec}.
 #' @export
-print.eqnvec <- function(eqnvec) {
+print.eqnvec <- function(eqnvec, ...) {
   
   cat("Equations:\n")
   out <- as.data.frame(unclass(eqnvec))

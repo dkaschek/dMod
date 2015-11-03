@@ -36,7 +36,7 @@ as.datalist.data.frame <- function(dataframe, split.by = "condition") {
 ## Methods for class datalist ---------------------------------------
 
 #' @export
-print.datalist <- function(datalist) {
+print.datalist <- function(datalist, ...) {
   for(n in names(datalist)) {
     cat(n, ":\n", sep = "")
     print(datalist[[n]])
