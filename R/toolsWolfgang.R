@@ -214,74 +214,64 @@ plSelectMin <- function(prf, context = FALSE) {
 #'   are randomly sampled. The initial values handed to \link{trust} are the sum
 #'   of center and the output of \option{samplefun}, center + 
 #'   \option{samplefun}. See \code{\link{trust}}, parinit.
-#'   
+#' @param studyname The names of the study or fit. This name is used to 
+#'   determine filenames for interim and final results. See Details.
 #' @param rinit Starting trust region radius, see \code{\link{trust}}.
 #' @param rmax Maximum allowed trust region radius, see \code{\link{trust}}.
 #' @param fits Number of fits (jobs).
 #' @param cores Number of cores for job parallelization.
 #' @param samplefun Function to sample random initial values. It is assumed, 
 #'   that \option{samplefun} has a named parameter "n" which defines how many 
-#'   random numbers are to be returned, such as for \code{\link{rnorm}}, which 
-#'   is also the default sampling function.
-#' @param resultPath If provided, temporary files, log file, and results are
-#'   saved under that path. The current working directory is the default.
-#' @param logfile Name of the file to which all jobs log their output. The file 
-#'   is handy to investigate the different jobs in some detail. Since the jobs 
-#'   are carried out in parallel, their output may occurre in non-consecutive 
-#'   order. At the end of the file, a summary of the fits is given.
-#' @param fitsfile Name of the file to which the result of all completed fits 
-#'   are written to. An empy string "" suppresses the write.
+#'   random numbers are to be returned, such as for \code{\link{rnorm}} or 
+#'   \code{\link{runif}}. By default \code{\link{rnorm}} is used. Parameteres 
+#'   for samplefun are simply appended as named parameters to the mstrust call 
+#'   and automatically handed to samplefun by matching parameter names.
 #' @param stats If true, the same summary statistic as written to the logfile is
-#'   printed to command line.
-#' @param narrowing This is not a user flag but automatically set if by 
-#'   \code{\link{msnarro}}. In narrowing mode, this parameter indicates the 
-#'   narrowing status, see \code{\link{msnarro}}.
-#' @param ... Additional parameters which are handed to trust() or samplefun() 
-#'   by matching parameter names. All unmatched parameters are handed to the 
-#'   objective function objfun(). The log file includes the list of which 
-#'   parameters were handed to which function.
+#'   printed to command line on mstrust completion.
+#' @param narrowing Don't touch this. Status flag used when mstrust is called 
+#'   via \code{\link{msnarrow}}. In narrowing mode, this parameter indicates the
+#'   narrowing status, see \code{\link{msnarrow}}.
+#' @param ... Additional parameters handed to trust(), samplefun(), or the 
+#'   objective function by matching parameter names. All unmatched parameters 
+#'   are handed to the objective function objfun(). The log file starts with a 
+#'   table telling which parameter was assigend to which function.
 #'   
-#' @details By running multiple fits starting with randomly chosen inital 
+#' @details By running multiple fits starting at randomly chosen inital 
 #'   parameters, the chisquare landscape can be explored using a deterministic 
-#'   optimizer. In this case, \code{\link{trust}} is used for optimization. The 
-#'   standard procedure to obtain random initial values is to sample random 
-#'   variables from a uniform distribution (\code{\link{rnorm}}) and adding 
-#'   these to \option{center}. It is, however, possible, to employ any other 
-#'   sampling strategy by handing the respective function to mstrust(), 
+#'   optimizer. Here, \code{\link{trust}} is used for optimization. The standard
+#'   procedure to obtain random initial values is to sample random variables 
+#'   from a uniform distribution (\code{\link{rnorm}}) and adding these to 
+#'   \option{center}. It is, however, possible, to employ any other sampling 
+#'   strategy by handing the respective function to mstrust(), 
 #'   \option{samplefun}.
-#'   
-#'   All started fits are either faulty, aborted, or complete. Faulty fits 
-#'   return a "try-error" object and fail somewhere outside trust(). Aborted 
-#'   fits fail withing trust(), and complete fits return from trust() correctly.
-#'   Completed fits can still be unconverged, in case the maximum number of 
-#'   iteration is reached before the convergence criterion.
 #'   
 #'   In case a special sampling is required, a customized sampling function can 
 #'   be used. If, e.g., inital values leading to a non-physical systems are to 
 #'   be discarded upfront, the objective function can be addapted accordingly.
 #'   
-#'   On fitting, a folder for temporary files is created under
-#'   \option{resultPath}. The name of the folder ist tmp- followed by the
-#'   current date and time. There, the result of each fit is saved. After a
-#'   crash, results completed before the crash can be restored., see
-#'   \code{\link{msrestore}}.
+#'   All started fits either lead to an error or complete converged or
+#'   unconverged. A statistics about the return status of fits can be shown by
+#'   setting \option{stats} to TRUE.
 #'   
-#' @return A data frame of all completed fits sorted by their objective value. 
-#'   The data frame carries an attribute "fitlist" returning the raw output of 
-#'   trust(). This length of the fitlist equals \option{fits}. The colunm index
-#'   in the returned data frame can be used to index the fitlist to retrive the
-#'   corresponding result from \code{\link{trust}}.
+#'   Fit final and intermediat results are stored under \option{studyname}. For
+#'   each run of mstrust for the same study name, a folder under
+#'   \option{studyname} of the form "trial-x-date" is created. "x" is the number
+#'   of the trial, date is the current time stamp. In this folder, the
+#'   intermediate results are stored. These intermediate results can be loaded
+#'   by \code{\link{load.parlist}}. These are removed on successfull completion
+#'   of mstrust. In this case, the final list of fit parameters
+#'   (parameterList.Rda) and the fit log (mstrust.log) are found instead.
 #'   
+#' @return A parlist holding errored and converged fits.
 #'   
-#' @seealso \code{\link{trust}}, \code{\link{rnorm}}, \code{\list{runif}},
-#'   \code{\link{msnarrow}}, \code{\link{msbest}}
+#' @seealso \code{\link{trust}}, \code{\link{rnorm}}, \code{\link{runif}}, 
+#'   \code{\link{msnarrow}}, \code{\link{msbest}}, \code{\link{as.parframe}}
 #'   
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'   
 #' @export
-mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
-                    samplefun = "rnorm", resultPath = "results", logfile = "mstrust.log",
-                    fitsfile = "fitlist.rda", stats = FALSE,
+mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20, cores = 1,
+                    samplefun = "rnorm", resultPath = ".", stats = FALSE,
                     narrowing = NULL, ...) {
 
   # Argument parsing, sorting, and enhancing
@@ -302,10 +292,10 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
 
   # Determine target function for each function argument.
   # First, define argument names used locally in mstrust().
-  # Second, check what trust() and samplefun() accept and check for names clash.
+  # Second, check what trust() and samplefun() accept and check for name clashes.
   # Third, whatever is unused is passed to the objective function objfun().
-  nameslocal <- c("center", "fits", "cores", "samplefun", "resultPath", "logfile",
-                  "stats", "narrowing", "fitsfile")
+  nameslocal <- c("studyname", "center", "fits", "cores", "samplefun",
+                  "resultPath", "stats", "narrowing")
   namestrust <- intersect(names(formals(trust)), names(argslist))
   namessample <- intersect(names(formals(samplefun)), names(argslist))
   if (length(intersect(namestrust, namessample) != 0)) {
@@ -334,20 +324,39 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
   }
 
 
-  # Assemble and create output file and folders
-  dir.create(path = argslist$resultPath, showWarnings = FALSE)
-  fileLog <- file.path(argslist$resultPath, argslist$logfile)
-  fileFits <- file.path(argslist$resultPath, argslist$fitsfile)
-  tmpfld <- file.path(argslist$resultPath, paste0("tmp-", format(Sys.time(), "%d-%m-%Y-%H%M%S")))
-  dir.create(path = tmpfld, showWarnings = FALSE)
-
-
+  # Assemble and create output filenames, folders and files
+  m_timeStamp <- paste0(format(Sys.time(), "%d-%m-%Y-%H%M%S"))
+  
+  # Folders
+  resultFolderBase <- file.path(argslist$resultPath, argslist$studyname)
+  m_trial <- paste0("trial-", length(dir(resultFolderBase, pattern = "trial*")) + 1)
+  resultFolder <- file.path(resultFolderBase, paste0(m_trial, "-", m_timeStamp))
+  
+  interResultFolder <- file.path(resultFolder, "interRes")
+  dir.create(path = interResultFolder, showWarnings = FALSE, recursive = TRUE)
+  
+  # Files
+  fileNameLog <- paste0("mstrust.log")
+  fileNameParList <- paste0("parameterList.Rda")
+  fileLog <- file.path(resultFolder, fileNameLog)
+  fileParList <- file.path(resultFolder, fileNameParList)
+  
+  
+  
   # Apply trust optimizer in parallel
   # The error checking leverages that mclappy runs each job in a try().
+  logfile <- file(fileLog, open = "w")
+  
+  # Parameter assignment information
   if (is.null(narrowing) || narrowing[1] == 1) {
-    file.create(fileLog) #Truncate log file
+    msg <- paste0("Parameter assignment information\n",
+                  strpad("mstrust", 12),                        ": ", paste0(nameslocal, collapse = ", "), "\n",
+                  strpad("trust", 12),                          ": ", paste0(namestrust, collapse = ", "), "\n",
+                  strpad(as.character(argslist$samplefun), 12), ": ", paste0(namessample, collapse = ", "), "\n",
+                  strpad(as.character(argslist$objfun), 12),    ": ", paste0(namesobj, collapse = ", "), "\n\n")
+    writeLines(msg, logfile)
+    flush(logfile)
   }
-  logfile <- file(fileLog, open = "a")
 
   # Write narrowing status information to file
   if (!is.null(narrowing)) {
@@ -357,14 +366,12 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
     flush(logfile)
   }
 
-  fitlist <- mclapply(1:fits, function(i) {
+  m_parlist <- parlist(mclapply(1:fits, function(i) {
     argstrust$parinit <- center + do.call(samplefun, argssample)
     fit <- do.call(trust, c(argstrust, argsobj))
-    fit$index = i
-    fit$parinit <- argstrust$parinit
 
     # Write current fit to disk
-    saveRDS(fit, file = file.path(tmpfld, paste0("fit-", i, ".Rda")))
+    saveRDS(fit, file = file.path(interResultFolder, paste0("fit-", i, ".Rda")))
 
     # Reporting
     # With concurent jobs and everyone reporting, this is a classic race
@@ -384,7 +391,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
                     "Fit ", i, " completed\n",
                     "--> iterations : ", fit$iterations, "\n",
                     "-->  converged : ", fit$converged, "\n",
-                    "-->      chi^2 : ", round(fit$value, digits = 2), "\n",
+                    "--> obj. value : ", round(fit$value, digits = 2), "\n",
                     msgSep)
 
       writeLines(msg, logfile)
@@ -392,72 +399,58 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
     }
 
     return(fit)
-  }, mc.preschedule = FALSE, mc.silent = FALSE, mc.cores = cores)
+  }, mc.preschedule = FALSE, mc.silent = FALSE, mc.cores = cores))
   close(logfile)
 
 
-  # Cull failed, aborted, and completed fits
-  # Failed jobs return an object of class "try-error". The reason for these
-  # failures are unknown to me.
-  # Aborted fits, in contrast, return a list of results from trust(), where one
-  # name of the list is error holding an object of class "try-error". These
-  # abortions are due to errors which are captured within trust().
-  # Completed fits return with a valid result list from trust(), with error is
-  # not part of its names. These fits, however, can still be unconverged, if the
-  # maximim number of iterations was the reason for the return of trust().
-  # Failed: try-error, find and remove
-  fitlistfull <- fitlist
-  idxerr <- sapply(fitlist, function(fit) inherits(fit, "try-error"))
-  fitlist <- fitlist[!idxerr]
-
-  # Aborted: Due to some error condition handled inside trust()
-  idxabrt <- sapply(fitlist, function(fit) {
-    if (any(names(fit) == "error")) {
-      return(TRUE)
+  # Cull failed and completed fits Two kinds of errors occure. The first returns
+  # an object of class "try-error". The reason for these failures are unknown to
+  # me. The second returns a list of results from trust(), where one name of the
+  # list is error holding an object of class "try-error". These abortions are 
+  # due to errors which are captured within trust(). Completed fits return with 
+  # a valid result list from trust(), with "error" not part of its names. These
+  # fits, can still be unconverged, if the maximim number of iterations was the
+  # reason for the return of trust(). Be also aware of fits which converge due
+  # to the trust radius hitting rmin. Such fits are reported as converged but
+  # are not in truth.
+  m_trustFlags.converged = 0
+  m_trustFlags.unconverged = 1
+  m_trustFlags.error = 2
+  m_trustFlags.fatal = 3
+  idxStatus <- sapply(m_parlist, function(fit) {
+    if (inherits(fit, "try-error") || any(names(fit) == "error")) {
+      return(m_trustFlags.error)
+    } else if (!any(names(fit) == "converged")) {
+      return(m_trustFlags.fatal)
+    } else if (fit$converged) {
+      return(m_trustFlags.converged)
     } else {
-      return(FALSE)
+      return(m_trustFlags.unconverged)
     }
   })
 
-  # Remaining fits are properly returned from trust(), possibly unconverged.
-  fitlist <- fitlist[!idxabrt]
-  idxcmp <- !idxabrt # We need this for counting, see summary statistics.
-
-
-  # Stash results of completed fits in a data.frame
-  complist <- lapply(fitlist, function(fit) {
-    data.frame(
-      index = fit$index,
-      value = fit$value,
-      converged = fit$converged,
-      iterations = fit$iterations,
-      as.data.frame(as.list(fit$argument))
-    )
-  })
-  compframe <- do.call(rbind, complist)
-  if (!is.null(compframe)) {
-    compframe <- compframe[order(compframe$value),]
-  }
-
-  
   
   # Wrap up
   # Write out results
-  if (nchar(argslist$fitsfile) > 0) {
-    save(fitlist, file = fileFits)
-  }
+  save(m_parlist, file = fileParList)
 
   # Remove temporary files
-  unlink(tmpfld, recursive = TRUE)
+  unlink(interResultFolder, recursive = TRUE)
+  
 
   # Show summary
+  sum.error <- sum(idxStatus == m_trustFlags.error)
+  sum.fatal <- sum(idxStatus == m_trustFlags.fatal)
+  sum.unconverged <- sum(idxStatus == m_trustFlags.unconverged)
+  sum.converged <- sum(idxStatus == m_trustFlags.converged)
   msg <- paste0("Mutli start trust summary\n",
-                "Outcome   : Occurrence\n",
-                "Faulty    : ", sum(idxerr), "\n",
-                "Aborted   : ", sum(idxabrt), "\n",
-                "Completed : ", sum(idxcmp), "\n",
+                "Outcome     : Occurrence\n",
+                "Error       : ", sum.error, "\n",
+                "Fatal       : ", sum.fatal, " must be 0\n",
+                "Unconverged : ", sum.unconverged, "\n",
+                "Converged   : ", sum.converged, "\n",
                 "           -----------\n",
-                "Total     : ", sum(idxerr) + sum(idxabrt) + sum(idxcmp), paste0("[", fits, "]"), "\n")
+                "Total       : ", sum.error + sum.fatal + sum.unconverged + sum.converged, paste0("[", fits, "]"), "\n")
   logfile <- file(fileLog, open = "a")
   writeLines(msg, logfile)
   flush(logfile)
@@ -467,14 +460,7 @@ mstrust <- function(objfun, center, rinit = .1, rmax = 10, fits = 20, cores = 1,
     cat(msg)
   }
 
-  if (!is.null(compframe)) {
-    attr(compframe, "fitlist") <- fitlistfull
-    attr(compframe, "metanames") <- c("index", "value", "converged", "iterations")
-    attr(compframe, "parameters") <- names(center)
-    
-  }
-
-  return(compframe)
+  return(m_parlist)
 }
 
 
