@@ -181,7 +181,7 @@ prdfn <- function(..., pouter = NULL, conditions = "1") {
   # Prediction function
   myfn <- function(times, pars = pouter, fixed = NULL, deriv = TRUE, ...){
 
-    prdlist(
+    as.prdlist(
       lapply(conditions, function(condition) {
         eval(myexpr)
       }),
