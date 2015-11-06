@@ -4,6 +4,31 @@
 
 ## Methods for class prdlist ------------------------------------------------
 
+
+
+#' @export
+#' @rdname prdlist
+as.prdlist <- function(x, ...) {
+  UseMethod("as.prdlist", x)
+}
+
+#' @export
+#' @rdname prdlist
+as.prdlist.list <- function(mylist = NULL, mynames = names(mylist)) {
+
+  if (is.null(mylist)) mylist <- list()
+
+  if (length(mynames) != length(mylist)) stop("names argument has wrong length")
+
+  ## Prepare output
+  names(mylist) <- mynames
+  class(mylist) <- c("prdlist", "list")
+
+  return(mylist)
+
+}
+
+
 #' @export
 c.prdlist <- function(...) {
   
@@ -11,7 +36,7 @@ c.prdlist <- function(...) {
   mylist <- lapply(mylist, unclass)
   newlist <- do.call(c, mylist)
   
-  prdlist(newlist)
+  as.prdlist(newlist)
   
 }
 

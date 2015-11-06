@@ -21,6 +21,6 @@ simulateData <- function(timesD, pouter, vars=observables, relE = 0.05, absE = 0
     subset(mydata, name%in%vars)
   }); names(out) <- conditions
   
-  datalist(out)
+  as.datalist(out)
   
 }

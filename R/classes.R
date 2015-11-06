@@ -224,25 +224,19 @@ prdframe <- function(prediction = NULL, deriv = NULL, sensitivities = NULL, para
 
 #' Prediction list
 #'
-#' @description A description list is used to store a list of model predictions
+#' @description A prediction list is used to store a list of model predictions
 #' from different prediction functions or the same prediction function with different
 #' parameter specifications. Each entry of the list is a \link{prdframe}.
+#' @param ... objects of class \link{prdframe}
 #' @param mylist list of prediction frames
 #' @param mynames character vector, the list names, e.g. the names of the experimental
 #' conditions.
 #' @export
-prdlist <- function(mylist = NULL, mynames = names(mylist)) {
-
-  if (is.null(mylist)) mylist <- list()
-
-  if (length(mynames) != length(mylist)) stop("names argument has wrong length")
-
-  ## Prepare output
-  names(mylist) <- mynames
-  class(mylist) <- c("prdlist", "list")
-
-  return(mylist)
-
+prdlist <- function(...) {
+  mylist <- list(...)
+  mynames <- names(mylist)
+  if(is.null(mynames)) mynames <- as.character(1:length(mylist))
+  as.prdlist(mylist, mynames)
 }
 
 
@@ -253,30 +247,22 @@ prdlist <- function(mylist = NULL, mynames = names(mylist)) {
 #'
 #' @description The datalist object stores time-course data in a list of data.frames.
 #' The names of the list serve as identifiers, e.g. of an experimental condition, etc.
+#' @param ... data.frame objects to be coerced into a list
+#' @param dataframe data.frame with additional columns by which a splitting into 
+#' a list of data.frames is performed.
+#' @param split.by character vector, interaction of these columns is defined as
+#' new column by which the split-up is performed.
 #' @param mylist list of data.frame, each data.frame is expected to have columns
 #' "name" (factor or character),
 #' "time" (numeric), "value" (numeric) and "sigma" (numeric).
 #' @param mynames character vector of the length of mylist.
 #' @return Object of class \code{datalist}.
 #' @export
-datalist <- function(mylist, mynames = names(mylist)) {
-
-  ## Check properties
-  is.data.frame <- sapply(mylist, class) == "data.frame"
-  if (!all(is.data.frame)) stop("list of data.frame expected")
-
-  correct.names <- c("name", "time", "value", "sigma")
-  have.correct.names <- sapply(mylist, function(d) all(colnames(d) %in% correct.names))
-  if (!all(have.correct.names)) stop(paste("data.frames should have names:", correct.names, collapse = " "))
-
-  if (length(mynames) != length(mylist)) stop("names argument has wrong length")
-
-  ## Prepare output
-  names(mylist) <- mynames
-  class(mylist) <- c("datalist", "list")
-
-  return(mylist)
-
+datalist <- function(...) {
+  mylist <- list(...)
+  mynames <- names(mylist)
+  if(is.null(mynames)) mynames <- as.character(1:length(mylist))
+  as.datalist(mylist, mynames)
 }
 
 

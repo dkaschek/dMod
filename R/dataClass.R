@@ -12,10 +12,12 @@
 #' @examples 
 #' mydata <- data.frame(name = "A", time = 0, value = c(0, 1), sigma = .1, condition = 1:2)
 #' as.datalist(mydata)
-as.datalist <- function(dataframe, split.by = "condition") {
-  UseMethod("as.datalist", dataframe)
+as.datalist <- function(x, ...) {
+  UseMethod("as.datalist", x)
 }
+
 #' @export
+#' @rdname datalist
 as.datalist.data.frame <- function(dataframe, split.by = "condition") {
   
   #remaining.names <- setdiff(names(dataframe), split.by)
@@ -29,9 +31,32 @@ as.datalist.data.frame <- function(dataframe, split.by = "condition") {
   out <- lapply(unique(splits), function(s) subset(dataframe, dataframe[, 1] == s)[, -1])
   names(out) <- as.character(unique(splits))
   
-  datalist(out)
+  as.datalist(out)
   
 }
+
+#' @export
+#' @rdname datalist
+as.datalist.list <- function(mylist, mynames = names(mylist)) {
+
+  ## Check properties
+  is.data.frame <- sapply(mylist, class) == "data.frame"
+  if (!all(is.data.frame)) stop("list of data.frame expected")
+
+  correct.names <- c("name", "time", "value", "sigma")
+  have.correct.names <- sapply(mylist, function(d) all(colnames(d) %in% correct.names))
+  if (!all(have.correct.names)) stop(paste("data.frames should have names:", correct.names, collapse = " "))
+
+  if (length(mynames) != length(mylist)) stop("names argument has wrong length")
+
+  ## Prepare output
+  names(mylist) <- mynames
+  class(mylist) <- c("datalist", "list")
+
+  return(mylist)
+
+}
+
 
 ## Methods for class datalist ---------------------------------------
 
