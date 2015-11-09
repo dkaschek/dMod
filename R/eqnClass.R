@@ -582,6 +582,7 @@ c.eqnvec <- function(...) {
 #' @param x Name character vector, the algebraic expressions
 #' @param compile Logical. The function is either translated into a C file to be compiled or is
 #' evaluated in raw R.
+#' @param verbose Print compiler output to R command line.
 #' @return A prediction function \code{f(mylist, attach.input = FALSE)} where \code{mylist} is a list of numeric 
 #' vectors that can
 #' be coerced into a matrix. The names correspond to the symbols used in the algebraic expressions. 
@@ -595,7 +596,7 @@ c.eqnvec <- function(...) {
 #' }
 #' 
 #' @export
-funC0 <- function(x, compile = FALSE, modelname = NULL) {
+funC0 <- function(x, compile = FALSE, modelname = NULL, verbose = FALSE) {
     
   # Get symbols to be substituted by x[] and y[]
   outnames <- names(x)
@@ -637,7 +638,10 @@ funC0 <- function(x, compile = FALSE, modelname = NULL) {
     sink(file = filename)
     cat(body)
     sink()
-    system(paste0(R.home(component="bin"), "/R CMD SHLIB ", filename))
+    shlibOut <- system(paste0(R.home(component="bin"), "/R CMD SHLIB ", filename), intern = TRUE)
+    if (verbose) {
+      cat(shlibOut)
+    }
     .so <- .Platform$dynlib.ext
     dyn.load(paste0(funcname, .so))
     
