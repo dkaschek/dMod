@@ -59,15 +59,17 @@ as.parframe <- function(x, ...) {
 as.parframe.parlist <- function(x) {
   m_stat <- stat.parlist(x)
   m_metanames <- c("index", "value", "converged", "iterations")
-  m_parframe <- do.call(rbind, lapply(x[m_stat != "error"], function(fit) {
-      data.frame(
-        index = fit$index,
-        value = fit$value,
-        converged = fit$converged,
-        iterations = fit$iterations,
-        as.data.frame(as.list(fit$argument))
-      )
-  }))
+  m_idx <- which("error" != m_stat)
+  m_parframe <- do.call(rbind,
+                        mapply(function(fit, idx) {
+                          data.frame(
+                            index = idx,
+                            value = fit$value,
+                            converged = fit$converged,
+                            iterations = fit$iterations,
+                            as.data.frame(as.list(fit$argument))
+                          )
+                        }, fit = x[m_idx], idx = m_idx, SIMPLIFY = FALSE))
   m_parframe <- parframe(m_parframe, parameters = names(x[[1]]$parinit), metanames = m_metanames)
   
   return(m_parframe)
