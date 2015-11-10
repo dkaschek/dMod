@@ -24,3 +24,29 @@ simulateData <- function(timesD, pouter, vars=observables, relE = 0.05, absE = 0
   as.datalist(out)
   
 }
+
+
+
+#' Calculate analytical steady states
+#' 
+#' @param file Name of the file which the stoechiometric matric in csv format.
+#' @param forcings Character vector with the names of the forcings
+#' @param neglect Character vector with the names of species which must not be 
+#'   used for solving the steady state equations.
+#' @param outputFormat Define the output format. By default "R" generating dMod
+#'   compatible output. To obtain an output appropriate for d2d [1] "M" must be
+#'   selected.
+#'   
+#' @return Character vector of steady-state equations.
+#'   
+#' @references 
+#' [1] \url{https://bitbucket.org/d2d-development/d2d-software/wiki/Home}
+#' 
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#'   
+#' @export
+steadyStates <- function(file, forcings = "", neglect = "", outputFormat = "R") {
+  python.version.request("2.7")
+  python.load(system.file("code/steadyStates.py", package = "dMod"))
+  python.call("ODESS", file, forcings, neglect, outputFormat)
+}
