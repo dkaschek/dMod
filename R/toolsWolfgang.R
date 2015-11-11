@@ -588,32 +588,45 @@ load.parlist <- function(folder) {
 
 
 
-#' Select best fit.
-#'
-#' @description
-#' Select the fit with lowest chi^2 form the result of \code{\link{mstrust}}.
-#'
-#' @param fitlist A data frame of fits as returned from \code{\link{mstrust}}.
-#'        The data frame does not need to be ordered and can include unconverged
-#'        fits.
-#' @param index Integer, the \code{index}th best fit.
-#'
-#' @return The converged fit with lowest chisquare as a named numeric vector.
-#'
-#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#' Dispatch as.parvec.
 #'
 #' @export
+as.parvec <- function(x, ...) {
+  UseMethod("as.parvec", x)
+}
 
-msbest <- function(fitlist, index = 1) {
-  fitlistconv <- fitlist[fitlist$converged == TRUE,]
-  if (is.null(nrow(fitlistconv))) {
-    return(NULL)
-  }
 
-  idxbest <- order(fitlistconv$value)
-  best <- fitlistconv[idxbest[1],]
-  best <- unlist(best[index, attr(fitlist, "parameters")])
-
+#' Select a parameter vector from a parameter frame.
+#' 
+#' @description Obtain a parameter vector from a parameter frame.
+#' 
+#' @param parframe A parameter frame, e.g., the output of
+#'   \code{\link{as.parframe}}.
+#' @param index Integer, the parameter vector with the \code{index}-th lowest
+#'   objective value.
+#'   
+#' @details With this command, additional information included in the parameter
+#'   frame as the objective value and the convergence state are removed and a
+#'   parameter vector is returned. This parameter vector can be used to e.g.,
+#'   evaluate an objective function.
+#'   
+#'   On selection, the parameters in the parameter frame are ordered such, that
+#'   the parameter vector with the lowest objective value is at \option{index}
+#'   1. Thus, the parameter vector with the \option{index}-th lowest objective
+#'   value is easily obtained.
+#'   
+#' @return The parameter vector with the \option{index}-th lowest objective
+#'   value.
+#'   
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#'   
+#' @export
+as.parvec.parframe <- function(parframe, index = 1) {
+  m_order <- order(parframe$value)
+  best <- parvec(parframe[m_order[index], setdiff(names(mm), attr(mm, "metanames"))])
+  if (!parframe[m_order[index],]$converged) {
+    warning("Parameter vector of an unconverged fit is selected.", call. = FALSE)
+    }
   return(best)
 }
 
