@@ -79,12 +79,33 @@ as.parframe.parlist <- function(x) {
 
 ## Methods for the class parvec ------------------------------------------------
 
+#' Pretty printing for a parameter vector
+#' 
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#' 
+#' @export
+print.parvec <- function(par, ...) {
+  
+  m_parWidth <- max(nchar(names(par)))
+  m_names <- names(par)
+  m_order <- order(m_names)
+  
+  msg <- mapply(function(p, n) {
+    if (!as.numeric(p) < 0 ) {
+      p <- paste0(" ", p)
+    }
+    paste0(strpad(n, m_parWidth, where = "left"), ": ", p)
+  }, p = par[m_order], n = m_names[m_order])
+  
+  cat(msg, sep = "\n")
+}
+
 
 
 #' Pretty printing of parameter transformations, class par
 #' 
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
-print.parvec <- function(p, ...) {
+#print.parvec <- function(p, ...) {
   
   ## Diese Funktion mergen mit print.eqnvec
   ## Für parvec neue Funktion schreiben
@@ -111,7 +132,7 @@ print.parvec <- function(p, ...) {
 #       cat("\n")
 #     }
 #   }
-}
+#}
 
 
 #' @export
