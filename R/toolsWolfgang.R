@@ -369,6 +369,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   m_parlist <- parlist(mclapply(1:fits, function(i) {
     argstrust$parinit <- center + do.call(samplefun, argssample)
     fit <- do.call(trust, c(argstrust, argsobj))
+    fit$parinit <- argstrust$parinit
 
     # Write current fit to disk
     saveRDS(fit, file = file.path(interResultFolder, paste0("fit-", i, ".Rda")))
