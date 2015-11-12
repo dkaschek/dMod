@@ -1,12 +1,12 @@
 #' @export
-P <- function(trafo = NULL, parameters=NULL, compile = FALSE, modelname = NULL, method = c("explicit", "implicit")) {
+P <- function(trafo = NULL, parameters=NULL, compile = FALSE, modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE) {
   
   if(is.null(trafo)) return(P0())
   
   method <- match.arg(method)
   switch(method, 
-         explicit = Pexpl(trafo = trafo, parameters = parameters, compile = compile, modelname = modelname),
-         implicit = Pimpl(trafo = trafo, parameters = parameters, compile = compile, modelname = modelname))
+         explicit = Pexpl(trafo = trafo, parameters = parameters, compile = compile, modelname = modelname, verbose = verbose),
+         implicit = Pimpl(trafo = trafo, parameters = parameters, compile = compile, modelname = modelname, verbose = verbose))
   
 }
 
@@ -46,6 +46,7 @@ P0 <- function() {
 #' @param compile Logical, compile the function (see \link{funC0})
 #' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
 #' C file.
+#' @param verbose Print compiler output to R command line.
 #' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)} representing the parameter 
 #' transformation. Here, \code{p} is a named numeric vector with the values of the outer parameters,
 #' \code{fixed} is a named numeric vector with values of the outer parameters being considered
@@ -62,7 +63,7 @@ P0 <- function() {
 #' (P.log)(p.outerValue)
 #' }
 #' @export
-Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
+Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL, verbose = FALSE) {
   
   # get outer parameters
   symbols <- getSymbols(trafo)
@@ -88,8 +89,8 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
   
   #dtrafo <- jacobian; names(dtrafo) <- jacNames
   
-  PEval <- funC0(trafo, compile = compile, modelname = modelname)
-  dPEval <- funC0(dtrafo, compile = compile, modelname = paste(modelname, "deriv", sep = "_"))
+  PEval <- funC0(trafo, compile = compile, modelname = modelname, verbose = verbose)
+  dPEval <- funC0(dtrafo, compile = compile, modelname = paste(modelname, "deriv", sep = "_"), verbose = verbose)
   
   # the parameter transformation function to be returned
   p2p <- function(p, fixed=NULL, deriv = TRUE) {
@@ -167,6 +168,7 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
 #' @param compile Logical, compile the function (see \link{funC0})
 #' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
 #' C file.
+#' @param verbose Print compiler output to R command line.
 #' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)} representing the parameter 
 #' transformation. Here, \code{p} is a named numeric vector with the values of the outer parameters,
 #' \code{fixed} is a named numeric vector with values of the outer parameters being considered
@@ -218,7 +220,7 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
 #' pSS(c(k1 = 1, k2 = 2, A = 5, B = 5, total = 3))
 #' }
 #' @export
-Pimpl <- function(trafo, parameters=NULL, keep.root = TRUE, compile = FALSE, modelname = NULL) {
+Pimpl <- function(trafo, parameters=NULL, keep.root = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
 
   states <- names(trafo)
   nonstates <- getSymbols(trafo, exclude = states)
@@ -227,7 +229,7 @@ Pimpl <- function(trafo, parameters=NULL, keep.root = TRUE, compile = FALSE, mod
   # Introduce a guess where Newton method starts
   guess <- NULL
   
-  trafo.alg <- funC0(trafo[dependent], compile = compile, modelname = modelname)
+  trafo.alg <- funC0(trafo[dependent], compile = compile, modelname = modelname, verbose = verbose)
   ftrafo <- function(x, parms) {
     out <- trafo.alg(as.list(c(x, parms)))
     structure(as.numeric(out), names = colnames(out))

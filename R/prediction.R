@@ -312,6 +312,7 @@ Xd <- function(data) {
 #' @param compile Logical, compile the function (see \link{funC0})
 #' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
 #' C file.
+#' @param verbose Print compiler output to R command line.
 #' @return a function \code{y(out, pars, attach.input = FALSE)} representing the evaluation of the 
 #' observation function. 
 #' If \code{out} has the attribute  "sensitivities", the result of
@@ -323,7 +324,7 @@ Xd <- function(data) {
 #' are multiplied according to the chain rule for differentiation.
 #' If \code{attach.input = TRUE}, the original argument \code{out} will be attached to the evaluated observations.
 #' @export
-Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname = NULL) {
+Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname = NULL, verbose = FALSE) {
   
   warnings <- FALSE
   modelname_deriv <- NULL
@@ -342,7 +343,7 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname
   # Observables defined by g
   observables <- names(g)
   
-  gEval <- funC0(g, compile = compile, modelname = modelname)
+  gEval <- funC0(g, compile = compile, modelname = modelname, verbose = verbose)
   
   # Character matrices of derivatives
   dxdp <- dgdx <- dgdp <- NULL

@@ -123,11 +123,12 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
 #' @param fixed Character vector with the names of parameters (initial values and dynamic) for which
 #' no sensitivities are required (will speed up the integration).
 #' @param modelname Character, the name of the C file being generated.
+#' @param verbose Print compiler output to R command line.
 #' @param ... Further arguments being passed to funC.
 #' @return list with \code{func} (ODE object) and \code{extended} (ODE+Sensitivities object)
 #' @export
 #' @import cOde
-generateModel <- function(f, forcings=NULL, fixed=NULL, modelname = "f", ...) {
+generateModel <- function(f, forcings=NULL, fixed=NULL, modelname = "f", verbose = FALSE, ...) {
   
   modelname_s <- paste0(modelname, "_s")
   

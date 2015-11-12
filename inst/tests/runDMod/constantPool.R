@@ -6,9 +6,10 @@ library(dMod)
 
 ## Model definition-------------------------------------------------------------
 # Generate reaction network
-f <- NULL
-f <- addReaction("A", "pA", "k_on * A * exp(-0.1*time)", f)
-f <- addReaction("pA", "A", "k_off * pA", f)
+f <- eqnlist()
+f <- addReaction(f, "A", "pA", "k_on * A * exp(-0.1*time)")
+f <- addReaction(f, "pA", "A", "k_off * pA")
+fVec <- as.eqnvec(f)
 
 # Define new observables based on ODE states
 observables <- c(
@@ -16,15 +17,15 @@ observables <- c(
 )
 
 # Generate observation function
-g <- Y(observables, f, compile = TRUE, modelname = "obsfn")
+g <- Y(observables, fVec, compile = TRUE, modelname = "obsfn")
   
 # Generate the model C files
-model0 <- generateModel(f, compile = TRUE, modelname = "odefn")
+model0 <- generateModel(fVec, compile = TRUE, modelname = "odefn")
 
 
 ## Parameter transformations----------------------------------------------------
 # Define inner parameters (parameters occurring in the equations except forcings)
-innerpars <- getSymbols(c(f, names(f), observables), exclude = c("time"))
+innerpars <- getSymbols(c(names(fVec), as.character(fVec), observables), exclude = c("time"))
 
 # Define additional parameter constraints, e.g. initial states
 constraints <- c(
