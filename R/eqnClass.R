@@ -572,7 +572,7 @@ c.eqnvec <- function(...) {
 #' @export
 "[.eqnvec" <- function(x, ...) {
   out <- unclass(x)[...]
-  class(out) <- "eqnvec"
+  class(out) <- c("eqnvec", "character")
   return(out)
 }
 
