@@ -44,8 +44,13 @@ as.datalist.list <- function(mylist, mynames = names(mylist)) {
   if (!all(is.data.frame)) stop("list of data.frame expected")
 
   correct.names <- c("name", "time", "value", "sigma")
-  have.correct.names <- sapply(mylist, function(d) all(colnames(d) %in% correct.names))
-  if (!all(have.correct.names)) stop(paste("data.frames should have names:", correct.names, collapse = " "))
+  have.correct.names <- sapply(mylist, function(d) all(correct.names %in% colnames(d)))
+  if (all(have.correct.names)) {
+    mylist <- lapply(mylist, function(d) d[, correct.names])
+  } else {
+    stop(paste("data.frames should have names:", correct.names, collapse = " "))    
+  }
+
 
   if (length(mynames) != length(mylist)) stop("names argument has wrong length")
 
