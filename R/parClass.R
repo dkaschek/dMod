@@ -145,7 +145,16 @@ print.parvec <- function(par, ...) {
 
 
 
+## Methods for the class parfn--------------------------------------------------
 
+#' Pretty printing parameter transformations
+#' 
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#' 
+#' @export
+print.parfn <- function(pfn, width = 120) {
+  print(attr(pfn, "equations"), width)
+}
 
 
 

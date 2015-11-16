@@ -478,15 +478,68 @@ format.eqnvec <- function(eqnvec) {
 #' Print equation vector
 #' 
 #' @param object of class \link{eqnvec}.
+#' 
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#' 
 #' @export
-print.eqnvec <- function(eqnvec, ...) {
+print.eqnvec <- function(eqnvec, width = 140) {
+  require(stringr)
   
-  cat("Equations:\n")
-  out <- as.data.frame(unclass(eqnvec))
-  colnames(out) <- ""
-  print(out)
+  m_species <- names(eqnvec)
+  m_speciesWidth <- max(nchar(m_species), nchar("outer"))
+  m_lineWidth <- max(width, m_speciesWidth + 10)
+  m_sep <- " -> "
+  m_sepWidth <- nchar(m_sep)
+  m_eqnWidth <- m_lineWidth - m_speciesWidth - m_sepWidth
+  
+  m_eqnOrder <- order(m_species)
+  
+  # Iterate over species
+  m_msgEqn <- do.call(c, mapply(function(eqn, spec) {
+    m_splitStart <- seq(1, nchar(eqn), m_eqnWidth)
+    
+    if (length(m_splitStart) == 1) {
+      return(paste0(strpad(spec, m_speciesWidth, where = "left"), m_sep, eqn))
+    } else {
+      # Equations resulting in lines wider than width are broken into several lines
+      m_splitEnd <- c(m_splitStart[(-1)] - 1, nchar(eqn))
+      m_multiLine <- mapply(function(start, end) {
+        return(str_trim(substr(eqn, start, end)))
+        }, start = m_splitStart, end = m_splitEnd, SIMPLIFY = FALSE)
+      
+      # Prepend species to the first line, whitespace to following lines.
+      for (i in 1:length(m_multiLine)) {
+        if (i == 1) {
+          m_multiLine[i] <- paste0(strpad(spec, m_speciesWidth, where = "left"), m_sep, m_multiLine[i])
+        } else {
+          m_multiLine[i] <- paste0(strpad("", m_speciesWidth + m_sepWidth, where = "left"), m_multiLine[i])
+        }
+      }
+      
+      return(do.call(c, m_multiLine))
+    }
+  }, eqn = eqnvec[m_eqnOrder], spec = m_species[m_eqnOrder], SIMPLIFY = FALSE))
+  cat("Parameter transformation:\n")
+  cat(paste0(strpad("Outer" , m_speciesWidth, where = "left"), m_sep, "Inner\n"))
+  cat(m_msgEqn, sep = "\n")
 }
 
+
+
+#' Summary of an equation vector
+#' 
+#' @param object of class \link{eqnvec}.
+#' 
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#' 
+#' @export
+summary.eqnvec <- function(eqnvec) {
+  m_msg <- mapply(function(name, eqn) {
+    m_symb <- paste0(getSymbols(eqn), sep = ", ", collapse = "")
+    m_msg <- paste0(name, " = f( ", m_symb, ")")
+    }, name = names(eqnvec), eqn = eqnvec)
+  cat(m_msg, sep = "\n")
+}
 
 
 #' Pander on equation vector
