@@ -442,7 +442,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   
   # Wrap up
   # Write out results
-  save(m_parlist, file = fileParList)
+  saveRDS(m_parlist, file = fileParList)
 
   # Remove temporary files
   unlink(interResultFolder, recursive = TRUE)
