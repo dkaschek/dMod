@@ -32,7 +32,7 @@ summary.parlist <- function(x) {
 #' @param x The fitlist
 stat.parlist <- function(x) {
   status <- do.call(rbind, lapply(x, function(fit) {
-    if (any(names(fit) == "error")) {
+    if (inherits(fit, "try-error") || any(names(fit) == "error" || any(is.null(fit)))) {
       return("error")
     } else {
       if (fit$converged) {
@@ -56,7 +56,7 @@ as.parframe <- function(x, ...) {
 }
 
 #' @export
-as.parframe.parlist <- function(x) {
+as.parframe.parlist <- function(x, sort.by = "value") {
   m_stat <- stat.parlist(x)
   m_metanames <- c("index", "value", "converged", "iterations")
   m_idx <- which("error" != m_stat)
@@ -70,7 +70,9 @@ as.parframe.parlist <- function(x) {
                             as.data.frame(as.list(fit$argument))
                           )
                         }, fit = x[m_idx], idx = m_idx, SIMPLIFY = FALSE))
-  m_parframe <- parframe(m_parframe, parameters = names(x[[1]]$parinit), metanames = m_metanames)
+  m_parframe <- parframe(m_parframe, parameters = names(x[[m_idx[1]]]$parinit), metanames = m_metanames)
+  # Sort by value
+  m_parframe <- m_parframe[order(m_parframe$sort.by),]
   
   return(m_parframe)
 }

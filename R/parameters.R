@@ -252,8 +252,6 @@ Pimpl <- function(trafo, parameters=NULL, keep.root = TRUE, compile = FALSE, mod
     if(!is.null(guess)) 
       p[intersect(dependent, names(guess))] <- guess[intersect(dependent, names(guess))]
     
-    print(p)
-    
     # check for parameters which are not computed by multiroot
     emptypars <- names(p)[!names(p)%in%c(dependent, fixed)]
     
