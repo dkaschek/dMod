@@ -13,6 +13,7 @@
 #' into an R data file and copied to the remove machine.
 #' @param compile Logical. If \code{TRUE}, C files are copied and compiled on the remote machine.
 #' Otherwise, the .so files are copied.
+#' @param wait Wait until executed
 #' @return List of functions \code{check}, \code{get()} and \code{purge()}. 
 #' \code{check()} checks, if the result is ready.
 #' \code{get()} copies the result file
@@ -28,7 +29,7 @@
 #' out$get()
 #' print(.runbgOutput)
 #' out$purge()
-runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.GlobalEnv), compile = FALSE) {
+runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.GlobalEnv), compile = FALSE, wait = FALSE) {
   
   
   expr <- as.expression(substitute(...))
@@ -36,6 +37,13 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
   # Set file name
   if (is.null(filename))
     filename <- paste0("tmp_", paste(sample(c(0:9, letters), 5, replace = TRUE), collapse = ""))
+  
+  # Check if filename exists and load last result (only if wait == TRUE)
+  resultfile <- paste0(filename, "_result.RData")
+  if(file.exists(resultfile) & wait) {
+    load(file = resultfile, envir = .GlobalEnv, verbose = TRUE)
+    return()
+  }
   
   # Save current workspace
   save(list = input, file = paste0(filename, ".RData"))
@@ -84,7 +92,7 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
   }
   
   # Run in background
-  system(paste0("ssh ", machine, " R CMD BATCH ", filename, "_folder/", filename, ".R --vanilla"), intern = FALSE, wait = FALSE)
+  system(paste0("ssh ", machine, " R CMD BATCH ", filename, "_folder/", filename, ".R --vanilla"), intern = FALSE, wait = wait)
   
   out <- structure(vector("list", 3), names = c("check", "get", "purge"))
   
@@ -112,7 +120,13 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
     
   }
   
-  return(out)
+  if(wait) {
+    out$get()
+    out$purge()
+  } else {
+    return(out)
+  }
+  
   
 }
 
