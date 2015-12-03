@@ -309,7 +309,8 @@ objfn <- function(..., data, x, pouter = NULL, conditions = names(data)) {
     #attributes.user <- attributes.user[!names(attributes.user) %in% c("names", "class")]
 
     # Combine contributions and attach attributes
-    out <- out.data + out.user
+    out <- out.data
+    if(is.list(out.user)) out <- out + out.user
     attr(out, "data") <- out.data$value
     attr(out, "user") <- out.user$value
     return(out)
