@@ -150,6 +150,15 @@ plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
   
   data <- do.call(rbind, lapply(1:length(arglist), function(i) {
     proflist <- arglist[[i]]
+    
+    if(is.data.frame(proflist)) {
+      whichPars <- unique(proflist$whichPar)
+      proflist <- lapply(whichPars, function(n) {
+        with(proflist, proflist[whichPar == n, ])
+      })
+      names(proflist) <- whichPars
+    }
+    
     do.valueData <- "valueData" %in% colnames(proflist[[1]])
     do.valuePrior <- "valuePrior" %in% colnames(proflist[[1]])
     
@@ -237,6 +246,15 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scale
   data <- do.call(rbind, lapply(1:length(arglist), function(i) {
     # choose a proflist
     proflist <- arglist[[i]]
+    
+    if(is.data.frame(proflist)) {
+      whichPars <- unique(proflist$whichPar)
+      proflist <- lapply(whichPars, function(n) {
+        with(proflist, proflist[whichPar == n, ])
+      })
+      names(proflist) <- whichPars
+    }
+    
     if(is.null(whichPar)) whichPar <- names(proflist)
     if(is.numeric(whichPar)) whichPar <- names(proflist)[whichPar]
     subdata <- do.call(rbind, lapply(whichPar, function(n) {
@@ -533,7 +551,7 @@ plotValues <- function(pars, values = "value") {
  
   pars <- cbind(index = 1:nrow(pars), pars)
    
-  ggplot(pars, aes(x = index, y = value)) + geom_point() + 
+  ggplot(pars, aes(x = index, y = value, pch = converged, color = iterations)) + geom_point() + 
     xlab("index") + ylab("value")
   
 }

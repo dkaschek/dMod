@@ -97,7 +97,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   # Initialize control parameters depending on method
   method  <- match.arg(method)
   if(method == "integrate") {
-    sControl <- list(stepsize = 1e-4, min = 0, max = Inf, atol = 1e-2, rtol = 1e-2, limit = 100)
+    sControl <- list(stepsize = 1e-4, min = 0, max = Inf, atol = 1e-2, rtol = 1e-2, limit = 1000)
     aControl <- list(gamma = 1, W = "hessian", reoptimize = FALSE, correction = 1, reg = .Machine$double.eps)
     oControl <- list(rinit = .1, rmax = 10, iterlim = 10, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))
   }
@@ -318,7 +318,9 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   out <- c(value = lagrange.out$value, 
            constraint = as.vector(constraint.out$value), 
            stepsize = stepsize, 
-           gamma = gamma, out.attributes, ini)
+           gamma = gamma, 
+           whichPar = whichPar,
+           out.attributes, ini)
   
   # Compute right profile
   cat("Compute right profile\n")
@@ -352,6 +354,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                    constraint = as.vector(constraint.out$value), 
                    stepsize = stepsize, 
                    gamma = gamma, 
+                   whichPar = whichPar,
                    out.attributes, 
                    y))
     
@@ -394,7 +397,8 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     out <- rbind(c(value = lagrange.out$value, 
                    constraint = as.vector(constraint.out$value), 
                    stepsize = stepsize, 
-                   gamma = gamma, 
+                   gamma = gamma,
+                   whichPar = whichPar,
                    out.attributes,
                    y), 
                  out)
@@ -406,10 +410,12 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   }
   
   # Output
+  out <- as.data.frame(out)
+  out$whichPar <- whichPar.name
   parframe(
     out,
     parameters = names(pars),
-    metanames = c("value", "constraint", "stepsize", "gamma"),
+    metanames = c("value", "constraint", "stepsize", "gamma", "whichPar"),
     obj.attributes = names(out.attributes)
   )
   

@@ -77,8 +77,6 @@ as.parframe.parlist <- function(x, sort.by = "value") {
   return(m_parframe)
 }
 
-
-
 ## Methods for the class parvec ------------------------------------------------
 
 #' Pretty printing for a parameter vector
