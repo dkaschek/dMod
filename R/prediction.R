@@ -102,7 +102,7 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
                                       forcings=forc, 
                                       events = list(data = rbind(events, myevents.addon))), optionsSens))
       #out <- cbind(outSens[,c("time", variables)], out.inputs)
-      out <- outSens[,c("time", c(variables, forcnames))]
+      out <- submatrix(outSens, cols = c("time", c(variables, forcnames)))
       mysensitivities <- submatrix(outSens, cols = !colnames(outSens)%in%c(variables, forcnames))
       
       
