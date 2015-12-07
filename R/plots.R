@@ -357,7 +357,7 @@ plotPredictionCont <- function(out, ...) {
 
 #' Plot an array of model predictions for a list of parameters
 #' 
-#' @param parlist Matrix or data.frame with a "value" column and columns for the parameters
+#' @param parframe Object of class \code{parframe}, e.g. returned by \link{mstrust} or \link{profile}
 #' @param x The model prediction function \code{x(times, pars, fixed, ...)}
 #' @param times Numeric vector of time points for the model prediction
 #' @param data Named list of data.frames as being used in \link{res}, i.e. with columns \code{name}, \code{time}, 
@@ -376,7 +376,10 @@ plotPredictionCont <- function(out, ...) {
 #' @export
 plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv = FALSE, scales = "free", facet = "wrap") {
 
-  pars<- lapply(1:nrow(parlist), function(i) rev(unlist(parlist[i, ])))
+  parameters <- attr(parlist, "parameters")
+  
+  pars<- lapply(1:nrow(parlist), function(i) unlist(parlist[i, c("value", parameters)]))
+  
   
   prediction <- lapply(pars, function(p) {
     pred <- x(times, p, fixed, deriv = deriv)

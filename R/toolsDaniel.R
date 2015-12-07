@@ -38,11 +38,40 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
   if (is.null(filename))
     filename <- paste0("tmp_", paste(sample(c(0:9, letters), 5, replace = TRUE), collapse = ""))
   
+  # Initialize output
+  out <- structure(vector("list", 3), names = c("check", "get", "purge"))
+  out[[1]] <- function() {
+    
+    check.out <- suppressWarnings(
+      system(paste0("ssh ", machine, " ls ", filename, "_folder/ | grep -x ", filename, "_result.RData"), 
+             intern = TRUE))
+    
+    if(length(check.out) > 0) cat("Result is ready!\n") else cat("Not ready!\n")
+    
+  }
+  
+  out[[2]] <- function() {
+    
+    system(paste0("scp ", machine, ":", filename, "_folder/", filename, "_result.RData ./"))
+    load(file = paste0(filename, "_result.RData"), envir = .GlobalEnv, verbose = TRUE)
+    
+  }
+  
+  out[[3]] <- function() {
+    
+    system(paste0("ssh ", machine, " rm -r ", filename, "_folder"))
+    system(paste0("rm ", filename, ".R*"))
+    
+  }
+  
+  
+  
+  
   # Check if filename exists and load last result (only if wait == TRUE)
   resultfile <- paste0(filename, "_result.RData")
   if(file.exists(resultfile) & wait) {
     load(file = resultfile, envir = .GlobalEnv, verbose = TRUE)
-    return()
+    return(out)
   }
   
   # Save current workspace
@@ -93,32 +122,6 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
   
   # Run in background
   system(paste0("ssh ", machine, " R CMD BATCH ", filename, "_folder/", filename, ".R --vanilla"), intern = FALSE, wait = wait)
-  
-  out <- structure(vector("list", 3), names = c("check", "get", "purge"))
-  
-  out[[1]] <- function() {
-    
-    check.out <- suppressWarnings(
-      system(paste0("ssh ", machine, " ls ", filename, "_folder/ | grep -x ", filename, "_result.RData"), 
-             intern = TRUE))
-    
-    if(length(check.out) > 0) cat("Result is ready!\n") else cat("Not ready!\n")
-    
-  }
-  
-  out[[2]] <- function() {
-    
-    system(paste0("scp ", machine, ":", filename, "_folder/", filename, "_result.RData ./"))
-    load(file = paste0(filename, "_result.RData"), envir = .GlobalEnv, verbose = TRUE)
-    
-  }
-  
-  out[[3]] <- function() {
-    
-    system(paste0("ssh ", machine, " rm -r ", filename, "_folder"))
-    system(paste0("rm ", filename, ".R*"))
-    
-  }
   
   if(wait) {
     out$get()
