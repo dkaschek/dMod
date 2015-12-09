@@ -1,3 +1,20 @@
+## Methods for class "objfn" -----------------------------------------------
+
+#' Combine objective functions
+#' 
+#' @description Given objective function \code{f} an \code{g}, 
+#' returns a function \code{(f+g)(...)}.
+#' @param f object of class \link{objfn}
+#' @param g object of class \code{objfn}
+#' @return object of class \code{objfn}
+#' @export
+"+.objfn" <- function(f, g) {
+  
+  function(...) f(...) + g(...)
+  
+}
+
+
 ## Class "objlist" and its constructors ------------------------------------
 
 
