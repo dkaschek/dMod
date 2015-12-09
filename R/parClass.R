@@ -1,5 +1,18 @@
 ## Methods for the class parlist -----------------------------------------------
 
+#' Parameter list
+#' 
+#' @param list of lists, as returned by \code{trust}
+#' @rdname parlist
+#' @export
+as.parlist <- function(x = NULL) {
+  if (is.null(x)) {
+    return(NULL)
+  } else {
+    class(x) <- c("parlist", "list")
+    return(x)
+  }
+}
 
 #' @export
 summary.parlist <- function(x) {
@@ -78,6 +91,31 @@ as.parframe.parlist <- function(x, sort.by = "value") {
 }
 
 ## Methods for the class parvec ------------------------------------------------
+
+#' Dispatch as.parvec.
+#'
+#' @export
+as.parvec <- function(x, ...) {
+  UseMethod("as.parvec", x)
+}
+
+
+#' Parameter vector
+#' @param p numeric or named numeric, the parameter values
+#' @param mynames character vector, the parameter names
+#' @rdname parvec
+#' @export
+as.parvec.numeric <- function(p, names = NULL, deriv = NULL) {
+  
+  out <- as.numeric(p)
+  if(is.null(names)) names(out) <- names(p)
+  attr(out, "deriv") <- deriv
+  class(out) <- c("parvec", "numeric")
+  
+  return(out)
+  
+}
+
 
 #' Pretty printing for a parameter vector
 #' 

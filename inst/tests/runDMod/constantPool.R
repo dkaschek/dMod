@@ -12,7 +12,7 @@ f <- addReaction(f, "pA", "A", "k_off * pA")
 fVec <- as.eqnvec(f)
 
 # Define new observables based on ODE states
-observables <- c(
+observables <- eqnvec(
   pA_obs = "scale * pA"
 )
 
@@ -56,13 +56,13 @@ y <- function(times, pouter, fixed = NULL, ...) {
   pinner <- p0(pouter, fixed)
   prediction <- x0(times, pinner, ...)
   observation <- g(prediction, pinner, attach.input = TRUE)
-  return(list(cond1 = observation))
+  return(prdlist(cond1 = observation))
 }
 
 
 ## Simulate Data----------------------------------------------------------------
 # Use the following parameters
-pouter <- c(logk_on = log(0.01),
+pouter <- parvec(logk_on = log(0.01),
             logk_off = log(0.1),
             logscale = log(10))
 
@@ -76,7 +76,7 @@ prediction <- y(times, pouter)
 values.pA <- prediction$cond1[, "pA_obs"]
 noise.pA <- rnorm(length(values.pA), 0, noise)
 
-data <- list(
+data <- datalist(
   cond1 = data.frame(name = "pA_obs", 
                      time = times, 
                      value = values.pA + noise.pA, 

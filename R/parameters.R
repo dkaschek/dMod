@@ -27,7 +27,7 @@ P0 <- function() {
       if (!is.null(dP)) myderiv <- myderiv %*% submatrix(dP, rows = colnames(myderiv))
     }
     
-    parvec(p, deriv = myderiv)
+    as.parvec(p, deriv = myderiv)
     
   }
   
@@ -117,7 +117,7 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL, ver
     myderiv <- NULL
     if(deriv) myderiv <- jac.matrix
     
-    parvec(pinner, deriv = myderiv)
+    as.parvec(pinner, deriv = myderiv)
     
   }
   
@@ -289,7 +289,7 @@ Pimpl <- function(trafo, parameters=NULL, keep.root = TRUE, compile = FALSE, mod
     myderiv <- NULL
     if(deriv) myderiv <- jacobian
     
-    parvec(out, deriv = myderiv)
+    as.parvec(out, deriv = myderiv)
     
   }
   

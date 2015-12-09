@@ -366,7 +366,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     flush(logfile)
   }
 
-  m_parlist <- parlist(mclapply(1:fits, function(i) {
+  m_parlist <- as.parlist(mclapply(1:fits, function(i) {
     argstrust$parinit <- center + do.call(samplefun, argssample)
     fit <- do.call(trust, c(argstrust, argsobj))
     
@@ -593,17 +593,12 @@ load.parlist <- function(folder) {
     return(readRDS(file.path(folder, file)))
   })
   
-  return(parlist(m_parVec))
+  return(as.parlist(m_parVec))
 }
 
 
 
-#' Dispatch as.parvec.
-#'
-#' @export
-as.parvec <- function(x, ...) {
-  UseMethod("as.parvec", x)
-}
+
 
 
 #' Select a parameter vector from a parameter frame.
@@ -633,7 +628,7 @@ as.parvec <- function(x, ...) {
 #' @export
 as.parvec.parframe <- function(parframe, index = 1) {
   m_order <- order(parframe$value)
-  best <- parvec(parframe[m_order[index], setdiff(names(parframe), attr(parframe, "metanames"))])
+  best <- as.parvec(parframe[m_order[index], names = setdiff(names(parframe), attr(parframe, "metanames"))])
   if (!parframe[m_order[index],]$converged) {
     warning("Parameter vector of an unconverged fit is selected.", call. = FALSE)
     }
@@ -935,7 +930,7 @@ rbind.parlist <- function(...) {
       return(fit)
       }, fit = m_fits, idx = seq_along(m_fits))
     
-    return(parlist(m_parlist))
+    return(as.parlist(m_parlist))
   }
 
 

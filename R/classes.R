@@ -26,7 +26,7 @@ eqnvec <- function(...) {
     
     return(NULL)
   
-    }
+  }
     
 }
 
@@ -110,14 +110,15 @@ parframe <- function(x = NULL, parameters = colnames(x), metanames = NULL, obj.a
 
 }
 
+#' Parameter list
+#' 
+#' @param ... Objects to be coerced to parameter list.
 #' @export
-parlist <- function(x = NULL) {
-  if (is.null(x)) {
-    return(NULL)
-  } else {
-    class(x) <- c("parlist", "list")
-    return(x)
-  }
+parlist <- function(...) {
+  
+  mylist <- list(...)
+  return(as.parlist(mylist))
+  
 }
 
 
@@ -125,23 +126,32 @@ parlist <- function(x = NULL) {
 #' Parameter vector
 #'
 #' @description A parameter vector is a named numeric vector (the parameter values)
-#' together with an "deriv" attribute (the Jacobian of a parameter transformation by which
+#' together with a "deriv" attribute (the Jacobian of a parameter transformation by which
 #' the parameter vector was generated).
-#' @param p numeric or named numeric, the parameter values
-#' @param mynames character vector, the parameter names
-#' @param deriv matrix with rownames according to \code{mynames} and colnames
-#' according to the names of the parameter by which \code{p} was generated.
+#' @param deriv matrix with rownames (according to names of \code{...}) and colnames
+#' according to the names of the parameter by which the parameter vector was generated.
 #' @return An object of class \code{parvec}, i.e. a named numeric vector with attribute "deriv".
 #'
 #' @export
-parvec <- function(p, mynames = names(p), deriv = NULL) {
+parvec <- function(..., deriv = NULL) {
 
-  out <- as.numeric(p)
-  names(out) <- mynames
-  attr(out, "deriv") <- deriv
-  class(out) <- c("parvec", "numeric")
-
-  return(out)
+  mylist <- list(...)
+  if (length(mylist) > 0) {
+    mynames <- paste0("par", 1:length(mylist))
+    is.available <- !is.null(names(mylist))
+    mynames[is.available] <- names(mylist)[is.available]  
+    
+    out <- as.numeric(unlist(mylist))
+    names(out) <- mynames
+    
+    return(as.parvec(out, deriv = deriv))
+    
+  } else {
+    
+    return(NULL)
+    
+  }
+  
 
 }
 
@@ -200,7 +210,7 @@ prdfn <- function(..., pouter = NULL, conditions = "1") {
 
 #' Prediction frame
 #'
-#' @description A prediction frame is used to store a model description in a matrix. The columns
+#' @description A prediction frame is used to store a model prediction in a matrix. The columns
 #' of the matrix are "time" and one column per state. The prediction frame has attributes "deriv",
 #' the matrix of sensitivities with respect to "outer parameters" (see \link{P}), an attribute
 #' "sensitivities", the matrix of sensitivities with respect to the "inner parameters" (the model
