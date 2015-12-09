@@ -95,6 +95,7 @@ as.parframe.parlist <- function(x, sort.by = "value") {
 #' Dispatch as.parvec.
 #'
 #' @export
+#' @rdname parvec
 as.parvec <- function(x, ...) {
   UseMethod("as.parvec", x)
 }
@@ -108,7 +109,7 @@ as.parvec <- function(x, ...) {
 as.parvec.numeric <- function(p, names = NULL, deriv = NULL) {
   
   out <- as.numeric(p)
-  if(is.null(names)) names(out) <- names(p)
+  if(is.null(names)) names(out) <- names(p) else names(out) <- names
   attr(out, "deriv") <- deriv
   class(out) <- c("parvec", "numeric")
   
@@ -178,6 +179,23 @@ print.parvec <- function(par, ...) {
   out <- unclass(x)[...]
   deriv <- attr(x, "deriv")[..., ]
   as.parvec(out, deriv = deriv)
+}
+
+#' @export
+c.parvec <- function(...) {
+  
+  mylist <- list(...)
+  
+  n <- unlist(lapply(mylist, function(l) names(l)))
+  v <- unlist(lapply(mylist, function(l) as.numeric(l)))
+  d <- lapply(mylist, function(l) attr(l, "deriv"))
+  
+  if(any(duplicated(n))) stop("Found duplicated names. Parameter vectors cannot be coerced.")
+  
+  deriv <- submatrix(Reduce(combine, d), rows = n)
+  
+  as.parvec(v, names = n, deriv = deriv)
+  
 }
 
 

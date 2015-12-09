@@ -157,12 +157,9 @@ compare.data.frame <- function(vec1, vec2 = NULL) {
 }
 
 
-
-
-
 #' Combine several data.frames by rowbind
 #' 
-#' @param ... data.frames with not necessarily overlapping colnames
+#' @param ... data.frames or matrices with not necessarily overlapping colnames
 #' @details This function is useful when separating models into independent csv model files,
 #' e.g.~a receptor model and several downstream pathways. Then, the models can be recombined 
 #' into one model by \code{combine()}.
@@ -173,6 +170,7 @@ compare.data.frame <- function(vec1, vec2 = NULL) {
 #' data1 <- data.frame(Description = "reaction 1", Rate = "k1*A", A = -1, B = 1)
 #' data2 <- data.frame(Description = "reaction 2", Rate = "k2*B", B = -1, C = 1)
 #' combine(data1, data2)
+#' @export
 combine <- function(...) {
   
   # List of input data.frames
@@ -184,10 +182,21 @@ combine <- function(...) {
   mynames <- unique(unlist(lapply(mylist, function(S) colnames(S))))
   
   mylist <- lapply(mylist, function(l) {
-    present.list <- as.list(l)
-    missing.names <- setdiff(mynames, names(present.list))
-    missing.list <- structure(as.list(rep(NA, length(missing.names))), names = missing.names)
-    combined.data <- do.call(cbind.data.frame, c(present.list, missing.list))
+    
+    if(is.data.frame(l)) {
+      present.list <- as.list(l)
+      missing.names <- setdiff(mynames, names(present.list))
+      missing.list <- structure(as.list(rep(NA, length(missing.names))), names = missing.names)
+      combined.data <- do.call(cbind.data.frame, c(present.list, missing.list))
+    }
+    if(is.matrix(l)) {
+      present.matrix <- as.matrix(l)
+      missing.names <- setdiff(mynames, colnames(present.matrix))
+      missing.matrix <- matrix(0, nrow = nrow(present.matrix), ncol = length(missing.names), 
+                             dimnames = list(NULL, missing.names))
+      combined.data <- submatrix(cbind(present.matrix, missing.matrix), cols = mynames)
+    }
+    
     return(combined.data)
   })
   
