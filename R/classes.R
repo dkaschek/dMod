@@ -112,6 +112,9 @@ parframe <- function(x = NULL, parameters = colnames(x), metanames = NULL, obj.a
 
 #' Parameter list
 #' 
+#' @description The special use of a parameter list is to save
+#' the outcome of multiple optimization runs, e.g. by \code{mstrust},
+#' into one list.#' 
 #' @param ... Objects to be coerced to parameter list.
 #' @export
 parlist <- function(...) {
