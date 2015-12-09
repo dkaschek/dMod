@@ -14,8 +14,8 @@
 #' @export
 #' @examples
 #' ## Compare equation vectors
-#' eq1 <- as.eqnvec(c(a = "-k1*a + k2*b", b = "k2*a - k2*b"))
-#' eq2 <- as.eqnvec(c(a = "-k1*a", b = "k2*a - k2*b", c = "k2*b"))
+#' eq1 <- eqnvec(a = "-k1*a + k2*b", b = "k2*a - k2*b")
+#' eq2 <- eqnvec(a = "-k1*a", b = "k2*a - k2*b", c = "k2*b")
 #' compare(eq1, eq2)
 #' 
 #' ## Compare character vectors

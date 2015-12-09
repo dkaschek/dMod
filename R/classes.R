@@ -5,26 +5,29 @@
 #' @description The eqnvec object stores explicit algebraic equations, like the
 #' right-hand sides of an ODE, observation functions or parameter transformations
 #' as named character vectors.
-#' @param equations (named) character of symbolic mathematical expressions,
+#' @param ... mathematical expressions as characters to be coerced,
 #' the right-hand sides of the equations
-#' @param names character, the left-hand sides of the equation
 #' @return object of class \code{eqnvec}, basically a named character.
 #' @export
-eqnvec <- function(equations = NULL, names = NULL) {
-
-  if (is.null(equations)) return(c())
-
-  if (is.null(names)) names <- names(equations)
-  if (is.null(names)) stop("equations need names")
-  if (length(names) != length(equations)) stop("Length of names and equations do not coincide")
-  try.parse <- try(parse(text = equations), silent = TRUE)
-  if (inherits(try.parse, "try-error")) stop("equations cannot be parsed")
-
-  out <- structure(equations, names = names)
-  class(out) <- c("eqnvec", "character")
-
-  return(out)
-
+eqnvec <- function(...) {
+  
+  mylist <- list(...)
+  if (length(mylist) > 0) {
+    mynames <- paste0("eqn", 1:length(mylist))
+    is.available <- !is.null(names(mylist))
+    mynames[is.available] <- names(mylist)[is.available]  
+    
+    names(mylist) <- mynames
+    out <- unlist(mylist)
+    
+    return(as.eqnvec(out))
+    
+  } else {
+    
+    return(NULL)
+  
+    }
+    
 }
 
 #' Generate eqnlist object

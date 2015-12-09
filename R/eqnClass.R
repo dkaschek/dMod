@@ -394,16 +394,36 @@ pander.eqnlist<- function(eqnlist) {
 #' into a vector of equations.
 #' @return object of class \link{eqnvec}.
 #' @export
-as.eqnvec <- function(x) {
+as.eqnvec <- function(x, ...) {
   UseMethod("as.eqnvec", x)
 }
 
+#' Generate equation vector object
+#'
+#' @param equations (named) character of symbolic mathematical expressions,
+#' the right-hand sides of the equations
+#' @param names character, the left-hand sides of the equation
+#' @return object of class \code{eqnvec}, basically a named character.
+#' @rdname eqnvec
 #' @export
-as.eqnvec.character <- function(char) {
-
-  eqnvec(char, names(char))
+as.eqnvec.character <- function(equations = NULL, names = NULL) {
+  
+  if (is.null(equations)) return(NULL)
+  
+  if (is.null(names)) names <- names(equations)
+  if (is.null(names)) stop("equations need names")
+  if (length(names) != length(equations)) stop("Length of names and equations do not coincide")
+  try.parse <- try(parse(text = equations), silent = TRUE)
+  if (inherits(try.parse, "try-error")) stop("equations cannot be parsed")
+  
+  out <- structure(equations, names = names)
+  class(out) <- c("eqnvec", "character")
+  
+  return(out)
   
 }
+
+
 
 #' Transform equation list into vector of equations
 #' 
@@ -411,6 +431,7 @@ as.eqnvec.character <- function(char) {
 #' translates this list into the right-hand sides of the ODE.
 #' @param eqnlist equation list, see \link{eqnlist}
 #' @return An object of class \link{eqnvec}. 
+#' @rdname eqnvec
 #' @export
 as.eqnvec.eqnlist <- function(eqnlist) {
   
@@ -421,7 +442,7 @@ as.eqnvec.eqnlist <- function(eqnlist) {
   
   terme <- do.call(c, terme)
   
-  eqnvec(terme, names(terme))
+  as.eqnvec(terme, names(terme))
   
 }
 
@@ -437,6 +458,7 @@ c.eqnlist <- function(...) {
 
 
 #' @export
+#' @rdname eqnvec
 is.eqnvec <- function(x) {
   if (inherits(x, "eqnvec") &&
       length(x) == length(names(x))
@@ -449,6 +471,9 @@ is.eqnvec <- function(x) {
 
 
 ## Class "eqnvec" and its methods --------------------------------------------
+
+
+
 
 
 #' Encode equation vector in format with sufficient spaces
@@ -488,7 +513,7 @@ print.eqnvec <- function(eqnvec, width = 140) {
   m_species <- names(eqnvec)
   m_speciesWidth <- max(nchar(m_species), nchar("outer"))
   m_lineWidth <- max(width, m_speciesWidth + 10)
-  m_sep <- " -> "
+  m_sep <- " <- "
   m_sepWidth <- nchar(m_sep)
   m_eqnWidth <- m_lineWidth - m_speciesWidth - m_sepWidth
   
@@ -519,8 +544,7 @@ print.eqnvec <- function(eqnvec, width = 140) {
       return(do.call(c, m_multiLine))
     }
   }, eqn = eqnvec[m_eqnOrder], spec = m_species[m_eqnOrder], SIMPLIFY = FALSE))
-  cat("Parameter transformation:\n")
-  cat(paste0(strpad("Outer" , m_speciesWidth, where = "left"), m_sep, "Inner\n"))
+  cat(paste0(strpad("Inner" , m_speciesWidth, where = "left"), m_sep, "Outer\n"))
   cat(m_msgEqn, sep = "\n")
 }
 
@@ -596,13 +620,25 @@ dot.eqnvec <- function(observable, eqnlist) {
   
   newodes <- sapply(derivatives, function(der) {
     
-    out <- sapply(names(der), function(n) {
-      d <- der[n]
-      if(d != "0") paste( paste("(", d, ")", sep="") , paste("(", f[names(d)], ")",sep=""), sep="*") else return("0")
-    })
-    out <- paste(out, collapse = "+")
+    prodSymb(matrix(der, nrow = 1), matrix(f[names(der)], ncol = 1))
     
-    return(out)
+#     
+#     out <- sapply(names(der), function(n) {
+#       d <- der[n]
+#       
+#       if (d != "0") {
+#         prodSymb(matrix(d, nrow = 1), matrix(f[names(d)], ncol = 1))
+#       } else  {
+#         return("0")
+#       }
+#         
+#       
+#       
+#       #paste( paste("(", d, ")", sep="") , paste("(", f[names(d)], ")",sep=""), sep="*") else return("0")
+#     })
+#     out <- paste(out, collapse = "+")
+#     
+#     return(out)
     
   })
   
