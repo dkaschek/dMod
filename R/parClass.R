@@ -62,13 +62,19 @@ stat.parlist <- function(x) {
   return(status)
 }
 
-
+#' Coerce object to a parameter frame
+#' 
+#' @param x object to be coerced
+#' @return object of class \link{parframe}.
 #' @export
 as.parframe <- function(x, ...) {
   UseMethod("as.parframe", x)
 }
 
 #' @export
+#' @rdname as.parframe
+#' @param sorted.by character indicating by which colum the returned parameter frame
+#' should be sorted. Defaults to \code{"value"}.
 as.parframe.parlist <- function(x, sort.by = "value") {
   m_stat <- stat.parlist(x)
   m_metanames <- c("index", "value", "converged", "iterations")
@@ -103,7 +109,8 @@ as.parvec <- function(x, ...) {
 
 #' Parameter vector
 #' @param p numeric or named numeric, the parameter values
-#' @param mynames character vector, the parameter names
+#' @param names optional character vector, the parameter names. Otherwise, names
+#' are taken from \code{p}.
 #' @rdname parvec
 #' @export
 as.parvec.numeric <- function(p, names = NULL, deriv = NULL) {
@@ -122,6 +129,8 @@ as.parvec.numeric <- function(p, names = NULL, deriv = NULL) {
 #' 
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 
+#' @param par object of class \code{parvec}
+#' @param ... not used yet.
 #' @export
 print.parvec <- function(par, ...) {
   
@@ -207,6 +216,8 @@ c.parvec <- function(...) {
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 
 #' @export
+#' @param pfn object of class \link{parfn}
+#' @param width the print-out console width
 print.parfn <- function(pfn, width = 120) {
   print(attr(pfn, "equations"), width)
 }

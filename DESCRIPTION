@@ -8,4 +8,4 @@ Maintainer: Daniel Kaschek <daniel.kaschek@physik.uni-freiburg.de>
 Description: The framework provides functions to generate ODEs of reaction networks, parameter transformations, observation functions, residual functions, etc. The framework follows the paradigm that derivative information should be used for optimization whenever possible. Therefore, all major functions produce and can handle expressions for symbolic derivatives.
 License: GPL (>= 2)
 Depends: cOde, trust, ggplot2
-Suggests: MASS, rPython, rootSolve
+Suggests: MASS, rPython, rootSolve, pander

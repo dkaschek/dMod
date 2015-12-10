@@ -1,3 +1,14 @@
+#' Generate a parameter transformation function
+#' @description  Generate parameter transformation function from a
+#' named character vector or object of class \link{eqnvec}. This is a wrapper
+#' function for \link{Pexpl} and \link{Pimpl}. See for more details there.
+#' @param trafo object of class \code{eqnvec} or named character
+#' @param parameters character vector
+#' @param compile logical
+#' @param modelname character
+#' @param method character, either \code{"explicit"} or \code{"implicit"}
+#' @param verbose Print out information during compilation
+#' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)}
 #' @export
 P <- function(trafo = NULL, parameters=NULL, compile = FALSE, modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE) {
   
@@ -10,8 +21,10 @@ P <- function(trafo = NULL, parameters=NULL, compile = FALSE, modelname = NULL, 
   
 }
 
-
+#' The identity parameter transformation
 #' @export
+#' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)} returning \code{p}
+#' with unit matrix as derivative or derivative inherited from \code{p}.
 P0 <- function() {
   
   myfn <- function(p, fixed=NULL, deriv = TRUE) {

@@ -47,7 +47,7 @@ as.objlist <- function(p) {
 #' @param fixed Named numeric with fixed parameter values (contribute to the prior value but not to gradient and Hessian)
 #' @return list with entries: value (numeric, the weighted residual sum of squares), 
 #' gradient (numeric, gradient) and 
-#' hessian (matrix of type numeric).
+#' hessian (matrix of type numeric). Object of class \code{objlist}.
 #' @export
 constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, fixed=NULL) {
   
@@ -106,7 +106,7 @@ constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, fixed=NULL) {
 #' @param sigma Named numeric of length of mu or numeric of length one.
 #' @param fixed Named numeric with fixed parameter values (contribute to the prior value
 #' but not to gradient and Hessian)
-#' @return List of class \code{obj}, i.e. objective value, gradient and Hessian as list.
+#' @return List of class \code{objlist}, i.e. objective value, gradient and Hessian as list.
 #' @seealso \link{wrss}
 #' @details Computes the constraint value 
 #' \deqn{\frac{1}{2}\left(\frac{p-\mu}{\sigma}\right)^2}{0.5*(p-mu)^2/sigma^2}
@@ -165,7 +165,7 @@ constraintL2 <- function(p, mu, sigma = 1, fixed=NULL) {
 #' @param sigma Numeric of length one. The uncertainty assumed for the validation data point.
 #' @param fixed Named numeric with fixed parameter values (contribute to the prior value
 #' but not to gradient and Hessian)
-#' @return List of class \code{obj}, i.e. objective value, gradient and Hessian as list.
+#' @return List of class \code{objlist}, i.e. objective value, gradient and Hessian as list.
 #' @seealso \link{wrss}, \link{constraintL2}
 #' @details Computes the constraint value 
 #' \deqn{\left(\frac{x(t)-\mu}{\sigma}\right)^2}{(pred-p[names(mu)])^2/sigma^2}
@@ -238,7 +238,7 @@ datapointL2 <- function(p, prediction, mu, time = 0, sigma = 1, fixed = NULL) {
 #' @param lambda Character of length one. The name of the penalty paramter in \code{p}.
 #' @param fixed Named numeric with fixed parameter values (contribute to the prior value
 #' but not to gradient and Hessian)
-#' @return List of class \code{obj}, i.e. objective value, gradient and Hessian as list.
+#' @return List of class \code{objlist}, i.e. objective value, gradient and Hessian as list.
 #' @seealso \link{wrss}, \link{constraintExp2}
 #' @details Computes the constraint value 
 #' \deqn{e^{\lambda} \| p-\mu \|^2}{exp(lambda)*sum((p-mu)^2)}
@@ -287,7 +287,7 @@ priorL2 <- function(p, mu, lambda = "lambda", fixed = NULL) {
 
 #' Compute the weighted residual sum of squares
 #' 
-#' @param nout data.frame (result of \link{res})
+#' @param nout data.frame (result of \link{res}) or object of class \link{objframe}.
 #' @return list with entries value (numeric, the weighted residual sum of squares), 
 #' gradient (numeric, gradient) and 
 #' hessian (matrix of type numeric).

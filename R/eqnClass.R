@@ -13,12 +13,16 @@
 #' "Rate" (character), and one column per ODE state with the state names. 
 #' The state columns correspond to the stoichiometric matrix.
 #' @return Object of class \link{eqnlist}
+#' @rdname eqnlist
 #' @export
 as.eqnlist <- function(data, volumes, ...) {
   UseMethod("as.eqnlist", data)
 }
 
 #' @export
+#' @param data data.frame with columns Description, Rate, and one colum for each state
+#' reflecting the stoichiometric matrix
+#' @rdname eqnlist
 as.eqnlist.data.frame <- function(data, volumes = NULL) {
   description <- as.character(data$Description)
   rates <- as.character(data$Rate)
@@ -31,6 +35,8 @@ as.eqnlist.data.frame <- function(data, volumes = NULL) {
 
 
 #' @export
+#' @rdname eqnlist
+#' @param x object of class \code{eqnlist}
 is.eqnlist <- function(x) {
   
   #Empty list
@@ -136,11 +142,12 @@ addReaction <- function(x, ...) {
 }
 #' Add reaction to reaction table
 #' 
+#' @param f equation list, see \link{eqnlist}
 #' @param from character with the left hand side of the reaction, e.g. "2*A + B"
 #' @param to character with the right hand side of the reaction, e.g. "C + 2*D"
-#' @param rate named character. The rate associated with the reaction. The name is employed as a description
+#' @param rate character. The rate associated with the reaction. The name is employed as a description
 #' of the reaction.
-#' @param f equation list, see \link{eqnlist}
+#' @param description Optional description instead of \code{names(rate)}.
 #' @return An object of class \link{eqnlist}.
 #' @examples 
 #' \dontrun{
@@ -149,6 +156,7 @@ addReaction <- function(x, ...) {
 #' f <- addReaction(f, "C + A", "B + A", "k2*C*A")
 #' }
 #' @export
+#' @rdname addReaction
 addReaction.eqnlist <- function(eqnlist, from, to, rate, description = names(rate)) {
   
   volumes <- eqnlist$volumes
@@ -645,8 +653,7 @@ dot.eqnvec <- function(observable, eqnlist) {
   as.eqnvec(newodes)
 }
 
-
-#'@export
+#' @export
 c.eqnvec <- function(...) {
  
   out <- lapply(list(...), unclass)
@@ -668,7 +675,8 @@ c.eqnvec <- function(...) {
 
 #' Evaluation of algebraic expressions defined by characters
 #' 
-#' @param x Name character vector, the algebraic expressions
+#' @param x Object of class \code{eqnvec} or, more generally,
+#' named character vector with the algebraic expressions
 #' @param compile Logical. The function is either translated into a C file to be compiled or is
 #' evaluated in raw R.
 #' @param verbose Print compiler output to R command line.
