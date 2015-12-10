@@ -89,7 +89,7 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
       # Evaluate model without sensitivities
       loadDLL(func)
       if(!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
-      out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=mypars, forcings=forc, events = list(data = events)), optionsOde))
+      out <- do.call(odeC, c(list(y=unclass(yini), times=times, func=func, parms=mypars, forcings=forc, events = list(data = events)), optionsOde))
       #out <- cbind(out, out.inputs)
       
       
@@ -98,7 +98,7 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
       # Evaluate extended model
       loadDLL(extended)
       if(!is.null(forcings)) forc <- setForcings(extended, forcings) else forc <- NULL
-      outSens <- do.call(odeC, c(list(y=c(yini, yiniSens), times=times, func=extended, parms=mypars, 
+      outSens <- do.call(odeC, c(list(y=c(unclass(yini), yiniSens), times=times, func=extended, parms=mypars, 
                                       forcings=forc, 
                                       events = list(data = rbind(events, myevents.addon))), optionsSens))
       #out <- cbind(outSens[,c("time", variables)], out.inputs)

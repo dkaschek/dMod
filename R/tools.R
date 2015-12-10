@@ -307,6 +307,7 @@ wide2long.matrix <- function(out, keep = 1, na.rm = FALSE) {
   
   timenames <- colnames(out)[keep]
   allnames <- colnames(out)[-keep]
+  if(any(duplicated(allnames))) warning("Found duplicated colnames in out. Duplicates were removed.")
   times <- out[,keep]
   ntimes<- nrow(out)
   values <- unlist(out[,allnames])
