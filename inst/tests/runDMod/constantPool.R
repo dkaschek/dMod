@@ -51,20 +51,20 @@ p0 <- P(trafo)
 # Generate low-level prediction function
 x0 <- Xs(model0$func, model0$extended)
 
+
 # Generate higher-level prediction function
-y <- function(times, pouter, fixed = NULL, ...) {
-  pinner <- p0(pouter, fixed)
+y <- prdfn({
+  pinner <- p0(pars, fixed)
   prediction <- x0(times, pinner, ...)
   observation <- g(prediction, pinner, attach.input = TRUE)
-  return(prdlist(cond1 = observation))
-}
+}, conditions = "cond1")
 
 
 ## Simulate Data----------------------------------------------------------------
 # Use the following parameters
 pouter <- parvec(logk_on = log(0.01),
-            logk_off = log(0.1),
-            logscale = log(10))
+                 logk_off = log(0.1),
+                 logscale = log(10))
 
 # Constant noise level and equidistant time points
 noise <- 0.1
@@ -86,13 +86,8 @@ data <- datalist(
 
 ## Objective Function-----------------------------------------------------------
 # Objective function for the optimizer
-obj <- function(pouter, fixed=NULL, deriv=TRUE) {
-  
-  prediction <- y(times, pouter, fixed = fixed, deriv = deriv)
-  myobj <- wrss(res(data[[1]], prediction[[1]]))
 
-  return(myobj)
-}
+obj <- objfn(data = data, pouter = pouter, conditions = names(data), x = y)
 
 
 ## Prepare for fitting----------------------------------------------------------
