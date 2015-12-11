@@ -330,6 +330,9 @@ wrss <- function(nout) {
 #' @export
 "+.objlist" <- function(out1, out2) {
   
+
+  
+  
   allnames <- c(names(out1), names(out2))
   what <- allnames[duplicated(allnames)]
   what.names <- what
@@ -359,6 +362,18 @@ wrss <- function(nout) {
     }
   })
   names(out12) <- what.names
+  
+  # Summation of numeric attributes 
+  out1.attributes <- attributes(out1)[sapply(attributes(out1), is.numeric)]
+  out2.attributes <- attributes(out2)[sapply(attributes(out2), is.numeric)]
+  attr.names <- union(names(out1.attributes), names(out2.attributes))
+  out12.attributes <- lapply(attr.names, function(n) {
+    out1.attributes[[n]] + out2.attributes[[n]]
+  })
+  attributes(out12)[attr.names] <- out12.attributes
+  
+  
+  
   class(out12) <- "objlist"
   
   return(out12)
