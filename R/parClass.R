@@ -116,7 +116,11 @@ as.parvec <- function(x, ...) {
 as.parvec.numeric <- function(p, names = NULL, deriv = NULL) {
   
   out <- as.numeric(p)
-  if(is.null(names)) names(out) <- names(p) else names(out) <- names
+  if (is.null(names)) names(out) <- names(p) else names(out) <- names
+  if (is.null(deriv)) {
+    deriv <- diag(length(out))
+    colnames(deriv) <- rownames(deriv) <- names(out)
+  }
   attr(out, "deriv") <- deriv
   class(out) <- c("parvec", "numeric")
   
@@ -186,7 +190,7 @@ print.parvec <- function(par, ...) {
 #' @export
 "[.parvec" <- function(x, ...) {
   out <- unclass(x)[...]
-  deriv <- attr(x, "deriv")[..., ]
+  deriv <- submatrix(attr(x, "deriv"), row = ...)
   as.parvec(out, deriv = deriv)
 }
 
@@ -201,7 +205,13 @@ c.parvec <- function(...) {
   
   if(any(duplicated(n))) stop("Found duplicated names. Parameter vectors cannot be coerced.")
   
-  deriv <- submatrix(Reduce(combine, d), rows = n)
+  deriv <- Reduce(combine, d)
+  n.missing <- setdiff(n, rownames(deriv))
+  n.available <- intersect(n, rownames(deriv))
+  deriv.missing <- matrix(0, nrow = length(n.missing), ncol = ncol(deriv), 
+                          dimnames = list(n.missing, colnames(deriv)))
+  
+  deriv <- submatrix(rbind(deriv, deriv.missing), rows = n)
   
   as.parvec(v, names = n, deriv = deriv)
   

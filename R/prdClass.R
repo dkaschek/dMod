@@ -13,18 +13,21 @@ as.prdlist <- function(x, ...) {
 }
 
 #' @export
+#' @param x list of prediction frames
+#' @param names character vector, the list names, e.g. the names of the experimental
 #' @rdname prdlist
-as.prdlist.list <- function(mylist = NULL, mynames = names(mylist)) {
+as.prdlist.list <- function(x = NULL, names = NULL) {
 
-  if (is.null(mylist)) mylist <- list()
+  if (is.null(x)) x <- list()
+  if (is.null(names)) mynames <- names(x) else mynames <- names 
 
-  if (length(mynames) != length(mylist)) stop("names argument has wrong length")
+  if (length(mynames) != length(x)) stop("names argument has wrong length")
 
   ## Prepare output
-  names(mylist) <- mynames
-  class(mylist) <- c("prdlist", "list")
+  names(x) <- mynames
+  class(x) <- c("prdlist", "list")
 
-  return(mylist)
+  return(x)
 
 }
 

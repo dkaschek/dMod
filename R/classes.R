@@ -180,8 +180,8 @@ parvec <- function(..., deriv = NULL) {
 #' @export
 prdfn <- function(..., pouter = NULL, conditions = "1") {
 
-  force(pouter)
-  force(conditions)
+  mypouter <- pouter
+  myconditions <- conditions
 
   myexpr <- as.expression(substitute(...))
 
@@ -195,13 +195,13 @@ prdfn <- function(..., pouter = NULL, conditions = "1") {
   })
 
   # Prediction function
-  myfn <- function(times, pars = pouter, fixed = NULL, deriv = TRUE, ...){
+  myfn <- function(times, pars = mypouter, fixed = NULL, deriv = TRUE, ...){
 
     as.prdlist(
-      lapply(conditions, function(condition) {
+      lapply(myconditions, function(condition) {
         eval(myexpr)
-      }),
-      conditions
+      }), 
+      myconditions
     )
   }
   class(myfn) <- "prdfn"
@@ -244,14 +244,12 @@ prdframe <- function(prediction = NULL, deriv = NULL, sensitivities = NULL, para
 #' from different prediction functions or the same prediction function with different
 #' parameter specifications. Each entry of the list is a \link{prdframe}.
 #' @param ... objects of class \link{prdframe}
-#' @param mylist list of prediction frames
-#' @param mynames character vector, the list names, e.g. the names of the experimental
 #' conditions.
 #' @export
 prdlist <- function(...) {
   mylist <- list(...)
   mynames <- names(mylist)
-  if(is.null(mynames)) mynames <- as.character(1:length(mylist))
+  if (is.null(mynames)) mynames <- as.character(1:length(mylist))
   as.prdlist(mylist, mynames)
 }
 
@@ -303,20 +301,19 @@ datalist <- function(...) {
 #' @export
 objfn <- function(..., data, x, pouter = NULL, conditions = names(data)) {
 
-  force(data)
-  force(x)
-  force(pouter)
-  force(conditions)
-
+  mydata <- data
+  myx <- x
+  mypouter <- pouter
+  myconditions <- conditions
   myexpr <- as.expression(substitute(...))
-  timesD <- sort(c(0, unique(do.call(c, lapply(data, function(d) d$time)))))
+  timesD <- sort(c(0, unique(do.call(c, lapply(mydata, function(d) d$time)))))
 
-  myfn <- function(pouter = pouter, fixed = NULL, deriv=TRUE, ...){
-
-    prediction <- x(times = timesD, pars = pouter, fixed = fixed, deriv = deriv)
+  myfn <- function(pouter = mypouter, fixed = NULL, deriv=TRUE, ...){
+    
+    prediction <- myx(times = timesD, pars = pouter, fixed = fixed, deriv = deriv)
 
     # Apply res() and wrss() to compute residuals and the weighted residual sum of squares
-    out.data <- lapply(conditions, function(cn) wrss(res(data[[cn]], prediction[[cn]])))
+    out.data <- lapply(myconditions, function(cn) wrss(res(mydata[[cn]], prediction[[cn]])))
     out.data <- Reduce("+", out.data)
 
     # Evaluate user-defined contributions, e.g. priors
