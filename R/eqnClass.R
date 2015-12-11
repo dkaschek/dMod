@@ -515,7 +515,7 @@ format.eqnvec <- function(eqnvec) {
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 
 #' @export
-print.eqnvec <- function(eqnvec, width = 140) {
+print.eqnvec <- function(eqnvec, width = 140, ...) {
   require(stringr)
 
   m_odrWidth <- 3

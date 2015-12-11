@@ -279,12 +279,12 @@ Xd <- function(data) {
       # Apply parameter transformation to the derivatives
       sensLong <- matrix(outSens, nrow = nrow(outSens)*length(states))
       dP <- attr(pars, "deriv")
-      if(!is.null(dP)) {
-        sensLong <- sensLong%*%submatrix(dP, rows = parameters)
+      if (!is.null(dP)) {
+        sensLong <- sensLong %*% submatrix(dP, rows = parameters)
         sensGrid <- expand.grid(states, colnames(dP), stringsAsFactors = FALSE)
-        sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")
+        sensNames <- paste(sensGrid[,1], sensGrid[,2], sep = ".")
       }
-      outSens <- cbind(times, matrix(sensLong, nrow=dim(outSens)[1]))
+      outSens <- cbind(times, matrix(sensLong, nrow = dim(outSens)[1]))
       colnames(outSens) <- c("time", sensNames)
       
       myderivs <- outSens
@@ -328,11 +328,11 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname
   
   warnings <- FALSE
   modelname_deriv <- NULL
-  if(!is.null(modelname)) modelname_deriv <- paste(modelname, "deriv", sep = "_")
+  if (!is.null(modelname)) modelname_deriv <- paste(modelname, "deriv", sep = "_")
   
   # Get potential paramters from g, forcings are treated as parameters because
   # sensitivities dx/dp with respect to forcings are zero.
-  if(is.null(f)) {
+  if (is.null(f)) {
     states <- states
     parameters <- parameters
   } else {
@@ -348,22 +348,22 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname
   # Character matrices of derivatives
   dxdp <- dgdx <- dgdp <- NULL
   
-  if(length(states) > 0 & length(parameters) > 0) {
+  if (length(states) > 0 & length(parameters) > 0) {
     dxdp <- apply(expand.grid.alt(states, c(states, parameters)), 1, paste, collapse = ".")
     dxdp <- matrix(dxdp, nrow = length(states))
   }
-  if(length(states) > 0)
-    dgdx <- matrix(jacobianSymb(g, states), nrow=length(g))
-  if(length(parameters) > 0) {
+  if (length(states) > 0)
+    dgdx <- matrix(jacobianSymb(g, states), nrow = length(g))
+  if (length(parameters) > 0) {
     dgdp <- cbind(
-      matrix("0", nrow=length(g), ncol=length(states)), 
-      matrix(jacobianSymb(g, parameters), nrow=length(g))
+      matrix("0", nrow = length(g), ncol = length(states)), 
+      matrix(jacobianSymb(g, parameters), nrow = length(g))
     )
   }
   
   # Sensitivities of the observables
   derivs <- as.vector(sumSymb(prodSymb(dgdx, dxdp), dgdp))
-  if(length(derivs) == 0) stop("Nor states or parameters involved")
+  if (length(derivs) == 0) stop("Nor states or parameters involved")
   names(derivs) <- apply(expand.grid.alt(observables, c(states, parameters)), 1, paste, collapse = ".")
   
   
@@ -383,7 +383,7 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname
     outlist <- lapply(1:nOut, function(i) out[,i]); names(outlist) <- colnames(out)
     
     dout <- attr(out, "sensitivities")
-    if(!is.null(dout)) {
+    if (!is.null(dout)) {
       nDeriv <- dim(dout)[2]
       derivlist <- lapply(1:nDeriv, function(i) dout[,i]); names(derivlist) <- colnames(dout)  
     } else {
@@ -394,30 +394,30 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname
     x <- c(outlist, derivlist, as.list(pars), as.list(zeros))
     
     values <- gEval(x)
-    if(!is.null(dout)) dvalues <- derivsEval(x)
+    if (!is.null(dout)) dvalues <- derivsEval(x)
     
     # Parameter transformation
     dP <- attr(pars, "deriv")
-    if(!is.null(dP) & !is.null(dout)) {
+    if (!is.null(dP) & !is.null(dout)) {
       
       parameters.all <- c(states, parameters)
-      parameters.missing <- parameters.all[!parameters.all%in%rownames(dP)]
+      parameters.missing <- parameters.all[!parameters.all %in% rownames(dP)]
       
-      if(length(parameters.missing) > 0 & warnings)
+      if (length(parameters.missing) > 0 & warnings)
         warning("Parameters ", paste(parameters.missing, collapse = ", ", "are missing in the Jacobian of the parameter transformation. Zeros are introduced."))
       
-      dP.missing <- matrix(0, nrow = length(parameters.missing), ncol=dim(dP)[2], 
-                           dimnames=list(parameters.missing, colnames(dP)))
+      dP.missing <- matrix(0, nrow = length(parameters.missing), ncol = dim(dP)[2], 
+                           dimnames = list(parameters.missing, colnames(dP)))
       dP <- rbind(dP, dP.missing)
       
       # Multiplication with tangent map
-      sensLong <- matrix(dvalues, nrow=dim(out)[1]*length(observables))
-      sensLong <- sensLong%*%submatrix(dP, rows = parameters.all)
-      dvalues <- matrix(sensLong, nrow=dim(out)[1])
+      sensLong <- matrix(dvalues, nrow = dim(out)[1]*length(observables))
+      sensLong <- sensLong %*% submatrix(dP, rows = parameters.all)
+      dvalues <- matrix(sensLong, nrow = dim(out)[1])
       
       # Naming
       sensGrid <- expand.grid.alt(observables, colnames(dP))
-      sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")
+      sensNames <- paste(sensGrid[,1], sensGrid[,2], sep = ".")
       colnames(dvalues) <- sensNames
       
     }
@@ -426,18 +426,18 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname
     
     # Format output
     values <- cbind(time = out[,"time"], values)
-    if(attach.input)
+    if (attach.input)
       values <- cbind(values, submatrix(out, cols = -1))
     
     
     myderivs <- myparameters <- NULL
-    if(!is.null(dout) && !attach.input) {
+    if (!is.null(dout) && !attach.input) {
       myderivs <- cbind(time = out[,"time"], dvalues)
-      if(is.null(dP)) myparameters <- names(pars) else myparameters <- colnames(dP)
+      if (is.null(dP)) myparameters <- names(pars) else myparameters <- colnames(dP)
     }
-    if(!is.null(dout) && attach.input) {
+    if (!is.null(dout) && attach.input) {
       myderivs <- cbind(time = out[,"time"], dvalues, submatrix(attr(out, "deriv"), cols = -1))
-      if(is.null(dP)) myparameters <- names(pars) else myparameters <- colnames(dP)
+      if (is.null(dP)) myparameters <- names(pars) else myparameters <- colnames(dP)
     }
     
     
