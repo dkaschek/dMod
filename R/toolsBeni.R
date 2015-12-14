@@ -1,7 +1,6 @@
-
 #' Search for symmetries in the loaded model
 #' 
-#' @param f eqnList object or vector containing ODEs
+#' @param f object of class \code{eqnvec} or named character vector, containing the ODEs
 #' @param obsvect vector of observation functions
 #' @param prediction vector containing prediction to be tested
 #' @param initial vector containing initial values
@@ -13,24 +12,39 @@
 #' @param allTrafos do not remove transformations with a common parameter factor
 #' @return NULL
 #' @export
-symmetryDetection <- function(f, obsvect = NULL, prediction = NULL, initial = NULL, ansatz = 'uni', pMax = 2, inputs = c(), fixed = c(), cores = 1, allTrafos = FALSE){
+symmetryDetection <- function(f, obsvect = NULL, prediction = NULL,
+                              initial = NULL, ansatz = 'uni', pMax = 2, inputs = NULL, fixed = NULL,
+                              cores = 1, allTrafos = FALSE){
   
-  if (is.element("observables", names(attributes(f)))){
-    f <- f[1:(length(f)-length(attr(f,"observables")))]
+  f <- as.character(lapply(1:length(f), function(i)
+    paste(names(f)[i],'=',f[i])))
+  
+  obsvect <- as.character(lapply(1:length(obsvect), function(i)
+    paste(names(obsvect)[i],'=',obsvect[i])))
+  
+  if (!is.null(prediction)) {
+    prediction <- as.character(lapply(1:length(prediction), function(i)
+      paste(names(prediction)[i],'=',prediction[i])))
   }
-  f <- as.character(lapply(1:length(f), function(i) paste(names(f)[i],'=',f[i])))
   
-  obsvect <- as.character(lapply(1:length(obsvect), function(i) paste(names(obsvect)[i],'=',obsvect[i])))
-  prediction <- as.character(lapply(1:length(prediction), function(i) paste(names(prediction)[i],'=',prediction[i])))
-  initial <- as.character(lapply(1:length(initial), function(i) paste(names(initial)[i],'=',initial[i]))) 
+  if (!is.null(initial)) {
+    initial <- as.character(lapply(1:length(initial), function(i)
+      paste(names(initial)[i],'=',initial[i])))
+  }
   
-  rPython::python.load(paste(system.file(package="dMod"),"/code/functions.py", sep = ""))
-  rPython::python.load(paste(system.file(package="dMod"),"/code/readData.py", sep = ""))
-  rPython::python.load(paste(system.file(package="dMod"),"/code/buildSystem.py", sep = ""))
-  rPython::python.load(paste(system.file(package="dMod"),"/code/symmetryDetection.py", sep = ""))
   
-  rPython::python.call("symmetryDetection", f, obsvect, prediction, initial, ansatz, pMax, inputs, fixed, cores, allTrafos)
+  rPython::python.load(paste(system.file(package = "dMod"),"/code/polyClass.py", sep = ""))
+  rPython::python.load(paste(system.file(package = "dMod"),"/code/functions.py", sep = ""))
+  rPython::python.load(paste(system.file(package = "dMod"),"/code/readData.py", sep = ""))
+  rPython::python.load(paste(system.file(package = "dMod"),"/code/buildSystem.py", sep = ""))
+  rPython::python.load(paste(system.file(package = "dMod"),"/code/checkPredictions.py", sep = ""))
+  rPython::python.load(paste(system.file(package = "dMod"),"/code/symmetryDetection.py", sep = ""))
+  
+  rPython::python.call("symmetryDetectiondMod", f, obsvect, prediction,
+                       initial, ansatz, pMax, inputs, fixed, cores, allTrafos)
+  
 }
+
 
 #' Do a variable transformation in the ODE
 #' 
