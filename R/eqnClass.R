@@ -298,8 +298,15 @@ as.data.frame.eqnlist <- function(eqnlist) {
 #' @export
 write.eqnlist <- function(eqnlist, ...) {
   
-  data <- as.data.frame(eqnlist)
-  write.csv(data, ...)
+  
+  arglist <- list(...)
+  argnames <- names(arglist)
+  if (!"row.names" %in% argnames) arglist$row.names <- FALSE
+  if (!"na" %in% argnames) arglist$na <- ""
+  
+  arglist$x <- as.data.frame(eqnlist)
+  
+  do.call(write.csv, arglist)
   
 }
 
