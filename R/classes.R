@@ -239,9 +239,11 @@ prdfn <- function(..., pouter = NULL, conditions = "1") {
   # Prediction function
   myfn <- function(times, pars = mypouter, fixed = NULL, deriv = TRUE, ...){
 
+    arglist <- as.list(match.call(expand.dots = TRUE))[-1]
+    
     as.prdlist(
       lapply(myconditions, function(condition) {
-        eval(myexpr)
+        with(arglist, eval(myexpr))
       }), 
       myconditions
     )
@@ -317,7 +319,7 @@ prdlist <- function(...) {
 datalist <- function(...) {
   mylist <- list(...)
   mynames <- names(mylist)
-  if(is.null(mynames)) mynames <- as.character(1:length(mylist))
+  if (is.null(mynames)) mynames <- as.character(1:length(mylist))
   as.datalist(mylist, mynames)
 }
 
@@ -352,6 +354,8 @@ objfn <- function(..., data, x, pouter = NULL, conditions = names(data)) {
 
   myfn <- function(pouter = mypouter, fixed = NULL, deriv=TRUE, ...){
     
+    arglist <- as.list(match.call(expand.dots = TRUE))[-1]
+    
     prediction <- myx(times = timesD, pars = pouter, fixed = fixed, deriv = deriv)
 
     # Apply res() and wrss() to compute residuals and the weighted residual sum of squares
@@ -359,13 +363,13 @@ objfn <- function(..., data, x, pouter = NULL, conditions = names(data)) {
     out.data <- Reduce("+", out.data)
 
     # Evaluate user-defined contributions, e.g. priors
-    out.user <- eval(myexpr)
+    out.user <- with(arglist, eval(myexpr))
     #attributes.user <- attributes(out.user)
     #attributes.user <- attributes.user[!names(attributes.user) %in% c("names", "class")]
 
     # Combine contributions and attach attributes
     out <- out.data
-    if(is.list(out.user)) out <- out + out.user
+    if (is.list(out.user)) out <- out + out.user
     attr(out, "data") <- out.data$value
     attr(out, "user") <- out.user$value
     return(out)
