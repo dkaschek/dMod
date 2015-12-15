@@ -133,35 +133,7 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
   
 }
 
-#' Generate the model objects for use in Xs (models with sensitivities)
-#' 
-#' @param f Named character vector with the ODE
-#' @param forcings Character vector with the names of the forcings
-#' @param fixed Character vector with the names of parameters (initial values and dynamic) for which
-#' no sensitivities are required (will speed up the integration).
-#' @param modelname Character, the name of the C file being generated.
-#' @param verbose Print compiler output to R command line.
-#' @param ... Further arguments being passed to funC.
-#' @return list with \code{func} (ODE object) and \code{extended} (ODE+Sensitivities object)
-#' @export
-#' @import cOde
-generateModel <- function(f, forcings=NULL, fixed=NULL, modelname = "f", verbose = FALSE, ...) {
-  
-  modelname_s <- paste0(modelname, "_s")
-  
-  func <- cOde::funC(f, forcings = forcings, modelname = modelname , ...)
-  s <- sensitivitiesSymb(f, 
-                         states = setdiff(attr(func, "variables"), fixed), 
-                         parameters = setdiff(attr(func, "parameters"), fixed), 
-                         inputs = forcings,
-                         reduce = TRUE)
-  fs <- c(f, s)
-  outputs <- attr(s, "outputs")
-  extended <- cOde::funC(fs, forcings = forcings, outputs = outputs, modelname = modelname_s, ...)
-  
-  list(func = func, extended = extended)
-  
-}
+
 
 
 

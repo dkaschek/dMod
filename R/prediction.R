@@ -2,8 +2,7 @@
 #' Model evaluation. 
 #' @description Interface to combine an ODE and its sensitivity equations
 #' into one model function \code{x(times, pars, forcings, events, deriv = TRUE)} returning ODE output and sensitivities.
-#' @param func return value from \code{funC(f)} where \code{f} defines the ODE.
-#' @param extended return value from \code{funC(c(f, sensitivitiesSymb(f)))}.
+#' @param odemodel object of class \link{odemodel}
 #' @param forcings data.frame with columns name (factor), time (numeric) and value (numeric).
 #' The ODE forcings.
 #' @param events data.frame of events with columns "var" (character, the name of the state to be
@@ -26,7 +25,11 @@
 #' differentiation. The result is saved in the attributed "deriv", 
 #' i.e. in this case the attibutes "deriv" and "sensitivities" do not coincide. 
 #' @export
-Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(method="lsoda"), optionsSens=list(method="lsodes")) {
+Xs <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method = "lsoda"), optionsSens=list(method="lsodes")) {
+  
+  func <- odemodel$func
+  extended <- odemodel$extended
+  if (is.null(extended)) warning("Element 'extended' empty. ODE model does not contain sensitivities.")
   
   myforcings <- forcings
   myevents <- events
@@ -141,11 +144,13 @@ Xs <- function(func, extended, forcings=NULL, events=NULL, optionsOde=list(metho
 #' @description Interface to get an ODE 
 #' into a model function \code{x(times, pars, forcings, events)} returning ODE output.
 #' It is a reduced version of \link{Xs}, missing the sensitivities. 
-#' @param func return value from \code{funC(f)} where \code{f} defines the ODE. 
+#' @param odemodel Object of class \link{odemodel}.
 #' @details Can be used to integrate additional quantities, e.g. fluxes, by adding them to \code{f}. All quantities that are not initialised by pars 
 #' in \code{x(times, pars, forcings, events)} are initialized at 0.
 #' @export
-Xf <- function(func, forcings=NULL, events=NULL, optionsOde=list(method="lsoda")) {
+Xf <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method="lsoda")) {
+  
+  func <- odemodel$func
   
   myforcings <- forcings
   myevents <- events

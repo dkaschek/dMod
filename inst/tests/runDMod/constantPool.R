@@ -20,7 +20,7 @@ observables <- eqnvec(
 g <- Y(observables, fVec, compile = TRUE, modelname = "obsfn")
   
 # Generate the model C files
-model0 <- generateModel(fVec, compile = TRUE, modelname = "odefn")
+model0 <- odemodel(fVec, compile = TRUE, modelname = "odefn")
 
 
 ## Parameter transformations----------------------------------------------------
@@ -49,7 +49,7 @@ p0 <- P(trafo)
 
 ## Model prediction functions---------------------------------------------------
 # Generate low-level prediction function
-x0 <- Xs(model0$func, model0$extended)
+x0 <- Xs(model0)
 
 
 # Generate higher-level prediction function
