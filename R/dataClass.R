@@ -17,7 +17,7 @@ as.datalist <- function(x, ...) {
 }
 
 #' @export
-#' @rdname datalist
+#' @rdname as.datalist
 as.datalist.data.frame <- function(dataframe, split.by = "condition") {
   
   #remaining.names <- setdiff(names(dataframe), split.by)
@@ -38,11 +38,11 @@ as.datalist.data.frame <- function(dataframe, split.by = "condition") {
 #' @export
 #' @param mylist list of data.frames
 #' @param names optional names vector, otherwise names are taken from \code{mylist}
-#' @rdname datalist
+#' @rdname as.datalist
 as.datalist.list <- function(mylist, names = NULL) {
 
   ## Check properties
-  if(is.null(names)) mynames <- names(mylist) else mynames <- names
+  if (is.null(names)) mynames <- names(mylist) else mynames <- names
   is.data.frame <- sapply(mylist, class) == "data.frame"
   if (!all(is.data.frame)) stop("list of data.frame expected")
 

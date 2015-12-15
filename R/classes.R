@@ -210,6 +210,7 @@ parvec <- function(..., deriv = NULL) {
 #' correspond to different experimental conditions which are supposed to be matched to a
 #' \link{datalist}.
 #' @param ... an R code by which the prediction function is composed. Available keywords are
+#' \code{condition}, 
 #' \code{time}, \code{pars}, \code{fixed} and \code{deriv}. Any other object being used in the
 #' expression can either be passed by the \code{...} argument of the returned function or
 #' must be available in the global environment.
