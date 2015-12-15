@@ -62,9 +62,9 @@ y <- prdfn({
 
 ## Simulate Data----------------------------------------------------------------
 # Use the following parameters
-pouter <- parvec(logk_on = log(0.01),
-                 logk_off = log(0.1),
-                 logscale = log(10))
+pouter <- c(logk_on = log(0.01),
+            logk_off = log(0.1),
+            logscale = log(10))
 
 # Constant noise level and equidistant time points
 noise <- 0.1
@@ -97,3 +97,4 @@ pinit <- pouter[setdiff(outerpars, names(fixed))]
 
 # Fit parameters and plot prediction and data
 #myfit <- trust(obj, pinit, rinit = 1, rmax = 10, fixed = fixed)
+#fitlist <- mstrust(obj, pinit, fixed = fixed)

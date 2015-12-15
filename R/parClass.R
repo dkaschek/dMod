@@ -62,6 +62,7 @@ stat.parlist <- function(x) {
   return(status)
 }
 
+
 #' Coerce object to a parameter frame
 #' 
 #' @param x object to be coerced
@@ -95,6 +96,19 @@ as.parframe.parlist <- function(x, sort.by = "value") {
   
   return(m_parframe)
 }
+
+
+## Methods for the class parframe -----------------------------------------------
+
+#' @export
+subset.parframe <- function(x, ...) {
+  
+  x[with(as.list(x), ...), ]
+  
+}
+
+
+
 
 ## Methods for the class parvec ------------------------------------------------
 

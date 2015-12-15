@@ -239,7 +239,7 @@ prdfn <- function(..., pouter = NULL, conditions = "1") {
   # Prediction function
   myfn <- function(times, pars = mypouter, fixed = NULL, deriv = TRUE, ...){
 
-    arglist <- as.list(match.call(expand.dots = TRUE))[-1]
+    arglist <- list(times = times, pars = pars, fixed = fixed, deriv = deriv, ...)
     
     as.prdlist(
       lapply(myconditions, function(condition) {
@@ -354,7 +354,7 @@ objfn <- function(..., data, x, pouter = NULL, conditions = names(data)) {
 
   myfn <- function(pouter = mypouter, fixed = NULL, deriv=TRUE, ...){
     
-    arglist <- as.list(match.call(expand.dots = TRUE))[-1]
+    arglist <- list(pouter = pouter, fixed = fixed, deriv = deriv, ...)
     
     prediction <- myx(times = timesD, pars = pouter, fixed = fixed, deriv = deriv)
 
