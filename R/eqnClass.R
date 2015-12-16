@@ -525,42 +525,44 @@ format.eqnvec <- function(eqnvec) {
 print.eqnvec <- function(eqnvec, width = 140, ...) {
   require(stringr)
 
-  m_odrWidth <- 3
+  # Stuff to print
+  m_odr <- "Idx"
+  m_rel <- " <- "
+  m_sep <- " "
   m_species <- names(eqnvec)
-  m_speciesWidth <- max(nchar(m_species), nchar("outer")) + m_odrWidth
-  m_lineWidth <- max(width, m_speciesWidth + 10)
-  m_sep <- " <- "
-  m_sepWidth <- nchar(m_sep)
-  m_eqnWidth <- m_lineWidth - m_speciesWidth - m_sepWidth - m_odrWidth
   
+  # Width of stuff to print
+  m_odrWidth <- max(3, nchar(m_odr))
+  m_speciesWidth <- max(nchar(m_species), nchar("outer"))
+  m_lineWidth <- max(width, m_speciesWidth + 10)
+  m_relWidth <- nchar(m_rel)
+  m_sepWidth <- nchar(m_sep)
+  
+  # Compound widths
+  m_frontWidth <- m_odrWidth + m_speciesWidth + m_relWidth + m_sepWidth
+  m_eqnWidth <- m_lineWidth - m_frontWidth
+  
+  # Order of states for alphabetical for print out
   m_eqnOrder <- order(m_species)
   
   # Iterate over species
   m_msgEqn <- do.call(c, mapply(function(eqn, spec, odr) {
-    m_splitStart <- seq(1, nchar(eqn), m_eqnWidth)
-    
-    if (length(m_splitStart) == 1) {
-      return(paste0(strpad(as.character(odr), m_odrWidth), strpad(spec, m_speciesWidth, where = "left"), m_sep, eqn))
-    } else {
-      # Equations resulting in lines wider than width are broken into several lines
-      m_splitEnd <- c(m_splitStart[(-1)] - 1, nchar(eqn))
-      m_multiLine <- mapply(function(start, end) {
-        return(str_trim(substr(eqn, start, end)))
-        }, start = m_splitStart, end = m_splitEnd, SIMPLIFY = FALSE)
-      
-      # Prepend species to the first line, whitespace to following lines.
-      for (i in 1:length(m_multiLine)) {
-        if (i == 1) {
-          m_multiLine[i] <- paste0(strpad(as.character(odr), m_odrWidth), strpad(i, m_idxWidth, where = "right"), strpad(spec, m_speciesWidth, where = "left"), m_sep, m_multiLine[i])
-        } else {
-          m_multiLine[i] <- paste0(strpad(i, m_idxWidth, where = "right"), strpad("", m_speciesWidth + m_sepWidth, where = "left"), m_multiLine[i])
-        }
-      }
-      
-      return(do.call(c, m_multiLine))
-    }
+    return(paste0(
+      str_pad(string = odr, side = "left", width = m_odrWidth),
+      m_sep,
+      str_pad(string = spec, side = "left", width = m_speciesWidth),
+      m_rel,
+      str_wrap(string = gsub(x = eqn, pattern = " ", replacement = "", fixed = TRUE),
+               width = m_eqnWidth, exdent = m_frontWidth)
+    ))
   }, eqn = eqnvec[m_eqnOrder], spec = m_species[m_eqnOrder], odr = m_eqnOrder, SIMPLIFY = FALSE))
-  cat(paste0(strpad("Inner" , m_speciesWidth, where = "left"), m_sep, "Outer\n"))
+  
+  # Print to command line
+  cat(paste0(str_pad(string = m_odr, side = "left", width = m_odrWidth),
+             m_sep,
+             str_pad(string = "Inner", side = "left", width = m_speciesWidth),
+             m_rel,
+             "Outer\n"))
   cat(m_msgEqn, sep = "\n")
 }
 
