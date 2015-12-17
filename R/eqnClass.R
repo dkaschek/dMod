@@ -105,7 +105,7 @@ getReactions <- function(eqnlist) {
   
   # Determine number of conserved quantities
   S[is.na(S)] <- 0
-  v <- MASS::Null(t(S))
+  v <- nullZ(S)
   cq <- ncol(v)
   
   # Check for consistency

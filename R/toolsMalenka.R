@@ -43,23 +43,22 @@ plot.parlist <- function(pl, path = FALSE) {
 #' 
 #' @param A matrix for which the null space is searched
 #' @param tol tolerance to find pivots in rref-function below
-#' @param verbose option for rref-function below
-#' @param fractions option for rref-function below
+#' @return null space of A with only integers in it
 #' 
 #' @author Malenka Mader, \email{Malenka.Mader@fdm.uni-freiburg.de}
 #'   
 #' @export
-nullZ <- function(A, tol=sqrt(.Machine$double.eps), verbose=FALSE, fractions=FALSE) {
-  R <- rref(A) # compute reduced row echelon form of A
+nullZ <- function(A, tol=sqrt(.Machine$double.eps)) {
+
+  ret <- rref(A) # compute reduced row echelon form of A
+  ret[[1]] -> R # matrix A in rref 
+  ret[[2]] -> pivcol #columns in which a pivot was found
+
   n <- ncol(A) # number of columns of A
-  r <- Matrix::rankMatrix(R) # rank of reduced row echelon form
-  if ( r>0 ) {
-    pivcol <- 1:r # columns in which a pivot was found (this is by definition equivalent to the first r columns)
-  } else {
-    pivcol <- c() # for r=0 there are no pivots
-  }
+  r <- length(pivcol) # rank of reduced row echelon form
   nopiv <- 1:n
   nopiv <- nopiv[-pivcol]  # columns in which no pivot was found
+
   Z <- mat <- matrix(0, nrow = n, ncol = n-r) # matrix containing the vectors spanning the null space
   if ( n>r ) {
     Z[nopiv,] <- diag(1, n-r, n-r)
@@ -73,48 +72,57 @@ nullZ <- function(A, tol=sqrt(.Machine$double.eps), verbose=FALSE, fractions=FAL
 
 
 
-#' Transform matrix A into reduced row echelon form (by Gauss-Jordan elimination)  
-#' this function is taken from stackoverflow.com/questions/3126759/reduced-row-echelon-form and tested in parallel to matlab results.
+#' Transform matrix A into reduced row echelon form 
+#' this function is written along the lines of the rref-matlab function.
 #' @param A matrix for which the reduced row echelon form is searched
 #' @param tol tolerance to find pivots
-#' @param verbose option for printing intermediate steps
-#' @param fractions try to express nonintegers as rational numbers
+#' @return a list of two entries is returned; ret[[1]] is the reduced row echelon form of A, ret[[2]] is the index of columns in which a pivot was found
 #' 
 #' @author Malenka Mader, \email{Malenka.Mader@fdm.uni-freiburg.de}
 #'   
 #' @export#
-rref <- function(A, tol=sqrt(.Machine$double.eps), verbose=FALSE, fractions=FALSE){
+rref <- function(A, tol=sqrt(.Machine$double.eps)){
+  ## A: coefficient matrix
+  ## tol: tolerance for checking for 0 pivot
+  ## verbose: if TRUE, print intermediate steps
+  ## fractions: try to express nonintegers as rational numbers
   ## Written by John Fox
-  if (fractions) {
-    mass <- require(MASS)
-    if (!mass) stop("fractions=TRUE needs MASS package")
-  }
   if ((!is.matrix(A)) || (!is.numeric(A)))
     stop("argument must be a numeric matrix")
-  n <- nrow(A)
-  m <- ncol(A)
-  for (i in 1:min(c(m, n))){
-    col <- A[,i]
-    col[1:n < i] <- 0
-    # find maximum pivot in current column at or below current row
-    which <- which.max(abs(col))
-    pivot <- A[which, i]
-    if (abs(pivot) <= tol) next     # check for 0 pivot
-    if (which > i) A[c(i, which),] <- A[c(which, i),]  # exchange rows
-    A[i,] <- A[i,]/pivot            # pivot
-    row <- A[i,]
-    A <- A - outer(A[,i], row)      # sweep
-    A[i,] <- row                    # restore current row
-    if (verbose)
-      if (fractions) print(fractions(A))
-    else print(round(A,round(abs(log(tol,10)))))
+  m <- nrow(A)
+  n <- ncol(A)
+  
+  i <- 1 # row index
+  j <- 1 # column index
+  pivcol <- c() # vector of columns in which nozero pivots are found
+  while ((i <= m) & (j <= n)){
+    # find pivot in column j
+    which <- which.max(abs(A[i:m,j])) # column in which pivot is
+    k <- i+which-1 #row index, in which pivot is
+    pivot <- A[k, j] # pivot of column j
+    
+    if ( abs(pivot) <= tol ) {
+      A[i:m,j] =matrix(0,m-i+1,1) # column is negligible, zero it out
+      j <- j+1
+    } else {
+      # remember column index
+      pivcol <- cbind(pivcol,j)
+      
+      # swap i-th and k-th column
+      A[cbind(i,k),j:n] = A[cbind(k, i),j:n];
+      
+      # divide pivot row by pivot element.
+      A[i,j:n] = A[i,j:n]/A[i,j];
+      
+      # subtract multiples of pivot row from all other rows.
+      otherRows <- 1:m
+      otherRows <- otherRows[-i]
+      for (u in otherRows) {
+        A[u,j:n] = A[u,j:n] - A[u,j]*A[i,j:n];
+      }
+      i = i + 1;
+      j = j + 1;
+    }
   }
-  for (i in 1:n)
-    if (max(abs(A[i,1:m])) <= tol)
-      A[c(i,n),] <- A[c(n,i),] # 0 rows to bottom
-  if (fractions) {
-    return(fractions (A))
-  } else {
-    return(round(A, round(abs(log(tol,10)))))
-  }
+  return (list(A,pivcol))
 }
