@@ -1,3 +1,41 @@
+
+#' @export
+coordTransform <- function(data, transformations) {
+  
+  mynames <- unique(as.character(data$name))
+  
+  # Replicate transformation if not a list
+  if (!is.list(transformations))
+    transformations <- as.list(structure(rep(transformations, length(mynames)), names = mynames))
+  
+  out <- do.call(rbind, lapply(mynames, function(n) {
+    
+    subdata <- subset(data, name == n)
+    
+    if (n %in% names(transformations)) {
+      
+      mysymbol <- getSymbols(transformations[[n]])[1]
+      mytrafo <- replaceSymbols(mysymbol, "value", transformations[[n]])
+      mytrafo <- parse(text = mytrafo)
+      
+      if ("sigma" %in% colnames(subdata))
+        subdata$sigma <- abs(with(subdata, eval(D(mytrafo, "value")))) * subdata$sigma
+      subdata$value <- with(subdata, eval(mytrafo))
+      
+    }
+    
+    return(subdata)
+    
+  }))
+  
+
+  return(out)
+  
+  
+}
+
+
+
 #' @export
 theme_dMod <- function (base_size = 12, base_family = "") {
   colors <- list(
@@ -37,14 +75,16 @@ ggplot <- function(...) ggplot2::ggplot(...) + theme_dMod()
 #' @return A plot object of class \code{ggplot}.
 #' @export
 #' @import ggplot2
-plotPrediction <- function(prediction, ..., scales = "free", facet = "wrap") {
+plotPrediction <- function(prediction, ..., scales = "free", facet = "wrap", transform = NULL) {
   
   prediction <- subset(wide2long.list(prediction), ...)
   
-  if(facet == "wrap")
+  if (!is.null(transform)) prediction <- coordTransform(prediction, transform)
+  
+  if (facet == "wrap")
     p <- ggplot(prediction, aes(x = time, y = value, group = condition, color = condition)) + facet_wrap(~name, scales = scales)
-  if(facet == "grid")
-    p <- ggplot(prediction, aes(x = time, y = value)) + facet_grid(name~condition, scales = scales)
+  if (facet == "grid")
+    p <- ggplot(prediction, aes(x = time, y = value)) + facet_grid(name ~ condition, scales = scales)
  
   p <- p + geom_line() 
   
@@ -70,31 +110,38 @@ plotPrediction <- function(prediction, ..., scales = "free", facet = "wrap") {
 #' 
 #' @return A plot object of class \code{ggplot}.
 #' @export
-plotCombined <- function (prediction, data = NULL, ..., scales = "free", facet = "wrap") {
+plotCombined <- function (prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
   
   mynames <- c("time", "name", "value", "sigma", "condition")
   
-  if(!is.null(prediction)) {
+  if (!is.null(prediction)) {
     prediction <- cbind(wide2long(prediction), sigma = NA)
     prediction <- subset(prediction, ...)
+    
+    if (!is.null(transform)) prediction <- coordTransform(prediction, transform)
+    
   }
-  if(!is.null(data)) {
+  
+  if (!is.null(data)) {
     data <- lbind(data)
     data <- subset(data, ...)
+    
+    if (!is.null(transform)) data <- coordTransform(data, transform)
+    
   }
   
   total <- rbind(prediction[, mynames], data[, mynames])
   
-  if(facet == "wrap")
+  if (facet == "wrap")
     p <- ggplot(total, aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma, 
                            group = condition, color = condition)) + facet_wrap(~name, scales = scales)
-  if(facet == "grid")
-    p <- ggplot(total, aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma)) + facet_grid(name~condition, scales = scales)
+  if (facet == "grid")
+    p <- ggplot(total, aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma)) + facet_grid(name ~ condition, scales = scales)
   
-  if(!is.null(prediction))
+  if (!is.null(prediction))
     p <- p +  geom_line(data = prediction)
   
-  if(!is.null(data))
+  if (!is.null(data))
     p <- p + geom_point(data = data) + geom_errorbar(data = data, width = 0)
   
   attr(p, "data") <- list(data = data, prediction = prediction)
@@ -116,16 +163,18 @@ plotCombined <- function (prediction, data = NULL, ..., scales = "free", facet =
 #' 
 #' @return A plot object of class \code{ggplot}.
 #' @export
-plotData <- function (data, ..., scales = "free", facet = "wrap") {
+plotData <- function (data, ..., scales = "free", facet = "wrap", transform = NULL) {
   
   data <- subset(lbind(data), ...)
+  
+  if (!is.null(transform)) data <- coordTransform(data, transform)
 
-  if(facet == "wrap")
+  if (facet == "wrap")
     p <-  ggplot(data, aes(x = time, y = value, ymin = value - sigma, 
                            ymax = value + sigma, group = condition, color = condition)) + facet_wrap(~name, scales = scales)
-  if(facet == "grid")
+  if (facet == "grid")
     p <- ggplot(data, aes(x = time, y = value, ymin = value - sigma, 
-                          ymax = value + sigma)) +  facet_grid(name~condition, scales = scales)
+                          ymax = value + sigma)) +  facet_grid(name ~ condition, scales = scales)
   
   p <- p + geom_point() + geom_errorbar(width = 0)
   

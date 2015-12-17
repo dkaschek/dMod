@@ -52,23 +52,23 @@ c.prdlist <- function(...) {
 
 #' @export
 #' @rdname plotCombined
-plot.prdlist <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap") {
+plot.prdlist <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
   
-  plotCombined(prediction = prediction, data = data, ..., scales = scales, facet = facet)
+  plotCombined(prediction = prediction, data = data, ..., scales = scales, facet = facet, transform = transform)
   
 }
 
 ## Methods for class prdframe ----------------------------
 #' @export
 #' @rdname plotCombined
-plot.prdframe <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap") {
+plot.prdframe <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
   
   prediction <- list("1" = prediction)
   if(!is.null(data) && is.data.frame(data))
     data <- list("1" = data)
   
   
-  plotCombined(prediction = prediction, data = data, ..., scales = scales, facet = facet)
+  plotCombined(prediction = prediction, data = data, ..., scales = scales, facet = facet, transform = transform)
   
 }
 

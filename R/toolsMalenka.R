@@ -6,7 +6,7 @@
 #'   \option{blather}.
 #' 
 #' @details If path=TRUE:        
-#' @author Malenka Mader, \email{Malenka.Mader@fdm.uni-freiburg.de}
+#' @author Malenka Mader, \email{Malenka.Mader@@fdm.uni-freiburg.de}
 #'   
 #' @export
 plot.parlist <- function(pl, path = FALSE) {
@@ -46,7 +46,7 @@ plot.parlist <- function(pl, path = FALSE) {
 #' @param verbose option for rref-function below
 #' @param fractions option for rref-function below
 #' 
-#' @author Malenka Mader, \email{Malenka.Mader@fdm.uni-freiburg.de}
+#' @author Malenka Mader, \email{Malenka.Mader@@fdm.uni-freiburg.de}
 #'   
 #' @export
 nullZ <- function(A, tol=sqrt(.Machine$double.eps), verbose=FALSE, fractions=FALSE) {
@@ -80,9 +80,9 @@ nullZ <- function(A, tol=sqrt(.Machine$double.eps), verbose=FALSE, fractions=FAL
 #' @param verbose option for printing intermediate steps
 #' @param fractions try to express nonintegers as rational numbers
 #' 
-#' @author Malenka Mader, \email{Malenka.Mader@fdm.uni-freiburg.de}
+#' @author Malenka Mader, \email{Malenka.Mader@@fdm.uni-freiburg.de}
 #'   
-#' @export#
+#' @export
 rref <- function(A, tol=sqrt(.Machine$double.eps), verbose=FALSE, fractions=FALSE){
   ## Written by John Fox
   if (fractions) {
