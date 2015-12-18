@@ -106,8 +106,19 @@ getReactions <- function(eqnlist) {
   # Determine number of conserved quantities
   S[is.na(S)] <- 0
   v <- nullZ(S)
-  cq <- ncol(v)
+  n_cq <-  ncol(v)
   
+  if (n_cq > 0) {
+    cq <- matrix(nrow = ncol(v),ncol = 1)
+    for (iCol in 1:ncol(v)){
+      is.zero <- v[,iCol] == 0
+      variables <- colnames(S)
+      cq[iCol,1] <- sub("+-","-",paste0(v[!is.zero,iCol], "*", variables[!is.zero], collapse = "+"), fixed = TRUE)
+    }
+  } else {
+    cq <- c()
+  }
+
   # Check for consistency
   exclMarks.logical <- unlist(lapply(1:length(rates), function(i) {
     
@@ -131,6 +142,7 @@ getReactions <- function(eqnlist) {
   
   # Attributes
   attr(out, "cq") <- cq
+  attr(out, "n_cq") <- n_cq
   
   return(out)
   
@@ -375,7 +387,8 @@ print.eqnlist <- function(eqnlist, ...) {
   cat("Reaction table:\n")
   reactions <- getReactions(eqnlist)
   print(reactions)
-  cat("Number of conserved quantities:", attr(reactions, "cq"), "\n")
+  cat("Number of conserved quantities:", attr(reactions, "n_cq"), "\n")
+  cat("Conserved quantities:", attr(reactions, "cq"), sep = "\n")
   
 }
 
