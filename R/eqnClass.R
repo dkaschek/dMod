@@ -93,7 +93,7 @@ conservedQuantities <- function(S) {
       cq[iCol, 1] <- sub("+-", "-", paste0(v[!is.zero, iCol], "*", variables[!is.zero], collapse = "+"), fixed = TRUE)
     }
     
-    colnames(cq) <- "Conserved quantities"
+    colnames(cq) <- paste0("Conserved quantities: ", n_cq)
     cq <- as.data.frame(cq)
     attr(x = cq, which = "n") <- n_cq
     
@@ -396,37 +396,36 @@ subset.eqnlist <- function(eqnlist, ...) {
 }
 
 
-#' Print equation list
+#' Print or pander equation list
 #' 
 #' @param eqnlist object of class \link{eqnlist}
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#' @author Daniel Kaschek, \email{daniel.kaschek@@physik.uni-freiburg.de}
+#' 
 #' @export
-print.eqnlist <- function(eqnlist, ...) {
+print.eqnlist <- function(eqnlist, pander = FALSE, ...) {
   
-  cat("Reaction table:\n")
-  reactions <- getReactions(eqnlist)
-  print(reactions)
-  cat("Number of conserved quantities:", attr(reactions, "n_cq"), "\n")
-  cat("Conserved quantities:", attr(reactions, "cq"), sep = "\n")
+  # Entities to print and pander
+  cq <- conservedQuantities(eqnlist$smatrix)
+  r <- getReactions(eqnlist)
   
+  # Print or pander?
+  if (!pander) {
+    print(cq)
+    cat("\n")
+    print(r)
+  } else {
+    require(pander)
+    pander::panderOptions("table.alignment.default", "left")
+    pander::panderOptions("table.split.table", Inf)
+    pander::panderOptions("table.split.cells", Inf)
+    exclude <- "Check"
+    r <- r[, setdiff(colnames(r), exclude)]
+    r$Rate <- paste0(format.eqnvec(as.character(r$Rate)))
+    pander::pander(r)
+  }
 }
 
-#' Pander on equation list
-#' 
-#' @param eqnlist object of class \link{eqnlist}
-#' @return pander object
-#' @export
-pander.eqnlist<- function(eqnlist) {
-  
-  pander::panderOptions("table.alignment.default", "left")
-  pander::panderOptions("table.split.table", Inf)
-  pander::panderOptions("table.split.cells", Inf)
-  out <- getReactions(eqnlist)
-  exclude <- "Check"
-  out <- out[, setdiff(colnames(out), exclude)]
-  out$Rate <- paste0(format.eqnvec(as.character(out$Rate)))
-  pander::pander(out)
-  
-}
 
 
 ## Class "eqnvec" and its constructors --------------------------------------------
