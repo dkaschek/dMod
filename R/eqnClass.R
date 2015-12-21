@@ -69,11 +69,49 @@ is.eqnlist <- function(x) {
 
 ## Class "eqnlist" and its methods ------------------------------------------
 
+#' Determine conserved quantites by finding the kernel of the stoichiometric
+#' matrix
+#' 
+#' @param S Stoichiometric matrix
+#' @return Data frame with conserved quantities carrying an attribute with the
+#'   number of conserved quantities.
+#' @author Malenke Mader, \email{Malenka.Mader@@fdm.uni-freiburg.de}
+#'   
+#' @export
+conservedQuantities <- function(S) {
+  # Get kernel of S
+  S[is.na(S)] <- 0
+  v <- nullZ(S)
+  n_cq <-  ncol(v)
+  
+  # Iterate over conserved quantities, removes 0s, etc.
+  if (n_cq > 0) {
+    if (is.null(colnames(S))) stop("Columns of stoichiometric matrix not named.") else variables <- colnames(S)
+    cq <- matrix(nrow = ncol(v), ncol = 1)
+    for (iCol in 1:ncol(v)) {
+      is.zero <- v[, iCol] == 0
+      cq[iCol, 1] <- sub("+-", "-", paste0(v[!is.zero, iCol], "*", variables[!is.zero], collapse = "+"), fixed = TRUE)
+    }
+    
+    colnames(cq) <- "Conserved quantities"
+    cq <- as.data.frame(cq)
+    attr(x = cq, which = "n") <- n_cq
+    
+  } else {
+    cq <- c()
+  }
+  
+  return(cq)
+}
+
+
+
 #' Generate a table of reactions (data.frame) from an equation list
 #' 
 #' @param eqnlist object of class \link{eqnlist}
 #' @return \code{data.frame} with educts, products, rate and description. The first
 #' column is a check if the reactions comply with reaction kinetics.
+#' 
 #' @export
 getReactions <- function(eqnlist) {
   
@@ -103,22 +141,6 @@ getReactions <- function(eqnlist) {
   educts <- reactions[1,]
   products <- reactions[2,]
   
-  # Determine number of conserved quantities
-  S[is.na(S)] <- 0
-  v <- nullZ(S)
-  n_cq <-  ncol(v)
-  
-  if (n_cq > 0) {
-    cq <- matrix(nrow = ncol(v),ncol = 1)
-    for (iCol in 1:ncol(v)){
-      is.zero <- v[,iCol] == 0
-      variables <- colnames(S)
-      cq[iCol,1] <- sub("+-","-",paste0(v[!is.zero,iCol], "*", variables[!is.zero], collapse = "+"), fixed = TRUE)
-    }
-  } else {
-    cq <- c()
-  }
-
   # Check for consistency
   exclMarks.logical <- unlist(lapply(1:length(rates), function(i) {
     
@@ -139,10 +161,6 @@ getReactions <- function(eqnlist) {
   out <- data.frame(exclMarks, educts, "->", products, rates, description, stringsAsFactors = FALSE)
   colnames(out) <- c("Check", "Educt",  "->",  "Product", "Rate", "Description")
   rownames(out) <- 1:nrow(out)
-  
-  # Attributes
-  attr(out, "cq") <- cq
-  attr(out, "n_cq") <- n_cq
   
   return(out)
   
