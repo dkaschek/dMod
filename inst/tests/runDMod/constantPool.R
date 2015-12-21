@@ -7,8 +7,8 @@ library(dMod)
 ## Model definition-------------------------------------------------------------
 # Generate reaction network
 f <- eqnlist()
-f <- addReaction(f, "A", "pA", "k_on * A * exp(-0.1*time)")
 f <- addReaction(f, "pA", "A", "k_off * pA")
+f <- addReaction(f, "A", "pA", "k_on * A * exp(-0.1*time)")
 fVec <- as.eqnvec(f)
 
 # Define new observables based on ODE states
