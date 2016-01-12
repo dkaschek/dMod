@@ -162,7 +162,7 @@ getReactions <- function(eqnlist) {
   colnames(out) <- c("Check", "Educt",  "->",  "Product", "Rate", "Description")
   rownames(out) <- 1:nrow(out)
   
-  return(out[order(out$Educt), ])
+  return(out)
   
 }
 

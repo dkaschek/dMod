@@ -38,7 +38,7 @@ model0 <- generateModel(f, forcings = forcings, modelname = "odefn")
 
 # Define inner parameters (parameters occurring in the equations except forcings)
 # Add names(observables) if addObservables(observables, f) is used
-innerpars <- getSymbols(c(names(f), f, observables), exclude = c(forcings, "time"))
+innerpars <- getSymbols(c(names(f), as.character(f), as.character(observables)), exclude = c(forcings, "time"))
 
 # Define additional parameter constraints, e.g. steady-state conditions
 # Parameters (left-hand side) are replaced in the right-hand side of consecutive lines by resolveRecurrence() 
