@@ -7,7 +7,7 @@ detectFreeCores <- function() {
   occupied <- as.numeric(strsplit(system("cat /proc/loadavg", intern = TRUE), split = " ", fixed = TRUE)[[1]][1])
   nCores <- parallel::detectCores()
   
-  ceiling(nCores - occupied)
+  round(nCores - occupied)
   
   
 }
