@@ -912,7 +912,7 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
 
 
 
-#' Combine parameter lists
+#' Concatenate parameter lists
 #'
 #' @description Fitlists carry an fit index which must be held unique on merging
 #' multiple fitlists.
@@ -923,10 +923,12 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'
 #' @export
-rbind.parlist <- function(...) {
-    m_fits <- c(...)
+#' @export c.parlist
+c.parlist <- function(...) {
+    m_fits <- lapply(list(...), unclass)
+    m_fits <- do.call(c, m_fits)
     m_parlist <- mapply(function(fit, idx) {
-      fit$index <- idx
+      if (is.list(fit)) fit$index <- idx
       return(fit)
       }, fit = m_fits, idx = seq_along(m_fits))
     
