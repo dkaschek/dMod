@@ -151,10 +151,11 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
   program <- lapply(1:nmachines, function(m) paste(
     pack,
     paste0("setwd('~/", filename[m], "_folder')"),
+    "rm(list = ls())",
     compile.line,
     paste0("load('", filename0, ".RData')"),
     #".oldobjects <- ls()",
-    paste0(".runbgOutput <- ", as.character(expr)),
+    paste0(".runbgOutput <- try(", as.character(expr), ")"),
     #".newobjects <- ls()",
     
     paste0("save(", output ,", file = '", filename[m], "_result.RData')"),
