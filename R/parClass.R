@@ -211,13 +211,13 @@ print.parvec <- function(par, ...) {
 #' @export
 c.parvec <- function(...) {
   
-  mylist <- list(...)
+  mylist <- lapply(list(...), as.parvec)
   
   n <- unlist(lapply(mylist, function(l) names(l)))
   v <- unlist(lapply(mylist, function(l) as.numeric(l)))
   d <- lapply(mylist, function(l) attr(l, "deriv"))
   
-  if(any(duplicated(n))) stop("Found duplicated names. Parameter vectors cannot be coerced.")
+  if (any(duplicated(n))) stop("Found duplicated names. Parameter vectors cannot be coerced.")
   
   deriv <- Reduce(combine, d)
   n.missing <- setdiff(n, rownames(deriv))
