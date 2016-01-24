@@ -2,16 +2,24 @@
 #' 
 #' @description Read \code{/proc/loadavg} and subtract from the number of cores
 #' @export 
-detectFreeCores <- function() {
+detectFreeCores <- function(machine = NULL) {
   
-  occupied <- as.numeric(strsplit(system("cat /proc/loadavg", intern = TRUE), split = " ", fixed = TRUE)[[1]][1])
-  nCores <- parallel::detectCores()
+  if (!is.null(machine)) {
+    nCores <- sapply(machine, function(m) {
+      occupied <- as.numeric(strsplit(system(paste("ssh", m, "cat /proc/loadavg"), intern = TRUE), split = " ", fixed = TRUE)[[1]][1])  
+      nCores <- as.numeric(system(paste("ssh", m, "nproc"), intern = TRUE))
+      max(c(0, round(nCores - occupied)))
+    })
+  } else {
+    occupied <- as.numeric(strsplit(system("cat /proc/loadavg", intern = TRUE), split = " ", fixed = TRUE)[[1]][1])      
+    nCores <- as.numeric(system("nproc", intern = TRUE))
+    nCores <- max(c(0, round(nCores - occupied)))
+  }
   
-  round(nCores - occupied)
+  return(nCores)   
   
   
 }
-
 
 #' Run an R expression in the background (only on UNIX)
 #' 
@@ -94,9 +102,9 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
     
     result <- structure(vector(mode = "list", length = nmachines), names = machine)
     for (m in 1:nmachines) {
-      system(paste0("scp ", machine[m], ":", filename[m], "_folder/", filename[m], "_result.RData ./"))
-      load(file = paste0(filename[m], "_result.RData"))
-      result[[m]] <- .runbgOutput
+      system(paste0("scp ", machine[m], ":", filename[m], "_folder/", filename[m], "_result.RData ./"), ignore.stdout = TRUE, ignore.stderr = TRUE)
+      check < try(load(file = paste0(filename[m], "_result.RData")), silent = TRUE) 
+      if (!inherits("try-error", check)) result[[m]] <- .runbgOutput
     }
     
     .GlobalEnv$.runbgOutput <- result
