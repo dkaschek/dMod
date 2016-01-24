@@ -628,8 +628,9 @@ load.parlist <- function(folder) {
 #' @export
 as.parvec.parframe <- function(parframe, index = 1) {
   m_order <- order(parframe$value)
+  metanames <- attr(parframe, "metanames")
   best <- as.parvec(unlist(parframe[m_order[index], attr(parframe, "parameters")]))
-  if (!parframe[m_order[index],]$converged) {
+  if ("converged" %in% metanames && !parframe[m_order[index],]$converged) {
     warning("Parameter vector of an unconverged fit is selected.", call. = FALSE)
     }
   return(best)
