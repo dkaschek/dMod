@@ -213,7 +213,7 @@ Xf <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method="lso
 #' plotPrediction(list(sens = sensitivities))
 #' 
 #' @export
-#' 
+ 
 Xd <- function(data) {
   
   states <- unique(as.character(data$name))

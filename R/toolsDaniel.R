@@ -62,7 +62,7 @@ detectFreeCores <- function(machine = NULL) {
 #' out_job1 <- runbg({
 #'          M <- matrix(rnorm(1e2), 10, 10)
 #'          solve(M)
-#'          }, machine = c("localhost", "localhose"), filename = "job1")
+#'          }, machine = c("localhost", "localhost"), filename = "job1")
 #' out_job1$check()          
 #' out_job1$get()
 #' result <- .runbgOutput
@@ -103,7 +103,7 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
     result <- structure(vector(mode = "list", length = nmachines), names = machine)
     for (m in 1:nmachines) {
       system(paste0("scp ", machine[m], ":", filename[m], "_folder/", filename[m], "_result.RData ./"), ignore.stdout = TRUE, ignore.stderr = TRUE)
-      check < try(load(file = paste0(filename[m], "_result.RData")), silent = TRUE) 
+      check <- try(load(file = paste0(filename[m], "_result.RData")), silent = TRUE) 
       if (!inherits("try-error", check)) result[[m]] <- .runbgOutput
     }
     
@@ -115,9 +115,8 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
     
     for (m in 1:nmachines) {
       system(paste0("ssh ", machine[m], " rm -r ", filename[m], "_folder"))
-      system(paste0("rm ", filename[m], ".R*"))
     }
-    
+    system(paste0("rm ", filename0, "*"))
   }
   
   
