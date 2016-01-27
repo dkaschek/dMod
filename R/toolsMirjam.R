@@ -3,10 +3,16 @@
 #' @description Lists the objects for a set of classes.
 #'   
 #' @param classlist List of object classes to print.
-#'   
+#' @param envir Alternative environment to search for objects.
+#' @examples 
+#' lsdMod()
+#' \dontrun{
+#' lsdMod(classlist = "prdfn", envir = environment(obj)) 
+#' }
+#' 
 #' @export
-lsdMod <- function(classlist = c("objfn", "prdfn")){
-  glist <- as.list(.GlobalEnv)
+lsdMod <- function(classlist = c("objfn", "prdfn"), envir = .GlobalEnv){
+  glist <- as.list(envir)
   for (a in classlist) {
     flist <- which(sapply(glist, function(f) any(class(f) == a)))
     cat(a,": ")
