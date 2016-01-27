@@ -1,3 +1,19 @@
+#' Print list of dMod objects in .GlobalEnv
+#' 
+#' @description Lists the objects for a set of classes.
+#'   
+#' @param classlist List of object classes to print.
+#'   
+#' @export
+lsdMod <- function(classlist = c("objfn", "prdfn")){
+  glist <- as.list(.GlobalEnv)
+  for (a in classlist) {
+    flist <- which(sapply(glist, function(f) any(class(f) == a)))
+    cat(a,": ")
+    cat(paste(names(glist[flist]), collapse = ", "),"\n")
+  }
+}
+
 gauss <- function(t, mu, s) {
   zero <- 1e-10
   n <- 50/(s*sqrt(2*pi))
@@ -45,6 +61,14 @@ constraint <- function(pp, par, mu=6, s=0.1) {
 
 }
 
+#' Named repititions
+#' 
+#' @description Wrapper on rep() to input names instead of length.
+#'   
+#' @param x Value to be repeated.
+#' @param names List of names.
+#'   
+#' @export
 repWithNames <- function(x, names){
   repnum <- rep(x,length(names))
   names(repnum) <- names
