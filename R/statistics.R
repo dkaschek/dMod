@@ -54,9 +54,9 @@
 #'     
 #' ini <- c(loga = 1, logb = 1, logc = 1)   
 #' myfit <- trust(obj, ini, rinit=1, rmax=10)   
-#' profiles <- sapply(1:3, function(i) 
+#' profiles <- do.call(rbind, lapply(1:3, function(i) 
 #'    profile(obj, myfit$argument, whichPar = i, limits = c(-5, 5), 
-#'                  algoControl=list(gamma=1, reoptimize=FALSE), verbose=TRUE))
+#'                  algoControl=list(gamma=1, reoptimize=FALSE), verbose=TRUE)))
 #' plotProfile(profiles)
 #' plotPaths(profiles)
 #' 
@@ -72,11 +72,11 @@
 #' 
 #' ini <- c(loga = 1, logb = 1, logc = 1)
 #' myfit <- trust(obj, ini[-1], rinit=1, rmax=10, fixed = ini[1], sigma = 10)
-#' profiles.approx <- sapply(1:2, function(i) 
+#' profiles.approx <- do.call(rbind, lapply(1:2, function(i) 
 #'   profile(obj, myfit$argument, whichPar = i, limits = c(-10, 10), 
 #'                 algoControl=list(gamma=1, reoptimize=FALSE), 
 #'                 verbose=TRUE, fixed = ini[1], sigma = 10))
-#' profiles.exact  <- sapply(1:2, function(i) 
+#' profiles.exact  <- do.call(rbind, lapply(1:2, function(i) 
 #'   profile(obj, myfit$argument, whichPar = i, limits = c(-10, 10), 
 #'                 algoControl=list(gamma=0, reoptimize=TRUE), 
 #'                 verbose=TRUE, fixed = ini[1], sigma = 10))
@@ -246,29 +246,31 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   doAdaption <- function() {
     
     lagrange.out.try <- lagrange(y.try)
+    valid <- TRUE
     
     # Predicted change of the objective value
-    dobj.pred <- sum(lagrange.out$gradient*(y.try-y))
+    dobj.pred <- sum(lagrange.out$gradient*(y.try - y))
     dobj.fact <- lagrange.out.try$value - lagrange.out$value
     correction <- lagrange.out.try$correction
     
     # Gamma adaption based on amount of actual correction
-    if(correction > aControl$correction) gamma <- gamma/2
-    if(correction < 0.5*aControl$correction) gamma <- min(c(aControl$gamma, gamma*2))
+    if (correction > aControl$correction) gamma <- gamma/2
+    if (correction < 0.5*aControl$correction) gamma <- min(c(aControl$gamma, gamma*2))
     
     # Stepsize adaption based on difference in predicted change of objective value
-    if(abs(dobj.fact - dobj.pred) > sControl$atol) {
+    if (abs(dobj.fact - dobj.pred) > sControl$atol & stepsize > sControl$min) {
       stepsize <- max(c(stepsize/1.5, sControl$min))
+      valid <- FALSE
     }
-    if(abs(dobj.fact - dobj.pred) < .3*sControl$atol | abs((dobj.fact - dobj.pred)/dobj.fact) < .3*sControl$rtol) {
+    if (abs(dobj.fact - dobj.pred) < .3*sControl$atol | abs((dobj.fact - dobj.pred)/dobj.fact) < .3*sControl$rtol) {
       stepsize <- min(c(stepsize*2, sControl$max))
     }
     
     # Compute progres
     diff.thres <- diff.steps <- diff.limit <- 0
-    if(threshold < Inf)
+    if (threshold < Inf)
       diff.thres <- 1 - max(c(0, min(c(1, (threshold - lagrange.out.try$value)/delta))))
-    if(sControl$limit < Inf)
+    if (sControl$limit < Inf)
       diff.steps <- i/sControl$limit
     diff.limit <- switch(as.character(sign(constraint.out$value)),
                          "1"  = 1 - (limits[2] - constraint.out$value)/limits[2],
@@ -279,18 +281,18 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     progressBar(percentage)
     
     ## Verbose
-    if(verbose) {
+    if (verbose) {
       #cat("diff.thres:", diff.thres, "diff.steps:", diff.steps, "diff.limit:", diff.limit)
-      myvalue <- format(substr(lagrange.out$value  , 0, 8), width=8)
-      myconst <- format(substr(constraint.out$value, 0, 8), width=8)
-      mygamma <- format(substr(gamma               , 0, 8), width=8)
+      myvalue <- format(substr(lagrange.out$value  , 0, 8), width = 8)
+      myconst <- format(substr(constraint.out$value, 0, 8), width = 8)
+      mygamma <- format(substr(gamma               , 0, 8), width = 8)
       myvalid <- all(lagrange.out$valid)
       cat("\tvalue:", myvalue, "constraint:", myconst, "gamma:", mygamma, "valid:", myvalid) 
     }
     
     
     
-    return(list(lagrange = lagrange.out.try, stepsize = stepsize, gamma = gamma))
+    return(list(lagrange = lagrange.out.try, stepsize = stepsize, gamma = gamma, valid = valid))
     
     
   }
@@ -332,13 +334,21 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   lagrange.out <- lagrange.out
   constraint.out <- constraint.out
  
-  while(i < sControl$limit) {
+  while (i < sControl$limit) {
     
     ## Iteration step
-    dy <- stepsize*lagrange.out$dy
-    y.try <- try(doIteration(), silent = TRUE)
-    out.try <- try(doAdaption(), silent = TRUE)
-    if(inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
+    sufficient <- FALSE
+    while (!sufficient) {
+      dy <- stepsize*lagrange.out$dy
+      y.try <- try(doIteration(), silent = TRUE)
+      out.try <- try(doAdaption(), silent = TRUE)
+      if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
+      sufficient <- out.try$valid
+      stepsize <- out.try$stepsize
+    }
+    
+    if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
+    
     
     ## Set values
     y <- y.try
@@ -359,7 +369,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                    y))
     
     
-    if(lagrange.out$value > threshold | constraint.out$value > limits[2]) break
+    if (lagrange.out$value > threshold | constraint.out$value > limits[2]) break
     
     i <- i + 1
     
@@ -376,13 +386,19 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   lagrange.out <- lagrange(ini)
   constraint.out <- constraint(pars)
     
-  while(i < sControl$limit) {
+  while (i < sControl$limit) {
     
     ## Iteration step
-    dy <- stepsize*lagrange.out$dy
-    y.try <- try(doIteration(), silent = TRUE)
-    out.try <- try(doAdaption(), silent = TRUE)
-    if(inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
+    sufficient <- FALSE
+    while (!sufficient) {
+      dy <- stepsize*lagrange.out$dy
+      y.try <- try(doIteration(), silent = TRUE)
+      out.try <- try(doAdaption(), silent = TRUE)
+      if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
+      sufficient <- out.try$valid
+      stepsize <- out.try$stepsize
+    }
+    if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
     
     ## Set values
     y <- y.try
