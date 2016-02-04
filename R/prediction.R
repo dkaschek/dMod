@@ -1,4 +1,5 @@
 
+
 #' Model evaluation. 
 #' @description Interface to combine an ODE and its sensitivity equations
 #' into one model function \code{x(times, pars, forcings, events, deriv = TRUE)} returning ODE output and sensitivities.
@@ -25,7 +26,7 @@
 #' differentiation. The result is saved in the attributed "deriv", 
 #' i.e. in this case the attibutes "deriv" and "sensitivities" do not coincide. 
 #' @export
-Xs <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method = "lsoda"), optionsSens=list(method="lsodes")) {
+Xs <- function(odemodel, forcings=NULL, events=NULL, condition = NULL, optionsOde=list(method = "lsoda"), optionsSens=list(method = "lsodes")) {
   
   func <- odemodel$func
   extended <- odemodel$extended
@@ -77,22 +78,21 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method = "l
   sensGrid <- expand.grid(variables, c(svariables, sparameters), stringsAsFactors=FALSE)
   sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")  
   
-  P2X <- function(times, pars, forcings = NULL, events = NULL, deriv=TRUE){
+  P2X <- function(times, pars, deriv=TRUE){
     
     yini <- pars[variables]
     mypars <- pars[parameters]
-    
-    if(is.null(forcings)) forcings <- myforcings
-    if(is.null(events)) events <- myevents
+    events <- myevents
+    forcings <- myforcings
     
     myderivs <- NULL
     mysensitivities <- NULL
-    if(!deriv) {
+    if (!deriv) {
       
       # Evaluate model without sensitivities
       loadDLL(func)
-      if(!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
-      out <- do.call(odeC, c(list(y=unclass(yini), times=times, func=func, parms=mypars, forcings=forc, events = list(data = events)), optionsOde))
+      if (!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
+      out <- do.call(odeC, c(list(y = unclass(yini), times = times, func = func, parms = mypars, forcings = forc, events = list(data = events)), optionsOde))
       #out <- cbind(out, out.inputs)
       
       
@@ -133,8 +133,10 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method = "l
   attr(P2X, "forcings") <- forcings
   attr(P2X, "events") <- events
   
+
+  prdfn(P2X, c(variables, parameters), condition) 
   
-  return(P2X)
+  
   
   
 }
@@ -148,7 +150,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method = "l
 #' @details Can be used to integrate additional quantities, e.g. fluxes, by adding them to \code{f}. All quantities that are not initialised by pars 
 #' in \code{x(times, pars, forcings, events)} are initialized at 0.
 #' @export
-Xf <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method="lsoda")) {
+Xf <- function(odemodel, forcings=NULL, events=NULL, condition = NULL, optionsOde=list(method="lsoda")) {
   
   func <- odemodel$func
   
@@ -160,7 +162,10 @@ Xf <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method="lso
   yini <- rep(0,length(variables))
   names(yini) <- variables
   
-  P2X <- function(times, P, forcings = myforcings, events = myevents){
+  P2X <- function(times, P){
+    
+    events <- myevents
+    forcings <- myforcings
     
     yini[names(P[names(P) %in% variables])] <- P[names(P) %in% variables]
     pars <- P[parameters]
@@ -168,7 +173,7 @@ Xf <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method="lso
     
     loadDLL(func)
     if(!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
-    out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = myevents)), optionsOde))
+    out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = events)), optionsOde))
     #out <- cbind(out, out.inputs)      
       
     prdframe(out, deriv = NULL, parameters = names(P))
@@ -179,9 +184,15 @@ Xf <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method="lso
   attr(P2X, "equations") <- as.eqnvec(attr(func, "equations"))
   attr(P2X, "forcings") <- forcings
   attr(P2X, "events") <- events
+ 
+ 
+  prdfn(P2X, c(variables, parameters), condition) 
+
+ 
+
   
-  
-  return(P2X)
+   
+
   
 }
 
@@ -214,7 +225,7 @@ Xf <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method="lso
 #' 
 #' @export
  
-Xd <- function(data) {
+Xd <- function(data, condition = NULL) {
   
   states <- unique(as.character(data$name))
   
@@ -304,7 +315,8 @@ Xd <- function(data) {
   
   attr(P2X, "parameters") <- structure(parameters, names = NULL)
   attr(P2X, "pouter") <- pouter
-  return(P2X)
+  
+  prdfn(P2X, attr(P2X, "parameters"), condition)
   
 }
 
@@ -329,10 +341,15 @@ Xd <- function(data) {
 #' are multiplied according to the chain rule for differentiation.
 #' If \code{attach.input = TRUE}, the original argument \code{out} will be attached to the evaluated observations.
 #' @export
-Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname = NULL, verbose = FALSE) {
+Y <- function(g, f, states = NULL, parameters = NULL, condition = NULL, attach.input = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
+  
+  myattach.input <- attach.input
   
   warnings <- FALSE
   modelname_deriv <- NULL
+  
+  
+  
   if (!is.null(modelname)) modelname_deriv <- paste(modelname, "deriv", sep = "_")
   
   # Get potential paramters from g, forcings are treated as parameters because
@@ -379,9 +396,9 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname
   names(zeros) <- dxdp
   
   
-  X2Y <- function(out, pars, attach.input = FALSE) {
+  X2Y <- function(out, pars) {
     
-    
+    attach.input <- myattach.input
     
     # Prepare list for with()
     nOut <- dim(out)[2]
@@ -457,8 +474,7 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname
   attr(X2Y, "parameters") <- parameters
   attr(X2Y, "states") <- states
   
-  return(X2Y)
-  
+  obsfn(X2Y, parameters, condition)
   
 }
 

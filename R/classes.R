@@ -118,7 +118,39 @@ eqnlist <- function(smatrix = NULL, states = colnames(smatrix), rates = NULL, vo
 
 ## Parameter classes --------------------------------------------------------
 
-
+#' @export
+parfn <- function(p2p, parameters = NULL, condition = NULL) {
+  
+  force(condition)
+  mappings <- list()
+  mappings[[1]] <- p2p
+  names(mappings) <- condition
+  
+  outfn <- function(p, fixed = NULL, deriv = TRUE, conditions = condition) {
+    
+    
+    result <- p2p(p = p, fixed = fixed, deriv = deriv, ...)
+    # If NULL condition, valid for all conditions
+    # else feed into correct slot 
+    if (is.null(condition)) {
+      outlist <- lapply(conditions, function(i) result)
+      names(outlist) <- conditions
+    } else {
+      outlist <- structure(vector("list", length(conditions)), names = conditions)
+      outlist[[condition]] <- result
+    }
+    
+    return(outlist)
+    
+  }
+  attr(outfn, "mappings") <- mappings
+  attr(outfn, "parameters") <- parameters
+  attr(outfn, "conditions") <- condition
+  class(outfn) <- c("parfn", "fn")
+  return(outfn)
+  
+  
+}
 
 #' Generate a paramter frame
 #'
@@ -209,51 +241,76 @@ parvec <- function(..., deriv = NULL) {
 #' as being produced by a low-level prediction function, see e.g. \link{Xs}. The different entries
 #' correspond to different experimental conditions which are supposed to be matched to a
 #' \link{datalist}.
-#' @param ... an R code by which the prediction function is composed. Available keywords are
-#' \code{condition}, 
-#' \code{time}, \code{pars}, \code{fixed} and \code{deriv}. Any other object being used in the
-#' expression can either be passed by the \code{...} argument of the returned function or
-#' must be available in the global environment.
-#' @param pouter named numeric, optional parameter vector for initialization
-#' @param conditions character vector, names of the experimental conditions, i.e. the
-#' names of the prediction list returnd by the prediction function.
 #' @return Object of class \code{prdfn}, i.e. a function \code{x(times, pars, fixed, deriv, ...)}
 #' which returns a \link{prdlist}.
 #' @export
-prdfn <- function(..., pouter = NULL, conditions = "1") {
-
-  mypouter <- pouter
-  myconditions <- conditions
-
-  myexpr <- as.expression(substitute(...))
-
-  # Dummy constructor
-  is.nullexpr <- deparse(myexpr)[1] == "expression(NULL)"
-  if (is.nullexpr) myexpr <- expression({
-    out <- matrix(times, ncol = 1)
-    colnames(out) <- "time"
-    myderivs <- out
-    prdframe(out, myderivs, names(pars))
-  })
-
-  # Prediction function
-  myfn <- function(times, pars = mypouter, fixed = NULL, deriv = TRUE, ...){
-
-    arglist <- list(times = times, pars = pars, fixed = fixed, deriv = deriv, ...)
+prdfn <- function(P2X, parameters = NULL, condition = NULL) {
+  
+  mycondition <- condition
+  mappings <- list()
+  mappings[[1]] <- P2X
+  names(mappings) <- condition
+  
+  outfn <- function(times, pars, fixed = NULL, deriv = TRUE, conditions = mycondition) {
     
-    as.prdlist(
-      lapply(myconditions, function(condition) {
-        with(arglist, eval(myexpr))
-      }), 
-      myconditions
-    )
+    
+    result <- P2X(times = times, pars = pars, deriv = deriv)
+    # If NULL condition, valid for all conditions
+    # else feed into correct slot 
+    if (is.null(condition)) {
+      outlist <- lapply(conditions, function(i) result)
+      names(outlist) <- conditions
+    } else {
+      outlist <- structure(vector("list", length(conditions)), names = conditions)
+      outlist[[condition]] <- result
+    }
+    
+    outlist <- as.prdlist(outlist)
+    attr(outlist, "pars") <- pars
+    
+    return(outlist)
+    
   }
-  class(myfn) <- "prdfn"
-  attr(myfn, "pouter") <- pouter
-  attr(myfn, "parameters") <- names(pouter)
-  return(myfn)
-
+  attr(outfn, "mappings") <- mappings
+  attr(outfn, "parameters") <- parameters
+  attr(outfn, "conditions") <- mycondition
+  class(outfn) <- c("prdfn", "fn") 
+  return(outfn)
+  
 }
+
+#' @export
+obsfn <- function(X2Y, parameters = NULL, condition = NULL) {
+  
+  mycondition <- condition
+  mappings <- list()
+  mappings[[1]] <- X2Y
+  names(mappings) <- condition
+  
+  outfn <- function(out, pars, fixed = NULL, deriv = TRUE, conditions = mycondition) {
+    
+    result <- X2Y(out = out, pars = pars)
+    # If NULL condition, valid for all conditions
+    # else feed into correct slot 
+    if (is.null(condition)) {
+      outlist <- lapply(conditions, function(i) result)
+      names(outlist) <- conditions
+    } else {
+      outlist <- structure(vector("list", length(conditions)), names = conditions)
+      outlist[[condition]] <- result
+    }
+    
+    return(outlist)
+    
+  }
+  attr(outfn, "mappings") <- mappings
+  attr(outfn, "parameters") <- parameters
+  attr(outfn, "conditions") <- mycondition
+  class(outfn) <- c("obsfn", "fn")
+  return(outfn)
+  
+}
+
 
 #' Prediction frame
 #'
@@ -343,40 +400,32 @@ datalist <- function(...) {
 #' @return Object of class \code{objfn}, i.e. a function \code{obj(pouter, fixed, deriv, ...)}
 #' which returns an \link{objlist}.
 #' @export
-objfn <- function(..., data, x, pouter = NULL, conditions = names(data)) {
+objfn <- function(data, x) {
 
   mydata <- data
   myx <- x
-  mypouter <- pouter
-  myconditions <- conditions
-  myexpr <- as.expression(substitute(...))
-  timesD <- sort(c(0, unique(do.call(c, lapply(mydata, function(d) d$time)))))
+  timesD <- sort(unique(c(0, do.call(c, lapply(mydata, function(d) d$time)))))
 
-  myfn <- function(pouter = mypouter, fixed = NULL, deriv=TRUE, ...){
+  myfn <- function(pouter, fixed = NULL, deriv=TRUE, conditions = names(data)) {
     
-    arglist <- list(pouter = pouter, fixed = fixed, deriv = deriv, ...)
+    data <- mydata[conditions]
+    x <- myx
     
-    prediction <- myx(times = timesD, pars = pouter, fixed = fixed, deriv = deriv)
+    prediction <- x(times = timesD, pars = pouter, fixed = fixed, deriv = deriv, conditions = conditions)
 
     # Apply res() and wrss() to compute residuals and the weighted residual sum of squares
-    out.data <- lapply(myconditions, function(cn) wrss(res(mydata[[cn]], prediction[[cn]])))
+    out.data <- lapply(conditions, function(cn) wrss(res(mydata[[cn]], prediction[[cn]])))
     out.data <- Reduce("+", out.data)
-
-    # Evaluate user-defined contributions, e.g. priors
-    out.user <- with(arglist, eval(myexpr))
-    #attributes.user <- attributes(out.user)
-    #attributes.user <- attributes.user[!names(attributes.user) %in% c("names", "class")]
 
     # Combine contributions and attach attributes
     out <- out.data
-    if (is.list(out.user)) out <- out + out.user
     attr(out, "data") <- out.data$value
-    attr(out, "user") <- out.user$value
+    
     return(out)
 
 
   }
-  class(myfn) <- "objfn"
+  class(myfn) <- c("objfn", "fn")
   return(myfn)
 
 }
@@ -424,3 +473,203 @@ objframe <- function(mydata, deriv = NULL) {
 
 
 }
+
+
+
+
+## General concatenation of functions ------------------------------------------
+
+#' @export
+"+.fn" <- function(x1, x2) {
+  
+  if (is.null(x1)) return(x2)
+   
+  # prdfn + prdfn
+  if (inherits(x1, "prdfn") & inherits(x2, "prdfn")) {
+    
+    mappings.x1 <- attr(x1, "mappings")
+    mappings.x2 <- attr(x2, "mappings")
+    
+    if (is.null(names(mappings.x1)) || is.null(names(mappings.x2))) stop("General functions (NULL names) cannot be coerced.")
+    
+    
+    mappings <- c(mappings.x1, mappings.x2)
+    
+    outfn <- function(times, pars, fixed = NULL, deriv = TRUE, conditions = names(mappings)) {
+      
+      available <- intersect(names(mappings), conditions)
+      outlist <- structure(vector("list", length(conditions)), names = conditions)
+      outpars <- structure(vector("list", length(conditions)), names = conditions)
+      for (C in available) {
+        outlist[[C]] <- mappings[[C]](times = times, pars = pars, deriv = deriv)
+        outpars[[C]] <- attr(outlist[[C]], "pars")
+        attr(outlist[[C]], "pars") <- NULL
+      }
+      
+      out <- as.prdlist(outlist)
+      attr(out, "pars") <- outpars
+      return(out)
+      
+    }
+    
+    attr(outfn, "mappings") <- mappings
+    attr(outfn, "parameters") <- union(attr(x1, "parameters"), attr(x2, "parameters"))
+    attr(outfn, "conditions") <- c(attr(x1, "conditions"), attr(x2, "conditions"))
+    class(outfn) <- c("prdfn", "fn")
+    
+    return(outfn)
+    
+    
+  }
+  
+  # parfn + parfn
+  if (inherits(x1, "parfn") & inherits(x2, "parfn")) {
+    
+    mappings.x1 <- attr(x1, "mappings")
+    mappings.x2 <- attr(x2, "mappings")
+    
+    if (is.null(names(mappings.x1)) || is.null(names(mappings.x2))) stop("General transformations (NULL names) cannot be coerced.")
+    
+    
+    mappings <- c(mappings.x1, mappings.x2)
+    
+    outfn <- function(p, fixed = NULL, deriv = TRUE, conditions = names(mappings)) {
+      
+      available <- intersect(names(mappings), conditions)
+      outlist <- structure(vector("list", length(conditions)), names = conditions)
+      for (C in available) {
+        outlist[[C]] <- mappings[[C]](p = p, fixed = fixed, deriv = deriv)
+      }
+      
+      return(outlist)
+      
+    }
+    
+    attr(outfn, "mappings") <- mappings
+    attr(outfn, "parameters") <- union(attr(x1, "parameters"), attr(x2, "parameters"))
+    attr(outfn, "conditions") <- c(attr(x1, "conditions"), attr(x2, "conditions"))
+    class(outfn) <- c("parfn", "fn")
+    
+    return(outfn)
+    
+  }
+  
+}
+
+#' @export
+"*.fn" <- function(p1, p2) {
+
+  # obsfn * obsfn
+  if (inherits(p1, "obsfn") & inherits(p2, "obsfn")) {
+    
+    conditions.p1 <- attr(p1, "conditions")
+    conditions.p2 <- attr(p2, "conditions")
+    
+    outfn <- function(out, pars, fixed = NULL, deriv = TRUE, conditions = conditions.p2) {
+      
+      step1 <- p2(out = out, pars = pars, fixed = fixed, deriv = deriv, conditions = conditions)
+      pars1 <- attr(step1, "pars")
+      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(out = step1[[i]], pars = pars1[[i]], fixed = fixed, deriv = deriv, condition = names(step1)[i])))
+      
+      out <- as.prdlist(step2)
+      attr(out, "pars") <- pars1
+      
+      return(out)
+      
+    }
+    
+    attr(outfn, "mappings") <- attr(p1, "mappings")
+    attr(outfn, "parameters") <- attr(p2, "parameters")
+    attr(outfn, "conditions") <- attr(p2, "conditions")
+    class(outfn) <- c("obsfn", "fn")
+    
+    return(outfn)
+    
+  }  
+  
+  
+  # obsfn * prdfn
+  if (inherits(p1, "obsfn") & inherits(p2, "prdfn")) {
+    
+    conditions.p1 <- attr(p1, "conditions")
+    conditions.p2 <- attr(p2, "conditions")
+    
+    outfn <- function(times, pars, fixed = NULL, deriv = TRUE, conditions = conditions.p2) {
+      step1 <- p2(times = times, pars = pars, fixed = fixed, deriv = deriv, conditions = conditions)
+      pars1 <- attr(step1, "pars")
+      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(out = step1[[i]], pars = pars1[[i]], fixed = fixed, deriv = deriv, condition = names(step1)[i])))
+      
+      out <- as.prdlist(step2)
+      attr(out, "pars") <- pars1
+      
+      return(out)
+      
+    }
+    
+    attr(outfn, "mappings") <- attr(p1, "mappings")
+    attr(outfn, "parameters") <- attr(p2, "parameters")
+    attr(outfn, "conditions") <- attr(p2, "conditions")
+    class(outfn) <- c("prdfn", "fn")
+    
+    return(outfn)
+    
+  }  
+  
+  
+  # prdfn * parfn
+  if (inherits(p1, "prdfn") & inherits(p2, "parfn")) {
+    
+    
+    conditions.p1 <- attr(p1, "conditions")
+    conditions.p2 <- attr(p2, "conditions")
+    
+    outfn <- function(times, pars, fixed = NULL, deriv = TRUE, conditions = conditions.p2) {
+      
+      step1 <- p2(p = pars, fixed = fixed, deriv = deriv, conditions = conditions)
+      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(times = times, pars = step1[[i]], deriv = deriv, condition = names(step1)[i])))
+      
+      out <- as.prdlist(step2)
+      attr(out, "pars") <- step1
+      
+      return(out)
+      
+    }
+    
+    attr(outfn, "mappings") <- attr(p1, "mappings")
+    attr(outfn, "parameters") <- attr(p2, "parameters")
+    attr(outfn, "conditions") <- attr(p2, "conditions")
+    class(outfn) <- c("prdfn", "fn")
+    
+    return(outfn)
+    
+  }
+  
+  
+  # parfn * parfn
+  if (inherits(p1, "parfn") & inherits(p2, "parfn")) {
+    
+    conditions.p1 <- attr(p1, "conditions")
+    conditions.p2 <- attr(p2, "conditions")
+    
+    outfn <- function(p, fixed=NULL, deriv = TRUE, conditions = conditions.p2) {
+      
+      step1 <- p2(p = p, fixed = fixed, deriv = deriv, conditions = conditions)
+      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(p = step1[[i]], deriv = deriv, condition = names(step1)[i])))
+      return(step2)
+      
+    }
+    
+    attr(outfn, "mappings") <- attr(p2, "mappings")
+    attr(outfn, "parameters") <- attr(p2, "parameters")
+    attr(outfn, "conditions") <- attr(p2, "conditions")
+    class(outfn) <- c("parfn", "fn")
+    
+    return(outfn)
+    
+  }
+  
+
+
+}
+
+

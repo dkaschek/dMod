@@ -117,35 +117,44 @@ constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, fixed=NULL) {
 #' sigma <- c(A = 0.1, B = 1)
 #' constraintL2(p, mu, sigma)
 #' @export
-constraintL2 <- function(p, mu, sigma = 1, fixed=NULL) {
+constraintL2 <- function(mu, sigma = 1, condition = NULL) {
 
   ## Augment sigma if length = 1
   if(length(sigma) == 1) 
     sigma <- structure(rep(sigma, length(mu)), names = names(mu)) 
   
-  ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
-  par.fixed <- intersect(names(mu), names(fixed))
-  sumOfFixed <- 0
-  if(!is.null(par.fixed)) sumOfFixed <- sum(0.5*((fixed[par.fixed] - mu[par.fixed])/sigma[par.fixed])^2)
   
-                         
-  # Compute prior value and derivatives
-  par <- intersect(names(mu), names(p))
+  outfn <- function(pars, fixed = NULL, deriv = TRUE) {
     
-  val <- sum((0.5*((p[par]-mu[par])/sigma[par])^2)) + sumOfFixed
-  gr <- rep(0, length(p)); names(gr) <- names(p)
-  gr[par] <- ((p[par]-mu[par])/(sigma[par]^2))
-  
-  hs <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
-  diag(hs)[par] <- 1/sigma[par]^2
-  
-  dP <- attr(p, "deriv")
-  if(!is.null(dP)) {
-    gr <- as.vector(gr%*%dP); names(gr) <- colnames(dP)
-    hs <- t(dP)%*%hs%*%dP; colnames(hs) <- colnames(dP); rownames(hs) <- colnames(dP)
+    ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
+    par.fixed <- intersect(names(mu), names(fixed))
+    sumOfFixed <- 0
+    if(!is.null(par.fixed)) sumOfFixed <- sum(0.5*((fixed[par.fixed] - mu[par.fixed])/sigma[par.fixed])^2)
+    
+    
+    # Compute prior value and derivatives
+    par <- intersect(names(mu), names(p))
+    
+    val <- sum((0.5*((p[par]-mu[par])/sigma[par])^2)) + sumOfFixed
+    gr <- rep(0, length(p)); names(gr) <- names(p)
+    gr[par] <- ((p[par]-mu[par])/(sigma[par]^2))
+    
+    hs <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
+    diag(hs)[par] <- 1/sigma[par]^2
+    
+    dP <- attr(p, "deriv")
+    if(!is.null(dP)) {
+      gr <- as.vector(gr%*%dP); names(gr) <- colnames(dP)
+      hs <- t(dP)%*%hs%*%dP; colnames(hs) <- colnames(dP); rownames(hs) <- colnames(dP)
+    }
+    
+    objlist(value = val, gradient = gr, hessian = hs)
+    
+    
   }
   
-  objlist(value = val, gradient = gr, hessian = hs)
+  class(outfn) <- "objfn"
+
   
 }
 
