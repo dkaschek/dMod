@@ -619,6 +619,18 @@ plotValues <- function(pars, values = "value") {
   
 }
 
+#' Plot parameter values for a fitlist
+#' 
+#' @param myparframe fitlist as obtained by as.parframe(mstrust)
+#' @param whichFits indexlist e.g. 1:10
+#' @export
+plotPars <- function(myparframe, whichFits = 1:length(myparframe)){
+  parNames <- attr(myparframe,"parameters")
+  parOut <- wide2long.data.frame(out = ((myparframe[whichFits,c("value",parNames)])) , keep = 1)
+  names(parOut) <- c("value","name","parvalue")
+  plot <- ggplot(parOut, aes(x = name, y = parvalue, color = value)) + geom_point() + theme(axis.text.x = element_text(angle = 270, hjust = 0))
+  return(plot)
+}
 
 plotFitList <- function(fitlist) {
   require(ggplot2)
