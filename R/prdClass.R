@@ -76,6 +76,44 @@ plot.prdframe <- function(prediction, data = NULL, ..., scales = "free", facet =
 
 ## Methods for class prdfn ----------------------------------
 
+#' @export
+print.prdfn <- function(x, ...) {
+  
+  conditions <- attr(x, "conditions")
+  parameters <- attr(x, "parameters")
+  mappings <- attr(x, "mappings")
+  
+  cat("Prediction function:\n")
+  str(args(x))
+  cat("\n")
+  cat("... conditions:", paste0(conditions, collapse = ", "), "\n")
+  cat("... parameters:", paste0(parameters, collapse = ", "), "\n")
+  
+  if (!inherits(x, "composed")) {
+    
+    output <- lapply(conditions, function(C) {
+      
+      list(
+        equations = attr(mappings[[C]], "equations"),
+        events = attr(mappings[[C]], "events"),
+        forcings = attr(mappings[[C]], "forcings"),
+        parameters = attr(mappings[[C]], "parameters")
+      )
+      
+    })
+    names(output) <- conditions
+    
+    cat("\nDetails:\n")
+    print(output, ...)
+    
+  } else {
+    
+    cat("\nObject is composed. Look at original objects to see more details.\n")
+    
+  }
+}
+
+
 # print.prdfn <- function(x) {
 #   
 #   myargs <- args(x)

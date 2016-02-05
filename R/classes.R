@@ -129,7 +129,7 @@ parfn <- function(p2p, parameters = NULL, condition = NULL) {
   outfn <- function(p, fixed = NULL, deriv = TRUE, conditions = condition) {
     
     
-    result <- p2p(p = p, fixed = fixed, deriv = deriv, ...)
+    result <- p2p(p = p, fixed = fixed, deriv = deriv)
     # If NULL condition, valid for all conditions
     # else feed into correct slot 
     if (is.null(condition)) {
@@ -137,7 +137,7 @@ parfn <- function(p2p, parameters = NULL, condition = NULL) {
       names(outlist) <- conditions
     } else {
       outlist <- structure(vector("list", length(conditions)), names = conditions)
-      outlist[[condition]] <- result
+      if (condition %in% conditions) outlist[[condition]] <- result
     }
     
     return(outlist)
@@ -262,7 +262,7 @@ prdfn <- function(P2X, parameters = NULL, condition = NULL) {
       names(outlist) <- conditions
     } else {
       outlist <- structure(vector("list", length(conditions)), names = conditions)
-      outlist[[condition]] <- result
+      if (condition %in% conditions) outlist[[condition]] <- result
     }
     
     outlist <- as.prdlist(outlist)
@@ -297,7 +297,7 @@ obsfn <- function(X2Y, parameters = NULL, condition = NULL) {
       names(outlist) <- conditions
     } else {
       outlist <- structure(vector("list", length(conditions)), names = conditions)
-      outlist[[condition]] <- result
+      if (condition %in% conditions) outlist[[condition]] <- result
     }
     
     return(outlist)
@@ -383,6 +383,7 @@ datalist <- function(...) {
 
 ## Objective classes ---------------------------------------------------------
 
+
 #' Objective function
 #'
 #' @description An objective function is a function \code{obj(pouter, fixed, deriv, ...)} which
@@ -399,36 +400,31 @@ datalist <- function(...) {
 #' @param conditions character vector, names of the conditions to be evaluated
 #' @return Object of class \code{objfn}, i.e. a function \code{obj(pouter, fixed, deriv, ...)}
 #' which returns an \link{objlist}.
-#' @export
-objfn <- function(data, x) {
-
-  mydata <- data
-  myx <- x
-  timesD <- sort(unique(c(0, do.call(c, lapply(mydata, function(d) d$time)))))
-
-  myfn <- function(pouter, fixed = NULL, deriv=TRUE, conditions = names(data)) {
-    
-    data <- mydata[conditions]
-    x <- myx
-    
-    prediction <- x(times = timesD, pars = pouter, fixed = fixed, deriv = deriv, conditions = conditions)
-
-    # Apply res() and wrss() to compute residuals and the weighted residual sum of squares
-    out.data <- lapply(conditions, function(cn) wrss(res(mydata[[cn]], prediction[[cn]])))
-    out.data <- Reduce("+", out.data)
-
-    # Combine contributions and attach attributes
-    out <- out.data
-    attr(out, "data") <- out.data$value
-    
-    return(out)
-
-
-  }
-  class(myfn) <- c("objfn", "fn")
-  return(myfn)
-
-}
+# @export
+# objfn <- function(fn, condition = NULL) {
+#   
+#   mycondition <- condition
+#   mappings <- list()
+#   mappings[[1]] <- fn
+#   names(mappings) <- condition
+#   
+#   outfn <- function(pouter, fixed = NULL, deriv = TRUE, conditions = condition, env = NULL) {
+#     
+#     
+#     result <- fn(pouter = pouter, fixed = fixed, deriv = deriv, env = env)
+#     # If NULL condition, valid for all conditions
+#     # else feed into correct slot 
+#     outlist <- ifelse(condition %in% conditions, result, NULL)
+#     
+#     return(outlist)
+#     
+#   }
+#   attr(outfn, "mappings") <- mappings
+#   attr(outfn, "conditions") <- mycondition
+#   class(outfn) <- c("objfn", "fn") 
+#   return(outfn)
+#   
+# }
 
 
 #' Generate objective list
@@ -479,21 +475,58 @@ objframe <- function(mydata, deriv = NULL) {
 
 ## General concatenation of functions ------------------------------------------
 
+
+#' @export
+"+.objfn" <- function(x1, x2) {
+  
+  if (is.null(x1)) return(x2)
+  
+  # objfn + objfn
+  if (inherits(x1, "objfn") & inherits(x2, "objfn")) {
+    
+    outfn <- function(...) {
+      args <- list(...)
+      v1 <- do.call(x1, args)
+      args$env <- attr(v1, "env")
+      v2 <- do.call(x2, args)
+      out <- v1 + v2
+      attr(out, "env") <- args$env
+      return(out)
+    }
+    
+    class(outfn) <- c("objfn", "fn")
+    return(outfn)
+    
+  }
+  
+  
+}
+
 #' @export
 "+.fn" <- function(x1, x2) {
   
   if (is.null(x1)) return(x2)
    
+  mappings.x1 <- attr(x1, "mappings")
+  mappings.x2 <- attr(x2, "mappings")
+  
+  conditions.x1 <- attr(x1, "conditions")
+  conditions.x2 <- attr(x2, "conditions")
+  overlap <- intersect(conditions.x1, conditions.x2)
+  
+  
+  if (is.null(names(mappings.x1)) || is.null(names(mappings.x2))) stop("General transformations (NULL names) cannot be coerced.")
+  
+  if (length(overlap) > 0) {
+    warning(paste("Condition", overlap, "existed and has been overwritten."))
+    mappings.x1 <- mappings.x1[!conditions.x1 %in% overlap]
+    conditions.x1 <- conditions.x1[!conditions.x1 %in% overlap]
+  }
+  
+  mappings <- c(mappings.x1, mappings.x2)
+  
   # prdfn + prdfn
   if (inherits(x1, "prdfn") & inherits(x2, "prdfn")) {
-    
-    mappings.x1 <- attr(x1, "mappings")
-    mappings.x2 <- attr(x2, "mappings")
-    
-    if (is.null(names(mappings.x1)) || is.null(names(mappings.x2))) stop("General functions (NULL names) cannot be coerced.")
-    
-    
-    mappings <- c(mappings.x1, mappings.x2)
     
     outfn <- function(times, pars, fixed = NULL, deriv = TRUE, conditions = names(mappings)) {
       
@@ -512,26 +545,12 @@ objframe <- function(mydata, deriv = NULL) {
       
     }
     
-    attr(outfn, "mappings") <- mappings
-    attr(outfn, "parameters") <- union(attr(x1, "parameters"), attr(x2, "parameters"))
-    attr(outfn, "conditions") <- c(attr(x1, "conditions"), attr(x2, "conditions"))
     class(outfn) <- c("prdfn", "fn")
-    
-    return(outfn)
-    
     
   }
   
   # parfn + parfn
   if (inherits(x1, "parfn") & inherits(x2, "parfn")) {
-    
-    mappings.x1 <- attr(x1, "mappings")
-    mappings.x2 <- attr(x2, "mappings")
-    
-    if (is.null(names(mappings.x1)) || is.null(names(mappings.x2))) stop("General transformations (NULL names) cannot be coerced.")
-    
-    
-    mappings <- c(mappings.x1, mappings.x2)
     
     outfn <- function(p, fixed = NULL, deriv = TRUE, conditions = names(mappings)) {
       
@@ -545,14 +564,16 @@ objframe <- function(mydata, deriv = NULL) {
       
     }
     
-    attr(outfn, "mappings") <- mappings
-    attr(outfn, "parameters") <- union(attr(x1, "parameters"), attr(x2, "parameters"))
-    attr(outfn, "conditions") <- c(attr(x1, "conditions"), attr(x2, "conditions"))
     class(outfn) <- c("parfn", "fn")
     
-    return(outfn)
-    
   }
+  
+    
+  attr(outfn, "mappings") <- mappings
+  attr(outfn, "parameters") <- union(attr(x1, "parameters"), attr(x2, "parameters"))
+  attr(outfn, "conditions") <- c(conditions.x1, conditions.x2)
+  
+  return(outfn)
   
 }
 
@@ -581,7 +602,7 @@ objframe <- function(mydata, deriv = NULL) {
     attr(outfn, "mappings") <- attr(p1, "mappings")
     attr(outfn, "parameters") <- attr(p2, "parameters")
     attr(outfn, "conditions") <- attr(p2, "conditions")
-    class(outfn) <- c("obsfn", "fn")
+    class(outfn) <- c("obsfn", "fn", "composed")
     
     return(outfn)
     
@@ -609,7 +630,7 @@ objframe <- function(mydata, deriv = NULL) {
     attr(outfn, "mappings") <- attr(p1, "mappings")
     attr(outfn, "parameters") <- attr(p2, "parameters")
     attr(outfn, "conditions") <- attr(p2, "conditions")
-    class(outfn) <- c("prdfn", "fn")
+    class(outfn) <- c("prdfn", "fn", "composed")
     
     return(outfn)
     
@@ -638,7 +659,7 @@ objframe <- function(mydata, deriv = NULL) {
     attr(outfn, "mappings") <- attr(p1, "mappings")
     attr(outfn, "parameters") <- attr(p2, "parameters")
     attr(outfn, "conditions") <- attr(p2, "conditions")
-    class(outfn) <- c("prdfn", "fn")
+    class(outfn) <- c("prdfn", "fn", "composed")
     
     return(outfn)
     
@@ -662,12 +683,31 @@ objframe <- function(mydata, deriv = NULL) {
     attr(outfn, "mappings") <- attr(p2, "mappings")
     attr(outfn, "parameters") <- attr(p2, "parameters")
     attr(outfn, "conditions") <- attr(p2, "conditions")
-    class(outfn) <- c("parfn", "fn")
+    class(outfn) <- c("parfn", "fn", "composed")
     
     return(outfn)
     
   }
-  
+ 
+  # objfn * parfn
+  if (inherits(p1, "objfn") & inherits(p2, "parfn")) {
+    
+    conditions.p2 <- attr(p2, "conditions")
+    
+    outfn <- function(pouter, fixed = NULL, deriv = TRUE, conditions = conditions.p2, env = NULL) {
+      
+      step1 <- p2(p = pouter, fixed = fixed, deriv = deriv, conditions = conditions)
+      step2 <- p1(pouter = step1, fixed = fixed, deriv = deriv, conditions = conditions, env = env)
+      
+      return(step2)
+      
+    }
+    
+    class(outfn) <- c("objfn", "fn", "composed")
+    
+    return(outfn)
+    
+  } 
 
 
 }

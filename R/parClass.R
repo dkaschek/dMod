@@ -242,8 +242,38 @@ c.parvec <- function(...) {
 #' @export
 #' @param pfn object of class \link{parfn}
 #' @param width the print-out console width
-print.parfn <- function(pfn, width = 120) {
-  print(attr(pfn, "equations"), width)
+print.parfn <- function(pfn, ...) {
+  
+  conditions <- attr(x, "conditions")
+  parameters <- attr(x, "parameters")
+  mappings <- attr(x, "mappings")
+  
+  cat("Parameter transformation:\n")
+  str(args(x))
+  cat("\n")
+  cat("... conditions:", paste0(conditions, collapse = ", "), "\n")
+  cat("... parameters:", paste0(parameters, collapse = ", "), "\n")
+  
+  if (!inherits(x, "composed")) {
+    
+    
+    output <- lapply(conditions, function(C) {
+      
+      list(
+        equations = attr(mappings[[C]], "equations")
+      )
+      
+    })
+    names(output) <- conditions
+    
+    cat("\nDetails:\n")
+    print(output, ...)
+    
+  } else {
+    
+    cat("\nObject is composed. Look at original objects to see more details.\n")
+    
+  }
 }
 
 
