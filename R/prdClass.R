@@ -88,10 +88,21 @@ print.prdfn <- function(x, ...) {
   cat("\n")
   cat("... conditions:", paste0(conditions, collapse = ", "), "\n")
   cat("... parameters:", paste0(parameters, collapse = ", "), "\n")
+ 
+}
+
+#' @export
+summary.prdfn <- function(x, ...) {
   
+  
+  conditions <- attr(x, "conditions")
+  parameters <- attr(x, "parameters")
+  mappings <- attr(x, "mappings")
+  
+  cat("Details:\n")
   if (!inherits(x, "composed")) {
     
-    output <- lapply(conditions, function(C) {
+    output <- lapply(1:length(mappings), function(C) {
       
       list(
         equations = attr(mappings[[C]], "equations"),
@@ -103,12 +114,11 @@ print.prdfn <- function(x, ...) {
     })
     names(output) <- conditions
     
-    cat("\nDetails:\n")
     print(output, ...)
     
   } else {
     
-    cat("\nObject is composed. Look at original objects to see more details.\n")
+    cat("\nObject is composed. See original objects for more details.\n")
     
   }
 }

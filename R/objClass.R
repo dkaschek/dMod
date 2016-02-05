@@ -186,13 +186,15 @@ constraintL2 <- function(mu, sigma = 1, condition = NULL) {
       # If there is no overlap, return NULL
       # If pouter is not a list, evaluate the constraint function 
       # for this pouter.
-      if (!is.list(pouter)) pouter <- list(pouter)
-      if (!is.null(conditions)) {
+      
+      if (is.list(pouter) && !is.null(conditions)) {
         available <- intersect(names(pouter), conditions)
-        defined <- condition %in% conditions
+        defined <- ifelse(is.null(condition), TRUE, condition %in% conditions)
+        
         if (length(available) == 0 | !defined) return()
-        pouter <- pouter[available]
+        pouter <- pouter[intersect(available, condition)]
       }
+      if (!is.list(pouter)) pouter <- list(pouter)
       
       outlist <- lapply(pouter, function(p) {
         
@@ -407,13 +409,15 @@ priorL2 <- function(mu, lambda = "lambda", condition = NULL) {
       # If there is no overlap, return NULL
       # If pouter is not a list, evaluate the constraint function 
       # for this pouter.
-      if (!is.list(pouter)) pouter <- list(pouter)
-      if (!is.null(conditions)) {
+
+      if (is.list(pouter) && !is.null(conditions)) {
         available <- intersect(names(pouter), conditions)
-        defined <- condition %in% conditions
+        defined <- ifelse(is.null(condition), TRUE, condition %in% conditions)
+        
         if (length(available) == 0 | !defined) return()
-        pouter <- pouter[available]
+        pouter <- pouter[intersect(available, condition)]
       }
+      if (!is.list(pouter)) pouter <- list(pouter)
       
       outlist <- lapply(pouter, function(p) {
         
@@ -516,6 +520,8 @@ wrss <- function(nout) {
 #' @export
 "+.objlist" <- function(out1, out2) {
   
+  if (is.null(out1)) return(out2)
+  if (is.null(out2)) return(out1)
 
   
   
