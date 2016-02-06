@@ -120,6 +120,7 @@ normL2 <- function(data, x, times = NULL) {
     if (is.null(env)) {
       env <- environment()
     } else {
+      assign("env", env, envir = env) 
       assign("pouter", pouter, envir = env)
       assign("fixed", fixed, envir = env)
       assign("deriv", deriv, envir = env)
@@ -127,6 +128,7 @@ normL2 <- function(data, x, times = NULL) {
       assign("timesD", timesD, envir = env)
       assign("x", x, envir = env)
       assign("data", data, envir = env) 
+      
       
     }
     
@@ -159,21 +161,18 @@ normL2 <- function(data, x, times = NULL) {
 
 #' Soft L2 constraint on parameters
 #' 
-#' @param p Namec numeric, the parameter value
-#' @param mu Named numeric, the prior values
-#' @param sigma Named numeric of length of mu or numeric of length one.
-#' @param fixed Named numeric with fixed parameter values (contribute to the prior value
-#' but not to gradient and Hessian)
-#' @return List of class \code{objlist}, i.e. objective value, gradient and Hessian as list.
+#' @param mu named numeric, the prior values
+#' @param sigma named numeric of length of mu or numeric of length one.
+#' @return object of class \code{objfn}
 #' @seealso \link{wrss}
 #' @details Computes the constraint value 
 #' \deqn{\frac{1}{2}\left(\frac{p-\mu}{\sigma}\right)^2}{0.5*(p-mu)^2/sigma^2}
 #' and its derivatives with respect to p.
 #' @examples
-#' p <- c(A = 1, B = 2, C = 3)
 #' mu <- c(A = 0, B = 0)
 #' sigma <- c(A = 0.1, B = 1)
-#' constraintL2(p, mu, sigma)
+#' myfn <- constraintL2(mu, sigma)
+#' myfn(pouter = c(A = 1, B = -1))
 #' @export
 constraintL2 <- function(mu, sigma = 1, condition = NULL) {
 
@@ -190,6 +189,7 @@ constraintL2 <- function(mu, sigma = 1, condition = NULL) {
     if (is.null(env)) {
       env <- environment()
     } else {
+      assign("env", env, envir = env) 
       assign("pouter", pouter, envir = env)
       assign("fixed", fixed, envir = env)
       assign("deriv", deriv, envir = env)
@@ -285,16 +285,13 @@ constraintL2 <- function(mu, sigma = 1, condition = NULL) {
 #' and its derivatives with respect to p.
 #' @examples
 #' \dontrun{
-#' prediction <- matrix(c(0, 1), nrow = 1, dimnames = list(NULL, c("time", "A")))
+#' prediction <- list(a = matrix(c(0, 1), nrow = 1, dimnames = list(NULL, c("time", "A"))))
 #' derivs <- matrix(c(0, 1, 0.1), nrow = 1, dimnames = list(NULL, c("time", "A.A", "A.k1")))
-#' attr(prediction, "deriv") <- derivs
+#' attr(prediction$a, "deriv") <- derivs
 #' p0 <- c(A = 1, k1 = 2)
-#' mu <- c(newpoint = "A")
-#' timepoint <- 0
 #' 
-#' datapointL2(p = c(p, newpoint = 2), prediction, mu, timepoint)
-#' datapointL2(p = c(p, newpoint = 1), prediction, mu, timepoint)
-#' datapointL2(p = c(p, newpoint = 0), prediction, mu, timepoint)
+#' vali <- datapointL2(name = "A", time = 0, value = "newpoint", sigma = 1, condition = "a")
+#' vali(pouter = c(p0, newpoint = 1), env = .GlobalEnv)
 #' }
 #' @export
 datapointL2 <- function(name, time, value, sigma = 1, condition) {
@@ -312,6 +309,7 @@ datapointL2 <- function(name, time, value, sigma = 1, condition) {
     if (is.null(env)) {
       env <- environment()
     } else {
+      assign("env", env, envir = env) 
       assign("pouter", pouter, envir = env)
       assign("fixed", fixed, envir = env)
       assign("deriv", deriv, envir = env)
@@ -413,6 +411,7 @@ priorL2 <- function(mu, lambda = "lambda", condition = NULL) {
     if (is.null(env)) {
       env <- environment()
     } else {
+      assign("env", env, envir = env) 
       assign("pouter", pouter, envir = env)
       assign("fixed", fixed, envir = env)
       assign("deriv", deriv, envir = env)

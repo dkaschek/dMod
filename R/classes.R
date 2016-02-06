@@ -511,6 +511,14 @@ objframe <- function(mydata, deriv = NULL) {
 
 #' Direct sum of objective functions
 #' 
+#' @param x1 function of class \code{objfn}
+#' @param x2 function of class \code{objfn}
+#' @details The objective functions are evaluated and their results as added. Sometimes,
+#' the evaluation of an objective function depends on results that have been computed
+#' internally in a preceding objective function. Therefore, environments are forwarded
+#' and all evaluations take place in the same environment. The first objective function
+#' in a sum of functions generates a new environment.
+#' @return Object of class \code{objfn}.
 #' @aliases sumobjfn
 #' @export
 "+.objfn" <- function(x1, x2) {
@@ -540,6 +548,14 @@ objframe <- function(mydata, deriv = NULL) {
 
 #' Direct sum of functions
 #'
+#' Used to add prediction function, parameter transformation functions or observation functions.
+#' 
+#' @param x1 function of class \code{obsfn}, \code{prdfn} or \code{parfn}
+#' @param x2 function of class \code{obsfn}, \code{prdfn} or \code{parfn}
+#' @details Each prediction function is associated to a number of conditions. Adding functions
+#' means merging or overwriting the set of conditions.
+#' @return Object of the same class as \code{x1} and \code{x2} which returns results for the
+#' union of conditions. 
 #' @aliases sumfn
 #' @export
 "+.fn" <- function(x1, x2) {
@@ -639,6 +655,11 @@ objframe <- function(mydata, deriv = NULL) {
 
 #' Concatenation of functions
 #' 
+#' Used to concatenate observation functions, prediction functions and parameter transformation functions.
+#' 
+#' @param x1 function of class \code{obsfn}, \code{prdfn} or \code{parfn}
+#' @param x2 function of class \code{obsfn}, \code{prdfn} or \code{parfn}
+#' @return Object of the same class as \code{x1} and \code{x2}.
 #' @aliases prodfn
 #' @export
 "*.fn" <- function(p1, p2) {
