@@ -118,6 +118,18 @@ eqnlist <- function(smatrix = NULL, states = colnames(smatrix), rates = NULL, vo
 
 ## Parameter classes --------------------------------------------------------
 
+#' Parameter transformation function
+#' 
+#' Generate functions that transform one parameter vector into another
+#' by means of a transformation, pushing forward the jacobian matrix
+#' of the original parameter.#' 
+#' @param p2p a transformation function for one condition, see \link{P}
+#' @param parameters character vector, the parameters accepted by the function
+#' @param condition character, the condition for which the transformation is defined
+#' @return object of class \code{parfn}. Contains attributes "mappings", a list of \code{p2p}
+#' functions, "parameters", the union of parameters acceted by the mappings and
+#' "conditions", the total set of conditions.
+#' @seealso \link{sumfn}
 #' @export
 parfn <- function(p2p, parameters = NULL, condition = NULL) {
   
@@ -236,12 +248,19 @@ parvec <- function(..., deriv = NULL) {
 
 #' Prediction function
 #'
-#' @description A prediction function is a function \code{x(times, pars, fixed, deriv, ...)}
+#' @description A prediction function is a function \code{x(times, pars, fixed, deriv, conditions)}
 #' which returns a list of model predictions. Each entry of the list is a \link{prdframe}
 #' as being produced by a low-level prediction function, see e.g. \link{Xs}. The different entries
-#' correspond to different experimental conditions which are supposed to be matched to a
+#' correspond to different experimental conditions which can be compared to a
 #' \link{datalist}.
-#' @return Object of class \code{prdfn}, i.e. a function \code{x(times, pars, fixed, deriv, ...)}
+#' @param P2X transformation function as being produced by \link{Xs}.
+#' @param parameters character vector with parameter names
+#' @param condition character, the condition name
+#' @details Prediction functions can be "added" by the "+" operator, see \link{sumfn}. Thereby,
+#' predictions for different conditions are merged or, overwritten. Prediction functions can
+#' also be concatenated with other functions, e.g. observation functions (\link{obsfn}) or 
+#' parameter transformation functions (\link{parfn}) by the "*" operator, see \link{prodfn}.
+#' @return Object of class \code{prdfn}, i.e. a function \code{x(times, pars, fixed, deriv, conditions)}
 #' which returns a \link{prdlist}.
 #' @export
 prdfn <- function(P2X, parameters = NULL, condition = NULL) {
@@ -279,6 +298,21 @@ prdfn <- function(P2X, parameters = NULL, condition = NULL) {
   
 }
 
+#' Observation function
+#'
+#' @description An observation function is a function is that is concatenated
+#' with a prediction function via \link{prodfn} to yield a new prediction function,
+#' see \link{prdfn}. Observation functions are generated, e.g. by \link{Y}. Handling
+#' of the conditions is then organized by the \code{obsfn} object.
+#' @param X2Y the low-level observation function generated e.g. by \link{Y}.
+#' @param parameters character vector with parameter names
+#' @param condition character, the condition name
+#' @details Observation functions can be "added" by the "+" operator, see \link{sumfn}. Thereby,
+#' observations for different conditions are merged or, overwritten. Observation functions can
+#' also be concatenated with other functions, e.g. observation functions (\link{obsfn}) or 
+#' prediction functions (\link{prdfn}) by the "*" operator, see \link{prodfn}.
+#' @return Object of class \code{obsfn}, i.e. a function \code{x(times, pars, fixed, deriv, conditions)}
+#' which returns a \link{prdlist}.
 #' @export
 obsfn <- function(X2Y, parameters = NULL, condition = NULL) {
   
@@ -475,7 +509,9 @@ objframe <- function(mydata, deriv = NULL) {
 
 ## General concatenation of functions ------------------------------------------
 
-
+#' Direct sum of objective functions
+#' 
+#' @aliases sumobjfn
 #' @export
 "+.objfn" <- function(x1, x2) {
   
@@ -502,6 +538,9 @@ objframe <- function(mydata, deriv = NULL) {
   
 }
 
+#' Direct sum of functions
+#'
+#' @aliases sumfn
 #' @export
 "+.fn" <- function(x1, x2) {
   
@@ -532,15 +571,15 @@ objframe <- function(mydata, deriv = NULL) {
       
       available <- intersect(names(mappings), conditions)
       outlist <- structure(vector("list", length(conditions)), names = conditions)
-      outpars <- structure(vector("list", length(conditions)), names = conditions)
+      #outpars <- structure(vector("list", length(conditions)), names = conditions)
       for (C in available) {
         outlist[[C]] <- mappings[[C]](times = times, pars = pars, deriv = deriv)
-        outpars[[C]] <- attr(outlist[[C]], "pars")
-        attr(outlist[[C]], "pars") <- NULL
+        #outpars[[C]] <- attr(outlist[[C]], "pars")
+        #attr(outlist[[C]], "pars") <- NULL
       }
       
       out <- as.prdlist(outlist)
-      attr(out, "pars") <- outpars
+      #attr(out, "pars") <- outpars
       return(out)
       
     }
@@ -548,6 +587,27 @@ objframe <- function(mydata, deriv = NULL) {
     class(outfn) <- c("prdfn", "fn")
     
   }
+  
+  # obsfn + obsfn
+  if (inherits(x1, "obsfn") & inherits(x2, "obsfn")) {
+    
+    outfn <- function(out, pars, fixed = NULL, deriv = TRUE, conditions = names(mappings)) {
+      
+      available <- intersect(names(mappings), conditions)
+      outlist <- structure(vector("list", length(conditions)), names = conditions)
+      for (C in available) {
+        outlist[[C]] <- mappings[[C]](out = out, pars = pars)
+      }
+      
+      out <- as.prdlist(outlist)
+      return(out)
+      
+    }
+    
+    class(outfn) <- c("obsfn", "fn")
+    
+  }
+  
   
   # parfn + parfn
   if (inherits(x1, "parfn") & inherits(x2, "parfn")) {
@@ -577,6 +637,9 @@ objframe <- function(mydata, deriv = NULL) {
   
 }
 
+#' Concatenation of functions
+#' 
+#' @aliases prodfn
 #' @export
 "*.fn" <- function(p1, p2) {
 
@@ -589,11 +652,9 @@ objframe <- function(mydata, deriv = NULL) {
     outfn <- function(out, pars, fixed = NULL, deriv = TRUE, conditions = conditions.p2) {
       
       step1 <- p2(out = out, pars = pars, fixed = fixed, deriv = deriv, conditions = conditions)
-      pars1 <- attr(step1, "pars")
-      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(out = step1[[i]], pars = pars1[[i]], fixed = fixed, deriv = deriv, condition = names(step1)[i])))
+      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(out = step1[[i]], pars = attr(step1[[i]], "parameters"), fixed = fixed, deriv = deriv, condition = names(step1)[i])))
       
       out <- as.prdlist(step2)
-      attr(out, "pars") <- pars1
       
       return(out)
       
@@ -617,11 +678,9 @@ objframe <- function(mydata, deriv = NULL) {
     
     outfn <- function(times, pars, fixed = NULL, deriv = TRUE, conditions = conditions.p2) {
       step1 <- p2(times = times, pars = pars, fixed = fixed, deriv = deriv, conditions = conditions)
-      pars1 <- attr(step1, "pars")
-      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(out = step1[[i]], pars = pars1[[i]], fixed = fixed, deriv = deriv, condition = names(step1)[i])))
+      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(out = step1[[i]], pars = attr(step1[[i]], "parameters"), fixed = fixed, deriv = deriv, condition = names(step1)[i])))
       
       out <- as.prdlist(step2)
-      attr(out, "pars") <- pars1
       
       return(out)
       
@@ -650,7 +709,6 @@ objframe <- function(mydata, deriv = NULL) {
       step2 <- do.call(c, lapply(1:length(step1), function(i) p1(times = times, pars = step1[[i]], deriv = deriv, condition = names(step1)[i])))
       
       out <- as.prdlist(step2)
-      attr(out, "pars") <- step1
       
       return(out)
       

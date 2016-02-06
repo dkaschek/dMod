@@ -13,11 +13,14 @@
 #' reset the sensitivities appropriately, depending on the event method. 
 #' ATTENTION: The addional events are not dynamically recalculated. If you call the prediction
 #' function with alternative events, the prediction is fine but the sensitivities can be wrong.
+#' @param condition either NULL (generic prediction for any condition) or a character, denoting
+#' the condition for which the function makes a prediction.
 #' @param optionsOde list with arguments to be passed to odeC() for the ODE integration.
 #' @param optionsSens list with arguments to be passed to odeC() for integration of the extended system
-#' @return A model prediction function \code{x(times, pars, forcings, events, deriv = TRUE)} representing 
-#' the model evaluation. The result of
-#' \code{x(times, pars, forcings, events, deriv = TRUE)} contains
+#' @return Object of class \link{prdfn}, i.e. a model prediction function 
+#' \code{x(times, pars, forcings, events, deriv = TRUE, conditions = NULL)} 
+#' representing the model evaluation. The result of
+#' \code{x(times, pars)} is a prediction frame, \link{prdframe}, containing
 #' attributes "sensitivities" and "deriv" with the sensitivities if \code{deriv=TRUE}. 
 #' If \code{deriv=FALSE}, sensitivities are not computed (saving time).
 #' If \code{pars} is
@@ -124,7 +127,8 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, condition = NULL, optionsOd
       
     }
    
-    prdframe(out, deriv = myderivs, sensitivities = mysensitivities, parameters = unique(sensGrid[,2]))
+    #prdframe(out, deriv = myderivs, sensitivities = mysensitivities, parameters = unique(sensGrid[,2]))
+    prdframe(out, deriv = myderivs, sensitivities = mysensitivities, parameters = pars)
     
   }
   
@@ -147,10 +151,15 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, condition = NULL, optionsOd
 #' into a model function \code{x(times, pars, forcings, events)} returning ODE output.
 #' It is a reduced version of \link{Xs}, missing the sensitivities. 
 #' @param odemodel Object of class \link{odemodel}.
+#' @param forcings, see \link{Xs}
+#' @param events, see \link{Xs}
+#' @param condition either NULL (generic prediction for any condition) or a character, denoting
+#' the condition for which the function makes a prediction.
 #' @details Can be used to integrate additional quantities, e.g. fluxes, by adding them to \code{f}. All quantities that are not initialised by pars 
-#' in \code{x(times, pars, forcings, events)} are initialized at 0.
+#' in \code{x(times, pars, forcings, events)} are initialized at 0. For more details and
+#' the return value see \link{Xs}.
 #' @export
-Xf <- function(odemodel, forcings=NULL, events=NULL, condition = NULL, optionsOde=list(method="lsoda")) {
+Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optionsOde=list(method = "lsoda")) {
   
   func <- odemodel$func
   
@@ -176,7 +185,7 @@ Xf <- function(odemodel, forcings=NULL, events=NULL, condition = NULL, optionsOd
     out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = events)), optionsOde))
     #out <- cbind(out, out.inputs)      
       
-    prdframe(out, deriv = NULL, parameters = names(P))
+    prdframe(out, deriv = NULL, parameters = P)
     
   }
   
@@ -202,7 +211,10 @@ Xf <- function(odemodel, forcings=NULL, events=NULL, condition = NULL, optionsOd
 #' @param data data.frame with columns "name", "times", and row names that 
 #' are taken as parameter names. The data frame can contain a column "value"
 #' to initialize the parameters.
-#' @return Prediction function, a function \code{x(times pars, deriv = TRUE)}, 
+#' @param condition either NULL (generic prediction for any condition) or a character, denoting
+#' the condition for which the function makes a prediction.
+#' @return Object of class \link{prdfn}, i.e. 
+#' a function \code{x(times pars, deriv = TRUE, conditions = NULL)}, 
 #' see also \link{Xs}. Attributes are "parameters", the parameter names (row names of
 #' the data frame), and possibly "pouter", a named numeric vector which is generated
 #' from \code{data$value}.
@@ -224,7 +236,6 @@ Xf <- function(odemodel, forcings=NULL, events=NULL, condition = NULL, optionsOd
 #' plotPrediction(list(sens = sensitivities))
 #' 
 #' @export
- 
 Xd <- function(data, condition = NULL) {
   
   states <- unique(as.character(data$name))
@@ -309,7 +320,7 @@ Xd <- function(data, condition = NULL) {
    
     #attr(out, "parameters") <- unique(sensGrid[,2])
     
-    prdframe(out, deriv = myderivs, sensitivities = mysensitivities, parameters = unique(sensGrid[,2]))
+    prdframe(out, deriv = myderivs, sensitivities = mysensitivities, parameters = pars)
     
   }
   
@@ -326,11 +337,19 @@ Xd <- function(data, condition = NULL) {
 #' and its derivatives based on the output of a model function \code{x(times, pars)}, see \link{Xf} and \link{Xs}.
 #' @param g Named character vector defining the observation function
 #' @param f Named character, the underlying ODE
+#' @param states character vector, alternative definition of "states", usually the names of \code{f}
+#' @param parameters character vector, alternative definition of the "parameters",
+#' usually the symbols contained in "g" and "f" except for \code{states} and the code word \code{time}.
+#' @param condition either NULL (generic prediction for any condition) or a character, denoting
+#' the condition for which the function makes a prediction.
+#' @param attach.input logical, indiating whether the original input should be
+#' returned with the output.
 #' @param compile Logical, compile the function (see \link{funC0})
 #' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
 #' C file.
 #' @param verbose Print compiler output to R command line.
-#' @return a function \code{y(out, pars, attach.input = FALSE)} representing the evaluation of the 
+#' @return Object of class \link{obsfn}, i.e.
+#' a function \code{y(out, pars, conditions = NULL)} representing the evaluation of the 
 #' observation function. 
 #' If \code{out} has the attribute  "sensitivities", the result of
 #' \code{y(out, pars)}, will have an attributed "deriv" which reflec the sensitivities of 
@@ -339,7 +358,7 @@ Xd <- function(data, condition = NULL) {
 #' the Jacobian 
 #' of the parameter transformation and the sensitivities of the observation function
 #' are multiplied according to the chain rule for differentiation.
-#' If \code{attach.input = TRUE}, the original argument \code{out} will be attached to the evaluated observations.
+#' The original argument \code{out} will be attached to the evaluated observations.
 #' @export
 Y <- function(g, f, states = NULL, parameters = NULL, condition = NULL, attach.input = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
   
@@ -464,7 +483,7 @@ Y <- function(g, f, states = NULL, parameters = NULL, condition = NULL, attach.i
     
     
     # Output 
-    prdframe(prediction = values, deriv = myderivs, parameters = myparameters) 
+    prdframe(prediction = values, deriv = myderivs, parameters = pars) 
     
     
     

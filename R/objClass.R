@@ -35,8 +35,14 @@ as.objlist <- function(p) {
 #' @return list with entries: value (numeric, the weighted residual sum of squares), 
 #' gradient (numeric, gradient) and 
 #' hessian (matrix of type numeric). Object of class \code{objlist}.
-#' @export
 constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, fixed=NULL) {
+  
+  
+  ##
+  ## This function need to be extended according to constraintL2()
+  ## The parameters sigma and k need to be replaced by more
+  ## meaningful parameters.
+  ##
   
   kmin <- 1e-5
   
@@ -86,7 +92,21 @@ constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, fixed=NULL) {
 }
 
 
-
+#' L2 norm between data and model prediction
+#' 
+#' @description For parameter estimation and optimization, an objective function
+#' is needed. \code{normL2} returns an objective function for the L2 norm of
+#' data and model prediction. The resulting objective function can be used for
+#' optimization with the trust optimizer, see \link{mstrust}.
+#' @param data object of class \link{datalist}
+#' @param x object of class \link{prdfn}
+#' @param times numeric vector, the time points where the prediction function is to be
+#' evaluated. If NULL, time points are extacted from the datalist. If the prediction
+#' function makes use of events, \code{times} should be set by hand.
+#' @return Object of class \code{obsfn}, i.e. a function 
+#' \code{obj(pouter, fixed, deriv, conditions, env)} that returns an objective list,
+#' \link{objlist}.
+#' @details Objective functions can be combined by the "+" operator, see \link{sumobj}.
 #' @export
 normL2 <- function(data, x, times = NULL) {
 
@@ -515,7 +535,7 @@ wrss <- function(nout) {
 #' The same holds for the attributed \code{dimnames}. In all other cases, the "+" operator is applied
 #' the corresponding elements of out1 and out2 as they are.
 #' @return List of length of out1. 
-#' @aliases summation
+#' @aliases sumobjlist
 #' @export "+.objlist"
 #' @export
 "+.objlist" <- function(out1, out2) {
