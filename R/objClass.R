@@ -112,7 +112,11 @@ normL2 <- function(data, x, times = NULL) {
 
   if (is.null(times)) timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time))))) else timesD <- times
 
+  controls <- list(times = timesD)
+  
   myfn <- function(pouter, fixed = NULL, deriv=TRUE, conditions = names(data), env = NULL) {
+    
+    timesD <- controls$times
     
     # Evaluate the code in the local environment or in env
     # If evaluated in env, arguments have to be transferred
@@ -180,6 +184,8 @@ constraintL2 <- function(mu, sigma = 1, condition = NULL) {
   if (length(sigma) == 1) 
     sigma <- structure(rep(sigma, length(mu)), names = names(mu))
   
+  
+  controls <- list()
   
   myfn <- function(pouter, fixed = NULL, deriv=TRUE, conditions = condition, env = NULL) {
     
@@ -300,6 +306,8 @@ datapointL2 <- function(name, time, value, sigma = 1, condition) {
   mu <- structure(name, names = value)
   mu <- mu[1]; time <- time[1]; sigma <- sigma[1]
   
+  controls <- list()
+  
   
   myfn <- function(pouter, fixed = NULL, deriv=TRUE, conditions = NULL, env = NULL) {
   
@@ -402,6 +410,8 @@ datapointL2 <- function(name, time, value, sigma = 1, condition) {
 #' @export
 priorL2 <- function(mu, lambda = "lambda", condition = NULL) {
   
+  
+  controls <- list()
   
   myfn <- function(pouter, fixed = NULL, deriv=TRUE, conditions = condition, env = NULL) {
     

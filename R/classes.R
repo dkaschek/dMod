@@ -519,6 +519,7 @@ objframe <- function(mydata, deriv = NULL) {
 #' and all evaluations take place in the same environment. The first objective function
 #' in a sum of functions generates a new environment.
 #' @return Object of class \code{objfn}.
+#' @seealso \link{normL2}, \link{constraintL2}, \link{priorL2}, \link{datapointL2}
 #' @aliases sumobjfn
 #' @export
 "+.objfn" <- function(x1, x2) {
@@ -557,6 +558,7 @@ objframe <- function(mydata, deriv = NULL) {
 #' @return Object of the same class as \code{x1} and \code{x2} which returns results for the
 #' union of conditions. 
 #' @aliases sumfn
+#' @seealso \link{P}, \link{Y}, \link{Xs}
 #' @export
 "+.fn" <- function(x1, x2) {
   
@@ -787,8 +789,102 @@ objframe <- function(mydata, deriv = NULL) {
     return(outfn)
     
   } 
-
-
+  
+  
 }
 
 
+
+#' List, get and set controls for different functions
+#' 
+#' @description Applies to objects of class \code{objfn},
+#' \code{parfn}, \code{prdfn} and \code{obsfn}. Allows to manipulate
+#' different arguments that have been set when creating the 
+#' objects.
+#' @details If called without further arguments, \code{controls(x)} lists the
+#' available controls within an object. Calling \code{controls()} with \code{name}
+#' and \code{condition} returns the control value. The value can be overwritten. If
+#' a list or data.frame ist returned, elements of those can be manipulated by the 
+#' \code{$}- or \code{[]}-operator.
+#' 
+#' @param x function
+#' @param ... arguments going to the appropriate S3 methods
+#' @return Either a print-out or the values of the control. 
+#' 
+#' @export
+controls <- function(x, ...) {
+  UseMethod("controls", x)
+}
+
+#' @export
+#' @rdname controls
+"controls<-" <- function(x, ...) {
+  UseMethod("controls<-", x)
+}
+
+
+
+lscontrols_objfn <- function(x) {
+  
+  names(environment(x)$controls)
+  
+}
+
+lscontrols_fn <- function(x, condition = NULL) {
+  
+  conditions <- attr(x, "conditions")
+  mappings <- attr(x, "mappings")
+  
+  
+  for (i in 1:length(mappings)) {
+    if (is.null(conditions) || is.null(condition) || conditions[i] %in% condition) {
+      cat(conditions[i], ":\n", sep = "")
+      print(names(environment(mappings[[i]])$controls))  
+    }
+  }  
+  
+}
+
+#' @export
+#' @rdname controls
+#' @param name character, the name of the control
+controls.objfn <- function(x, name = NULL) {
+  
+  if (is.null(name)) lscontrols_objfn(x) else environment(x)$controls[[name]]
+}
+
+#' @export
+#' @rdname controls
+#' @param condition character, the condition name
+controls.fn <- function(x, condition = NULL, name = NULL) {
+  
+  if (is.null(name)) {
+    
+    lscontrols_fn(x, condition)
+    
+  } else {
+    
+    mappings <- attr(x, "mappings")
+    if (is.null(condition)) y <- mappings[[1]] else y <- mappings[[condition]]
+    environment(y)$controls[[name]]
+    
+  }
+  
+}
+
+#' @export
+#' @param value the new value
+#' @rdname controls
+"controls<-.objfn" <- function(x, name, value) {
+  environment(x)$controls[[name]] <- value
+  return(x)
+}
+
+#' @export
+#' @rdname controls
+"controls<-.fn" <- function(x, condition = NULL, name, value) {
+  mappings <- attr(x, "mappings")
+  if (is.null(condition)) y <- mappings[[1]] else y <- mappings[[condition]]
+  environment(y)$controls[[name]] <- value
+  return(x)
+}

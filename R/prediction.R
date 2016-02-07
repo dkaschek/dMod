@@ -81,12 +81,25 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, condition = NULL, optionsOd
   sensGrid <- expand.grid(variables, c(svariables, sparameters), stringsAsFactors=FALSE)
   sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")  
   
+  # Controls to be modified from outside
+  controls <- list(
+    forcings = myforcings,
+    events = myevents,
+    events.addon = myevents.addon,
+    optionsOde = optionsOde,
+    optionsSens = optionsSens
+  )
+  
   P2X <- function(times, pars, deriv=TRUE){
     
     yini <- pars[variables]
     mypars <- pars[parameters]
-    events <- myevents
-    forcings <- myforcings
+    
+    events <- controls$events
+    forcings <- controls$forcings
+    myevents.addon <- controls$events.addon
+    optionsOde <- controls$optionsOde
+    optionsSens <- controls$optionsSens
     
     myderivs <- NULL
     mysensitivities <- NULL
@@ -171,10 +184,17 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
   yini <- rep(0,length(variables))
   names(yini) <- variables
   
+  # Controls to be modified from outside
+  controls <- list(
+    forcings = myforcings,
+    events = myevents,
+    optionsOde = optionsOde
+  )
+  
   P2X <- function(times, P){
     
-    events <- myevents
-    forcings <- myforcings
+    events <- controls$events
+    forcings <- controls$forcings
     
     yini[names(P[names(P) %in% variables])] <- P[names(P) %in% variables]
     pars <- P[parameters]
@@ -279,7 +299,8 @@ Xd <- function(data, condition = NULL) {
   sensGrid <- expand.grid(states, parameters, stringsAsFactors=FALSE)
   sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")  
   
-  
+
+  controls <- list()  
   
   P2X <- function(times, pars, deriv=TRUE){
     
@@ -413,11 +434,13 @@ Y <- function(g, f, states = NULL, parameters = NULL, condition = NULL, attach.i
   # Vector with zeros for possibly missing derivatives
   zeros <- rep(0, length(dxdp))
   names(zeros) <- dxdp
+ 
   
+  controls <- list(attach.input = attach.input) 
   
   X2Y <- function(out, pars) {
     
-    attach.input <- myattach.input
+    attach.input <- controls$attach.input
     
     # Prepare list for with()
     nOut <- dim(out)[2]
