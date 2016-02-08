@@ -100,6 +100,10 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, condition = NULL, optionsOd
     myevents.addon <- controls$events.addon
     optionsOde <- controls$optionsOde
     optionsSens <- controls$optionsSens
+   
+    # Add event time points (required by integrator) 
+    event.times <- unique(events$time)
+    times <- sort(union(event.times, times))
     
     myderivs <- NULL
     mysensitivities <- NULL
@@ -195,6 +199,11 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
     
     events <- controls$events
     forcings <- controls$forcings
+    
+    # Add event time points (required by integrator) 
+    event.times <- unique(events$time)
+    times <- sort(union(event.times, times))
+    
     
     yini[names(P[names(P) %in% variables])] <- P[names(P) %in% variables]
     pars <- P[parameters]
