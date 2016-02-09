@@ -140,18 +140,21 @@ parfn <- function(p2p, parameters = NULL, condition = NULL) {
   
   outfn <- function(p, fixed = NULL, deriv = TRUE, conditions = condition) {
     
+    overlap <- intersect(conditions, condition)
+    # NULL if at least one argument is NULL
+    # character(0) if no overlap
+    # character if overlap
     
-    result <- p2p(p = p, fixed = fixed, deriv = deriv)
-    # If NULL condition, valid for all conditions
-    # else feed into correct slot 
-    if (is.null(condition)) {
-      outlist <- lapply(conditions, function(i) result)
-      names(outlist) <- conditions
-    } else {
-      outlist <- structure(vector("list", length(conditions)), names = conditions)
-      if (condition %in% conditions) outlist[[condition]] <- result
-    }
+    if (is.null(overlap) | length(overlap) > 0)
+      result <- p2p(p = p, fixed = fixed, deriv = deriv)
+    else
+      result <- NULL
     
+    # Initialize output object
+    length.out <- max(c(1, length(conditions)))
+    outlist <- lapply(1:length.out, function(i) result)
+    names(outlist) <- conditions
+
     return(outlist)
     
   }
@@ -272,20 +275,20 @@ prdfn <- function(P2X, parameters = NULL, condition = NULL) {
   
   outfn <- function(times, pars, fixed = NULL, deriv = TRUE, conditions = mycondition) {
     
+    overlap <- intersect(conditions, condition)
+    # NULL if at least one argument is NULL
+    # character(0) if no overlap
+    # character if overlap
     
-    result <- P2X(times = times, pars = pars, deriv = deriv)
-    # If NULL condition, valid for all conditions
-    # else feed into correct slot 
-    if (is.null(condition)) {
-      outlist <- lapply(conditions, function(i) result)
-      names(outlist) <- conditions
-    } else {
-      outlist <- structure(vector("list", length(conditions)), names = conditions)
-      if (condition %in% conditions) outlist[[condition]] <- result
-    }
+    if (is.null(overlap) | length(overlap) > 0)
+      result <- P2X(times = times, pars = pars, deriv = deriv)
+    else
+      result <- NULL
     
-    outlist <- as.prdlist(outlist)
-    attr(outlist, "pars") <- pars
+    # Initialize output object
+    length.out <- max(c(1, length(conditions)))
+    outlist <- as.prdlist(lapply(1:length.out, function(i) result), names = conditions)
+    #attr(outlist, "pars") <- pars
     
     return(outlist)
     
@@ -323,16 +326,21 @@ obsfn <- function(X2Y, parameters = NULL, condition = NULL) {
   
   outfn <- function(out, pars, fixed = NULL, deriv = TRUE, conditions = mycondition) {
     
-    result <- X2Y(out = out, pars = pars)
-    # If NULL condition, valid for all conditions
-    # else feed into correct slot 
-    if (is.null(condition)) {
-      outlist <- lapply(conditions, function(i) result)
-      names(outlist) <- conditions
-    } else {
-      outlist <- structure(vector("list", length(conditions)), names = conditions)
-      if (condition %in% conditions) outlist[[condition]] <- result
-    }
+    
+    overlap <- intersect(conditions, condition)
+    # NULL if at least one argument is NULL
+    # character(0) if no overlap
+    # character if overlap
+    
+    if (is.null(overlap) | length(overlap) > 0)
+      result <- X2Y(out = out, pars = pars)
+    else
+      result <- NULL
+    
+    # Initialize output object
+    length.out <- max(c(1, length(conditions)))
+    outlist <- as.prdlist(lapply(1:length.out, function(i) result), names = conditions)
+    #attr(outlist, "pars") <- pars
     
     return(outlist)
     
@@ -655,6 +663,15 @@ objframe <- function(mydata, deriv = NULL) {
   
 }
 
+out_conditions <- function(c1, c2) {
+  
+  if (!is.null(c1)) return(c1)
+  if (!is.null(c2)) return(c2)
+  return(NULL)
+  
+}
+
+
 #' Concatenation of functions
 #' 
 #' Used to concatenate observation functions, prediction functions and parameter transformation functions.
@@ -671,8 +688,9 @@ objframe <- function(mydata, deriv = NULL) {
     
     conditions.p1 <- attr(p1, "conditions")
     conditions.p2 <- attr(p2, "conditions")
+    conditions.out <- out_conditions(conditions.p1, conditions.p2)
     
-    outfn <- function(out, pars, fixed = NULL, deriv = TRUE, conditions = conditions.p2) {
+    outfn <- function(out, pars, fixed = NULL, deriv = TRUE, conditions = conditions.out) {
       
       step1 <- p2(out = out, pars = pars, fixed = fixed, deriv = deriv, conditions = conditions)
       step2 <- do.call(c, lapply(1:length(step1), function(i) p1(out = step1[[i]], pars = attr(step1[[i]], "parameters"), fixed = fixed, deriv = deriv, condition = names(step1)[i])))
@@ -685,7 +703,7 @@ objframe <- function(mydata, deriv = NULL) {
     
     attr(outfn, "mappings") <- attr(p1, "mappings")
     attr(outfn, "parameters") <- attr(p2, "parameters")
-    attr(outfn, "conditions") <- attr(p2, "conditions")
+    attr(outfn, "conditions") <- conditions.out
     class(outfn) <- c("obsfn", "fn", "composed")
     
     return(outfn)
@@ -698,8 +716,9 @@ objframe <- function(mydata, deriv = NULL) {
     
     conditions.p1 <- attr(p1, "conditions")
     conditions.p2 <- attr(p2, "conditions")
+    conditions.out <- out_conditions(conditions.p1, conditions.p2)
     
-    outfn <- function(times, pars, fixed = NULL, deriv = TRUE, conditions = conditions.p2) {
+    outfn <- function(times, pars, fixed = NULL, deriv = TRUE, conditions = conditions.out) {
       step1 <- p2(times = times, pars = pars, fixed = fixed, deriv = deriv, conditions = conditions)
       step2 <- do.call(c, lapply(1:length(step1), function(i) p1(out = step1[[i]], pars = attr(step1[[i]], "parameters"), fixed = fixed, deriv = deriv, condition = names(step1)[i])))
       
@@ -711,7 +730,7 @@ objframe <- function(mydata, deriv = NULL) {
     
     attr(outfn, "mappings") <- attr(p1, "mappings")
     attr(outfn, "parameters") <- attr(p2, "parameters")
-    attr(outfn, "conditions") <- attr(p2, "conditions")
+    attr(outfn, "conditions") <- conditions.out
     class(outfn) <- c("prdfn", "fn", "composed")
     
     return(outfn)
@@ -725,8 +744,10 @@ objframe <- function(mydata, deriv = NULL) {
     
     conditions.p1 <- attr(p1, "conditions")
     conditions.p2 <- attr(p2, "conditions")
+    conditions.out <- out_conditions(conditions.p1, conditions.p2)
     
-    outfn <- function(times, pars, fixed = NULL, deriv = TRUE, conditions = conditions.p2) {
+    
+    outfn <- function(times, pars, fixed = NULL, deriv = TRUE, conditions = conditions.out) {
       
       step1 <- p2(p = pars, fixed = fixed, deriv = deriv, conditions = conditions)
       step2 <- do.call(c, lapply(1:length(step1), function(i) p1(times = times, pars = step1[[i]], deriv = deriv, condition = names(step1)[i])))
@@ -738,8 +759,38 @@ objframe <- function(mydata, deriv = NULL) {
     }
     
     attr(outfn, "mappings") <- attr(p1, "mappings")
+    attr(outfn, "conditions") <- conditions.out
     attr(outfn, "parameters") <- attr(p2, "parameters")
-    attr(outfn, "conditions") <- attr(p2, "conditions")
+    class(outfn) <- c("prdfn", "fn", "composed")
+    
+    return(outfn)
+    
+  }
+  
+  # parfn * prdfn
+  if (inherits(p1, "parfn") & inherits(p2, "prdfn")) {
+    
+    
+    conditions.p1 <- attr(p1, "conditions")
+    conditions.p2 <- attr(p2, "conditions")
+    conditions.out <- out_conditions(conditions.p1, conditions.p2)
+    
+    
+    outfn <- function(times, pars, fixed = NULL, deriv = TRUE, conditions = conditions.out) {
+      
+      step1 <- p2(times = times, pars = pars, fixed = fixed, deriv = deriv, conditions = conditions)
+      for (i in 1:length(step1)) {
+        attr(step1[[i]], "parameters") <- p1(p = attr(step1[[i]], "parameters"), deriv = deriv, condition = names(step1)[i])
+      }
+      
+      out <- as.prdlist(step1)
+      return(out)
+      
+    }
+    
+    attr(outfn, "mappings") <- attr(p1, "mappings")
+    attr(outfn, "parameters") <- attr(p2, "parameters")
+    attr(outfn, "conditions") <- conditions.out
     class(outfn) <- c("prdfn", "fn", "composed")
     
     return(outfn)
@@ -752,8 +803,10 @@ objframe <- function(mydata, deriv = NULL) {
     
     conditions.p1 <- attr(p1, "conditions")
     conditions.p2 <- attr(p2, "conditions")
+    conditions.out <- out_conditions(conditions.p1, conditions.p2)
     
-    outfn <- function(p, fixed=NULL, deriv = TRUE, conditions = conditions.p2) {
+    
+    outfn <- function(p, fixed=NULL, deriv = TRUE, conditions = conditions.out) {
       
       step1 <- p2(p = p, fixed = fixed, deriv = deriv, conditions = conditions)
       step2 <- do.call(c, lapply(1:length(step1), function(i) p1(p = step1[[i]], deriv = deriv, condition = names(step1)[i])))
@@ -763,7 +816,7 @@ objframe <- function(mydata, deriv = NULL) {
     
     attr(outfn, "mappings") <- attr(p2, "mappings")
     attr(outfn, "parameters") <- attr(p2, "parameters")
-    attr(outfn, "conditions") <- attr(p2, "conditions")
+    attr(outfn, "conditions") <- conditions.out
     class(outfn) <- c("parfn", "fn", "composed")
     
     return(outfn)

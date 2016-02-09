@@ -21,7 +21,7 @@ as.prdlist.list <- function(x = NULL, names = NULL) {
   if (is.null(x)) x <- list()
   if (is.null(names)) mynames <- names(x) else mynames <- names 
 
-  if (length(mynames) != length(x)) stop("names argument has wrong length")
+  # if (length(mynames) != length(x)) stop("names argument has wrong length")
 
   ## Prepare output
   names(x) <- mynames
@@ -53,6 +53,9 @@ c.prdlist <- function(...) {
 #' @export
 #' @rdname plotCombined
 plot.prdlist <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
+  
+  if (is.null(names(prediction))) names(prediction) <- 1:length(prediction)
+  if (!is.null(data) && is.null(names(data))) names(data) <- 1:length(data)
   
   plotCombined(prediction = prediction, data = data, ..., scales = scales, facet = facet, transform = transform)
   
