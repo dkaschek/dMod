@@ -10,7 +10,7 @@
 #' @param method Character, either \code{"integrate"} or \code{"optimize"}. This is a short-cut for
 #' setting stepControl, algoControl and optControl by hand.
 #' @param stepControl List of arguments controlling the step adaption. Defaults to integration set-up, i.e.
-#' \code{list(stepsize = 1e-4, min = 0, max = Inf, atol = 1e-1, rtol = 1e-1, limit = 100)}
+#' \code{list(stepsize = 1e-4, min = 1e-4, max = Inf, atol = 1e-1, rtol = 1e-1, limit = 100)}
 #' @param algoControl List of arguments controlling the fast PL algorithm. defaults to
 #' \code{list(gamma = 1, W = c("hessian", "identity"), reoptimize = FALSE, correction = 1, reg = 1e-6)}
 #' @param optControl List of arguments controlling the \code{trust()} optimizer. Defaults to
@@ -100,12 +100,12 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   # Initialize control parameters depending on method
   method  <- match.arg(method)
   if(method == "integrate") {
-    sControl <- list(stepsize = 1e-4, min = 0, max = Inf, atol = 1e-2, rtol = 1e-2, limit = 1000)
+    sControl <- list(stepsize = 1e-4, min = 1e-4, max = Inf, atol = 1e-2, rtol = 1e-2, limit = 1000)
     aControl <- list(gamma = 1, W = "hessian", reoptimize = FALSE, correction = 1, reg = .Machine$double.eps)
     oControl <- list(rinit = .1, rmax = 10, iterlim = 10, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))
   }
   if(method == "optimize") {
-    sControl <- list(stepsize = 1e-2, min = 0, max = Inf, atol = 1e-1, rtol = 1e-1, limit = 100)
+    sControl <- list(stepsize = 1e-2, min = 1e-4, max = Inf, atol = 1e-1, rtol = 1e-1, limit = 100)
     aControl <- list(gamma = 0, W = "identity", reoptimize = TRUE, correction = 1, reg = 0)
     oControl <- list(rinit = .1, rmax = 10, iterlim = 100, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))
   }
