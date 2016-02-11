@@ -94,6 +94,9 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                           verbose = FALSE,
                           ...) {
   
+  # Guarantee that pars is named numeric without deriv attribute
+  pars <- structure(as.numeric(pars), names = names(pars))
+  
   # Initialize control parameters depending on method
   method  <- match.arg(method)
   if(method == "integrate") {
