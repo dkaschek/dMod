@@ -186,16 +186,19 @@ plotData <- function (data, ..., scales = "free", facet = "wrap", transform = NU
 
 #' Profile likelihood plot
 #' 
-#' @param ... Lists of profiles as being returned by \link{profile}.
+#' @param profs Lists of profiles as being returned by \link{profile}.
+#' @param ... Constraints going to subset before plotting.
 #' @param maxvalue Numeric, the value where profiles are cut off.
 #' @param parlist Matrix or data.frame with columns for the parameters to be added to the plot as points.
 #' If a "value" column is contained, deltas are calculated with respect to lowest chisquare of profiles.
 #' @return A plot object of class \code{ggplot}.
 #' @export
-plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
+plotProfile <- function(profs, ..., maxvalue = 5, parlist = NULL) {
   
-  
-  arglist <- list(...)
+  if("parframe" %in% class(profs)) 
+     arglist <- list(profs)
+  else
+    arglist <- as.list(profs)
   
   data <- do.call(rbind, lapply(1:length(arglist), function(i) {
     proflist <- arglist[[i]]
@@ -246,9 +249,13 @@ plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
   }))
   
   data$proflist <- as.factor(data$proflist)
+  data <- droplevels(subset(data, ...))
+  
   data.zero <- subset(data, is.zero)
 
   threshold <- c(1, 2.7, 3.84)
+  
+  data <- droplevels.data.frame(subset(data, ...))
   
   p <- ggplot(data, aes(x=par, y=delta, group=interaction(proflist,mode), color=proflist, linetype=mode)) + facet_wrap(~name, scales="free_x") + 
     geom_line() + #geom_point(aes=aes(size=1), alpha=1/3) +
