@@ -301,7 +301,7 @@ getFluxes <- function(eqnlist) {
 
 #' Coerce equation list into a data frame
 #' 
-#' @param eqnlist object of class \link{eqnlis}
+#' @param eqnlist object of class \link{eqnlist}
 #' @return a \code{data.frame} with columns "Description" (character), 
 #' "Rate" (character), and one column per ODE state with the state names. 
 #' The state columns correspond to the stoichiometric matrix.

@@ -65,7 +65,7 @@ P0 <- function() {
 #' \code{fixed} is a named numeric vector with values of the outer parameters being considered
 #' as fixed (no derivatives returned) and \code{deriv} is a logical determining whether the Jacobian
 #' of the parameter transformation is returned as attribute "deriv".
-#' @seealso \link{Pi} for implicit parameter transformations and
+#' @seealso \link{Pimpl} for implicit parameter transformations and
 #' \link{concatenation} for the concatenation of parameter transformations
 #' @examples
 #' \dontrun{
