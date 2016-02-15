@@ -12,7 +12,7 @@
 #' @param modelname character
 #' @param method character, either \code{"explicit"} or \code{"implicit"}
 #' @param verbose Print out information during compilation
-#' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)}
+#' @return An object of class \link{parfn}.
 #' @export
 P <- function(trafo = NULL, parameters=NULL, condition = NULL, keep.root = TRUE, compile = FALSE, modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE) {
   
@@ -26,10 +26,11 @@ P <- function(trafo = NULL, parameters=NULL, condition = NULL, keep.root = TRUE,
 }
 
 #' The identity parameter transformation
+#' @param condition character, the condition for which the transformation is generated
 #' @export
 #' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)} returning \code{p}
 #' with unit matrix as derivative or derivative inherited from \code{p}.
-P0 <- function() {
+P0 <- function(condition = NULL) {
   
   myfn <- function(p, fixed=NULL, deriv = TRUE) {
     
@@ -48,7 +49,10 @@ P0 <- function() {
     
   }
   
-  return(myfn)
+  attr(myfn, "equations") <- NULL
+  attr(myfn, "parameters") <- NULL
+  
+  parfn(myfn, NULL, condition)
     
 }
 
@@ -61,6 +65,7 @@ P0 <- function() {
 #' transformation returns values for each element in \code{parameters}. If elements of
 #' \code{parameters} are not in \code{names(trafo)} the identity transformation is assumed.
 #' @param compile Logical, compile the function (see \link{funC0})
+#' @param condition character, the condition for which the transformation is generated
 #' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
 #' C file.
 #' @param verbose Print compiler output to R command line.
@@ -155,6 +160,7 @@ Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, mod
 #' @param trafo Named character vector defining the equations to be set to zero. 
 #' Names correspond to dependent variables.
 #' @param parameters Character vector, the independent variables.  
+#' @param condition character, the condition for which the transformation is generated
 #' @param compile Logical, compile the function (see \link{funC0})
 #' @param keep.root logical, applies for \code{method = "implicit"}. The root of the last
 #' evaluation of the parameter transformation function is saved as guess for the next 

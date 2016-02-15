@@ -122,14 +122,18 @@ eqnlist <- function(smatrix = NULL, states = colnames(smatrix), rates = NULL, vo
 #' 
 #' Generate functions that transform one parameter vector into another
 #' by means of a transformation, pushing forward the jacobian matrix
-#' of the original parameter.#' 
-#' @param p2p a transformation function for one condition, see \link{P}
+#' of the original parameter. 
+#' @param p2p a transformation function for one condition, i.e. a function
+#' \code{p2p(p, fixed, deriv)} which translates a parameter vector \code{p}
+#' and a vector of fixed parameter values \code{fixed} into a new parameter
+#' vector. If \code{deriv = TRUE}, the function should return an attribute
+#' \code{deriv} with the Jacobian matrix of the parameter transformation.
 #' @param parameters character vector, the parameters accepted by the function
 #' @param condition character, the condition for which the transformation is defined
 #' @return object of class \code{parfn}. Contains attributes "mappings", a list of \code{p2p}
 #' functions, "parameters", the union of parameters acceted by the mappings and
 #' "conditions", the total set of conditions.
-#' @seealso \link{sumfn}
+#' @seealso \link{sumfn}, \link{P}
 #' @export
 parfn <- function(p2p, parameters = NULL, condition = NULL) {
   
@@ -883,7 +887,7 @@ controls <- function(x, ...) {
 
 #' @export
 #' @rdname controls
-"controls<-" <- function(x, ...) {
+"controls<-" <- function(x, ..., value) {
   UseMethod("controls<-", x)
 }
 

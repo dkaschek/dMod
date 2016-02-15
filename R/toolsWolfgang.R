@@ -919,8 +919,6 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
 #' multiple fitlists.
 #'
 #' @param ... Fitlists
-#' @param shiftrownames If true (default) the row names of the returned data frame equal the fit index.
-
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'
 #' @export

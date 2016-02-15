@@ -74,7 +74,7 @@ as.parframe <- function(x, ...) {
 
 #' @export
 #' @rdname as.parframe
-#' @param sorted.by character indicating by which colum the returned parameter frame
+#' @param sort.by character indicating by which colum the returned parameter frame
 #' should be sorted. Defaults to \code{"value"}.
 as.parframe.parlist <- function(x, sort.by = "value") {
   m_stat <- stat.parlist(x)

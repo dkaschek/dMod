@@ -172,6 +172,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, condition = NULL, optionsOd
 #' @param events, see \link{Xs}
 #' @param condition either NULL (generic prediction for any condition) or a character, denoting
 #' the condition for which the function makes a prediction.
+#' @param optionsOde list with arguments to be passed to odeC() for the ODE integration.
 #' @details Can be used to integrate additional quantities, e.g. fluxes, by adding them to \code{f}. All quantities that are not initialised by pars 
 #' in \code{x(times, pars, forcings, events)} are initialized at 0. For more details and
 #' the return value see \link{Xs}.

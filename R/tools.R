@@ -9,6 +9,7 @@
 #' \code{data.frame}. Alternatively, a list of such objects.
 #' @param vec2 same as vec1. Not used if vec1 is a list.
 #' @param reference numeric of length one, the reference entry.
+#' @param ... arguments going to the corresponding methods
 #' @return \code{data.frame} or list of data.frames with the differences. 
 #' 
 #' @export

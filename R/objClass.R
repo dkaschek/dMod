@@ -167,6 +167,8 @@ normL2 <- function(data, x, times = NULL) {
 #' 
 #' @param mu named numeric, the prior values
 #' @param sigma named numeric of length of mu or numeric of length one.
+#' @param condition character, the condition for which the constraint should apply. If
+#' \code{NULL}, applies to any condition.
 #' @return object of class \code{objfn}
 #' @seealso \link{wrss}
 #' @details Computes the constraint value 
@@ -273,17 +275,12 @@ constraintL2 <- function(mu, sigma = 1, condition = NULL) {
 
 #' L2 objective function for validation data point
 #' 
-#' @param p Namec numeric, the parameter values
-#' @param prediction Matrix with first column "time" and one column per predicted state. Can have
-#' an attribute \code{deriv}, the matrix of sensitivities. If present, derivatives of the objective
-#' function with respect to the parameters are returned.
-#' @param mu Named character of length one. Has the structure \code{mu = c(parname = statename)}, where
-#' \code{statename} is one of the column names of \code{prediction} and \code{parname} is one of the
-#' names of \code{p}, allowing to treat the validation data point as a parameter.
-#' @param time Numeric of length one. An existing time point in \code{prediction}.
-#' @param sigma Numeric of length one. The uncertainty assumed for the validation data point.
-#' @param fixed Named numeric with fixed parameter values (contribute to the prior value
-#' but not to gradient and Hessian)
+#' @param name character, the name of the prediction, e.g. a state name.
+#' @param time numeric, the time-point associated to the prediction
+#' @param value character, the name of the parameter which contains the
+#' prediction value.
+#' @param sigma numeric, the uncertainty of the introduced test data point
+#' @param condition character, the condition for which the prediction is made.
 #' @return List of class \code{objlist}, i.e. objective value, gradient and Hessian as list.
 #' @seealso \link{wrss}, \link{constraintL2}
 #' @details Computes the constraint value 
