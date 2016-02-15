@@ -1,4 +1,15 @@
-
+#' Coordinate transformation for data frames
+#' 
+#' Applies a symbolically defined transformation to the \code{value}
+#' column of a data frame. Additionally, if a \code{sigma} column is
+#' present, those values are transformed according to Gaussian error
+#' propagation.
+#' @param data data frame with at least columns "name" (character) and
+#' "value" (numeric). Can optionally contain a column "sigma" (numeric).
+#' @param transformations character (the transformation) or named list of
+#' characters. In this case, the list names must be a subset of those 
+#' contained in the "name" column.
+#' @return The data frame with the transformed values and sigma uncertainties.
 #' @export
 coordTransform <- function(data, transformations) {
   
