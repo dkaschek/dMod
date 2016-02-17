@@ -29,7 +29,7 @@
 #' differentiation. The result is saved in the attributed "deriv", 
 #' i.e. in this case the attibutes "deriv" and "sensitivities" do not coincide. 
 #' @export
-Xs <- function(odemodel, forcings=NULL, events=NULL, condition = NULL, optionsOde=list(method = "lsoda"), optionsSens=list(method = "lsodes")) {
+Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = NULL, optionsOde=list(method = "lsoda"), optionsSens=list(method = "lsodes")) {
   
   func <- odemodel$func
   extended <- odemodel$extended
@@ -81,16 +81,21 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, condition = NULL, optionsOd
   sensGrid <- expand.grid(variables, c(svariables, sparameters), stringsAsFactors=FALSE)
   sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")  
   
+  # Only a subset of all variables/forcings is returned
+  if (is.null(names)) names <- c(variables, forcnames)
+  
   # Controls to be modified from outside
   controls <- list(
     forcings = myforcings,
     events = myevents,
+    names = names,
     events.addon = myevents.addon,
     optionsOde = optionsOde,
     optionsSens = optionsSens
   )
   
   P2X <- function(times, pars, deriv=TRUE){
+    
     
     yini <- pars[variables]
     mypars <- pars[parameters]
@@ -100,6 +105,11 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, condition = NULL, optionsOd
     myevents.addon <- controls$events.addon
     optionsOde <- controls$optionsOde
     optionsSens <- controls$optionsSens
+    names <- controls$names
+    
+    # Update sensNames when names are set
+    select <- sensGrid[, 1] %in% names
+    sensNames <- paste(sensGrid[,1][select], sensGrid[,2][select], sep = ".")  
    
     # Add event time points (required by integrator) 
     event.times <- unique(events$time)
@@ -113,6 +123,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, condition = NULL, optionsOd
       loadDLL(func)
       if (!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
       out <- do.call(odeC, c(list(y = unclass(yini), times = times, func = func, parms = mypars, forcings = forc, events = list(data = events)), optionsOde))
+      out <- submatrix(out, cols = c("time", names))
       #out <- cbind(out, out.inputs)
       
       
@@ -120,24 +131,25 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, condition = NULL, optionsOd
       
       # Evaluate extended model
       loadDLL(extended)
-      if(!is.null(forcings)) forc <- setForcings(extended, forcings) else forc <- NULL
-      outSens <- do.call(odeC, c(list(y=c(unclass(yini), yiniSens), times=times, func=extended, parms=mypars, 
-                                      forcings=forc, 
+      if (!is.null(forcings)) forc <- setForcings(extended, forcings) else forc <- NULL
+      outSens <- do.call(odeC, c(list(y = c(unclass(yini), yiniSens), times = times, func = extended, parms = mypars, 
+                                      forcings = forc, 
                                       events = list(data = rbind(events, myevents.addon))), optionsSens))
       #out <- cbind(outSens[,c("time", variables)], out.inputs)
-      out <- submatrix(outSens, cols = c("time", c(variables, forcnames)))
-      mysensitivities <- submatrix(outSens, cols = !colnames(outSens)%in%c(variables, forcnames))
+      out <- submatrix(outSens, cols = c("time", names))
+      mysensitivities <- submatrix(outSens, cols = !colnames(outSens) %in% c(variables, forcnames))
       
       
       # Apply parameter transformation to the derivatives
-      sensLong <- matrix(outSens[,sensNames], nrow=dim(outSens)[1]*length(variables))
+      variables <- intersect(variables, names)
+      sensLong <- matrix(outSens[,sensNames], nrow = dim(outSens)[1]*length(variables))
       dP <- attr(pars, "deriv")
-      if(!is.null(dP)) {
-        sensLong <- sensLong%*%submatrix(dP, rows = c(svariables, sparameters))
-        sensGrid <- expand.grid(variables, colnames(dP), stringsAsFactors=FALSE)
-        sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")
+      if (!is.null(dP)) {
+        sensLong <- sensLong %*% submatrix(dP, rows = c(svariables, sparameters))
+        sensGrid <- expand.grid(variables, colnames(dP), stringsAsFactors = FALSE)
+        sensNames <- paste(sensGrid[,1], sensGrid[,2], sep = ".")
       }
-      outSens <- cbind(outSens[,1], matrix(sensLong, nrow=dim(outSens)[1]))
+      outSens <- cbind(outSens[,1], matrix(sensLong, nrow = nrow(outSens)))
       colnames(outSens) <- c("time", sensNames)
       
       myderivs <- outSens

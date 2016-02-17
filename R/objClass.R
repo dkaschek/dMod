@@ -299,11 +299,12 @@ constraintL2 <- function(mu, sigma = 1, condition = NULL) {
 #' @export
 datapointL2 <- function(name, time, value, sigma = 1, condition) {
   
-  # Only one data point is allowed
-  mu <- structure(name, names = value)
-  mu <- mu[1]; time <- time[1]; sigma <- sigma[1]
   
-  controls <- list()
+  controls <- list(
+    mu = structure(name, names = value)[1], # Only one data point is allowed
+    time = time[1],
+    sigma = sigma[1]
+  )
   
   
   myfn <- function(pouter, fixed = NULL, deriv=TRUE, conditions = NULL, env = NULL) {
@@ -319,9 +320,9 @@ datapointL2 <- function(name, time, value, sigma = 1, condition) {
       assign("fixed", fixed, envir = env)
       assign("deriv", deriv, envir = env)
       assign("conditions", conditions, envir = env)
-      assign("mu", mu, envir = env)
-      assign("time", time, envir = env)
-      assign("sigma", sigma, envir = env)
+      assign("mu", controls$mu, envir = env)
+      assign("time", controls$time, envir = env)
+      assign("sigma", controls$sigma, envir = env)
       assign("condition", condition, envir = env)
     }
 
