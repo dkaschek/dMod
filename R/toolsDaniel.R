@@ -189,7 +189,7 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
   }
   
   # Run in background
-  for (m in 1:nmachines) system(paste0("ssh ", machine[m], " R CMD BATCH ", filename[m], "_folder/", filename[m], ".R --vanilla"), intern = FALSE, wait = wait)
+  for (m in 1:nmachines) system(paste0("ssh ", machine[m], " R CMD BATCH --vanilla ", filename[m], "_folder/", filename[m], ".R"), intern = FALSE, wait = wait)
   
   if (wait) {
     out$get()
