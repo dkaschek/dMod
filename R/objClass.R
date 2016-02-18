@@ -187,7 +187,7 @@ constraintL2 <- function(mu, sigma = 1, condition = NULL) {
     sigma <- structure(rep(sigma, length(mu)), names = names(mu))
   
   
-  controls <- list()
+  controls <- list(mu = mu, sigma = sigma)
   
   myfn <- function(pouter, fixed = NULL, deriv=TRUE, conditions = condition, env = NULL) {
     
@@ -203,8 +203,8 @@ constraintL2 <- function(mu, sigma = 1, condition = NULL) {
       assign("deriv", deriv, envir = env)
       assign("condition", condition, envir = env)
       assign("conditions", conditions, envir = env)
-      assign("mu", mu, envir = env)
-      assign("sigma", sigma, envir = env)
+      assign("mu", controls$mu, envir = env)
+      assign("sigma", controls$sigma, envir = env)
     }
     
     myexpression <- expression({
@@ -409,7 +409,7 @@ datapointL2 <- function(name, time, value, sigma = 1, condition) {
 priorL2 <- function(mu, lambda = "lambda", condition = NULL) {
   
   
-  controls <- list()
+  controls <- list(mu = mu, lambda = lambda)
   
   myfn <- function(pouter, fixed = NULL, deriv=TRUE, conditions = condition, env = NULL) {
     
@@ -425,8 +425,8 @@ priorL2 <- function(mu, lambda = "lambda", condition = NULL) {
       assign("deriv", deriv, envir = env)
       assign("condition", condition, envir = env)
       assign("conditions", conditions, envir = env)
-      assign("mu", mu, envir = env)
-      assign("lambda", lambda, envir = env)
+      assign("mu", controls$mu, envir = env)
+      assign("lambda", controls$lambda, envir = env)
     }
     
     myexpression <- expression({
