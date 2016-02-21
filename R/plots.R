@@ -209,7 +209,8 @@ plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
   arglist <- list(...)
   
   data <- do.call(rbind, lapply(1:length(arglist), function(i) {
-    proflist <- arglist[[i]]
+    proflist <- as.data.frame(arglist[[i]])
+    obj.attributes <- attr(arglist[[i]], "obj.attributes")
     
     if(is.data.frame(proflist)) {
       whichPars <- unique(proflist$whichPar)
@@ -240,7 +241,6 @@ plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
 
       sub <- subset(data.frame(name = n, delta = deltavalues, par = parvalues, proflist = i, mode="total", is.zero = 1:nrow(proflist[[n]]) == origin), delta <= maxvalue)
       
-      obj.attributes <- attr(proflist[[n]], "obj.attributes")
       if(!is.null(obj.attributes)) {
         for(mode in obj.attributes) {
           valuesO <- proflist[[n]][, mode]
@@ -305,7 +305,8 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scale
   
   data <- do.call(rbind, lapply(1:length(arglist), function(i) {
     # choose a proflist
-    proflist <- arglist[[i]]
+    proflist <- as.data.frame(arglist[[i]])
+    parameters <- attr(arglist[[i]], "parameters")
     
     if(is.data.frame(proflist)) {
       whichPars <- unique(proflist$whichPar)
@@ -318,8 +319,6 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scale
     if(is.null(whichPar)) whichPar <- names(proflist)
     if(is.numeric(whichPar)) whichPar <- names(proflist)[whichPar]
     subdata <- do.call(rbind, lapply(whichPar, function(n) {
-      # chose a profile
-      parameters <- attr(proflist[[n]], "parameters")
       # matirx
       paths <- as.matrix(proflist[[n]][, parameters])
       values <- proflist[[n]][,1]
@@ -436,9 +435,11 @@ plotPredictionCont <- function(out, ...) {
 #' @export
 plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv = FALSE, scales = "free", facet = "wrap") {
 
+  # Get attributes and go back to data.frame
   parameters <- attr(parlist, "parameters")
+  parlist <- as.data.frame(parlist)
   
-  pars<- lapply(1:nrow(parlist), function(i) unlist(parlist[i, c("value", parameters)]))
+  pars <- lapply(1:nrow(parlist), function(i) unlist(parlist[i, c("value", parameters)]))
   
   
   prediction <- lapply(pars, function(p) {

@@ -108,11 +108,11 @@ constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, fixed=NULL) {
 #' \link{objlist}.
 #' @details Objective functions can be combined by the "+" operator, see \link{sumobj}.
 #' @export
-normL2 <- function(data, x, times = NULL) {
+normL2 <- function(data, x, times = NULL, attr.name = "data") {
 
   if (is.null(times)) timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time))))) else timesD <- times
 
-  controls <- list(times = timesD)
+  controls <- list(times = timesD, attr.name = attr.name)
   
   myfn <- function(pouter, fixed = NULL, deriv=TRUE, conditions = names(data), env = NULL) {
     
@@ -146,7 +146,7 @@ normL2 <- function(data, x, times = NULL) {
       
       # Combine contributions and attach attributes
       out <- out.data
-      attr(out, "data") <- out.data$value
+      attr(out, controls$attr.name) <- out.data$value
       attr(out, "env") <- env
       
       return(out)
@@ -180,14 +180,14 @@ normL2 <- function(data, x, times = NULL) {
 #' myfn <- constraintL2(mu, sigma)
 #' myfn(pouter = c(A = 1, B = -1))
 #' @export
-constraintL2 <- function(mu, sigma = 1, condition = NULL) {
+constraintL2 <- function(mu, sigma = 1, attr.name = "prior", condition = NULL) {
 
   ## Augment sigma if length = 1
   if (length(sigma) == 1) 
     sigma <- structure(rep(sigma, length(mu)), names = names(mu))
   
   
-  controls <- list(mu = mu, sigma = sigma)
+  controls <- list(mu = mu, sigma = sigma, attr.name = attr.name)
   
   myfn <- function(pouter, fixed = NULL, deriv=TRUE, conditions = condition, env = NULL) {
     
@@ -254,7 +254,7 @@ constraintL2 <- function(mu, sigma = 1, condition = NULL) {
       })
       
       out <- Reduce("+", outlist)
-      attr(out, "prior") <- out$value
+      attr(out, controls$attr.name) <- out$value
       attr(out, "env") <- env
       return(out)
       
@@ -297,13 +297,14 @@ constraintL2 <- function(mu, sigma = 1, condition = NULL) {
 #' vali(pouter = c(p0, newpoint = 1), env = .GlobalEnv)
 #' }
 #' @export
-datapointL2 <- function(name, time, value, sigma = 1, condition) {
+datapointL2 <- function(name, time, value, sigma = 1, attr.name = "validation", condition) {
   
   
   controls <- list(
     mu = structure(name, names = value)[1], # Only one data point is allowed
     time = time[1],
-    sigma = sigma[1]
+    sigma = sigma[1],
+    attr.name = attr.name
   )
   
   
@@ -366,7 +367,7 @@ datapointL2 <- function(name, time, value, sigma = 1, condition) {
       }
       
       out <- objlist(value = val, gradient = gr, hessian = hs)
-      attr(out, "validation") <- out$value
+      attr(out, controls$attr.name) <- out$value
       
       attr(out, "env") <- env
       
@@ -406,10 +407,10 @@ datapointL2 <- function(name, time, value, sigma = 1, condition) {
 #' mu <- c(A = 0, B = 0)
 #' priorL2(p, mu, lambda = "lambda")
 #' @export
-priorL2 <- function(mu, lambda = "lambda", condition = NULL) {
+priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL) {
   
   
-  controls <- list(mu = mu, lambda = lambda)
+  controls <- list(mu = mu, lambda = lambda, attr.name = attr.name)
   
   myfn <- function(pouter, fixed = NULL, deriv=TRUE, conditions = condition, env = NULL) {
     
@@ -484,7 +485,7 @@ priorL2 <- function(mu, lambda = "lambda", condition = NULL) {
       })
       
       out <- Reduce("+", outlist)
-      attr(out, "prior") <- out$value
+      attr(out, controls$attr.name) <- out$value
       attr(out, "env") <- env
       
       return(out)
