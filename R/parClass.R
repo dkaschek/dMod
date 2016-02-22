@@ -74,7 +74,7 @@ as.parframe <- function(x, ...) {
 
 #' @export
 #' @rdname as.parframe
-#' @param sorted.by character indicating by which colum the returned parameter frame
+#' @param sort.by character indicating by which colum the returned parameter frame
 #' should be sorted. Defaults to \code{"value"}.
 as.parframe.parlist <- function(x, sort.by = "value") {
   m_stat <- stat.parlist(x)
@@ -90,15 +90,37 @@ as.parframe.parlist <- function(x, sort.by = "value") {
                             as.data.frame(as.list(fit$argument))
                           )
                         }, fit = x[m_idx], idx = m_idx, SIMPLIFY = FALSE))
-  m_parframe <- parframe(m_parframe, parameters = names(x[[m_idx[1]]]$parinit), metanames = m_metanames)
   # Sort by value
   m_parframe <- m_parframe[order(m_parframe[sort.by]),]
   
-  return(m_parframe)
+  parframe(m_parframe, parameters = names(x[[m_idx[1]]]$parinit), metanames = m_metanames)
+  
+  
 }
 
 
 ## Methods for the class parframe -----------------------------------------------
+
+#' @export
+"[.parframe" <- function(x, i = NULL, j = NULL){
+  
+  metanames <- attr(x, "metanames")
+  obj.attributes <- attr(x, "obj.attributes")
+  parameters <- attr(x, "parameters")
+ 
+  out <- as.data.frame(x)
+  #out <- as.data.frame(unclass(x))
+  if (!is.null(i)) out <- out[i, ]
+  if (!is.null(j)) out <- out[, j]
+  
+  metanames <- intersect(metanames, colnames(out))
+  obj.attributes <- intersect(obj.attributes, colnames(out))
+  parameters <- intersect(parameters, colnames(out))
+  
+  parframe(out, parameters = parameters, metanames = metanames, obj.attributes = obj.attributes)
+  
+}
+
 
 #' @export
 subset.parframe <- function(x, ...) {
@@ -242,9 +264,48 @@ c.parvec <- function(...) {
 #' @export
 #' @param pfn object of class \link{parfn}
 #' @param width the print-out console width
-print.parfn <- function(pfn, width = 120) {
-  print(attr(pfn, "equations"), width)
+print.parfn <- function(x, ...) {
+  
+  conditions <- attr(x, "conditions")
+  parameters <- attr(x, "parameters")
+  mappings <- attr(x, "mappings")
+  
+  cat("Parameter transformation:\n")
+  str(args(x))
+  cat("\n")
+  cat("... conditions:", paste0(conditions, collapse = ", "), "\n")
+  cat("... parameters:", paste0(parameters, collapse = ", "), "\n")
+  
 }
 
+#' @export
+summary.parfn <- function(x, ...) {
+  
+  conditions <- attr(x, "conditions")
+  parameters <- attr(x, "parameters")
+  mappings <- attr(x, "mappings")
+  
+  cat("Details:\n")
+  if (!inherits(x, "composed")) {
+    
+    
+    output <- lapply(1:length(mappings), function(C) {
+      
+      list(
+        equations = attr(mappings[[C]], "equations"),
+        parameters = attr(mappings[[C]], "parameters")
+      )
+      
+    })
+    names(output) <- conditions
+    
+    print(output, ...)
+    
+  } else {
+    
+    cat("\nObject is composed. See original objects for more details.\n")
+    
+  }
+}
 
 

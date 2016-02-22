@@ -172,7 +172,7 @@ addReaction <- function(x, ...) {
 }
 #' Add reaction to reaction table
 #' 
-#' @param f equation list, see \link{eqnlist}
+#' @param eqnlist equation list, see \link{eqnlist}
 #' @param from character with the left hand side of the reaction, e.g. "2*A + B"
 #' @param to character with the right hand side of the reaction, e.g. "C + 2*D"
 #' @param rate character. The rate associated with the reaction. The name is employed as a description
@@ -435,6 +435,7 @@ print.eqnlist <- function(eqnlist, pander = FALSE, ...) {
 #' Coerce to an equation vector
 #' 
 #' @param x an R object, usually a named character or an \link{eqnlist}.
+#' @param ... arguments going to the corresponding methods
 #' @details If \code{x} is of class \code{eqnlist}, \link{getFluxes} is called and coerced
 #' into a vector of equations.
 #' @return object of class \link{eqnvec}.
@@ -719,6 +720,7 @@ c.eqnvec <- function(...) {
 #' named character vector with the algebraic expressions
 #' @param compile Logical. The function is either translated into a C file to be compiled or is
 #' evaluated in raw R.
+#' @param modelname file name of the generated C file.
 #' @param verbose Print compiler output to R command line.
 #' @return A prediction function \code{f(mylist, attach.input = FALSE)} where \code{mylist} is a list of numeric 
 #' vectors that can

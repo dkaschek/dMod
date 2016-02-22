@@ -352,8 +352,8 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     msg <- paste0("Parameter assignment information\n",
                   strpad("mstrust", 12),                        ": ", paste0(nameslocal, collapse = ", "), "\n",
                   strpad("trust", 12),                          ": ", paste0(namestrust, collapse = ", "), "\n",
-                  strpad(as.character(argslist$samplefun), 12), ": ", paste0(namessample, collapse = ", "), "\n",
-                  strpad(as.character(argslist$objfun), 12),    ": ", paste0(namesobj, collapse = ", "), "\n\n")
+                  strpad(as.character(argslist$samplefun), 12), ": ", paste0(namessample, collapse = ", "), "\n\n")
+                  #strpad(as.character(argslist$objfun), 12),    ": ", paste0(namesobj, collapse = ", "), "\n\n")
     writeLines(msg, logfile)
     flush(logfile)
   }
@@ -369,6 +369,13 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   m_parlist <- as.parlist(mclapply(1:fits, function(i) {
     argstrust$parinit <- center + do.call(samplefun, argssample)
     fit <- do.call(trust, c(argstrust, argsobj))
+
+    # Keep only numeric attributes of object returned by trust()
+    attr.fit <- attributes(fit)
+    keep.attr <- sapply(attr.fit, is.numeric)
+    fit <- fit[1:length(fit)] # deletes attributes
+    if (any(keep.attr)) attributes(fit) <- c(attributes(fit), attr.fit[keep.attr]) # attach numeric attributes
+    
     
     # In some crashes a try-error object is returned which is not a list. Since
     # each element in the parlist is assumed to be a list, we wrap these cases.
@@ -919,8 +926,6 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
 #' multiple fitlists.
 #'
 #' @param ... Fitlists
-#' @param shiftrownames If true (default) the row names of the returned data frame equal the fit index.
-
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'
 #' @export

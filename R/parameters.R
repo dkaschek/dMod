@@ -4,28 +4,33 @@
 #' function for \link{Pexpl} and \link{Pimpl}. See for more details there.
 #' @param trafo object of class \code{eqnvec} or named character
 #' @param parameters character vector
+#' @param condition character, the condition for which the transformation is generated
+#' @param keep.root logical, applies for \code{method = "implicit"}. The root of the last
+#' evaluation of the parameter transformation function is saved as guess for the next 
+#' evaluation.
 #' @param compile logical
 #' @param modelname character
 #' @param method character, either \code{"explicit"} or \code{"implicit"}
 #' @param verbose Print out information during compilation
-#' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)}
+#' @return An object of class \link{parfn}.
 #' @export
-P <- function(trafo = NULL, parameters=NULL, compile = FALSE, modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE) {
+P <- function(trafo = NULL, parameters=NULL, condition = NULL, keep.root = TRUE, compile = FALSE, modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE) {
   
-  if(is.null(trafo)) return(P0())
+  if (is.null(trafo)) return()
   
   method <- match.arg(method)
   switch(method, 
-         explicit = Pexpl(trafo = trafo, parameters = parameters, compile = compile, modelname = modelname, verbose = verbose),
-         implicit = Pimpl(trafo = trafo, parameters = parameters, compile = compile, modelname = modelname, verbose = verbose))
+         explicit = Pexpl(trafo = trafo, parameters = parameters, condition = condition, compile = compile, modelname = modelname, verbose = verbose),
+         implicit = Pimpl(trafo = trafo, parameters = parameters, keep.root = keep.root, condition = condition, compile = compile, modelname = modelname, verbose = verbose))
   
 }
 
 #' The identity parameter transformation
+#' @param condition character, the condition for which the transformation is generated
 #' @export
 #' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)} returning \code{p}
 #' with unit matrix as derivative or derivative inherited from \code{p}.
-P0 <- function() {
+P0 <- function(condition = NULL) {
   
   myfn <- function(p, fixed=NULL, deriv = TRUE) {
     
@@ -44,7 +49,10 @@ P0 <- function() {
     
   }
   
-  return(myfn)
+  attr(myfn, "equations") <- NULL
+  attr(myfn, "parameters") <- NULL
+  
+  parfn(myfn, NULL, condition)
     
 }
 
@@ -57,6 +65,7 @@ P0 <- function() {
 #' transformation returns values for each element in \code{parameters}. If elements of
 #' \code{parameters} are not in \code{names(trafo)} the identity transformation is assumed.
 #' @param compile Logical, compile the function (see \link{funC0})
+#' @param condition character, the condition for which the transformation is generated
 #' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
 #' C file.
 #' @param verbose Print compiler output to R command line.
@@ -76,7 +85,7 @@ P0 <- function() {
 #' (P.log)(p.outerValue)
 #' }
 #' @export
-Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL, verbose = FALSE) {
+Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, modelname = NULL, verbose = FALSE) {
   
   # get outer parameters
   symbols <- getSymbols(trafo)
@@ -104,6 +113,10 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL, ver
   
   PEval <- funC0(trafo, compile = compile, modelname = modelname, verbose = verbose)
   dPEval <- funC0(dtrafo, compile = compile, modelname = paste(modelname, "deriv", sep = "_"), verbose = verbose)
+  
+  
+  # Controls to be modified from outside
+  controls <- list()
   
   # the parameter transformation function to be returned
   p2p <- function(p, fixed=NULL, deriv = TRUE) {
@@ -134,51 +147,24 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL, ver
     
   }
   
-  class(p2p) <- "parfn" 
   attr(p2p, "equations") <- as.eqnvec(trafo)
   attr(p2p, "parameters") <- parameters
   
-  
-  return(p2p)
+  parfn(p2p, parameters, condition)
   
 }
 
-# P.list <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
-#   
-#   # Check names
-#   trafo.names <- names(trafo)
-#   if(is.null(trafo.names) || any(is.na(trafo.names))) stop("trafo must be named list")
-#   
-#   trafo.length <- length(trafo)
-#   modelname <- paste(modelname, trafo.names, sep = "_")
-#   
-#   p2p <- lapply(1:trafo.length, function(i) P.character(trafo[[i]], parameters, compile, modelname[i]))
-#   names(p2p) <- trafo.names
-#   
-#   
-#   p2p.list <- function(p, fixed=NULL, deriv = TRUE) {
-#     
-#     if(!is.list(p)) p <- lapply(p2p, function(i) p)
-#     if(!is.list(fixed)) fixed <- lapply(p2p, function(i) fixed)
-#     
-#     allnames <- intersect(union(names(p), names(fixed)), names(p2p))
-#     
-#     out.list <- lapply(allnames, function(n) p2p[[n]](p[[n]], fixed[[n]], deriv))
-#     names(out.list) <- allnames
-#     
-#     return(out.list)
-#     
-#     
-#   }
-#   
-# }
 
 #' Parameter transformation (implicit)
 #' 
 #' @param trafo Named character vector defining the equations to be set to zero. 
 #' Names correspond to dependent variables.
 #' @param parameters Character vector, the independent variables.  
+#' @param condition character, the condition for which the transformation is generated
 #' @param compile Logical, compile the function (see \link{funC0})
+#' @param keep.root logical, applies for \code{method = "implicit"}. The root of the last
+#' evaluation of the parameter transformation function is saved as guess for the next 
+#' evaluation.
 #' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
 #' C file.
 #' @param verbose Print compiler output to R command line.
@@ -233,8 +219,9 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL, ver
 #' pSS(c(k1 = 1, k2 = 2, A = 5, B = 5, total = 3))
 #' }
 #' @export
-Pimpl <- function(trafo, parameters=NULL, keep.root = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
+Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
 
+  
   states <- names(trafo)
   nonstates <- getSymbols(trafo, exclude = states)
   dependent <- setdiff(states, parameters)
@@ -248,8 +235,13 @@ Pimpl <- function(trafo, parameters=NULL, keep.root = TRUE, compile = FALSE, mod
     structure(as.numeric(out), names = colnames(out))
   }
   
+  # Controls to be modified from outside
+  controls <- list(keep.root = keep.root)
+  
   # the parameter transformation function to be returned
   p2p <- function(p, fixed=NULL, deriv = TRUE) {
+    
+    keep.root <- controls$keep.root
     
     # Inherit from p
     dP <- attr(p, "deriv")
@@ -306,12 +298,14 @@ Pimpl <- function(trafo, parameters=NULL, keep.root = TRUE, compile = FALSE, mod
     
   }
   
-  class(p2p) <- "parfn"
-  
   attr(p2p, "equations") <- as.eqnvec(trafo)
   attr(p2p, "parameters") <- parameters
+    
+  parfn(p2p, parameters, condition)
   
-  return(p2p)
+
+  
+
   
 }
 
@@ -340,4 +334,7 @@ Pimpl <- function(trafo, parameters=NULL, keep.root = TRUE, compile = FALSE, mod
 #' }
 #' @export
 "%o%" <- function(p1, p2) function(p, fixed=NULL, deriv = TRUE) p1(p2(p, fixed = fixed, deriv = deriv), deriv = deriv)
+
+
+
 
