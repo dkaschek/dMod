@@ -132,6 +132,7 @@ normL2 <- function(data, x, times = NULL, attr.name = "data") {
       assign("timesD", timesD, envir = env)
       assign("x", x, envir = env)
       assign("data", data, envir = env) 
+      assign("controls", controls, envir = env)
       
       
     }
@@ -205,6 +206,7 @@ constraintL2 <- function(mu, sigma = 1, attr.name = "prior", condition = NULL) {
       assign("conditions", conditions, envir = env)
       assign("mu", controls$mu, envir = env)
       assign("sigma", controls$sigma, envir = env)
+      assign("controls", controls, envir = env)
     }
     
     myexpression <- expression({
@@ -325,6 +327,7 @@ datapointL2 <- function(name, time, value, sigma = 1, attr.name = "validation", 
       assign("time", controls$time, envir = env)
       assign("sigma", controls$sigma, envir = env)
       assign("condition", condition, envir = env)
+      assign("controls", controls, envir = env)
     }
 
     myexpression <- expression({    
@@ -428,6 +431,7 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
       assign("conditions", conditions, envir = env)
       assign("mu", controls$mu, envir = env)
       assign("lambda", controls$lambda, envir = env)
+      assign("controls", controls, envir = env)
     }
     
     myexpression <- expression({
