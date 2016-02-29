@@ -3,7 +3,8 @@
 
 #' Generate the model objects for use in Xs (models with sensitivities)
 #' 
-#' @param f Named character vector with the ODE
+#' @param f Something that can be converted to \link{eqnvec}, 
+#' e.g. a named character vector with the ODE
 #' @param deriv logical, generate sensitivities or not
 #' @param forcings Character vector with the names of the forcings
 #' @param fixed Character vector with the names of parameters (initial values and dynamic) for which
@@ -16,6 +17,7 @@
 #' @import cOde
 odemodel <- function(f, deriv = TRUE, forcings=NULL, fixed=NULL, modelname = "odemodel", verbose = FALSE, ...) {
   
+  f <- as.eqnvec(f)
   modelname_s <- paste0(modelname, "_s")
   
   func <- cOde::funC(f, forcings = forcings, modelname = modelname , ...)
