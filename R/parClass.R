@@ -102,7 +102,7 @@ as.parframe.parlist <- function(x, sort.by = "value") {
 ## Methods for the class parframe -----------------------------------------------
 
 #' @export
-"[.parframe" <- function(x, i = NULL, j = NULL){
+"[.parframe" <- function(x, i = NULL, j = NULL, drop = FALSE){
   
   metanames <- attr(x, "metanames")
   obj.attributes <- attr(x, "obj.attributes")

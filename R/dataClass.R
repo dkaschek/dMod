@@ -19,21 +19,35 @@ as.datalist <- function(x, ...) {
 
 #' @export
 #' @param dataframe data.frame 
+#' @param split.by vector of columns names which yield a unique identifier (conditions). If NULL, all
+#' columns except for the expected standard columns "name", "time", "value" and "sigma" will be
+#' selected.
 #' @rdname as.datalist
-as.datalist.data.frame <- function(dataframe, split.by = "condition") {
+as.datalist.data.frame <- function(dataframe, split.by = NULL) {
   
   #remaining.names <- setdiff(names(dataframe), split.by)
-  remaining.names <- c("name", "time", "value", "sigma")
+  all.names <- colnames(dataframe)
+  standard.names <- c("name", "time", "value", "sigma")
+  if (is.null(split.by)) split.by <- setdiff(all.name, standard.names)
+  
+  
   
   conditions <- lapply(split.by, function(n) dataframe[, n])
   splits <- do.call(interaction, c(conditions, list(sep = "_")))
   
-  dataframe <- cbind(splits, dataframe[, remaining.names])
+  # condition grid
+  conditionframe <- cbind(splits, dataframe[, split.by])[!duplicated(splits),]
+  colnames(conditionframe)[1] <- "condition"
   
+  
+  # data list output
+  dataframe <- cbind(splits, dataframe[, standard.names])
   out <- lapply(unique(splits), function(s) subset(dataframe, dataframe[, 1] == s)[, -1])
   names(out) <- as.character(unique(splits))
   
-  as.datalist(out)
+  out <- as.datalist(out)
+  attr(out, "condition.grid") <- conditionframe
+  return(out)
   
 }
 
@@ -62,6 +76,7 @@ as.datalist.list <- function(mylist, names = NULL) {
   ## Prepare output
   names(mylist) <- mynames
   class(mylist) <- c("datalist", "list")
+  attr(mylist, "condition.grid") <- data.frame(condition = mynames)
 
   return(mylist)
 
