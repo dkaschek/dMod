@@ -250,6 +250,9 @@ blockdiagSymb <- function(M, N) {
   A <- matrix(0, ncol=dim(N)[2], nrow=dim(M)[1])
   B <- matrix(0, ncol=dim(M)[2], nrow=dim(N)[1])
   result <- rbind(cbind(M, A), cbind(B, N))
+  colnames(result) <- c(colnames(M), colnames(N))
+  rownames(result) <- c(rownames(M), rownames(N))
+  
   return(result)
   
 }

@@ -1,3 +1,105 @@
+# Noch nicht fertig: Noch überlegen, ob es das bringt.
+P1D <- function(trafo, parameters = NULL, condition = NULL) {
+  
+  trafo <- trafo[1]
+  names(trafo) <- "x"
+  symbol <- getSymbols(trafo)[1]
+  trafo <- replaceSymbols(symbol, "x", trafo)
+  dtrafo <- jacobianSymb(trafo, "x")
+  
+  trafo.expr <- parse(text = trafo)
+  dtrafo.expr <- parse(text = dtrafo)
+  
+  fn <- function(x) with(list(x = x), eval(trafo.expr))
+  dfn <- function(x) with(list(x = x), eval(dtrafo.expr))
+  
+  controls <- list(parameters = parameters)
+  
+  p2p <- function(p, fixed = NULL, deriv = TRUE) {
+    
+    dp <- attr(p, "deriv")
+    p <- unclass(p)
+    fixed <- unclass(fixed)
+    names.all <- union(names(p), names(fixed))
+    
+    if (is.null(controls$parameters)) parameters <- names.all else parameters <- controls$parameters
+    
+    # Distinguish parameters to be transformed.
+    p.trafo <- c(p, fixed)[parameters]
+    p.ident <- c(p, fixed)[setdiff(names.all, parameters)]
+    
+    out.trafo <- NULL
+    dout <- NULL
+    
+    if (!any(is.na(p.trafo))) {
+      # Do transformation
+      out.trafo <- structure(fn(p.trafo), names = parameters)
+      
+      # Compute derivative
+      dout <- matrix(0, nrow = length(p.trafo), ncol = length(p.trafo))
+      diag(dout) <- dfn(p.trafo)
+      colnames(dout) <- rownames(dout) <- parameters
+    }
+    
+    # Combine with identity transformation for remaining parameters
+    if (length(p.ident) > 0) {
+      out.trafo <- c(out.trafo, p.ident)
+      dout.ident <- diag(1, length(p.ident))
+      rownames(dout.ident) <- colnames(dout.ident) <- names(p.ident)
+      # Combine with Jacobian of trafo
+      dout <- blockdiagSymb(dout, dout.ident)
+    }
+    
+    # Restrict to non-fixed
+    dout <- submatrix(dout, cols = names(p))
+    
+    
+    # Propagate derivatives
+    if (!is.null(dp)) dout <- dout %*% submatrix(dp, rows = colnames(dout))
+    
+   
+    as.parvec(out.trafo, deriv = dout)
+    
+    
+  }
+  
+  attr(p2p, "equations") <- as.eqnvec(trafo)
+  attr(p2p, "parameters") <- parameters
+  
+  parfn(p2p, parameters, condition)
+  
+  
+  
+}
+
+#' @export
+P_log <- function(parameters, trafopars = parameters, base = exp(1), condition = NULL) {
+  
+  trafo <- structure(paste0("exp(log(", base, ") * ", trafopars, ")"), names = trafopars)
+  Pexpl(trafo, parameters = parameters, condition = condition)
+  
+}
+
+#' @export
+P_box <- function(parameters, trafopars = parameters, lower = 0, upper = 1e6, condition = NULL, ...) {
+  
+  if (length(lower) == 1) lower <- structure(rep(lower, length(trafopars)), names = trafopars)
+  if (length(upper) == 1) upper <- structure(rep(upper, length(trafopars)), names = trafopars)
+  
+  if (!all(trafopars %in% names(lower)) | !all(trafopars %in% names(upper))) 
+    stop("Parameters are specified, but lower/upper do not set limits for all parameters.")
+  
+  Delta <- upper - lower
+  scale <- Delta/pi
+  off <- Delta/2 + lower
+  
+  trafo <- structure(paste0(scale, "*atan(", trafopars, ")+", off), names = parameters)
+  Pexpl(trafo, parameters = parameters, condition = condition, ...)
+  
+}
+
+
+
 #' Generate a parameter transformation function
 #' @description  Generate parameter transformation function from a
 #' named character vector or object of class \link{eqnvec}. This is a wrapper
