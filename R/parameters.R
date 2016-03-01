@@ -1,4 +1,6 @@
 # Noch nicht fertig: Noch überlegen, ob es das bringt.
+# Bringt erst was ab vielen Parametern (> 200), da dieselbe Ableitungsfunktion
+# "dtrafo" auf einem Vektor ausgewertet werden kann
 P1D <- function(trafo, parameters = NULL, condition = NULL) {
   
   trafo <- trafo[1]
@@ -325,22 +327,48 @@ Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, mod
 #' }
 #' @export
 Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
-
+  
   
   states <- names(trafo)
   nonstates <- getSymbols(trafo, exclude = states)
   dependent <- setdiff(states, parameters)
   
+  modelname_dfdx <- NULL
+  modelname_dfdp <- NULL
+  if (!is.null(modelname)) {
+    modelname_dfdx <- paste(modelname, "dfdx", sep = "_")
+    modelname_dfdp <- paste(modelname, "dfdp", sep = "_")
+  }
+  
+  
   # Introduce a guess where Newton method starts
   guess <- NULL
   
-  trafo.alg <- funC0(trafo[dependent], parameters = c(states, nonstates), 
+  trafo0 <- trafo[dependent]
+  trafo0.dfdx <- jacobianSymb(trafo0, dependent)
+  trafo0.dfdp <- jacobianSymb(trafo0, c(nonstates, parameters))
+  
+  
+  trafo.alg <- funC0(trafo0, parameters = c(states, nonstates), 
                      compile = compile, modelname = modelname, verbose = verbose,
                      convenient = FALSE, warnings = FALSE)
+  trafo.alg.dfdx <- funC0(trafo0.dfdx, parameters = c(states, nonstates), 
+                          compile = compile, modelname = modelname_dfdx, verbose = verbose,
+                          convenient = FALSE, warnings = FALSE)
+  trafo.alg.dfdp <- funC0(trafo0.dfdp, parameters = c(states, nonstates), 
+                          compile = compile, modelname = modelname_dfdp, verbose = verbose,
+                          convenient = FALSE, warnings = FALSE)
+  
   ftrafo <- function(x, parms) {
-    out <- trafo.alg(p = c(x, parms))
-    structure(as.numeric(out), names = colnames(out))
+    trafo.alg(p = c(x, parms))[1,]
   }
+  ftrafo.dfdx <- function(x, parms) {
+    matrix(trafo.alg.dfdx(p = c(x, parms))[1,], nrow = length(dependent), ncol = length(dependent), dimnames = list(dependent, dependent))
+  }
+  ftrafo.dfdp <- function(x, parms) {
+    matrix(trafo.alg.dfdp(p = c(x, parms))[1,], nrow = length(dependent), ncol = length(nonstates) + length(parameters), dimnames = list(dependent, c(nonstates, parameters)))
+  }
+  
   
   # Controls to be modified from outside
   controls <- list(keep.root = keep.root)
@@ -359,7 +387,7 @@ Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, co
       if(length(is.fixed)>0) p <- p[-is.fixed]
       p <- c(p, fixed)
     }
-
+    
     # Set guess
     if(!is.null(guess)) 
       p[intersect(dependent, names(guess))] <- guess[intersect(dependent, names(guess))]
@@ -377,16 +405,12 @@ Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, co
     if(keep.root) guess <<- out
     
     # Compute jacobian d(root)/dp
-    dfdx <- rootSolve::gradient(ftrafo, 
-                                x = myroot$root, 
-                                parms = p[setdiff(names(p), names(myroot$root))])
-    dfdp <- rootSolve::gradient(ftrafo, 
-                                x = p[setdiff(names(p), names(myroot$root))],
-                                parms = myroot$root)
+    dfdx <- ftrafo.dfdx(x = myroot$root, parms = p[setdiff(names(p), names(myroot$root))])
+    dfdp <- ftrafo.dfdp(x = p[setdiff(names(p), names(myroot$root))], parms = myroot$root)
     dxdp <- solve(dfdx, -dfdp)
     #print(dxdp)
-        
-       
+    
+    
     # Assemble total jacobian
     jacobian <- matrix(0, length(out), length(p))
     colnames(jacobian) <- names(p)
@@ -407,12 +431,12 @@ Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, co
   
   attr(p2p, "equations") <- as.eqnvec(trafo)
   attr(p2p, "parameters") <- parameters
-    
+  
   parfn(p2p, parameters, condition)
   
-
   
-
+  
+  
   
 }
 
