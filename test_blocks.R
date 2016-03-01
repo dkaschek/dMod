@@ -92,7 +92,7 @@ plotProfile(profile)
 
 # List the available controls of an object
 controls(x)
-2
+
 # List a specific control
 controls(x, condition = "a", name = "optionsSens")
 
@@ -108,7 +108,6 @@ controls(x, condition = "a", name = "optionsSens") <- list(method = "lsoda", rto
 # Condition-specific observation parameters
 f <- eqnvec(A = "-k1*A", B = "k1*A - k2*B")
 observables <- eqnvec(Bobs = "s1*B")
-
 conditions <- c("scale1", "scale2")
 
 dynpars <- getSymbols(c(names(f), f))

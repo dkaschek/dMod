@@ -427,7 +427,8 @@ Y <- function(g, f, states = NULL, parameters = NULL, condition = NULL, attach.i
   # Observables defined by g
   observables <- names(g)
   
-  gEval <- funC0(g, compile = compile, modelname = modelname, verbose = verbose)
+  gEval <- funC0(g, parameters = parameters, compile = compile, modelname = modelname, 
+                 verbose = verbose, convenient = FALSE, warnings = FALSE)
   
   # Character matrices of derivatives
   dxdp <- dgdx <- dgdp <- NULL
@@ -447,16 +448,17 @@ Y <- function(g, f, states = NULL, parameters = NULL, condition = NULL, attach.i
   
   # Sensitivities of the observables
   derivs <- as.vector(sumSymb(prodSymb(dgdx, dxdp), dgdp))
-  if (length(derivs) == 0) stop("Nor states or parameters involved")
+  if (length(derivs) == 0) stop("Neither states nor parameters involved")
   names(derivs) <- apply(expand.grid.alt(observables, c(states, parameters)), 1, paste, collapse = ".")
   
   
-  derivsEval <- funC0(derivs, compile = compile, modelname = modelname_deriv)
+  derivsEval <- funC0(derivs, parameters = parameters, compile = compile, modelname = modelname_deriv,
+                      verbose = verbose, convenient = FALSE, warnings = FALSE)
   
   # Vector with zeros for possibly missing derivatives
-  zeros <- rep(0, length(dxdp))
-  names(zeros) <- dxdp
- 
+  # zeros <- rep(0, length(dxdp))
+  # names(zeros) <- dxdp
+  # Redundant -> missing values have been implemented in funC0
   
   controls <- list(attach.input = attach.input) 
   
@@ -466,21 +468,23 @@ Y <- function(g, f, states = NULL, parameters = NULL, condition = NULL, attach.i
     
     # Prepare list for with()
     nOut <- dim(out)[2]
-    outlist <- lapply(1:nOut, function(i) out[,i]); names(outlist) <- colnames(out)
+    #outlist <- lapply(1:nOut, function(i) out[,i]); names(outlist) <- colnames(out)
     
     dout <- attr(out, "sensitivities")
-    if (!is.null(dout)) {
-      nDeriv <- dim(dout)[2]
-      derivlist <- lapply(1:nDeriv, function(i) dout[,i]); names(derivlist) <- colnames(dout)  
-    } else {
-      derivlist <- NULL
-    }
+    # if (!is.null(dout)) {
+    #   nDeriv <- dim(dout)[2]
+    #   derivlist <- lapply(1:nDeriv, function(i) dout[,i]); names(derivlist) <- colnames(dout)  
+    # } else {
+    #   derivlist <- NULL
+    # }
     
     
-    x <- c(outlist, derivlist, as.list(pars), as.list(zeros))
+    #x <- c(outlist, derivlist, as.list(pars), as.list(zeros))
+    #values <- gEval(x)
     
-    values <- gEval(x)
-    if (!is.null(dout)) dvalues <- derivsEval(x)
+    values <- gEval(M = out, p = pars)
+    
+    if (!is.null(dout)) dvalues <- derivsEval(M = cbind(out, dout), p = pars)
     
     # Parameter transformation
     dP <- attr(pars, "deriv")

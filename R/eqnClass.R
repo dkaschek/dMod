@@ -735,31 +735,69 @@ c.eqnvec <- function(...) {
 #' }
 #' 
 #' @export
-funC0 <- function(x, compile = FALSE, modelname = NULL, verbose = FALSE) {
+funC0 <- function(x, variables = getSymbols(x, exclude = parameters), 
+                  parameters = NULL, compile = FALSE, modelname = NULL, 
+                  verbose = FALSE, convenient = TRUE, warnings = TRUE) {
     
   # Get symbols to be substituted by x[] and y[]
   outnames <- names(x)
-  innames <- getSymbols(x)
+  innames <- variables
   
-  x.new <- paste0(x, collapse = ", ")
-  x.new <- paste0("list(", x.new, ")")
-  x.expr <- parse(text = x.new)
+  print(innames)
+  print(parameters)
+  
+  # Function to check arguments
+  checkArguments <- function(M, p) {
+   
+    if (is.null(innames) | length(innames) == 0) {
+      M <- matrix(0) 
+    } else {
+      check <- all(innames %in% colnames(M))
+      if (!check) {
+        if (warnings) warning("Found missing columns in matrix of variables -> 0")
+        missing <- setdiff(innames, colnames(M))
+        N <- matrix(0, nrow = nrow(M), ncol = length(missing), dimnames = list(NULL, missing))
+        M <- cbind(M, N)
+      }
+      M <- t(M[, innames, drop = FALSE])
+    }
+    
+    if (is.null(parameters) | length(parameters) == 0) {
+      p <- 0 
+    } else {
+      check <- all(parameters %in% names(p))
+      if (!check) {
+        if (warnings) warning("Found missing elements in vector of parameters -> 0")
+        missing <- setdiff(parameters, names(p))
+        q <- structure(rep(0, length(missing)), names = missing)
+        p <- c(p, q)
+      }
+      p <- p[parameters]
+    }
+    
+    return(list(M = M, p = p))
+    
+  }
   
   ## Compiled version based on inline package
   ## Non-compiled version based on with() and eval()
-  if(compile) {
+  if (compile) {
     
     # Do the replacement to obtain C syntax
     x <- replaceOperation("^", "pow", x)
-    x <- replaceSymbols(innames, paste0("x[", (1:length(innames))-1, "+i* *k]"), x)
-    names(x) <- paste0("y[", (1:length(outnames)) - 1, "+i* *l]")
+    if (!is.null(innames))
+      x <- replaceSymbols(innames, paste0("x[", (1:length(innames)) - 1, "+i**k]"), x)
+    if (!is.null(parameters))
+      x <- replaceSymbols(parameters, paste0("p[", (1:length(parameters)) - 1, "]"), x)
+    names(x) <- paste0("y[", (1:length(outnames)) - 1, "+i**l]")
+    
     
     # Paste into equation
     x <- x[x != "0"]
     expr <- paste(names(x), "=", x, ";")
     
     # Put equation into C function
-    if(is.null(modelname)) {
+    if (is.null(modelname)) {
       funcname <- paste0("funC0_", paste(sample(c(0:9, letters), 8, replace = TRUE), collapse = ""))
     } else {
       funcname <- modelname
@@ -767,9 +805,9 @@ funC0 <- function(x, compile = FALSE, modelname = NULL, verbose = FALSE) {
     body <- paste(
       "#include <R.h>\n", 
       "#include <math.h>\n", 
-      "void", funcname, "( double * x, double * y, int * n, int * k, int * l ) {\n",
+      "void", funcname, "( double * x, double * y, double * p, int * n, int * k, int * l ) {\n",
       "for(int i = 0; i< *n; i++) {\n",
-      paste(expr, collapse="\n"),
+      paste(expr, collapse = "\n"),
       "\n}\n}"
     )
     
@@ -777,46 +815,36 @@ funC0 <- function(x, compile = FALSE, modelname = NULL, verbose = FALSE) {
     sink(file = filename)
     cat(body)
     sink()
-    shlibOut <- system(paste0(R.home(component="bin"), "/R CMD SHLIB ", filename), intern = TRUE)
+    shlibOut <- system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", filename), intern = TRUE)
     if (verbose) {
       cat(shlibOut)
     }
     .so <- .Platform$dynlib.ext
     dyn.load(paste0(funcname, .so))
     
-    # Generate the C function by the inline package
-    #myCfun <- inline::cfunction(sig=c(x = "double", y = "double", n = "integer", k = "integer", l = "integer"),
-    #                            body=body,
-    #                            language="C",
-    #                            convention=".C"
-    #)
-    
-    
-    # Generate output function
-    myRfun <- function(x, attach.input = FALSE) {
+    # Generate output function for compiled version
+    myRfun <- function(M = NULL, p = NULL, attach.input = FALSE) {
       
-      # Translate the list into matrix and then into vector
-      M <- do.call(rbind, x[innames])
-      if(length(M) == 0) M <- matrix(0)
+      check <- checkArguments(M, p)
+      M <- check$M
+      p <- as.double(check$p)
       x <- as.double(as.vector(M))
-      
+
       # Get integers for the array sizes
-      n <- as.integer(dim(M)[2])
+      n <- as.integer(ncol(M))
       k <- as.integer(length(innames))
-      if(length(k) == 0) k <- as.integer(0)
+      if (length(k) == 0) k <- as.integer(0)
       l <- as.integer(length(outnames))
-      
       
       # Initialize output vector
       y <- double(l*n)
       
       # Evaluate C function and write into matrix
       loadDLL(func = funcname, cfunction = funcname)
-      out <- matrix(.C(funcname, x = x, y = y, n = n, k = k, l = l)$y, nrow=length(outnames), ncol=n)
+      out <- matrix(.C(funcname, x = x, y = y, p = p, n = n, k = k, l = l)$y, nrow = length(outnames), ncol = n)
       rownames(out) <- outnames
       
-      rownames(M) <- innames
-      if(attach.input)
+      if (attach.input)
         out <- rbind(M, out)
         
       
@@ -828,20 +856,35 @@ funC0 <- function(x, compile = FALSE, modelname = NULL, verbose = FALSE) {
     
   } else {
     
-    # Generate output function
-    myRfun <- function(x, attach.input = FALSE) {
+    ntot <- length(x)
+    empty <- which(x == "0")
+    nonempty <- which(x != "0")
+    
+    x.new <- paste0(x[nonempty], collapse = ", ")
+    x.new <- paste0("list(", x.new, ")")
+    x.expr <- parse(text = x.new)
+  
+    # Generate output function for pure R version
+    myRfun <- function(M = NULL, p = NULL, attach.input = FALSE) {
       
-      # Translate the list into matrix and then into vector
-      M <- do.call(rbind, x[innames])
-      if(length(M) == 0) M <- matrix(0)
+      check <- checkArguments(M, p)
       
-      out.list <- with(x, eval(x.expr))
+      
+      M <- check$M
+      p <- check$p
+      M.list <- lapply(1:nrow(M), function(i) M[i, ]); names(M.list) <- rownames(M)
+      p.list <- as.list(p)
+      x <- c(M.list, p.list)
+      
+      
+      # Initialize output
+      out.list <- as.list(rep(0, ntot))
+      out.list[nonempty] <- with(x, eval(x.expr))
       out.matrix <- do.call(cbind, out.list)
       colnames(out.matrix) <- outnames
       rownames(out.matrix) <- NULL
       
-      rownames(M) <- innames
-      if(attach.input)
+      if (attach.input)
         out.matrix <- cbind(t(M), out.matrix)
       
       return(out.matrix)
@@ -850,10 +893,26 @@ funC0 <- function(x, compile = FALSE, modelname = NULL, verbose = FALSE) {
     
   }
   
+  outfn <- myRfun
   
-  attr(myRfun, "equations") <- x
+  # Convenient function to be called with argument list
+  if (convenient) outfn <- function(...) {
+    
+    arglist <- list(...)
+    if (!length(innames) == 0 & !is.null(innames)) 
+      M <- do.call(cbind, arglist[innames])
+    
+    if (!length(parameters) == 0 & !is.null(parameters))
+      p <- do.call(c, arglist[parameters])
+    
+    myRfun(M, p)
+    
+  }
   
-  return(myRfun)
+  attr(outfn, "equations") <- x
+  
+  
+  return(outfn)
   
 }
 

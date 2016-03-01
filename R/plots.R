@@ -494,15 +494,16 @@ plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv =
 #' @export
 plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux = "Fluxes:", fixed = NULL){
   if(is.null(names(fluxEquations))) names(fluxEquations) <- fluxEquations
-  flux <- funC0(fluxEquations)
+  flux <- funC0(fluxEquations, convenient = FALSE)
   prediction.all <- x(times, pouter, fixed, deriv = FALSE)
   
   out <- lapply(names(prediction.all), function(cond) {
     prediction <- prediction.all[[cond]]
     pinner <- attr(prediction,"pinner")
-    pinner.list <- as.list(pinner)
-    prediction.list <- as.list(as.data.frame(prediction))
-    fluxes <- cbind(time=prediction[,"time"],flux(c(prediction.list, pinner.list)))
+    pinner.matrix <- matrix(pinner, nrow = length(pinner), ncol = nrow(prediction), dimnames = list(names(pinner), NULL))
+    #pinner.list <- as.list(pinner)
+    #prediction.list <- as.list(as.data.frame(prediction))
+    fluxes <- cbind(time=prediction[,"time"],flux(cbind(prediction, t(pinner.matrix))))
     return(fluxes)
   }); names(out) <- names(prediction.all)
   out <- wide2long(out)

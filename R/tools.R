@@ -217,16 +217,17 @@ combine <- function(...) {
 #' @export
 submatrix <- function(M, rows = 1:nrow(M), cols = 1:ncol(M)) {
   
+ M[rows, cols, drop = FALSE] 
   
-  
-  myrows <- (structure(1:nrow(M), names = rownames(M)))[rows]
-  mycols <- (structure(1:ncol(M), names = colnames(M)))[cols]
-  
-  if(any(is.na(myrows)) | any(is.na(mycols))) stop("subscript out of bounds")
-  
-  matrix(M[myrows, mycols], 
-         nrow = length(myrows), ncol = length(mycols), 
-         dimnames = list(rownames(M)[myrows], colnames(M)[mycols]))
+  # myrows <- (structure(1:nrow(M), names = rownames(M)))[rows]
+  # mycols <- (structure(1:ncol(M), names = colnames(M)))[cols]
+  # 
+  # if(any(is.na(myrows)) | any(is.na(mycols))) stop("subscript out of bounds")
+  # 
+  # matrix(M[myrows, mycols], 
+  #        nrow = length(myrows), ncol = length(mycols), 
+  #        dimnames = list(rownames(M)[myrows], colnames(M)[mycols]))
+
 }
 
 

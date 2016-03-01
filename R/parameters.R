@@ -213,8 +213,11 @@ Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, mod
   
   #dtrafo <- jacobian; names(dtrafo) <- jacNames
   
-  PEval <- funC0(trafo, compile = compile, modelname = modelname, verbose = verbose)
-  dPEval <- funC0(dtrafo, compile = compile, modelname = paste(modelname, "deriv", sep = "_"), verbose = verbose)
+  PEval <- funC0(trafo, parameters = parameters, compile = compile, modelname = modelname, 
+                 verbose = verbose, convenient = FALSE, warnings = FALSE)
+  dPEval <- funC0(dtrafo, parameters = parameters, compile = compile, 
+                  modelname = paste(modelname, "deriv", sep = "_"), 
+                  verbose = verbose, convenient = FALSE, warnings = FALSE)
   
   
   # Controls to be modified from outside
@@ -227,9 +230,9 @@ Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, mod
     dP <- attr(p, "deriv", exact = TRUE)
     
     # Evaluate transformation
-    args <- c(as.list(p), as.list(fixed))
-    pinner <- PEval(args)[1,]
-    dpinner <- dPEval(args)[1,]
+    args <- c(p, fixed)
+    pinner <- PEval(p = args)[1,]
+    dpinner <- dPEval(p = args)[1,]
     
     # Construct output jacobian
     jac.vector <- rep(0, length(pinner)*length(p))
@@ -331,9 +334,11 @@ Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, co
   # Introduce a guess where Newton method starts
   guess <- NULL
   
-  trafo.alg <- funC0(trafo[dependent], compile = compile, modelname = modelname, verbose = verbose)
+  trafo.alg <- funC0(trafo[dependent], parameters = c(states, nonstates), 
+                     compile = compile, modelname = modelname, verbose = verbose,
+                     convenient = FALSE, warnings = FALSE)
   ftrafo <- function(x, parms) {
-    out <- trafo.alg(as.list(c(x, parms)))
+    out <- trafo.alg(p = c(x, parms))
     structure(as.numeric(out), names = colnames(out))
   }
   
