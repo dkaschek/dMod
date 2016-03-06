@@ -1,3 +1,5 @@
+
+
 #' Simulate data for the currently loaded model
 #'
 #' @param timesD Desired time points for the data
@@ -10,9 +12,11 @@
 #'
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 #' 
-#' @export
 simulateData <- function(timesD, pouter, vars=observables, relE = 0.05, absE = 0.001){        
-  pred <- x(timesD, pouter)
+
+  ## Die Funktion setzt voraus, dass eine prediction function "x" im workspace ist :-(
+  
+    pred <- x(timesD, pouter)
   out <- lapply(conditions, function(con){
     mydata <- wide2long(pred[[con]])
     sigma <- relE*mydata$value + absE
@@ -47,11 +51,23 @@ simulateData <- function(timesD, pouter, vars=observables, relE = 0.05, absE = 0
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'   
 #' @export
-steadyStates <- function(model, file, forcings = "", neglect = "", outputFormat = "R") {
+steadyStates <- function(model, file, forcings = "", neglect = "", outputFormat = "R", sparsifyLevel = 2) {
+  
+  # Check if file is valid
+  if (!is.character(file)) stop("File name must be specified")
+  
+  # Check if model is an equation list
+  if (inherits(model, "eqnlist")) {
+    
+    write.eqnlist(model, file = paste0(file, "_model.csv"))
+    model <- paste0(file, "_model.csv")
+    
+  }
+  
   # Calculate steady states.
   python.version.request("2.7")
   python.load(system.file("code/steadyStates.py", package = "dMod"))
-  m_ss <- python.call("ODESS", model, forcings, neglect, outputFormat)
+  m_ss <- python.call("ODESS", model, forcings, neglect, outputFormat, sparsifyLevel)
   
   # Write steady states to disk.
   m_ssChar <- do.call(c, lapply(strsplit(m_ss, "="), function(eq) {

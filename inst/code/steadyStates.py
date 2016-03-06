@@ -294,6 +294,63 @@ def FindNodeToSolve(graph):
         if(graph[el]==[]):
             return(el)
     return(None)
+
+def CountNZE(V):
+    counter=0
+    for v in V:
+        if(v!=0):
+            counter=counter+1
+    return(counter)
+    
+def Sparsify(M, level):
+    if(level==3):
+        ncol=len(M.row(0))
+        for i in range(ncol):
+            tobeat=CountNZE(M.col(i))
+            for j in range(ncol):
+                if(i!=j):
+                    for factor_j in [1,2,-1,-2,0]:
+                        for k in range(ncol):
+                            if(k!=i and k!=j):
+                                for factor_k in [1,2,-1,-2,0]:
+                                    for l in range(ncol):
+                                        if(l!=i and l!=j and l!=k):
+                                            for factor_l in [1,2,-1,-2,0]:
+                                                test=M.col(i)+factor_j*M.col(j)+factor_k*M.col(k)+factor_l*M.col(l)
+                                                if(tobeat > CountNZE(test)):
+                                                    M.col_del(i)
+                                                    M=M.col_insert(i,test)
+                                                    tobeat=CountNZE(test)
+            print(str(i+1)+' columns of '+str(ncol) +' done')
+    if(level==2):
+        ncol=len(M.row(0))
+        for i in range(ncol):
+            tobeat=CountNZE(M.col(i))
+            for j in range(ncol):
+                if(i!=j):
+                    for factor_j in [1,2,-1,-2,0]:
+                        for k in range(ncol):
+                            if(k!=i and k!=j):
+                                for factor_k in [1,2,-1,-2,0]:
+                                    test=M.col(i)+factor_j*M.col(j)+factor_k*M.col(k)
+                                    if(tobeat > CountNZE(test)):
+                                        M.col_del(i)
+                                        M=M.col_insert(i,test)
+                                        tobeat=CountNZE(test)
+            print(str(i+1)+' columns of '+str(ncol) +' done')
+    if(level==1):
+        ncol=len(M.row(0))
+        for i in range(ncol):
+            tobeat=CountNZE(M.col(i))
+            for j in range(ncol):
+                if(i!=j):
+                    for factor_j in [1,2,-1,-2,0]:
+                        test=M.col(i)+factor_j*M.col(j)
+                        if(tobeat > CountNZE(test)):
+                            M.col_del(i)
+                            M=M.col_insert(i,test)
+                            tobeat=CountNZE(test)
+    return(M)
     
 def SuggestTrafos(eqOut, UsedVars):
     out=[]
@@ -371,7 +428,9 @@ def SuggestTrafos(eqOut, UsedVars):
 def ODESS(filename,
           injections=[],
           forbidden=[],
-          ausgabe="R"):
+          ensurePositivity=True,
+          sparsifyLevel = 2,
+          outputFormat='R'):
     filename=str(filename)
     file=csv.reader(open(filename), delimiter=',')
     print('Reading csv-file ...')
@@ -403,13 +462,15 @@ def ODESS(filename,
         for inj in injections:
             F[i-1]=F[i-1].subs(parse_expr(inj),0)
     F=Matrix(F)
-    print(F)
+    #print(F)
 ##### Define state vector X
     X=[]
     X=L[0][2:]
     for i in range(len(X)):
         X[i]=parse_expr(X[i])               
     X=Matrix(X)
+    #print(X)
+    Xo=X.copy()
         
 ##### Define stoichiometry matrix SM
     SM=[]
@@ -421,7 +482,14 @@ def ODESS(filename,
     			SM[i][j]='0'
     		SM[i][j]=parse_expr(SM[i][j])    
     SM=Matrix(SM)
+    
+    
+##### Increase Sparsity of stoichiometry matrix SM
+    print('Sparsify Stoichiometry Matrix with sparsify-level '+str(sparsifyLevel)+'!')
+    SMorig=(SM.copy()).T
+    SM=Sparsify(SM, level=sparsifyLevel)
     SM=SM.T
+    #return(SM)
     
 ##### Read forbidden rates
     UsedRC=[]
@@ -439,36 +507,43 @@ def ODESS(filename,
                     #UsedRC.append(X[j-jcounter])
                     X.row_del(j-jcounter)
                     SM.row_del(j-jcounter)
+                    SMorig.row_del(j-jcounter)
                     jcounter=jcounter+1
             SM.col_del(i-icounter)
+            SMorig.col_del(i-icounter)
             icounter=icounter+1
     
-    print('Removed '+str(icounter)+' zero fluxes!')
+    print('Removed '+str(icounter)+' fluxes that are a priori zero!')
     nrspecies=nrspecies-icounter
-    printmatrix(SM)
-    print(F)
-    print(X)
+    #printmatrix(SM)
+    #print(F)
+    #print(X)
     #print(UsedRC)
 #####Check if some species are zero and remove them from the system
     zeroStates=[]
     NegRows=checkNegRows(SM)
     PosRows=checkPosRows(SM)
-    print(PosRows)
-    print(NegRows)
+    #print(PosRows)
+    #print(NegRows)
     while((NegRows!=[]) | (PosRows!=[])):
-        print(PosRows)
-        print(NegRows)
+        #print(PosRows)
+        #print(NegRows)
         if(NegRows!=[]):        
             row=NegRows[0]
             zeroStates.append(X[row])
             counter=0    
             for i in range(len(F)):
-                if(F[i-counter].subs(X[row],1)!=F[i-counter]):
+                if(F[i-counter].subs(X[row],1)!=F[i-counter] and F[i-counter].subs(X[row],0)==0):
                     F.row_del(i-counter)
-                    SM.col_del(i-counter)
+                    SM.col_del(i-counter)                    
+                    SMorig.col_del(i-counter)
                     counter=counter+1
+                else:
+                    if(F[i-counter].subs(X[row],1)!=F[i-counter] and F[i-counter].subs(X[row],0)!=0):
+                        F[i-counter]=F[i-counter].subs(X[row],0)
             X.row_del(row)
             SM.row_del(row)
+            SMorig.row_del(row)
         else:
             row=PosRows[0]
             zeroFluxes=[]
@@ -489,20 +564,27 @@ def ODESS(filename,
                             if(F[i-counter].subs(X[row],0)==0):
                                 F.row_del(i-counter)
                                 SM.col_del(i-counter)
+                                SMorig.col_del(i-counter)
                             else:
                                 F[i-counter]=F[i-counter].subs(X[row],0)                            
                             counter=counter+1
         #printmatrix(SM)
         NegRows=checkNegRows(SM)      
         PosRows=checkPosRows(SM)
+    #printmatrix(SM)
+    #print(F)
+    #print(X)
     nrspecies=nrspecies-len(zeroStates)
     if(nrspecies==0):
         print('All states are zero!')
         return(0)
     else:
-        print('These states are zero:')
-        for state in zeroStates:
-            print(state)
+        if(zeroStates==[]):
+            print('No states found that are a priori zero!')
+        else:
+            print('These states are zero:')
+            for state in zeroStates:
+                print('\t'+str(state))
     
     nrspecies=nrspecies+len(zeroStates)
 
@@ -623,16 +705,19 @@ def ODESS(filename,
         CMbig=Matrix(CM)      
 
 #### Save ODE equations for testing solutions at the end    
-    print('Rank of SM is '+str(SM.rank()))
-    ODE=SM*F
+    print('Rank of SM is '+str(SM.rank()) + '!')
+    ODE=SMorig*F
 #### Find conserved quantities
-    print('Finding conserved quantities ...')
+    print('\nFinding conserved quantities ...')
     #printmatrix(CMbig)
     #print(X)
     LCLs, rowsToDel=FindLCL(CMbig.transpose(), X)
-    print(LCLs)
+    if(LCLs!=[]):
+        print(LCLs)
+    else:
+        print('System has no conserved quantities!')
 #### Define graph structure
-    print('Define graph structure ...\n')
+    print('\nDefine graph structure ...\n')
     graph={}    
     for i in range(len(SM*F)):
         liste=[]
@@ -661,7 +746,7 @@ def ODESS(filename,
         changeposneg=False
         counter=counter+1
         foundCycle=False 
-        print(graph)
+        #print(graph)
         while((not foundCycle) & (not noCycle)):
             cycle=find_cycle(graph, str(X[i]), str(X[i]))
             if cycle is None:
@@ -1027,9 +1112,9 @@ def ODESS(filename,
                         liste.append(str(X[j]))
         graph[str(X[i])]=liste
     while(graph!={}):
-        print(graph)
+        #print(graph)
         node=FindNodeToSolve(graph)
-        print(node)        
+        #print(node)        
         index=list(X).index(parse_expr(node))
         #print((SM*F)[index])
         sol=solve((SM*F)[index],parse_expr(node), simplify=True)
@@ -1064,18 +1149,25 @@ def ODESS(filename,
 #### Test Solution  
     print('Testing Steady State...\n')
     NonSteady=False
+    #print(eqOut)
+    #print(ODE)
+    #print(SM*F)
     for i in range(len(ODE)):
         expr=parse_expr(str(ODE[i]))
         for j in range(len(zeroStates)):
             zeroState=zeroStates[j]
             expr=expr.subs(zeroState, 0)
+        #print(len(eqOut))
         for j in range(len(eqOut)):
             ls, rs = eqOut[-(j+1)].split('=')
+            #print(ls)
             ls=parse_expr(ls)
+            #print(rs)
             rs=parse_expr(rs)
             expr=expr.subs(ls, rs)
+            #print(simplify(expr))
         expr=simplify(expr)
-        print(expr)
+        #print(expr)
         if(expr!=0):
             print('\t'+str(ODE[i]))
             print('\t'+str(expr))
@@ -1087,7 +1179,7 @@ def ODESS(filename,
     
 #### Print Equations
     print('I obtained the following equations:\n')
-    if(ausgabe=='M'):
+    if(outputFormat=='M'):
         for state in zeroStates:
             print('\tinit_'+str(state)+'  "0"'+'\n')
         eqOutReturn=[]
@@ -1124,3 +1216,4 @@ def ODESS(filename,
     print('Number of Equations:  '+str(len(eqOut)+len(zeroStates)))
     print('Number of new introduced variables:  '+str(gesnew))
     return(eqOutReturn)
+    
