@@ -18,12 +18,14 @@ as.datalist <- function(x, ...) {
 }
 
 #' @export
-#' @param dataframe data.frame 
+#' @param x data.frame 
 #' @param split.by vector of columns names which yield a unique identifier (conditions). If NULL, all
 #' columns except for the expected standard columns "name", "time", "value" and "sigma" will be
 #' selected.
 #' @rdname as.datalist
-as.datalist.data.frame <- function(dataframe, split.by = NULL) {
+as.datalist.data.frame <- function(x, split.by = NULL, ...) {
+  
+  dataframe <- x
   
   #remaining.names <- setdiff(names(dataframe), split.by)
   all.names <- colnames(dataframe)
@@ -52,11 +54,13 @@ as.datalist.data.frame <- function(dataframe, split.by = NULL) {
 }
 
 #' @export
-#' @param mylist list of data.frames
+#' @param x list of data.frames
 #' @param names optional names vector, otherwise names are taken from \code{mylist}
 #' @rdname as.datalist
-as.datalist.list <- function(mylist, names = NULL) {
+as.datalist.list <- function(x, names = NULL, ...) {
 
+  mylist <- x
+  
   ## Check properties
   if (is.null(names)) mynames <- names(mylist) else mynames <- names
   is.data.frame <- sapply(mylist, class) == "data.frame"
@@ -86,7 +90,8 @@ as.datalist.list <- function(mylist, names = NULL) {
 ## Methods for class datalist ---------------------------------------
 
 #' @export
-print.datalist <- function(datalist, ...) {
+print.datalist <- function(x, ...) {
+  datalist <- x
   for(n in names(datalist)) {
     cat(n, ":\n", sep = "")
     print(datalist[[n]])
@@ -102,7 +107,7 @@ print.datalist <- function(datalist, ...) {
 
 #' Plot a list data points
 #' 
-#' @param data Named list of data.frames as being used in \link{res}, i.e. with columns \code{name}, \code{time}, 
+#' @param x Named list of data.frames as being used in \link{res}, i.e. with columns \code{name}, \code{time}, 
 #' \code{value} and \code{sigma}.
 #' @param ... Further arguments going to \code{subset}. 
 #' @param scales The scales argument of \code{facet_wrap} or \code{facet_grid}, i.e. \code{"free"}, \code{"fixed"}, 
@@ -114,8 +119,9 @@ print.datalist <- function(datalist, ...) {
 #' 
 #' @return A plot object of class \code{ggplot}.
 #' @export
-plot.datalist <- function (data, ..., scales = "free", facet = "wrap") {
+plot.datalist <- function(x, ..., scales = "free", facet = "wrap") {
   
+  data <- x
   plotCombined(prediction = NULL, data = data, ..., scales = scales, facet = facet)
   
 }

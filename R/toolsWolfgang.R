@@ -560,7 +560,7 @@ load.parlist <- function(folder) {
 #' 
 #' @description Obtain a parameter vector from a parameter frame.
 #' 
-#' @param parframe A parameter frame, e.g., the output of
+#' @param x parameter frame, e.g., the output of
 #'   \code{\link{as.parframe}}.
 #' @param index Integer, the parameter vector with the \code{index}-th lowest
 #'   objective value.
@@ -581,7 +581,8 @@ load.parlist <- function(folder) {
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'   
 #' @export
-as.parvec.parframe <- function(parframe, index = 1) {
+as.parvec.parframe <- function(x, index = 1, ...) {
+  parframe <- x
   m_order <- order(parframe$value)
   metanames <- attr(parframe, "metanames")
   best <- as.parvec(unlist(parframe[m_order[index], attr(parframe, "parameters")]))

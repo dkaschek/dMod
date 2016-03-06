@@ -13,7 +13,7 @@ as.prdlist <- function(x, ...) {
 #' @param x list of prediction frames
 #' @param names character vector, the list names, e.g. the names of the experimental
 #' @rdname prdlist
-as.prdlist.list <- function(x = NULL, names = NULL) {
+as.prdlist.list <- function(x = NULL, names = NULL, ...) {
 
   if (is.null(x)) x <- list()
   if (is.null(names)) mynames <- names(x) else mynames <- names 
@@ -49,7 +49,9 @@ c.prdlist <- function(...) {
 
 #' @export
 #' @rdname plotCombined
-plot.prdlist <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
+plot.prdlist <- function(x, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
+  
+  prediction <- x
   
   if (is.null(names(prediction))) names(prediction) <- 1:length(prediction)
   if (!is.null(data) && is.null(names(data))) names(data) <- 1:length(data)
@@ -61,11 +63,13 @@ plot.prdlist <- function(prediction, data = NULL, ..., scales = "free", facet = 
 ## Methods for class prdframe ----------------------------
 #' @export
 #' @rdname plotCombined
-plot.prdframe <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
+plot.prdframe <- function(x, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
   
-  prediction <- list("1" = prediction)
-  if(!is.null(data) && is.data.frame(data))
-    data <- list("1" = data)
+  prediction <- x
+  
+  prediction <- list("C1" = prediction)
+  if (!is.null(data) && is.data.frame(data))
+    data <- list("C1" = data)
   
   
   plotCombined(prediction = prediction, data = data, ..., scales = scales, facet = facet, transform = transform)
@@ -92,8 +96,9 @@ print.prdfn <- function(x, ...) {
 }
 
 #' @export
-summary.prdfn <- function(x, ...) {
+summary.prdfn <- function(object, ...) {
   
+  x <- object
   
   conditions <- attr(x, "conditions")
   parameters <- attr(x, "parameters")
@@ -139,8 +144,9 @@ print.obsfn <- function(x, ...) {
 }
 
 #' @export
-summary.obsn <- function(x, ...) {
+summary.obsn <- function(object, ...) {
   
+  x <- object
   
   conditions <- attr(x, "conditions")
   parameters <- attr(x, "parameters")

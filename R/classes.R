@@ -887,12 +887,6 @@ controls <- function(x, ...) {
   UseMethod("controls", x)
 }
 
-#' @export
-#' @rdname controls
-"controls<-" <- function(x, ..., value) {
-  UseMethod("controls<-", x)
-}
-
 
 
 lscontrols_objfn <- function(x) {
@@ -919,7 +913,7 @@ lscontrols_fn <- function(x, condition = NULL) {
 #' @export
 #' @rdname controls
 #' @param name character, the name of the control
-controls.objfn <- function(x, name = NULL) {
+controls.objfn <- function(x, name = NULL, ...) {
   
   if (is.null(name)) lscontrols_objfn(x) else environment(x)$controls[[name]]
 }
@@ -927,7 +921,7 @@ controls.objfn <- function(x, name = NULL) {
 #' @export
 #' @rdname controls
 #' @param condition character, the condition name
-controls.fn <- function(x, condition = NULL, name = NULL) {
+controls.fn <- function(x, condition = NULL, name = NULL, ...) {
   
   if (is.null(name)) {
     
@@ -943,17 +937,25 @@ controls.fn <- function(x, condition = NULL, name = NULL) {
   
 }
 
+
+#' @export
+#' @rdname controls
+"controls<-" <- function(x, value, ...) {
+  UseMethod("controls<-", x)
+}
+
+
 #' @export
 #' @param value the new value
 #' @rdname controls
-"controls<-.objfn" <- function(x, name, value) {
+"controls<-.objfn" <- function(x, value, name, ...) {
   environment(x)$controls[[name]] <- value
   return(x)
 }
 
 #' @export
 #' @rdname controls
-"controls<-.fn" <- function(x, condition = NULL, name, value) {
+"controls<-.fn" <- function(x, value, condition = NULL, name, ...) {
   mappings <- attr(x, "mappings")
   if (is.null(condition)) y <- mappings[[1]] else y <- mappings[[condition]]
   environment(y)$controls[[name]] <- value

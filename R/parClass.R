@@ -15,7 +15,10 @@ as.parlist <- function(x = NULL) {
 }
 
 #' @export
-summary.parlist <- function(x) {
+summary.parlist <- function(object, ...) {
+  
+  x <- object
+  
   # Statistics
   m_stat <- stat.parlist(x)
   m_error <- sum(m_stat == "error")
@@ -76,7 +79,7 @@ as.parframe <- function(x, ...) {
 #' @rdname as.parframe
 #' @param sort.by character indicating by which colum the returned parameter frame
 #' should be sorted. Defaults to \code{"value"}.
-as.parframe.parlist <- function(x, sort.by = "value") {
+as.parframe.parlist <- function(x, sort.by = "value", ...) {
   m_stat <- stat.parlist(x)
   m_metanames <- c("index", "value", "converged", "iterations")
   m_idx <- which("error" != m_stat)
@@ -144,12 +147,14 @@ as.parvec <- function(x, ...) {
 
 
 #' Parameter vector
-#' @param p numeric or named numeric, the parameter values
+#' @param x numeric or named numeric, the parameter values
 #' @param names optional character vector, the parameter names. Otherwise, names
 #' are taken from \code{p}.
 #' @rdname parvec
 #' @export
-as.parvec.numeric <- function(p, names = NULL, deriv = NULL) {
+as.parvec.numeric <- function(x, names = NULL, deriv = NULL, ...) {
+  
+  p <- x
   
   out <- as.numeric(p)
   if (is.null(names)) names(out) <- names(p) else names(out) <- names
@@ -169,10 +174,12 @@ as.parvec.numeric <- function(p, names = NULL, deriv = NULL) {
 #' 
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 
-#' @param par object of class \code{parvec}
+#' @param x object of class \code{parvec}
 #' @param ... not used yet.
 #' @export
-print.parvec <- function(par, ...) {
+print.parvec <- function(x, ...) {
+  
+  par <- x
   
   m_parWidth <- max(nchar(names(par)))
   m_names <- names(par)
@@ -283,7 +290,9 @@ print.parfn <- function(x, ...) {
 }
 
 #' @export
-summary.parfn <- function(x, ...) {
+summary.parfn <- function(object, ...) {
+  
+  x <- object
   
   conditions <- attr(x, "conditions")
   parameters <- attr(x, "parameters")

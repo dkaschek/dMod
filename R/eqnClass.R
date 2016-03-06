@@ -15,7 +15,7 @@
 #' @return Object of class \link{eqnlist}
 #' @rdname eqnlist
 #' @export
-as.eqnlist <- function(data, volumes, ...) {
+as.eqnlist <- function(data, volumes) {
   UseMethod("as.eqnlist", data)
 }
 
@@ -166,10 +166,7 @@ getReactions <- function(eqnlist) {
   
 }
 
-#' @export
-addReaction <- function(x, ...) {
-  UseMethod("addReaction", x)
-}
+
 #' Add reaction to reaction table
 #' 
 #' @param eqnlist equation list, see \link{eqnlist}
@@ -187,7 +184,7 @@ addReaction <- function(x, ...) {
 #' }
 #' @export
 #' @rdname addReaction
-addReaction.eqnlist <- function(eqnlist, from, to, rate, description = names(rate)) {
+addReaction <- function(eqnlist, from, to, rate, description = names(rate)) {
   
   volumes <- eqnlist$volumes
   
@@ -301,12 +298,14 @@ getFluxes <- function(eqnlist) {
 
 #' Coerce equation list into a data frame
 #' 
-#' @param eqnlist object of class \link{eqnlist}
+#' @param x object of class \link{eqnlist}
 #' @return a \code{data.frame} with columns "Description" (character), 
 #' "Rate" (character), and one column per ODE state with the state names. 
 #' The state columns correspond to the stoichiometric matrix.
 #' @export
-as.data.frame.eqnlist <- function(eqnlist) {
+as.data.frame.eqnlist <- function(x, ...) {
+  
+  eqnlist <- x
   
   if(is.null(eqnlist$smatrix)) return()
   
@@ -358,7 +357,9 @@ write.eqnlist <- function(eqnlist, ...) {
 #' subset(f, grepl("act", Rate))
 #' @export subset.eqnlist
 #' @export
-subset.eqnlist <- function(eqnlist, ...) {
+subset.eqnlist <- function(x, ...) {
+  
+  eqnlist <- x
   
   # Do selection on data.frame
   data <- getReactions(eqnlist)
@@ -398,12 +399,14 @@ subset.eqnlist <- function(eqnlist, ...) {
 
 #' Print or pander equation list
 #' 
-#' @param eqnlist object of class \link{eqnlist}
+#' @param x object of class \link{eqnlist}
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' @author Daniel Kaschek, \email{daniel.kaschek@@physik.uni-freiburg.de}
 #' 
 #' @export
-print.eqnlist <- function(eqnlist, pander = FALSE, ...) {
+print.eqnlist <- function(x, pander = FALSE, ...) {
+  
+  eqnlist <- x
   
   # Entities to print and pander
   cq <- conservedQuantities(eqnlist$smatrix)
@@ -415,7 +418,6 @@ print.eqnlist <- function(eqnlist, pander = FALSE, ...) {
     cat("\n")
     print(r)
   } else {
-    require(pander)
     pander::panderOptions("table.alignment.default", "left")
     pander::panderOptions("table.split.table", Inf)
     pander::panderOptions("table.split.cells", Inf)
@@ -446,13 +448,15 @@ as.eqnvec <- function(x, ...) {
 
 #' Generate equation vector object
 #'
-#' @param equations (named) character of symbolic mathematical expressions,
+#' @param x (named) character of symbolic mathematical expressions,
 #' the right-hand sides of the equations
 #' @param names character, the left-hand sides of the equation
 #' @return object of class \code{eqnvec}, basically a named character.
 #' @rdname eqnvec
 #' @export
-as.eqnvec.character <- function(equations = NULL, names = NULL) {
+as.eqnvec.character <- function(x = NULL, names = NULL, ...) {
+  
+  equations <- x
   
   if (is.null(equations)) return(NULL)
   
@@ -475,11 +479,13 @@ as.eqnvec.character <- function(equations = NULL, names = NULL) {
 #' 
 #' @description An equation list stores an ODE in a list format. The function
 #' translates this list into the right-hand sides of the ODE.
-#' @param eqnlist equation list, see \link{eqnlist}
+#' @param x equation list, see \link{eqnlist}
 #' @return An object of class \link{eqnvec}. 
 #' @rdname eqnvec
 #' @export
-as.eqnvec.eqnlist <- function(eqnlist) {
+as.eqnvec.eqnlist <- function(x, ...) {
+  
+  eqnlist <- x
   
   terme <- getFluxes(eqnlist)
   if(is.null(terme)) return()
@@ -524,11 +530,13 @@ is.eqnvec <- function(x) {
 
 #' Encode equation vector in format with sufficient spaces
 #' 
-#' @param eqnvec object of class \link{eqnvec}. Alternatively, a named parsable character vector.
+#' @param x object of class \link{eqnvec}. Alternatively, a named parsable character vector.
 #' @return named character
 #' @export format.eqnvec
 #' @export
-format.eqnvec <- function(eqnvec) {
+format.eqnvec <- function(x, ...) {
+  
+  eqnvec <- x
   
   eqns <- sapply(eqnvec, function(eqn) {
     parser.out <- getParseData(parse(text = eqn, keep.source = TRUE))
@@ -539,7 +547,7 @@ format.eqnvec <- function(eqnvec) {
   })
   
   patterns <- c("+", "-", "·", "/")
-  for(p in patterns) eqns <- gsub(p, paste0(" ", p, " "), eqns, fixed = TRUE)
+  for (p in patterns) eqns <- gsub(p, paste0(" ", p, " "), eqns, fixed = TRUE)
   
   return(eqns)
     
@@ -548,7 +556,7 @@ format.eqnvec <- function(eqnvec) {
 
 #' Print equation vector
 #' 
-#' @param eqnvec object of class \link{eqnvec}.
+#' @param x object of class \link{eqnvec}.
 #' @param width numeric, width of the print-out
 #' @param pander logical, use pander for output (used with R markdown)
 #' @param ... not used right now
@@ -556,8 +564,9 @@ format.eqnvec <- function(eqnvec) {
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 
 #' @export
-print.eqnvec <- function(eqnvec, width = 140, pander = FALSE, ...) {
-  require(stringr)
+print.eqnvec <- function(x, width = 140, pander = FALSE, ...) {
+  
+  eqnvec <- x
 
   # Stuff to print
   m_odr <- "Idx"
@@ -582,20 +591,20 @@ print.eqnvec <- function(eqnvec, width = 140, pander = FALSE, ...) {
   # Iterate over species
   m_msgEqn <- do.call(c, mapply(function(eqn, spec, odr) {
     return(paste0(
-      str_pad(string = odr, side = "left", width = m_odrWidth),
+      stringr::str_pad(string = odr, side = "left", width = m_odrWidth),
       m_sep,
-      str_pad(string = spec, side = "left", width = m_speciesWidth),
+      stringr::str_pad(string = spec, side = "left", width = m_speciesWidth),
       m_rel,
-      str_wrap(string = gsub(x = eqn, pattern = " ", replacement = "", fixed = TRUE),
+      stringr::str_wrap(string = gsub(x = eqn, pattern = " ", replacement = "", fixed = TRUE),
                width = m_eqnWidth, exdent = m_frontWidth)
     ))
   }, eqn = eqnvec[m_eqnOrder], spec = m_species[m_eqnOrder], odr = m_eqnOrder, SIMPLIFY = FALSE))
   
   # Print to command line or to pander
   if (!pander) {
-    cat(paste0(str_pad(string = m_odr, side = "left", width = m_odrWidth),
+    cat(paste0(stringr::str_pad(string = m_odr, side = "left", width = m_odrWidth),
                m_sep,
-               str_pad(string = "Inner", side = "left", width = m_speciesWidth),
+               stringr::str_pad(string = "Inner", side = "left", width = m_speciesWidth),
                m_rel,
                "Outer\n"))
     cat(m_msgEqn, sep = "\n")
@@ -622,7 +631,10 @@ print.eqnvec <- function(eqnvec, width = 140, pander = FALSE, ...) {
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 
 #' @export
-summary.eqnvec <- function(eqnvec) {
+summary.eqnvec <- function(object, ...) {
+  
+  eqn <- object
+  
   m_msg <- mapply(function(name, eqn) {
     m_symb <- paste0(getSymbols(eqn), sep = ", ", collapse = "")
     m_msg <- paste0(name, " = f( ", m_symb, ")")

@@ -1,6 +1,6 @@
 #' Plot a parameter list.
 #' 
-#' @param pl fitlist obtained from mstrust
+#' @param x fitlist obtained from mstrust
 #' @param path print path of parameters from initials to convergence. For this
 #'   option to be TRUE \code{\link{mstrust}} must have had the option
 #'   \option{blather}.
@@ -9,7 +9,10 @@
 #' @author Malenka Mader, \email{Malenka.Mader@@fdm.uni-freiburg.de}
 #'   
 #' @export
-plot.parlist <- function(pl, path = FALSE) {
+plot.parlist <- function(x, path = FALSE, ...) {
+  
+  pl <- x
+  
   index <- do.call(rbind, lapply(pl, function(l) l$converged))
   fl <- pl[index]
   if (!path) {

@@ -271,11 +271,7 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
 #' times <- seq(0, 2*pi, 0.01)
 #' pouter <- attr(x, "pouter")
 #' prediction <- x(times, pouter)
-#' plotPrediction(list(prediction = prediction))
-#' 
-#' # Evaluate the sensitivities at these time points
-#' sensitivities <- attr(prediction, "deriv")
-#' plotPrediction(list(sens = sensitivities))
+#' plot(prediction)
 #' 
 #' @export
 Xd <- function(data, condition = NULL) {
