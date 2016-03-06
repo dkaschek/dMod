@@ -224,16 +224,20 @@ print.parvec <- function(par, ...) {
 
 
 #' @export
-"[.parvec" <- function(x, ...) {
+"[.parvec" <- function(x, ..., drop = TRUE) {
   out <- unclass(x)[...]
   deriv <- submatrix(attr(x, "deriv"), row = ...)
+  if (drop) {
+    empty.cols <- apply(deriv, 2, function(v) all(v == 0))
+    deriv <- submatrix(deriv, cols = !empty.cols)
+  }
   as.parvec(out, deriv = deriv)
 }
 
 #' @export
 c.parvec <- function(...) {
   
-  mylist <- lapply(list(...), as.parvec)
+  mylist <- list(...) #lapply(list(...), as.parvec)
   
   n <- unlist(lapply(mylist, function(l) names(l)))
   v <- unlist(lapply(mylist, function(l) as.numeric(l)))
