@@ -151,58 +151,6 @@ strelide <- function(string, width, where = "right", force = FALSE) {
 
 
 
-#' Select parameter values with lowest Chi^2 among profiles.
-#'
-#' @param prf A profile as returned from \link[dMod]{profile}.
-#' @param context If TRUE, the chi^2 and other context of the profile is
-#'                returned. This parameter defaults to FALSE in which case the
-#'                output can be used as outer parameters directly.
-#'
-#' @return Parameter values with lowest chi^2 w/ or w/o profile context. If all
-#'         profiles are invalid, NULL is returned.
-#'
-#' @details
-#' On profiling a model, parameter values yielding a lower chi^2 than the one of
-#' the fit providing the optimal values for the profiles might be encountered.
-#' This function extracts the set of parameter values possessing the lowest
-#' chi^2 among all profiles. Profiles which are invalid due to e.g., integration
-#' problem on calculating them, are ignored. If all profiles are invalid, NULL
-#' is returned.
-#'
-#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
-#'
-
-## Redundant (wird von as.parvec erledigt)
-plSelectMin <- function(prf, context = FALSE) {
-
-  # Remove invalid profiles.
-  apt <- sapply(prf, class) == "matrix"
-  if (!any(apt)) {
-    return(NULL)
-  } else {
-    prf <- prf[apt]
-  }
-
-  # Minium chi^2 parameter values sets per profile.
-  chi2MinAllProfiles <- sapply(prf, function(species) {
-    
-    col.select <- c("value", attr(species, "parameters"))
-    row.select <- which.min(species[, "value"])
-    
-    return(species[row.select, col.select])
-  })
-
-  # Minimum chi^2 parameter values set accross all profiles.
-  chi2MinBest <- chi2MinAllProfiles[, which.min(chi2MinAllProfiles[1, ])]
-
-  if (context) {
-    return(chi2MinBest)
-  } else {
-    return(chi2MinBest[-1])
-  }
-
-}
-
 
 #' Non-Linear Optimization, multi start
 #' 
@@ -943,6 +891,10 @@ c.parlist <- function(...) {
 
 
 
+#' Check which Python versions are installed on the system
+#' 
+#' @param version NULL or character. Check for specific version
+#' @return Character vector with the python versions and where they are located.
 #' @export
 python.version.sys <- function(version = NULL) {
   
@@ -981,11 +933,13 @@ python.version.sys <- function(version = NULL) {
 }
 
 
-
+#' Get the Python version to which rPython is linked
+#' 
+#' @return The Python version and additional information
 #' @export
 python.version.rpython <- function() {
-  python.exec(c("def ver():", "\timport sys; return list(sys.version_info)"))
-  m_info <- as.data.frame(python.call("ver"))
+  rPython::python.exec(c("def ver():", "\timport sys; return list(sys.version_info)"))
+  m_info <- as.data.frame(rPython::python.call("ver"))
   names(m_info) <- c("major", "minor", "micro", "releselevel", "serial")
   
   m_version <- paste0(m_info[[1]], ".", m_info[[2]])
@@ -995,7 +949,16 @@ python.version.rpython <- function() {
 }
 
 
-
+#' Check if rPython comes with the correct Python version
+#' 
+#' @description rPython is liked against a certain Python version found on the system.
+#' If Python code called from R requires a specific Python version, the rPython package
+#' needs to be reinstalled. This functions helps to do this in one line.
+#' 
+#' @param version character indicating the requested Python version
+#' 
+#' @return TRUE if rPython is linked against the requested version. Otherwise, the user
+#' is asked if rPython should be reinstalled with the correctly linked Python version.
 #' @export
 python.version.request <- function(version) {
   
