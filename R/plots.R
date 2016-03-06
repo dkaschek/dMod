@@ -47,8 +47,12 @@ coordTransform <- function(data, transformations) {
 
 
 
+#' Standard plotting theme of dMod
+#' 
+#' @param base_size numeric, font-size
+#' @param base_family character, font-name
 #' @export
-theme_dMod <- function (base_size = 12, base_family = "") {
+theme_dMod <- function(base_size = 12, base_family = "") {
   colors <- list(
     medium = c(gray = '#737373', red = '#F15A60', green = '#7AC36A', blue = '#5A9BD4', orange = '#FAA75B', purple = '#9E67AB', maroon = '#CE7058', magenta = '#D77FB4'),
     dark = c(black = '#010202', red = '#EE2E2F', green = '#008C48', blue = '#185AA9', orange = '#F47D23', purple = '#662C91', maroon = '#A21D21', magenta = '#B43894'),
@@ -84,7 +88,6 @@ ggplot <- function(...) ggplot2::ggplot(...) + theme_dMod()
 #'  
 #' 
 #' @return A plot object of class \code{ggplot}.
-#' @export
 #' @import ggplot2
 plotPrediction <- function(prediction, ..., scales = "free", facet = "wrap", transform = NULL) {
   
@@ -120,8 +123,7 @@ plotPrediction <- function(prediction, ..., scales = "free", facet = "wrap", tra
 #'  
 #' 
 #' @return A plot object of class \code{ggplot}.
-#' @export
-plotCombined <- function (prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
+plotCombined <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
   
   mynames <- c("time", "name", "value", "sigma", "condition")
   
@@ -173,8 +175,7 @@ plotCombined <- function (prediction, data = NULL, ..., scales = "free", facet =
 #'  
 #' 
 #' @return A plot object of class \code{ggplot}.
-#' @export
-plotData <- function (data, ..., scales = "free", facet = "wrap", transform = NULL) {
+plotData <- function(data, ..., scales = "free", facet = "wrap", transform = NULL) {
   
   data <- subset(lbind(data), ...)
   
@@ -607,14 +608,20 @@ plotObjective <- function(out) {
   
 }
 
+#' Plotting objective values of a collection of fits
+#' 
+#' @param x data.frame with columns "value", "converged" and "iterations", e.g. 
+#' a \link{parframe}.
 #' @export
-plotValues <- function(pars, values = "value") {
+plotValues <- function(x) {
   
+  pars <- x
+  values <- "value"
   mycolnames <- colnames(pars)
   mycolnames[mycolnames == values] <- "value"
   colnames(pars) <- mycolnames
  
-  pars <- cbind(index = 1:nrow(pars), pars)
+  pars <- cbind(index = 1:nrow(pars), pars[order(pars[, "value"]),])
    
   ggplot(pars, aes(x = index, y = value, pch = converged, color = iterations)) + geom_point() + 
     xlab("index") + ylab("value")

@@ -1,6 +1,3 @@
-## Todo:  Decide on list of attributes that each prdfn should carry
-
-
 
 ## Methods for class prdlist ------------------------------------------------
 

@@ -74,7 +74,6 @@ P1D <- function(trafo, parameters = NULL, condition = NULL) {
   
 }
 
-#' @export
 P_log <- function(parameters, trafopars = parameters, base = exp(1), condition = NULL) {
   
   trafo <- structure(paste0("exp(log(", base, ") * ", trafopars, ")"), names = trafopars)
@@ -82,7 +81,6 @@ P_log <- function(parameters, trafopars = parameters, base = exp(1), condition =
   
 }
 
-#' @export
 P_box <- function(parameters, trafopars = parameters, lower = 0, upper = 1e6, condition = NULL, ...) {
   
   if (length(lower) == 1) lower <- structure(rep(lower, length(trafopars)), names = trafopars)
@@ -127,37 +125,6 @@ P <- function(trafo = NULL, parameters=NULL, condition = NULL, keep.root = TRUE,
          explicit = Pexpl(trafo = trafo, parameters = parameters, condition = condition, compile = compile, modelname = modelname, verbose = verbose),
          implicit = Pimpl(trafo = trafo, parameters = parameters, keep.root = keep.root, condition = condition, compile = compile, modelname = modelname, verbose = verbose))
   
-}
-
-#' The identity parameter transformation
-#' @param condition character, the condition for which the transformation is generated
-#' @export
-#' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)} returning \code{p}
-#' with unit matrix as derivative or derivative inherited from \code{p}.
-P0 <- function(condition = NULL) {
-  
-  myfn <- function(p, fixed=NULL, deriv = TRUE) {
-    
-    # Inherit from p
-    dP <- attr(p, "deriv", exact = TRUE)
-    
-    
-    myderiv <- NULL
-    if (deriv) {
-      myderiv <- diag(x = 1, nrow = length(p), ncol = length(p))
-      rownames(myderiv) <- colnames(myderiv) <- names(p)
-      if (!is.null(dP)) myderiv <- myderiv %*% submatrix(dP, rows = colnames(myderiv))
-    }
-    
-    as.parvec(p, deriv = myderiv)
-    
-  }
-  
-  attr(myfn, "equations") <- NULL
-  attr(myfn, "parameters") <- NULL
-  
-  parfn(myfn, NULL, condition)
-    
 }
 
 #' Parameter transformation

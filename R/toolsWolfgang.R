@@ -171,8 +171,8 @@ strelide <- function(string, width, where = "right", force = FALSE) {
 #'
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'
-#' @export
 
+## Redundant (wird von as.parvec erledigt)
 plSelectMin <- function(prf, context = FALSE) {
 
   # Remove invalid profiles.
