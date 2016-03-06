@@ -548,12 +548,15 @@ format.eqnvec <- function(eqnvec) {
 
 #' Print equation vector
 #' 
-#' @param object of class \link{eqnvec}.
+#' @param eqnvec object of class \link{eqnvec}.
+#' @param width numeric, width of the print-out
+#' @param pander logical, use pander for output (used with R markdown)
+#' @param ... not used right now
 #' 
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 
 #' @export
-print.eqnvec <- function(eqnvec, width = 140, ...) {
+print.eqnvec <- function(eqnvec, width = 140, pander = FALSE, ...) {
   require(stringr)
 
   # Stuff to print
@@ -588,13 +591,26 @@ print.eqnvec <- function(eqnvec, width = 140, ...) {
     ))
   }, eqn = eqnvec[m_eqnOrder], spec = m_species[m_eqnOrder], odr = m_eqnOrder, SIMPLIFY = FALSE))
   
-  # Print to command line
-  cat(paste0(str_pad(string = m_odr, side = "left", width = m_odrWidth),
-             m_sep,
-             str_pad(string = "Inner", side = "left", width = m_speciesWidth),
-             m_rel,
-             "Outer\n"))
-  cat(m_msgEqn, sep = "\n")
+  # Print to command line or to pander
+  if (!pander) {
+    cat(paste0(str_pad(string = m_odr, side = "left", width = m_odrWidth),
+               m_sep,
+               str_pad(string = "Inner", side = "left", width = m_speciesWidth),
+               m_rel,
+               "Outer\n"))
+    cat(m_msgEqn, sep = "\n")
+  } else {
+    pander::panderOptions("table.alignment.default", "left")
+    pander::panderOptions("table.split.table", Inf)
+    pander::panderOptions("table.split.cells", Inf)
+    out <- as.data.frame(unclass(eqnvec), stringsAsFactors = FALSE)
+    colnames(out) <- "" #  as.character(substitute(eqnvec))
+    out[, 1] <- format.eqnvec(out[, 1])
+    pander::pander(out)
+    
+  }
+  
+
 }
 
 
@@ -612,24 +628,6 @@ summary.eqnvec <- function(eqnvec) {
     m_msg <- paste0(name, " = f( ", m_symb, ")")
     }, name = names(eqnvec), eqn = eqnvec)
   cat(m_msg, sep = "\n")
-}
-
-
-#' Pander on equation vector
-#'
-#' @param object of class \link{eqnvec}. 
-#' @return pander object
-#' @export
-pander.eqnvec <- function(eqnvec) {
-  
-  pander::panderOptions("table.alignment.default", "left")
-  pander::panderOptions("table.split.table", Inf)
-  pander::panderOptions("table.split.cells", Inf)
-  out <- as.data.frame(unclass(eqnvec), stringsAsFactors = FALSE)
-  colnames(out) <- "" #  as.character(substitute(eqnvec))
-  out[, 1] <- format.eqnvec(out[, 1])
-  pander::pander(out)
-  
 }
 
 
@@ -742,9 +740,6 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
   # Get symbols to be substituted by x[] and y[]
   outnames <- names(x)
   innames <- variables
-  
-  print(innames)
-  print(parameters)
   
   # Function to check arguments
   checkArguments <- function(M, p) {
@@ -896,7 +891,8 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
   outfn <- myRfun
   
   # Convenient function to be called with argument list
-  if (convenient) outfn <- function(...) {
+  if (convenient) outfn <- function(..., attach.input = FALSE) {
+    
     
     arglist <- list(...)
     if (!length(innames) == 0 & !is.null(innames)) 
@@ -905,7 +901,7 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
     if (!length(parameters) == 0 & !is.null(parameters))
       p <- do.call(c, arglist[parameters])
     
-    myRfun(M, p)
+    myRfun(M, p, attach.input)
     
   }
   
