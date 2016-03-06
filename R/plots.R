@@ -89,6 +89,7 @@ ggplot <- function(...) ggplot2::ggplot(...) + theme_dMod()
 #' 
 #' @return A plot object of class \code{ggplot}.
 #' @import ggplot2
+#' @export
 plotPrediction <- function(prediction, ..., scales = "free", facet = "wrap", transform = NULL) {
   
   prediction <- subset(wide2long.list(prediction), ...)
@@ -123,6 +124,7 @@ plotPrediction <- function(prediction, ..., scales = "free", facet = "wrap", tra
 #'  
 #' 
 #' @return A plot object of class \code{ggplot}.
+#' @export
 plotCombined <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
   
   mynames <- c("time", "name", "value", "sigma", "condition")
@@ -175,6 +177,7 @@ plotCombined <- function(prediction, data = NULL, ..., scales = "free", facet = 
 #'  
 #' 
 #' @return A plot object of class \code{ggplot}.
+#' @export
 plotData <- function(data, ..., scales = "free", facet = "wrap", transform = NULL) {
   
   data <- subset(lbind(data), ...)
