@@ -28,7 +28,7 @@ as.datalist.data.frame <- function(dataframe, split.by = NULL) {
   #remaining.names <- setdiff(names(dataframe), split.by)
   all.names <- colnames(dataframe)
   standard.names <- c("name", "time", "value", "sigma")
-  if (is.null(split.by)) split.by <- setdiff(all.name, standard.names)
+  if (is.null(split.by)) split.by <- setdiff(all.names, standard.names)
   
   
   
