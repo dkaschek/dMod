@@ -176,24 +176,3 @@ summary.obsn <- function(object, ...) {
 }
 
 
-# print.prdfn <- function(x) {
-#   
-#   myargs <- args(x)
-#   returns <- tail(body(x), 1)
-#   
-#   no.interest <- c("srcref", "class")
-#   attribs <- attributes(x)
-#   attribs <- attribs[setdiff(names(attribs), no.interest)]
-#   
-#   cat("Prediction function:\n")
-#   print(myargs)
-#   cat("\nFunction returns:\n")
-#   print(returns)
-#   cat("\nAttributes of the prediction function:\n")
-#   for(n in names(attribs)) {
-#     cat("\t", n, "\n")
-#     cat("\t", attribs[[n]], "\n")
-#   }
-#   cat("\n")
-#   
-# }

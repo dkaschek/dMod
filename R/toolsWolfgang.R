@@ -433,96 +433,6 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
 
 
 
-# #' Discover promissing regions in parameter space
-# #'
-# #' @description
-# #' Use consecutive multi start (ms) fits to arrive in a well-behaved region in
-# #' parameter space.
-# #'
-# #' @param center Parameter values for the first ms fit.
-# #' @param spread Vector giving the spread of initial parameters for consecutive
-# #'        ms fits. The length of <spread> defines how many consecutive ms fits
-# #'        are run.
-# #' @param fits Number of fits carried out per ms fit. If <fits> is a integer the
-# #'        same number of fits are used for all ms fits. If a different number of
-# #'        fits are desired for each ms fit, <fits> must be a vector of the same
-# #'        length as <spread>.
-# #' @param safety If a non-empty string is given, the fitlist of each mstrust is
-# #'        written to a file <safety> with the number of the current run
-# #'        appended.
-# #' @param ... Parameters handed to the mulit start optimizer. Right now
-# #'        \code{\link{mstrust}} is the only option available.
-# #'
-# #' @details
-# #' It might be desirable to start a multi start (ms) fit in a region in
-# #' parameter space yielding reasonable fit results. If such a region is unknown,
-# #' it can be hoped, that the best fit of a ms fit with a large spread of inital
-# #' values identifies such a region. In order to explore the region in greater
-# #' detail, a consecutive ms fit about the best fit can be used. The procedure of
-# #' consecutive ms-fits about the best fit of the last can be iterated. Thus, it
-# #' is expected to arrive in a region in parameter space which gives reasonable
-# #' fits.
-# #'
-# #' In case any of the ms fits return without a single valid result, the
-# #' algorithm stops, and the fitlist of the last ms fit is returned. Moreover, a
-# #' warning is issued. In case the first fit failes in such a way, NULL is
-# #' returned.
-# #'
-# #' @return fitlist A data frame of the fits of the last multi start fit.
-# #'
-# #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
-# #'
-# #' @export
-# msnarrow <- function(center, spread, fits = 100, safety = "", ...) {
-#   nnarrow <- length(spread)
-# 
-#   # Parse arguments
-#   if (length(fits) == 1) {
-#     fits <- rep(fits, nnarrow)
-#   } else if (length(fits) != nnarrow) {
-#     stop("<fits> is a vector of different length than <spread>.")
-#   }
-# 
-#   # Assemble inital parameter list
-#   trustargs <- list(...)
-#   trustargs$center <- center
-# 
-#   # Fitting: run mstrust for all values in spread.
-#   for (ms in 1:length(spread)) {
-#     cat("Narrowing step ", ms, " of ", nnarrow, ", ", fits[ms], " fits to run.\n", sep = "")
-# 
-#     trustargs$sd <- spread[ms]
-#     trustargs$fits <- fits[ms]
-#     trustargs$narrowing <- c(ms, nnarrow)
-#     fitlist <- do.call(mstrust, trustargs)
-# 
-#     if (nchar(safety) > 0) {
-#       outname <- paste0(safety, ms, ".rda")
-#       save(fitlist, file = outname)
-#     }
-# 
-#     trustargs$center <- msbest(fitlist)
-#     
-#     if (ms == 1) {
-#       fitlistAll <- fitlist
-#     } else {
-#       fitlistAll <- rbind.fitlist(fitlistAll, fitlist)
-#     }
-# 
-#     if (is.null(trustargs$center)) {
-#       cat("Narrowing aborted at run", ms)
-#       if (ms == 1) {
-#         return(NULL)
-#       } else {
-#         return(fitlistAll)
-#       }
-#     }
-#   }
-# 
-#   return(fitlistAll)
-# }
-# 
-
 
 #' Construct fitlist from temporary files.
 #'
@@ -765,7 +675,7 @@ reduceReplicates <- function(file, select = "Condition", datatrans = NULL) {
 #' @description Fit an error model to reduced replicate data, see
 #'   \code{\link{reduceReplicates}}.
 #'
-#' @param data Reduced replicate data, see \code{\link{reduceData}}.
+#' @param data Reduced replicate data, see \link{reduceReplicates}.
 #' @param factors \option{data} is pooled with respect to the columns named
 #'   here, see Details.
 #' @param errorModel Character vector defining the error model. Use \kbd{x} to
@@ -773,7 +683,7 @@ reduceReplicates <- function(file, select = "Condition", datatrans = NULL) {
 #' @param par Inital values for the parameters of the error model.
 #' @param plotting If TRUE, a plot of the pooled variance together with the fit
 #'   of the error model is shown.
-#' @param ... Parameters handed to the optimizer \code{\link{optim}}.
+#' @param ... Parameters handed to the optimizer \link[trust]{trust}.
 #'
 #' @details The variance estimator using \eqn{n-1} data points is \eqn{chi^2}
 #'   distributed with \eqn{n-1} degrees of freedom. Given replicates for
