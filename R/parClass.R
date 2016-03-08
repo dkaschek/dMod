@@ -233,7 +233,7 @@ print.parvec <- function(x, ...) {
 
 
 #' @export
-"[.parvec" <- function(x, ..., drop = TRUE) {
+"[.parvec" <- function(x, ..., drop = FALSE) {
   out <- unclass(x)[...]
   deriv <- submatrix(attr(x, "deriv"), row = ...)
   if (drop) {

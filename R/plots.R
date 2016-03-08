@@ -624,7 +624,7 @@ plotValues <- function(x) {
   mycolnames[mycolnames == values] <- "value"
   colnames(pars) <- mycolnames
  
-  pars <- cbind(index = 1:nrow(pars), pars[order(pars[, "value"]),])
+  pars <- cbind(index = 1:nrow(pars), pars[order(pars$value),])
    
   ggplot(pars, aes(x = index, y = value, pch = converged, color = iterations)) + geom_point() + 
     xlab("index") + ylab("value")

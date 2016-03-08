@@ -520,13 +520,13 @@ wrss <- function(nout) {
   grad <- NULL
   hessian <- NULL
   
-  if(!is.null(attr(nout, "deriv"))) {
+  if (!is.null(attr(nout, "deriv"))) {
     nout$sigma[is.na(nout$sigma)] <- 1 #replace by neutral element
   
-    sens <- as.matrix(attr(nout, "deriv")[,-(1:2)])
-    grad <- as.vector(2*matrix(nout$residual/nout$sigma^2, nrow=1)%*%sens)
+    sens <- as.matrix(attr(nout, "deriv")[, -(1:2), drop = FALSE])
+    grad <- as.vector(2*matrix(nout$residual/nout$sigma^2, nrow = 1) %*% sens)
     names(grad) <- colnames(sens)
-    hessian <- 2*t(sens/nout$sigma)%*%(sens/nout$sigma)
+    hessian <- 2*t(sens/nout$sigma) %*% (sens/nout$sigma)
     
     
   }
