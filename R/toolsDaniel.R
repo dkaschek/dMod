@@ -59,7 +59,7 @@ detectFreeCores <- function(machine = NULL) {
 #' from the working directory and the remote machines.
 #' @export
 #' @examples
-#' 
+#' \dontrun{
 #' out_job1 <- runbg({
 #'          M <- matrix(rnorm(1e2), 10, 10)
 #'          solve(M)
@@ -69,6 +69,7 @@ detectFreeCores <- function(machine = NULL) {
 #' result <- .runbgOutput
 #' print(result)
 #' out_job1$purge()
+#' }
 runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.GlobalEnv), compile = FALSE, wait = FALSE) {
   
   

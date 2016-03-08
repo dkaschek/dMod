@@ -5,8 +5,8 @@
 #' @param classlist List of object classes to print.
 #' @param envir Alternative environment to search for objects.
 #' @examples 
-#' lsdMod()
 #' \dontrun{
+#' lsdMod()
 #' lsdMod(classlist = "prdfn", envir = environment(obj)) 
 #' }
 #' 
@@ -129,9 +129,9 @@ getSigmaFromProfileList <- function(proflist, alpha=0.32) {
 #' @description generalisation of \link{intersect} to a list of vectors.
 #' @param list contains a set of vectors.
 #' @param byNames if set TRUE common names are checked instead of common values (default: TRUE) 
-#' @examples testList <-list(c(a=1,b=5,c=3,e=5), c(d=3,b=1,q=1,c=5,i=2)) 
-#' intersectList(testList,FALSE) 
-#' intersectList(testList,TRUE)
+# #' @examples testList <-list(c(a=1,b=5,c=3,e=5), c(d=3,b=1,q=1,c=5,i=2)) 
+# #' intersectList(testList,FALSE) 
+# #' intersectList(testList,TRUE)
 intersectList <- function(list, byNames=TRUE){
   inter <- list[[1]]
   if(byNames)

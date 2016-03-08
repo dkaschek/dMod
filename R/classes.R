@@ -940,7 +940,7 @@ controls.fn <- function(x, condition = NULL, name = NULL, ...) {
 
 #' @export
 #' @rdname controls
-"controls<-" <- function(x, value, ...) {
+"controls<-" <- function(x, ..., value) {
   UseMethod("controls<-", x)
 }
 
@@ -948,14 +948,14 @@ controls.fn <- function(x, condition = NULL, name = NULL, ...) {
 #' @export
 #' @param value the new value
 #' @rdname controls
-"controls<-.objfn" <- function(x, value, name, ...) {
+"controls<-.objfn" <- function(x, name, ..., value) {
   environment(x)$controls[[name]] <- value
   return(x)
 }
 
 #' @export
 #' @rdname controls
-"controls<-.fn" <- function(x, value, condition = NULL, name, ...) {
+"controls<-.fn" <- function(x, condition = NULL, name, ..., value) {
   mappings <- attr(x, "mappings")
   if (is.null(condition)) y <- mappings[[1]] else y <- mappings[[condition]]
   environment(y)$controls[[name]] <- value

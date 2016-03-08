@@ -650,12 +650,6 @@ summary.eqnvec <- function(object, ...) {
 #' @param eqnlist equation list
 #' @details Observables are translated into an ODE
 #' @return An object of class \link{eqnvec}
-#' @examples 
-#' reactions <- data.frame(Description = c("Activation", "Deactivation"), 
-#'                         Rate = c("act*A", "deact*pA"), A=c(-1,1), pA=c(1, -1))
-#' f <- generateEquations(reactions)
-#' myobs <- c(tA = "s1*(pA + A)", dA = "s2*(pA-A)")
-#' f <- addObservable(myobs, f)
 #' @export
 dot <- function(observable, eqnlist) {
   UseMethod("dot", observable)

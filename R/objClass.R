@@ -14,7 +14,7 @@
 #' hessian (\code{matrix(0, length(p), length(p))}) of class \code{obj}.
 #' @examples
 #' p <- c(A = 1, B = 2)
-#' as.obj(p)
+#' as.objlist(p)
 #' @export
 as.objlist <- function(p) {
   
