@@ -533,7 +533,7 @@ format.eqnvec <- function(eqnvec) {
   eqns <- sapply(eqnvec, function(eqn) {
     parser.out <- getParseData(parse(text = eqn, keep.source = TRUE))
     parser.out <- subset(parser.out, terminal == TRUE)
-    parser.out$text[parser.out$text == "*"] <- "·"
+    # parser.out$text[parser.out$text == "*"] <- "*" (avoid non-ASCII characters for CRAN)
     out <- paste(parser.out$text, collapse = "")
     return(out)
   })
@@ -555,6 +555,7 @@ format.eqnvec <- function(eqnvec) {
 #' 
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 
+#' @import stringr
 #' @export
 print.eqnvec <- function(eqnvec, width = 140, pander = FALSE, ...) {
   require(stringr)

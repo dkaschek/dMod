@@ -14,7 +14,8 @@ License: GPL (>= 2)
 Depends:
     cOde,
     trust,
-    ggplot2
+    ggplot2,
+    stringr
 Suggests:
     MASS,
     rPython,
