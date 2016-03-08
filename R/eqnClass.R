@@ -546,7 +546,7 @@ format.eqnvec <- function(x, ...) {
     return(out)
   })
   
-  patterns <- c("+", "-", "·", "/")
+  patterns <- c("+", "-", "*", "/")
   for (p in patterns) eqns <- gsub(p, paste0(" ", p, " "), eqns, fixed = TRUE)
   
   return(eqns)

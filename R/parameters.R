@@ -1,4 +1,4 @@
-# Noch nicht fertig: Noch überlegen, ob es das bringt.
+# Noch nicht fertig: Noch ueberlegen, ob es das bringt.
 # Bringt erst was ab vielen Parametern (> 200), da dieselbe Ableitungsfunktion
 # "dtrafo" auf einem Vektor ausgewertet werden kann
 P1D <- function(trafo, parameters = NULL, condition = NULL) {

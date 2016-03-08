@@ -205,7 +205,7 @@ print.parvec <- function(x, ...) {
 #print.parvec <- function(p, ...) {
   
   ## Diese Funktion mergen mit print.eqnvec
-  ## Für parvec neue Funktion schreiben
+  ## Fuer parvec neue Funktion schreiben
   
   
 #   # Assemble parameters
