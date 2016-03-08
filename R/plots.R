@@ -434,18 +434,7 @@ plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv =
 #' Plot Fluxes given a list of flux Equations
 #' 
 #' @param pouter parameters
-#' @param x The model prediction function \code{x(times, pouter, fixed, ...)} needs to return pinner as attribute,
-#' e.g.:\cr
-#'  \code{x <- function(times, pouter, fixed=NULL, attach=TRUE, ...) {\cr
-#'  out <- lapply(conditions, function(cond) { \cr
-#'  pinner <- pL[[cond]](pouter, fixed) \cr
-#'  prediction <- xL[[cond]](times, pinner, ...)\cr
-#'  observation <- g(prediction, pinner, attach.input = attach)\cr
-#'  attr(observation, "pinner") <- pinner\cr
-#'  return(observation)\cr
-#' }); names(out) <- conditions\cr
-#' return(out)}
-#' }
+#' @param x The model prediction function \code{x(times, pouter, fixed, ...)} 
 #' @param fluxEquations list of chars containing expressions for the fluxes, 
 #' if names are given, they are shown in the legend. Easy to obtain via \link{subset.eqnList}, see Examples.
 #' @param times Numeric vector of time points for the model prediction
@@ -459,26 +448,33 @@ plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv =
 #' }
 #' @export
 plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux = "Fluxes:", fixed = NULL){
-  if(is.null(names(fluxEquations))) names(fluxEquations) <- fluxEquations
+  
+  if (is.null(names(fluxEquations))) names(fluxEquations) <- fluxEquations
+  
   flux <- funC0(fluxEquations, convenient = FALSE)
   prediction.all <- x(times, pouter, fixed, deriv = FALSE)
+  names.prediction.all <- names(prediction.all)
+  if (is.null(names.prediction.all)) names.prediction.all <- paste0("C", 1:length(prediction.all))
   
-  out <- lapply(names(prediction.all), function(cond) {
+  out <- lapply(1:length(prediction.all), function(cond) {
     prediction <- prediction.all[[cond]]
-    pinner <- attr(prediction,"pinner")
-    pinner.matrix <- matrix(pinner, nrow = length(pinner), ncol = nrow(prediction), dimnames = list(names(pinner), NULL))
+    pinner <- attr(prediction, "parameters")
+    pinner.matrix <- matrix(pinner, nrow = length(pinner), ncol = nrow(prediction), 
+                            dimnames = list(names(pinner), NULL))
     #pinner.list <- as.list(pinner)
     #prediction.list <- as.list(as.data.frame(prediction))
-    fluxes <- cbind(time=prediction[,"time"],flux(cbind(prediction, t(pinner.matrix))))
+    fluxes <- cbind(time = prediction[, "time"], flux(cbind(prediction, t(pinner.matrix))))
     return(fluxes)
-  }); names(out) <- names(prediction.all)
+  }); names(out) <- names.prediction.all
   out <- wide2long(out)
   
-  cbPalette <- c("#999999", "#E69F00", "#F0E442", "#56B4E9", "#009E73", "#0072B2", "#D55E00", "#CC79A7","#CC6666", "#9999CC", "#66CC99","red", "blue", "green","black")
-  P <- ggplot(out, aes(x=time, y=value, group=name, fill=name, log="y"))+ ylab("flux") + 
-    facet_wrap(~condition) + scale_fill_manual(values=cbPalette, name=nameFlux) +
-    geom_density(stat="identity", position="stack", alpha=0.3, color="darkgrey", size=0.4) +
-    xlab("time [min]") + ylab("contribution [a.u.]")
+  cbPalette <- c("#999999", "#E69F00", "#F0E442", "#56B4E9", "#009E73", "#0072B2", 
+                 "#D55E00", "#CC79A7","#CC6666", "#9999CC", "#66CC99","red", "blue", "green","black")
+  
+  P <- ggplot(out, aes(x = time, y = value, group = name, fill = name, log = "y")) + 
+    facet_wrap(~condition) + scale_fill_manual(values = cbPalette, name = nameFlux) +
+    geom_density(stat = "identity", position = "stack", alpha = 0.3, color = "darkgrey", size = 0.4) +
+    xlab("time") + ylab("flux contribution")
   
   return(P)
   

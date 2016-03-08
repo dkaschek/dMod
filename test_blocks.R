@@ -4,12 +4,15 @@ library(dMod)
 
 ## Model definition (text-based, scripting part)
 
-f <- eqnvec(A = "-k1*A", B = "k1*A - k2*B")
+r <- addReaction(NULL, "A", "B", "k1*A", "forward1")
+r <- addReaction(r   , "B", "", "k2*B", "forward2")
+
+f <- as.eqnvec(r)
 observables <- eqnvec(Bobs = "s1*B")
 
 innerpars <- getSymbols(c(names(f), f, observables))
 trafo0 <- structure(innerpars, names = innerpars)
-trafo0 <- replaceSymbols(innerpars, paste0("exp(", innerpars, ")"), trafo0)
+trafo0 <- replaceSymbols(innerpars, paste0("exp(log", innerpars, ")"), trafo0)
 
 conditions <- c("a", "b")
 
@@ -64,6 +67,7 @@ pouter <- structure(rnorm(length(outerpars)), names = outerpars)
 # Plot prediction
 plot((g*x*p0)(times, pouter))
 plot((g*x*pSS*p0)(times, pouter))
+plotFluxes(pouter, g*x*p0, times, getFluxes(r)$B)
 
 # Fit data with L2 constraint
 constr <- constraintL2(mu = 0*pouter, sigma = 5)
