@@ -50,7 +50,7 @@ symmetryDetection <- function(f, obsvect = NULL, prediction = NULL,
 #' 
 #' @param observables Named character vector. The names are the new variable names, the vector
 #' entries define the new variables in terms of the old ones.
-#' @param f An object of class \code{eqnList}, see \link{generateEquations}.
+#' @param f An object of class \code{eqnlist}, see \link{as.eqnlist} and \link{addReaction}.
 #' @param dynvar Character vector with the old variable names
 #' @param stoi The stoichiometric matrix
 #' @param flows Character vector with the rate expressions

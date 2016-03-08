@@ -43,8 +43,7 @@ P <- function(trafo = NULL, parameters=NULL, condition = NULL, keep.root = TRUE,
 #' \code{fixed} is a named numeric vector with values of the outer parameters being considered
 #' as fixed (no derivatives returned) and \code{deriv} is a logical determining whether the Jacobian
 #' of the parameter transformation is returned as attribute "deriv".
-#' @seealso \link{Pimpl} for implicit parameter transformations and
-#' \link{concatenation} for the concatenation of parameter transformations
+#' @seealso \link{Pimpl} for implicit parameter transformations
 #' @examples
 #' \dontrun{
 #' logtrafo <- c(k1 = "exp(logk1)", k2 = "exp(logk2)", A = "exp(logA)", B = "exp(logB)")
@@ -152,8 +151,7 @@ Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, mod
 #' \link[rootSolve]{multiroot}. The Jacobian of the solution with respect to dependent variables
 #' and parameters is computed by the implicit function theorem. The function \code{p2p} returns
 #' all parameters as they are with corresponding 1-entries in the Jacobian.
-#' @seealso \link{Pexpl} for explicit parameter transformations and
-#' \link{concatenation} for the concatenation of parameter transformations
+#' @seealso \link{Pexpl} for explicit parameter transformations
 #' @examples
 #' \dontrun{
 #' ########################################################################

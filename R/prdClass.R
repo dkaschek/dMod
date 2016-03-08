@@ -48,6 +48,7 @@ c.prdlist <- function(...) {
 }
 
 #' @export
+#' @param x prediction
 #' @rdname plotCombined
 plot.prdlist <- function(x, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
   

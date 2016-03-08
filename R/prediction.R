@@ -13,6 +13,7 @@
 #' reset the sensitivities appropriately, depending on the event method. 
 #' ATTENTION: The addional events are not dynamically recalculated. If you call the prediction
 #' function with alternative events, the prediction is fine but the sensitivities can be wrong.
+#' @param names character vector with the states to be returned. If NULL, all states are returned.
 #' @param condition either NULL (generic prediction for any condition) or a character, denoting
 #' the condition for which the function makes a prediction.
 #' @param optionsOde list with arguments to be passed to odeC() for the ODE integration.

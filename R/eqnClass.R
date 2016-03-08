@@ -4,10 +4,6 @@
 
 #' Coerce to an equation list
 #' @description Translates a reaction network, e.g. defined by a data.frame, into an equation list object.
-#' @param data an R object, usually a \code{data.frame}.
-#' @param volumes named character, volume parameters for states. Names must be a subset of the states.
-#' Values can be either characters, e.g. "V1", or numeric values for the volume. If \code{volumes} is not
-#' \code{NULL}, missing entries are treated as 1.
 #' @param ... additional arguments to be passed to or from methods.
 #' @details If \code{data} is a \code{data.frame}, it must contain columns "Description" (character), 
 #' "Rate" (character), and one column per ODE state with the state names. 
@@ -299,6 +295,7 @@ getFluxes <- function(eqnlist) {
 #' Coerce equation list into a data frame
 #' 
 #' @param x object of class \link{eqnlist}
+#' @param ... other arguments
 #' @return a \code{data.frame} with columns "Description" (character), 
 #' "Rate" (character), and one column per ODE state with the state names. 
 #' The state columns correspond to the stoichiometric matrix.
@@ -400,6 +397,8 @@ subset.eqnlist <- function(x, ...) {
 #' Print or pander equation list
 #' 
 #' @param x object of class \link{eqnlist}
+#' @param pander logical, use pander for output (used with R markdown)
+#' @param ... additional arguments
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' @author Daniel Kaschek, \email{daniel.kaschek@@physik.uni-freiburg.de}
 #' 
@@ -436,7 +435,7 @@ print.eqnlist <- function(x, pander = FALSE, ...) {
 
 #' Coerce to an equation vector
 #' 
-#' @param x an R object, usually a named character or an \link{eqnlist}.
+#' @param x object of class \code{character} or \code{eqnlist}
 #' @param ... arguments going to the corresponding methods
 #' @details If \code{x} is of class \code{eqnlist}, \link{getFluxes} is called and coerced
 #' into a vector of equations.
@@ -448,11 +447,9 @@ as.eqnvec <- function(x, ...) {
 
 #' Generate equation vector object
 #'
-#' @param x (named) character of symbolic mathematical expressions,
-#' the right-hand sides of the equations
 #' @param names character, the left-hand sides of the equation
 #' @return object of class \code{eqnvec}, basically a named character.
-#' @rdname eqnvec
+#' @rdname as.eqnvec
 #' @export
 as.eqnvec.character <- function(x = NULL, names = NULL, ...) {
   
@@ -479,9 +476,8 @@ as.eqnvec.character <- function(x = NULL, names = NULL, ...) {
 #' 
 #' @description An equation list stores an ODE in a list format. The function
 #' translates this list into the right-hand sides of the ODE.
-#' @param x equation list, see \link{eqnlist}
 #' @return An object of class \link{eqnvec}. 
-#' @rdname eqnvec
+#' @rdname as.eqnvec
 #' @export
 as.eqnvec.eqnlist <- function(x, ...) {
   
@@ -510,6 +506,7 @@ c.eqnlist <- function(...) {
 
 
 #' @export
+#' @param x obect of any class
 #' @rdname eqnvec
 is.eqnvec <- function(x) {
   if (inherits(x, "eqnvec") &&
@@ -531,6 +528,7 @@ is.eqnvec <- function(x) {
 #' Encode equation vector in format with sufficient spaces
 #' 
 #' @param x object of class \link{eqnvec}. Alternatively, a named parsable character vector.
+#' @param ... additional arguments
 #' @return named character
 #' @export format.eqnvec
 #' @export
@@ -628,7 +626,7 @@ print.eqnvec <- function(x, width = 140, pander = FALSE, ...) {
 #' Summary of an equation vector
 #' 
 #' @param object of class \link{eqnvec}.
-#' 
+#' @param ... additional arguments
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 
 #' @export
@@ -723,14 +721,22 @@ c.eqnvec <- function(...) {
 #' 
 #' @param x Object of class \code{eqnvec} or, more generally,
 #' named character vector with the algebraic expressions
+#' @param variables character vector, the symbols that should be treated as variables
+#' @param parameters character vector, the symbols that should be treated as parameters
 #' @param compile Logical. The function is either translated into a C file to be compiled or is
 #' evaluated in raw R.
 #' @param modelname file name of the generated C file.
 #' @param verbose Print compiler output to R command line.
-#' @return A prediction function \code{f(mylist, attach.input = FALSE)} where \code{mylist} is a list of numeric 
-#' vectors that can
-#' be coerced into a matrix. The names correspond to the symbols used in the algebraic expressions. 
-#' The argument \code{attach.input} determines whether \code{mylist} is attached to the output.
+#' @param convenient logical, if TRUE return a function with argument \code{...} to pass
+#' all variables/parameters as named arguments
+#' @param warnings logical. Suppress warnings about missing variables/parameters that are
+#' automatically replaced by zero values.
+#' @return Either a prediction function \code{f(..., attach.input = FALSE)} where the 
+#' variables/parameters are passed as named arguments or a prediction function 
+#' \code{f(M, p, attach.input = FALSE)} where \code{M} is the matrix of variable values 
+#' (colums with colnames correspond to different variables) and \code{p} is the vector of
+#' parameter values.
+#' The argument \code{attach.input} determines whether \code{M} is attached to the output.
 #' The function \code{f} returns a matrix.
 #' @examples 
 #' \dontrun{

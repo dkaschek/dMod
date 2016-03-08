@@ -226,6 +226,7 @@ parlist <- function(...) {
 #' @description A parameter vector is a named numeric vector (the parameter values)
 #' together with a "deriv" attribute (the Jacobian of a parameter transformation by which
 #' the parameter vector was generated).
+#' @param ... objects to be concatenated
 #' @param deriv matrix with rownames (according to names of \code{...}) and colnames
 #' according to the names of the parameter by which the parameter vector was generated.
 #' @return An object of class \code{parvec}, i.e. a named numeric vector with attribute "deriv".
@@ -412,14 +413,6 @@ prdlist <- function(...) {
 #' @description The datalist object stores time-course data in a list of data.frames.
 #' The names of the list serve as identifiers, e.g. of an experimental condition, etc.
 #' @param ... data.frame objects to be coerced into a list
-#' @param dataframe data.frame with additional columns by which a splitting into 
-#' a list of data.frames is performed.
-#' @param split.by character vector, interaction of these columns is defined as
-#' new column by which the split-up is performed.
-#' @param mylist list of data.frame, each data.frame is expected to have columns
-#' "name" (factor or character),
-#' "time" (numeric), "value" (numeric) and "sigma" (numeric).
-#' @param mynames character vector of the length of mylist.
 #' @return Object of class \code{datalist}.
 #' @export
 datalist <- function(...) {
@@ -431,49 +424,6 @@ datalist <- function(...) {
 
 
 ## Objective classes ---------------------------------------------------------
-
-
-#' Objective function
-#'
-#' @description An objective function is a function \code{obj(pouter, fixed, deriv, ...)} which
-#' returns an \link{objlist}. This function is supposed to be used in an optimizer like \code{trust}
-#' from the \code{trust} package.
-#' @param ... R code expressing objectives additional to the weighted residual sum of squares of
-#' data and model prediction. Available keywords are
-#' \code{pouter}, \code{fixed} and \code{deriv}. Any other object being used in the
-#' expression can either be passed by the \code{...} argument of the returned function or
-#' must be available in the global environment.
-#' @param data object of class \link{datalist}
-#' @param x object of class \link{prdfn}
-#' @param pouter named numeric, pre-initialized parameter vector
-#' @param conditions character vector, names of the conditions to be evaluated
-#' @return Object of class \code{objfn}, i.e. a function \code{obj(pouter, fixed, deriv, ...)}
-#' which returns an \link{objlist}.
-# @export
-# objfn <- function(fn, condition = NULL) {
-#   
-#   mycondition <- condition
-#   mappings <- list()
-#   mappings[[1]] <- fn
-#   names(mappings) <- condition
-#   
-#   outfn <- function(pouter, fixed = NULL, deriv = TRUE, conditions = condition, env = NULL) {
-#     
-#     
-#     result <- fn(pouter = pouter, fixed = fixed, deriv = deriv, env = env)
-#     # If NULL condition, valid for all conditions
-#     # else feed into correct slot 
-#     outlist <- ifelse(condition %in% conditions, result, NULL)
-#     
-#     return(outlist)
-#     
-#   }
-#   attr(outfn, "mappings") <- mappings
-#   attr(outfn, "conditions") <- mycondition
-#   class(outfn) <- c("objfn", "fn") 
-#   return(outfn)
-#   
-# }
 
 
 #' Generate objective list
@@ -697,8 +647,8 @@ out_conditions <- function(c1, c2) {
 #' 
 #' Used to concatenate observation functions, prediction functions and parameter transformation functions.
 #' 
-#' @param x1 function of class \code{obsfn}, \code{prdfn} or \code{parfn}
-#' @param x2 function of class \code{obsfn}, \code{prdfn} or \code{parfn}
+#' @param p1 function of class \code{obsfn}, \code{prdfn} or \code{parfn}
+#' @param p2 function of class \code{obsfn}, \code{prdfn} or \code{parfn}
 #' @return Object of the same class as \code{x1} and \code{x2}.
 #' @aliases prodfn
 #' @export

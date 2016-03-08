@@ -84,6 +84,7 @@ ggplot <- function(...) ggplot2::ggplot(...) + theme_dMod()
 #' @param scales The scales argument of \code{facet_wrap} or \code{facet_grid}, i.e. \code{"free"}, \code{"fixed"}, 
 #' \code{"free_x"} or \code{"free_y"}
 #' @param facet Either \code{"wrap"} or \code{"grid"}
+#' @param transform list of transformation for the states, see \link{coordTransform}.
 #' @details The data.frame being plotted has columns \code{time}, \code{value}, \code{name} and \code{condition}.
 #'  
 #' 
@@ -119,6 +120,7 @@ plotPrediction <- function(prediction, ..., scales = "free", facet = "wrap", tra
 #' @param scales The scales argument of \code{facet_wrap} or \code{facet_grid}, i.e. \code{"free"}, \code{"fixed"}, 
 #' \code{"free_x"} or \code{"free_y"}
 #' @param facet Either \code{"wrap"} or \code{"grid"}
+#' @param transform list of transformation for the states, see \link{coordTransform}.
 #' @details The data.frame being plotted has columns \code{time}, \code{value}, \code{sigma},
 #' \code{name} and \code{condition}.
 #'  
@@ -172,6 +174,7 @@ plotCombined <- function(prediction, data = NULL, ..., scales = "free", facet = 
 #' @param scales The scales argument of \code{facet_wrap} or \code{facet_grid}, i.e. \code{"free"}, \code{"fixed"}, 
 #' \code{"free_x"} or \code{"free_y"}
 #' @param facet Either \code{"wrap"} or \code{"grid"}
+#' @param transform list of transformation for the states, see \link{coordTransform}.
 #' @details The data.frame being plotted has columns \code{time}, \code{value}, \code{sigma},
 #' \code{name} and \code{condition}.
 #'  
@@ -300,6 +303,8 @@ plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
 #' @param whichPar Character or index vector, indicating the parameters that are taken as possible reference (x-axis)
 #' @param sort Logical. If paths from different parameter profiles are plotted together, possible
 #' combinations are either sorted or all combinations are taken as they are.
+#' @param relative logical indicating whether the origin should be shifted.
+#' @param scales character, either \code{"free"} or \code{"fixed"}.
 #' @return A plot object of class \code{ggplot}.
 #' @export
 plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scales = "free") {
@@ -399,13 +404,13 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scale
 #' 
 #' @return A plot object of class \code{ggplot}.
 #' @export
-plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv = FALSE, scales = "free", facet = "wrap") {
+plotArray <- function(parframe, x, times, data = NULL, ..., fixed = NULL, deriv = FALSE, scales = "free", facet = "wrap") {
 
   # Get attributes and go back to data.frame
-  parameters <- attr(parlist, "parameters")
-  parlist <- as.data.frame(parlist)
+  parameters <- attr(parframe, "parameters")
+  parframe <- as.data.frame(parframe)
   
-  pars <- lapply(1:nrow(parlist), function(i) unlist(parlist[i, c("value", parameters)]))
+  pars <- lapply(1:nrow(parframe), function(i) unlist(parframe[i, c("value", parameters)]))
   
   
   prediction <- lapply(pars, function(p) {
@@ -416,7 +421,7 @@ plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv =
     pred <- cbind(times, pred)
     colnames(pred) <- c("time", newnames)
     return(pred)
-  }); names(prediction) <- parlist[ ,"value"]
+  }); names(prediction) <- parframe[ ,"value"]
   
   
   if(!is.null(data)) {
@@ -436,7 +441,8 @@ plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv =
 #' @param pouter parameters
 #' @param x The model prediction function \code{x(times, pouter, fixed, ...)} 
 #' @param fluxEquations list of chars containing expressions for the fluxes, 
-#' if names are given, they are shown in the legend. Easy to obtain via \link{subset.eqnList}, see Examples.
+#' if names are given, they are shown in the legend. Easy to obtain via \link{subset.eqnlist}, see Examples.
+#' @param nameFlux character, name of the legend.
 #' @param times Numeric vector of time points for the model prediction
 #' @param fixed Named numeric vector with fixed parameters
 #'  

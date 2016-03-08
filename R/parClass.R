@@ -2,7 +2,7 @@
 
 #' Parameter list
 #' 
-#' @param list of lists, as returned by \code{trust}
+#' @param x list of lists, as returned by \code{trust}
 #' @rdname parlist
 #' @export
 as.parlist <- function(x = NULL) {
@@ -69,6 +69,7 @@ stat.parlist <- function(x) {
 #' Coerce object to a parameter frame
 #' 
 #' @param x object to be coerced
+#' @param ... other arguments
 #' @return object of class \link{parframe}.
 #' @export
 as.parframe <- function(x, ...) {
@@ -240,11 +241,11 @@ c.parvec <- function(...) {
 
 #' Pretty printing parameter transformations
 #' 
+#' @param x prediction function
+#' @param ... additional arguments
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 
 #' @export
-#' @param pfn object of class \link{parfn}
-#' @param width the print-out console width
 print.parfn <- function(x, ...) {
   
   conditions <- attr(x, "conditions")

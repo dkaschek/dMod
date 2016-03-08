@@ -9,6 +9,8 @@
 #' @param outputFormat Define the output format. By default "R" generating dMod 
 #'   compatible output. To obtain an output appropriate for d2d [1] "M" must be 
 #'   selected.
+#' @param sparsifyLevel numeric, set the level to which the stoichiometric matrix is
+#'   simplified by searching for clever linear combinations.   
 #'   
 #' @return Character vector of steady-state equations.
 #'   

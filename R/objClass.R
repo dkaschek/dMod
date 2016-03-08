@@ -103,10 +103,12 @@ constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, fixed=NULL) {
 #' @param times numeric vector, the time points where the prediction function is to be
 #' evaluated. If NULL, time points are extacted from the datalist. If the prediction
 #' function makes use of events, \code{times} should be set by hand.
+#' @param attr.name character. The constraint value is additionally returned in an 
+#' attributed with this name
 #' @return Object of class \code{obsfn}, i.e. a function 
 #' \code{obj(pouter, fixed, deriv, conditions, env)} that returns an objective list,
 #' \link{objlist}.
-#' @details Objective functions can be combined by the "+" operator, see \link{sumobj}.
+#' @details Objective functions can be combined by the "+" operator, see \link{sumobjfn}.
 #' @export
 normL2 <- function(data, x, times = NULL, attr.name = "data") {
 
@@ -168,6 +170,8 @@ normL2 <- function(data, x, times = NULL, attr.name = "data") {
 #' 
 #' @param mu named numeric, the prior values
 #' @param sigma named numeric of length of mu or numeric of length one.
+#' @param attr.name character. The constraint value is additionally returned in an 
+#' attributed with this name
 #' @param condition character, the condition for which the constraint should apply. If
 #' \code{NULL}, applies to any condition.
 #' @return object of class \code{objfn}
@@ -282,6 +286,8 @@ constraintL2 <- function(mu, sigma = 1, attr.name = "prior", condition = NULL) {
 #' @param value character, the name of the parameter which contains the
 #' prediction value.
 #' @param sigma numeric, the uncertainty of the introduced test data point
+#' @param attr.name character. The constraint value is additionally returned in an 
+#' attributed with this name
 #' @param condition character, the condition for which the prediction is made.
 #' @return List of class \code{objlist}, i.e. objective value, gradient and Hessian as list.
 #' @seealso \link{wrss}, \link{constraintL2}
@@ -395,11 +401,12 @@ datapointL2 <- function(name, time, value, sigma = 1, attr.name = "validation", 
 #' @description As a prior function, it returns derivatives with respect to
 #' the penalty parameter in addition to parameter derivatives.
 #' 
-#' @param p Namec numeric, the parameter value
 #' @param mu Named numeric, the prior values
 #' @param lambda Character of length one. The name of the penalty paramter in \code{p}.
-#' @param fixed Named numeric with fixed parameter values (contribute to the prior value
-#' but not to gradient and Hessian)
+#' @param attr.name character. The constraint value is additionally returned in an 
+#' attributed with this name
+#' @param condition character, the condition for which the constraint should apply. If
+#' \code{NULL}, applies to any condition.
 #' @return List of class \code{objlist}, i.e. objective value, gradient and Hessian as list.
 #' @seealso \link{wrss}, \link{constraintExp2}
 #' @details Computes the constraint value 

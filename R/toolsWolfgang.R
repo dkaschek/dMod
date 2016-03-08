@@ -174,11 +174,9 @@ strelide <- function(string, width, where = "right", force = FALSE) {
 #'   \code{\link{runif}}. By default \code{\link{rnorm}} is used. Parameteres 
 #'   for samplefun are simply appended as named parameters to the mstrust call 
 #'   and automatically handed to samplefun by matching parameter names.
+#' @param resultPath character, the path where to store the results.
 #' @param stats If true, the same summary statistic as written to the logfile is
 #'   printed to command line on mstrust completion.
-# #' @param narrowing Don't touch this. Status flag used when mstrust is called 
-# #'   via \code{\link{msnarrow}}. In narrowing mode, this parameter indicates the
-# #'   narrowing status, see \code{\link{msnarrow}}.
 #' @param ... Additional parameters handed to trust(), samplefun(), or the 
 #'   objective function by matching parameter names. All unmatched parameters 
 #'   are handed to the objective function objfun(). The log file starts with a 
@@ -213,7 +211,7 @@ strelide <- function(string, width, where = "right", force = FALSE) {
 #' @return A parlist holding errored and converged fits.
 #'   
 #' @seealso \code{\link{trust}}, \code{\link{rnorm}}, \code{\link{runif}}, 
-#'   \code{\link{msnarrow}}, \code{\link{msbest}}, \code{\link{as.parframe}}
+#'   \code{\link{as.parvec}}, \code{\link{as.parframe}}
 #'   
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'   
@@ -436,20 +434,20 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
 
 #' Construct fitlist from temporary files.
 #'
-#' @description An aborted \code{\link{mstrust}} or \code{\link{msnarrow}}
+#' @description An aborted \code{\link{mstrust}}
 #'   leaves behind results of already completed fits. This command loads these
 #'   fits into a fitlist.
 #'
 #' @param folder Path to the folder where the fit has left its results.
 #'
-#' @details The commands \code{\link{mstrust}} or \code{\link{msnarrow}} save
+#' @details The command \code{\link{mstrust}} saves
 #'   each completed fit along the multi-start sequence such that the results can
 #'   be resurected on abortion. This commands loads a fitlist from these
 #'   intermediate results.
 #'
 #' @return A fitlist as data frame.
 #'
-#' @seealso \code{\link{mstrust}}, \code{\link{msnarrow}}
+#' @seealso \code{\link{mstrust}}
 #'
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'
@@ -477,6 +475,7 @@ load.parlist <- function(folder) {
 #'   \code{\link{as.parframe}}.
 #' @param index Integer, the parameter vector with the \code{index}-th lowest
 #'   objective value.
+#' @param ... other arguments
 #'   
 #' @details With this command, additional information included in the parameter
 #'   frame as the objective value and the convergence state are removed and a
