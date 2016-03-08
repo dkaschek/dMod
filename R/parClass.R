@@ -114,7 +114,9 @@ as.parframe.parlist <- function(x, sort.by = "value", ...) {
   out <- as.data.frame(x)
   #out <- as.data.frame(unclass(x))
   if (!is.null(i)) out <- out[i, ]
-  if (!is.null(j)) out <- out[, j]
+  if (!is.null(j)) out <- out[, j, drop = drop]
+  
+  if (drop) return(out)
   
   metanames <- intersect(metanames, colnames(out))
   obj.attributes <- intersect(obj.attributes, colnames(out))
