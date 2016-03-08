@@ -314,7 +314,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     flush(logfile)
   }
 
-  m_parlist <- as.parlist(mclapply(1:fits, function(i) {
+  m_parlist <- as.parlist(parallel::mclapply(1:fits, function(i) {
     argstrust$parinit <- center + do.call(samplefun, argssample)
     fit <- do.call(trust, c(argstrust, argsobj))
 
@@ -995,6 +995,6 @@ python.version.request <- function(version) {
     try(detach("package:rPython", unload = TRUE), silent = TRUE)
     Sys.setenv(RPYTHON_PYTHON_VERSION = version)
     install.packages("rPython")
-    library(rPython)
+    # library(rPython)  (library calls produce WARNING with CRAN)
   }
 }

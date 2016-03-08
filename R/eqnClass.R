@@ -541,7 +541,7 @@ format.eqnvec <- function(x, ...) {
   eqns <- sapply(eqnvec, function(eqn) {
     parser.out <- getParseData(parse(text = eqn, keep.source = TRUE))
     parser.out <- subset(parser.out, terminal == TRUE)
-    parser.out$text[parser.out$text == "*"] <- "·"
+    # parser.out$text[parser.out$text == "*"] <- "*" (avoid non-ASCII characters for CRAN)
     out <- paste(parser.out$text, collapse = "")
     return(out)
   })
@@ -563,6 +563,7 @@ format.eqnvec <- function(x, ...) {
 #' 
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 
+#' @import stringr
 #' @export
 print.eqnvec <- function(x, width = 140, pander = FALSE, ...) {
   
@@ -591,20 +592,20 @@ print.eqnvec <- function(x, width = 140, pander = FALSE, ...) {
   # Iterate over species
   m_msgEqn <- do.call(c, mapply(function(eqn, spec, odr) {
     return(paste0(
-      stringr::str_pad(string = odr, side = "left", width = m_odrWidth),
+      str_pad(string = odr, side = "left", width = m_odrWidth),
       m_sep,
-      stringr::str_pad(string = spec, side = "left", width = m_speciesWidth),
+      str_pad(string = spec, side = "left", width = m_speciesWidth),
       m_rel,
-      stringr::str_wrap(string = gsub(x = eqn, pattern = " ", replacement = "", fixed = TRUE),
+      str_wrap(string = gsub(x = eqn, pattern = " ", replacement = "", fixed = TRUE),
                width = m_eqnWidth, exdent = m_frontWidth)
     ))
   }, eqn = eqnvec[m_eqnOrder], spec = m_species[m_eqnOrder], odr = m_eqnOrder, SIMPLIFY = FALSE))
   
   # Print to command line or to pander
   if (!pander) {
-    cat(paste0(stringr::str_pad(string = m_odr, side = "left", width = m_odrWidth),
+    cat(paste0(str_pad(string = m_odr, side = "left", width = m_odrWidth),
                m_sep,
-               stringr::str_pad(string = "Inner", side = "left", width = m_speciesWidth),
+               str_pad(string = "Inner", side = "left", width = m_speciesWidth),
                m_rel,
                "Outer\n"))
     cat(m_msgEqn, sep = "\n")
