@@ -33,8 +33,8 @@ steadyStates <- function(model, file, forcings = "", neglect = "", outputFormat 
   
   # Calculate steady states.
   python.version.request("2.7")
-  python.load(system.file("code/steadyStates.py", package = "dMod"))
-  m_ss <- python.call("ODESS", model, forcings, neglect, outputFormat, sparsifyLevel)
+  rPython::python.load(system.file("code/steadyStates.py", package = "dMod"))
+  m_ss <- rPython::python.call("ODESS", model, forcings, neglect, outputFormat, sparsifyLevel)
   
   # Write steady states to disk.
   m_ssChar <- do.call(c, lapply(strsplit(m_ss, "="), function(eq) {
