@@ -49,7 +49,7 @@ compare <- function(vec1, ...) {
 
 #' @export
 #' @rdname compare
-compare.list <- function(vec1, vec2 = NULL, reference = 1) {
+compare.list <- function(vec1, vec2 = NULL, reference = 1, ...) {
   
   index <- (1:length(vec1))[-reference]
   diffable.attributes <- c("equations", "parameters", "forcings", "events")
@@ -98,7 +98,7 @@ compare.list <- function(vec1, vec2 = NULL, reference = 1) {
 
 #' @export
 #' @rdname compare
-compare.character <- function(vec1, vec2 = NULL) {
+compare.character <- function(vec1, vec2 = NULL, ...) {
   missing <- setdiff(vec1, vec2)
   additional <- setdiff(vec2, vec1)
   
@@ -118,7 +118,7 @@ compare.character <- function(vec1, vec2 = NULL) {
 
 #' @export
 #' @rdname compare
-compare.eqnvec <- function(vec1, vec2 = NULL) {
+compare.eqnvec <- function(vec1, vec2 = NULL, ...) {
 
   names1 <- names(vec1)
   names2 <- names(vec2)
@@ -145,7 +145,7 @@ compare.eqnvec <- function(vec1, vec2 = NULL) {
 
 #' @export
 #' @rdname compare
-compare.data.frame <- function(vec1, vec2 = NULL) {
+compare.data.frame <- function(vec1, vec2 = NULL, ...) {
   
   additional <- !duplicated(rbind(vec1, vec2))[-(1:nrow(vec1))]
   missing <- !duplicated(rbind(vec2, vec1))[-(1:nrow(vec2))]

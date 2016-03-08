@@ -3,7 +3,6 @@
 #' @param char character, e.g. "2*x + y"
 #' @param symbol single character, e.g. "x" or "y"
 #' @return numeric vector with the coefficients
-#' @examples getCoefficients("2*x + x + y", "x")
 getCoefficients <- function(char, symbol) {
   
   pdata <- getParseData(parse(text = char, keep.source = TRUE))

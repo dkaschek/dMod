@@ -2,7 +2,7 @@
 
 #' Parameter list
 #' 
-#' @param list of lists, as returned by \code{trust}
+#' @param x list of lists, as returned by \code{trust}
 #' @rdname parlist
 #' @export
 as.parlist <- function(x = NULL) {
@@ -69,6 +69,7 @@ stat.parlist <- function(x) {
 #' Coerce object to a parameter frame
 #' 
 #' @param x object to be coerced
+#' @param ... other arguments
 #' @return object of class \link{parframe}.
 #' @export
 as.parframe <- function(x, ...) {
@@ -199,43 +200,11 @@ print.parvec <- function(x, ...) {
 
 
 
-#' Pretty printing of parameter transformations, class par
-#' 
-#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
-#print.parvec <- function(p, ...) {
-  
-  ## Diese Funktion mergen mit print.eqnvec
-  ## Für parvec neue Funktion schreiben
-  
-  
-#   # Assemble parameters
-#   hInner <- "Inner"
-#   hOuter <- "Outer"
-#   arglist <- list(...)
-#   if("linewidth" %in% names(arglist)) linewidth <- arglist$linewidth else linewidth <- 79
-#   
-#   maxNameWidth <- max(nchar(names(equations)), nchar(hInner))  
-#   equationWidth <- if (linewidth - maxNameWidth - 3 > 9) linewidth - maxNameWidth -3
-#   else 10
-#   
-#   
-#   # Assemble and print parameter transformation table
-#   cat("Table of parameter transformations\n")
-#   for (i in seq(1, length(equations))) {
-#     eq <- strelide(equations[i], equationWidth, where = "right")
-#     eqName <- strpad(names(equations[i]), maxNameWidth, where = "left")
-#     cat(eqName, " = ", eq, "\n", sep = "")
-#     if (!(i %% 10)) {
-#       cat("\n")
-#     }
-#   }
-#}
-
 
 #' @export
 "[.parvec" <- function(x, ..., drop = FALSE) {
   out <- unclass(x)[...]
-  deriv <- submatrix(attr(x, "deriv"), row = ...)
+  deriv <- submatrix(attr(x, "deriv"), rows = ...)
   if (drop) {
     empty.cols <- apply(deriv, 2, function(v) all(v == 0))
     deriv <- submatrix(deriv, cols = !empty.cols)
@@ -272,11 +241,11 @@ c.parvec <- function(...) {
 
 #' Pretty printing parameter transformations
 #' 
+#' @param x prediction function
+#' @param ... additional arguments
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 
 #' @export
-#' @param pfn object of class \link{parfn}
-#' @param width the print-out console width
 print.parfn <- function(x, ...) {
   
   conditions <- attr(x, "conditions")

@@ -84,6 +84,7 @@ ggplot <- function(...) ggplot2::ggplot(...) + theme_dMod()
 #' @param scales The scales argument of \code{facet_wrap} or \code{facet_grid}, i.e. \code{"free"}, \code{"fixed"}, 
 #' \code{"free_x"} or \code{"free_y"}
 #' @param facet Either \code{"wrap"} or \code{"grid"}
+#' @param transform list of transformation for the states, see \link{coordTransform}.
 #' @details The data.frame being plotted has columns \code{time}, \code{value}, \code{name} and \code{condition}.
 #'  
 #' 
@@ -119,6 +120,7 @@ plotPrediction <- function(prediction, ..., scales = "free", facet = "wrap", tra
 #' @param scales The scales argument of \code{facet_wrap} or \code{facet_grid}, i.e. \code{"free"}, \code{"fixed"}, 
 #' \code{"free_x"} or \code{"free_y"}
 #' @param facet Either \code{"wrap"} or \code{"grid"}
+#' @param transform list of transformation for the states, see \link{coordTransform}.
 #' @details The data.frame being plotted has columns \code{time}, \code{value}, \code{sigma},
 #' \code{name} and \code{condition}.
 #'  
@@ -172,6 +174,7 @@ plotCombined <- function(prediction, data = NULL, ..., scales = "free", facet = 
 #' @param scales The scales argument of \code{facet_wrap} or \code{facet_grid}, i.e. \code{"free"}, \code{"fixed"}, 
 #' \code{"free_x"} or \code{"free_y"}
 #' @param facet Either \code{"wrap"} or \code{"grid"}
+#' @param transform list of transformation for the states, see \link{coordTransform}.
 #' @details The data.frame being plotted has columns \code{time}, \code{value}, \code{sigma},
 #' \code{name} and \code{condition}.
 #'  
@@ -300,6 +303,8 @@ plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
 #' @param whichPar Character or index vector, indicating the parameters that are taken as possible reference (x-axis)
 #' @param sort Logical. If paths from different parameter profiles are plotted together, possible
 #' combinations are either sorted or all combinations are taken as they are.
+#' @param relative logical indicating whether the origin should be shifted.
+#' @param scales character, either \code{"free"} or \code{"fixed"}.
 #' @return A plot object of class \code{ggplot}.
 #' @export
 plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scales = "free") {
@@ -378,44 +383,6 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scale
 
 
 
-plotPredictionCont <- function(out, ...) {
-  
-  require(ggplot2)
-  
-  mynames <- c("time", "name", "value", "sigma", "condition")
-  
-  
-  forclist <- lapply(out, function(o) attr(o, "forc"))
-  out <- cbind(wide2long.list(out), sigma=NA)
-  out <- subset(out, ...)
-  targets <- as.character(unique(out$name))
-  
-  print(targets)
-  
-  forc <- lbind(lapply(forclist, function(fo) {
-    names(fo) <- substr(names(fo), 1, nchar(names(fo))-1)
-    print(names(fo))
-    data <- do.call(rbind, lapply(targets[targets%in%names(fo)], function(t) {
-      print(t)
-      data.frame(time = fo[[t]][,1], name = t, value = fo[[t]][,2], sigma=1/sqrt(fo[[paste0("weight", t)]][,2]))
-    }))
-    
-    return(data)
-        
-  }))
-  
-  ggplot(rbind(out[, mynames], forc[, mynames]), 
-         aes(x = time, 
-             y = value, ymin = value - sigma, ymax = value + sigma, 
-             group = condition, color = condition, fill=condition)) + 
-    facet_wrap(~name, scales = "free") + 
-    geom_line(data = out) + 
-    geom_line(data = forc, lty=2) + 
-    geom_ribbon(data = forc, alpha=0.3, lty=0)
-  
-  
-}
-
 
 
 #' Plot an array of model predictions for a list of parameters
@@ -437,13 +404,13 @@ plotPredictionCont <- function(out, ...) {
 #' 
 #' @return A plot object of class \code{ggplot}.
 #' @export
-plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv = FALSE, scales = "free", facet = "wrap") {
+plotArray <- function(parframe, x, times, data = NULL, ..., fixed = NULL, deriv = FALSE, scales = "free", facet = "wrap") {
 
   # Get attributes and go back to data.frame
-  parameters <- attr(parlist, "parameters")
-  parlist <- as.data.frame(parlist)
+  parameters <- attr(parframe, "parameters")
+  parframe <- as.data.frame(parframe)
   
-  pars <- lapply(1:nrow(parlist), function(i) unlist(parlist[i, c("value", parameters)]))
+  pars <- lapply(1:nrow(parframe), function(i) unlist(parframe[i, c("value", parameters)]))
   
   
   prediction <- lapply(pars, function(p) {
@@ -454,7 +421,7 @@ plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv =
     pred <- cbind(times, pred)
     colnames(pred) <- c("time", newnames)
     return(pred)
-  }); names(prediction) <- parlist[ ,"value"]
+  }); names(prediction) <- parframe[ ,"value"]
   
   
   if(!is.null(data)) {
@@ -474,7 +441,8 @@ plotArray <- function(parlist, x, times, data = NULL, ..., fixed = NULL, deriv =
 #' @param pouter parameters
 #' @param x The model prediction function \code{x(times, pouter, fixed, ...)} 
 #' @param fluxEquations list of chars containing expressions for the fluxes, 
-#' if names are given, they are shown in the legend. Easy to obtain via \link{subset.eqnList}, see Examples.
+#' if names are given, they are shown in the legend. Easy to obtain via \link{subset.eqnlist}, see Examples.
+#' @param nameFlux character, name of the legend.
 #' @param times Numeric vector of time points for the model prediction
 #' @param fixed Named numeric vector with fixed parameters
 #'  
@@ -518,94 +486,6 @@ plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux = "Fluxes:", fi
   
 }
 
-#plotArray <- function(x, times, fitlist, data = NULL, fixed=NULL, binwidth=10) {
-#  
-#  require("ggplot2")
-#  require("wq")
-#  
-#  n <- dim(fitlist)[1]
-#  chisquare <- as.data.frame(log10(fitlist[,1]))
-#  colnames(chisquare) <- "logchisquare"
-#  
-#  
-#  out <- do.call(rbind, lapply(1:n, function(i) {
-#    myout <- x(times, c(fitlist[i,-1], fixed), deriv=FALSE)
-#    myout <- wide2long(myout)
-#    myout <- cbind(myout, logchisquare = log10(fitlist[i,1]))
-#    return(myout)
-#  }))
-#  
-#  
-#  P1 <- ggplot(out, aes(x=time, y=value, group=logchisquare, color=logchisquare)) +
-#    facet_wrap(~name, scales="free") 
-#  if(!is.null(data)) {
-#    data <- cbind(data, logchisquare = NA)
-#    P1 <- P1 + 
-#      geom_point(aes(x=time, y=value), data = data, color="gray") + 
-#      geom_errorbar(aes(x=time, y=value, ymin=value-sigma, ymax=value+sigma), data=data, color="gray", width=0)
-#  }
-#  P1 <- P1 +
-#    geom_line(alpha=.3) +
-#    scale_color_gradientn(colours = rainbow(7)) +
-#    theme(legend.position="none")
-#  
-#  
-#  #   P3 <- ggplot(out, aes(x=logchisquare, group=logchisquare, fill=logchisquare)) + 
-#  #     geom_histogram(binwidth=binwidth) + 
-#  #     scale_fill_gradientn(colours = rainbow(7)) +
-#  #     theme(legend.position="none") +
-#  #     xlab("") +
-#  #     coord_flip()
-#  
-#  
-#  
-#  P2 <- ggplot(chisquare, aes(x = 1:length(logchisquare), y=logchisquare, color=logchisquare)) +
-#    geom_point() +
-#    scale_color_gradientn(colours = rainbow(7)) + 
-#    theme(legend.position="none") +
-#    xlab("sorted index") +
-#    ylab(expression(log[10](chi^2)))
-#  
-#  layOut(list(P2, 1, 1),
-#         list(P1, 1, 2:5))
-#  
-#  
-#}
-
-
-plotObjective <- function(out) {
-  require("ggplot2")
-  require("wq")
-  
-  value <- out$value
-  
-  gradient <- out$gradient
-  npar <- length(gradient)
-  names <- factor(paste(names(gradient), 1:npar, sep=", "), levels = paste(names(gradient), 1:npar, sep=", "))
-  gradient.data <- data.frame(name = names, value = gradient)
-  
-  
-  
-  hessian <- out$hessian
-  hessian.data <- data.frame(x = as.factor(1:npar), y=as.factor(rep(1:npar, each=npar)), hessian = as.vector(hessian))
-  
-  
-  P1 <- ggplot(gradient.data, aes(x=name, y= value)) + 
-    geom_bar(stat="identity") + 
-    coord_flip() + ylab("gradient value") + xlab("parameter name, i") + 
-    ggtitle(paste("obj. value:", value)) 
-  
-  
-  P2 <- ggplot(hessian.data, aes(x=x, y=y, z=hessian, fill=hessian)) + 
-    geom_tile(color="gray") + scale_fill_gradient2() + xlab("i") + ylab("j") + 
-    theme(legend.position=c(0, 1), legend.justification=c(0,1))
-  
-  layOut(list(P2, 1, 1:2),
-         list(P1, 1, 3))
-  
-  
-  
-}
 
 #' Plotting objective values of a collection of fits
 #' 
@@ -640,47 +520,3 @@ plotPars <- function(myparframe, whichFits = 1:length(myparframe)){
   return(plot)
 }
 
-plotFitList <- function(fitlist) {
-  require(ggplot2)
-    
-  ggplot(fitlist, aes(x=chisquare, y=value)) + 
-    facet_wrap(~name, scales="free") + 
-    geom_point()  
-  
-}
-
-
-plotFluxesOld <- function(out, fluxEquations, pars) {
-  
-  require(scales)
-  
-  if(any(class(out)=="list")) out <- wide2long(out)
-  
-  nFluxes <- length(fluxEquations)
-  if(is.null(names(fluxEquations))) names(fluxEquations) <- paste0("reaction", 1:nFluxes)
-  fluxEquations <- c(fluxEquations, sum = paste(fluxEquations, collapse="+"))
-  
-  # Evaluate fluxes
-  fluxes <- with(c(as.list(out), as.list(pars)), {
-    flux <- do.call(rbind, lapply(1:(nFluxes+1), function(i) {
-      ev <- eval(parse(text=fluxEquations[i]))
-      nout <- data.frame(time = out$time, 
-                         name = names(fluxEquations)[i], 
-                         value = ev, 
-                         condition = out$condition)
-    }))
-    return(flux)
-  })
-  
-  fluxes1 <- subset(fluxes, name != "sum")
-  fluxes2 <- subset(fluxes, name == "sum")
-  
-  
-  P <- ggplot(out, aes(x=time, y=value, group=name, fill=name)) + facet_wrap(~condition) +
-    geom_density(stat="identity", position="stack", alpha=0.3, color="darkgrey", size=0.4, data=fluxes1) +
-    geom_line(aes(x=time, y=value, group=NULL, fill=NULL), color="black", data=fluxes2)
-  
-  
-  return(P)
-  
-}

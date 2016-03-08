@@ -4,15 +4,15 @@ library(dMod)
 
 ## Model definition (text-based, scripting part)
 
-r <- addReaction(NULL, "A", "B", "k1*A", "forward1")
-r <- addReaction(r   , "B", "", "k2*B", "forward2")
+r <- addReaction(NULL, "A", "B", "k1*A", "translation")
+r <- addReaction(r   , "B",  "", "k2*B", "degradation")
 
 f <- as.eqnvec(r)
 observables <- eqnvec(Bobs = "s1*B")
 
 innerpars <- getSymbols(c(names(f), f, observables))
 trafo0 <- structure(innerpars, names = innerpars)
-trafo0 <- replaceSymbols(innerpars, paste0("exp(log", innerpars, ")"), trafo0)
+trafo0 <- replaceSymbols(innerpars, paste0("exp(", innerpars, ")"), trafo0)
 
 conditions <- c("a", "b")
 
@@ -77,18 +77,23 @@ plot((g*x*p0)(times, myfit$argument), data)
 # List of fits
 obj <- normL2(data, g*x*p0) + constr
 mylist <- mstrust(normL2(data, g*x*p0) + constr, pouter, fits = 10, cores = 4)
+plot(mylist)
+pars <- as.parframe(mylist)
+plotValues(pars)
+
+bestfit <- as.parvec(pars)
 
 # Compute profiles of the fit
-profile <- profile(normL2(data, g*x*p0) + constr, myfit$argument, "k1")
+profile <- profile(normL2(data, g*x*p0) + constr, bestfit, "k1", limits = c(-5, 5))
 plotProfile(profile)
 
 # Add a validation objective function
 vali <- datapointL2("A", 2, "mypoint", .1, condition = "a")
 # Get validation point parameters
 mypoint <- trust(normL2(data, g*x*p0) + constr + vali, 
-                 c(mypoint = 0), rinit = 1, rmax = 10, fixed = myfit$argument)$argument
+                 c(mypoint = 0), rinit = 1, rmax = 10, fixed = bestfit)$argument
 # Compoute profile and plot
-profile <- profile(normL2(data, g*x*p0) + constr + vali, c(myfit$argument, mypoint), "mypoint")
+profile <- profile(normL2(data, g*x*p0) + constr + vali, c(bestfit, mypoint), "mypoint")
 plotProfile(profile)
 
 

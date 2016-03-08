@@ -1,36 +1,3 @@
-
-
-#' Simulate data for the currently loaded model
-#'
-#' @param timesD Desired time points for the data
-#' @param pouter Outer parameter vector for which simulation is performed
-#' @param vars Vector of strings of observables for which data shall be generated
-#' @param relE Relative Error
-#' @param absE Absolute Error
-#'
-#' @return List of data points for each condition
-#'
-#' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
-#' 
-simulateData <- function(timesD, pouter, vars=observables, relE = 0.05, absE = 0.001){        
-
-  ## Die Funktion setzt voraus, dass eine prediction function "x" im workspace ist :-(
-  
-    pred <- x(timesD, pouter)
-  out <- lapply(conditions, function(con){
-    mydata <- wide2long(pred[[con]])
-    sigma <- relE*mydata$value + absE
-    mydata$value <- mydata$value + rnorm(dim(mydata)[1], 0, sigma)
-    mydata <- cbind(mydata, sigma=sigma)
-    subset(mydata, name%in%vars)
-  }); names(out) <- conditions
-  
-  as.datalist(out)
-  
-}
-
-
-
 #' Calculate analytical steady states
 #' 
 #' @param model Name of the file which the stoechiometric matric in csv format.
@@ -42,6 +9,8 @@ simulateData <- function(timesD, pouter, vars=observables, relE = 0.05, absE = 0
 #' @param outputFormat Define the output format. By default "R" generating dMod 
 #'   compatible output. To obtain an output appropriate for d2d [1] "M" must be 
 #'   selected.
+#' @param sparsifyLevel numeric, set the level to which the stoichiometric matrix is
+#'   simplified by searching for clever linear combinations.   
 #'   
 #' @return Character vector of steady-state equations.
 #'   

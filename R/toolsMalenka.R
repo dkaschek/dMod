@@ -1,6 +1,7 @@
 #' Plot a parameter list.
 #' 
-#' @param pl fitlist obtained from mstrust
+#' @param x fitlist obtained from mstrust
+#' @param ... additional arguments
 #' @param path print path of parameters from initials to convergence. For this
 #'   option to be TRUE \code{\link{mstrust}} must have had the option
 #'   \option{blather}.
@@ -9,7 +10,10 @@
 #' @author Malenka Mader, \email{Malenka.Mader@@fdm.uni-freiburg.de}
 #'   
 #' @export
-plot.parlist <- function(pl, path = FALSE) {
+plot.parlist <- function(x, path = FALSE, ...) {
+  
+  pl <- x
+  
   index <- do.call(rbind, lapply(pl, function(l) l$converged))
   fl <- pl[index]
   if (!path) {
@@ -76,6 +80,8 @@ nullZ <- function(A, tol=sqrt(.Machine$double.eps)) {
 #' this function is written along the lines of the rref-matlab function.
 #' @param A matrix for which the reduced row echelon form is searched
 #' @param tol tolerance to find pivots
+#' @param verbose logical, print verbose information
+#' @param fractions logical, not used right now. 
 #' @return a list of two entries is returned; ret[[1]] is the reduced row echelon form of A, ret[[2]] is the index of columns in which a pivot was found
 #' 
 #' @author Malenka Mader, \email{Malenka.Mader@@fdm.uni-freiburg.de}
