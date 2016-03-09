@@ -1000,7 +1000,7 @@ python.version.rpython <- function() {
 python.version.request <- function(version) {
   
   # Is rPythen installed and linked against requested python version?
-  m_installed <- if (inherits(try(library(rPython)), "try-error")) FALSE else TRUE
+  m_installed <- "rPython" %in% installed.packages()[, 1]
   if (m_installed) {
     m_curVersion <- python.version.rpython()
     if (m_curVersion == version)
