@@ -40,6 +40,28 @@ odemodel <- function(f, deriv = TRUE, forcings=NULL, fixed=NULL, modelname = "od
   
 }
 
+## Function classes ------------------------------------------------------
+
+match.fnargs <- function(arglist, choices) {
+  
+  # Catch the case of names == NULL
+  if (is.null(names(arglist))) names(arglist) <- rep("", length(arglist))
+  
+  # exlude named arguments which are not in choices
+  arglist <- arglist[names(arglist) %in% c(choices, "")]
+  
+  # determine available arguments
+  available <- choices %in% names(arglist)
+  
+  if (!all(available)) names(arglist)[names(arglist) == ""] <- choices[!available]
+  
+  if (any(duplicated(names(arglist)))) stop("duplicate arguments in prdfn/obsfn/parfn function call")
+  
+  mapping <- match(choices, names(arglist))
+  return(mapping)
+  
+}
+
 
 ## Equation classes -------------------------------------------------------
 
@@ -144,7 +166,12 @@ parfn <- function(p2p, parameters = NULL, condition = NULL) {
   mappings[[1]] <- p2p
   names(mappings) <- condition
   
-  outfn <- function(p, fixed = NULL, deriv = TRUE, conditions = condition) {
+  outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = condition) {
+   
+    
+    arglist <- list(...)
+    arglist <- arglist[match.fnargs(arglist, "pars")]
+    pars <- arglist[[1]]
     
     
     overlap <- intersect(conditions, condition)
@@ -153,7 +180,7 @@ parfn <- function(p2p, parameters = NULL, condition = NULL) {
     # character if overlap
     
     if (is.null(overlap) | length(overlap) > 0)
-      result <- p2p(p = p, fixed = fixed, deriv = deriv)
+      result <- p2p(pars = pars, fixed = fixed, deriv = deriv)
     else
       result <- NULL
     
@@ -281,7 +308,12 @@ prdfn <- function(P2X, parameters = NULL, condition = NULL) {
   mappings[[1]] <- P2X
   names(mappings) <- condition
   
-  outfn <- function(times, pars, fixed = NULL, deriv = TRUE, conditions = mycondition) {
+  outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = mycondition) {
+   
+    arglist <- list(...)
+    arglist <- arglist[match.fnargs(arglist, c("times", "pars"))]
+    times <- arglist[[1]]
+    pars <- arglist[[2]]
     
     
     overlap <- intersect(conditions, condition)
@@ -333,8 +365,14 @@ obsfn <- function(X2Y, parameters = NULL, condition = NULL) {
   mappings[[1]] <- X2Y
   names(mappings) <- condition
   
-  outfn <- function(out, pars, fixed = NULL, deriv = TRUE, conditions = mycondition) {
+  outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = mycondition) {
+   
+    arglist <- list(...)
+    arglist <- arglist[match.fnargs(arglist, c("out", "pars"))]
+    out <- arglist[[1]]
+    pars <- arglist[[2]]
     
+     
     overlap <- intersect(conditions, condition)
     # NULL if at least one argument is NULL
     # character(0) if no overlap
@@ -551,7 +589,12 @@ objframe <- function(mydata, deriv = NULL) {
   # prdfn + prdfn
   if (inherits(x1, "prdfn") & inherits(x2, "prdfn")) {
     
-    outfn <- function(times, pars, fixed = NULL, deriv = TRUE, conditions = names(mappings)) {
+    outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = names(mappings)) {
+      
+      arglist <- list(...)
+      arglist <- arglist[match.fnargs(arglist, c("times", "pars"))]
+      times <- arglist[[1]]
+      pars <- arglist[[2]]
       
       
       if (is.null(conditions)) {
@@ -580,7 +623,13 @@ objframe <- function(mydata, deriv = NULL) {
   # obsfn + obsfn
   if (inherits(x1, "obsfn") & inherits(x2, "obsfn")) {
     
-    outfn <- function(out, pars, fixed = NULL, deriv = TRUE, conditions = names(mappings)) {
+    outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = names(mappings)) {
+      
+      arglist <- list(...)
+      arglist <- arglist[match.fnargs(arglist, c("out", "pars"))]
+      out <- arglist[[1]]
+      pars <- arglist[[2]]
+      
       
       if (is.null(conditions)) {
         available <- names(mappings)
@@ -605,7 +654,12 @@ objframe <- function(mydata, deriv = NULL) {
   # parfn + parfn
   if (inherits(x1, "parfn") & inherits(x2, "parfn")) {
     
-    outfn <- function(p, fixed = NULL, deriv = TRUE, conditions = names(mappings)) {
+    outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = names(mappings)) {
+      
+      arglist <- list(...)
+      arglist <- arglist[match.fnargs(arglist, c("pars"))]
+      pars <- arglist[[1]]
+      
       
       if (is.null(conditions)) {
         available <- names(mappings)
@@ -614,7 +668,7 @@ objframe <- function(mydata, deriv = NULL) {
       }
       outlist <- structure(vector("list", length(conditions)), names = conditions)
       for (C in available) {
-        outlist[[C]] <- mappings[[C]](p = p, fixed = fixed, deriv = deriv)
+        outlist[[C]] <- mappings[[C]](pars = pars, fixed = fixed, deriv = deriv)
       }
       
       return(outlist)
@@ -654,17 +708,24 @@ out_conditions <- function(c1, c2) {
 #' @export
 "*.fn" <- function(p1, p2) {
 
-  # obsfn * obsfn
+  # obsfn * obsfn -> obsfn
   if (inherits(p1, "obsfn") & inherits(p2, "obsfn")) {
     
     conditions.p1 <- attr(p1, "conditions")
     conditions.p2 <- attr(p2, "conditions")
     conditions.out <- out_conditions(conditions.p1, conditions.p2)
     
-    outfn <- function(out, pars, fixed = NULL, deriv = TRUE, conditions = NULL) {
+    outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = NULL) {
+      
+      arglist <- list(...)
+      arglist <- arglist[match.fnargs(arglist, c("out", "pars"))]
+      out <- arglist[[1]]
+      pars <- arglist[[2]]
+      
       
       step1 <- p2(out = out, pars = pars, fixed = fixed, deriv = deriv, conditions = conditions)
-      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(out = step1[[i]], pars = attr(step1[[i]], "parameters"), fixed = fixed, deriv = deriv, condition = names(step1)[i])))
+      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(out = step1[[i]], pars = attr(step1[[i]], "parameters"), fixed = fixed, deriv = deriv, conditions = names(step1)[i])))
+      
       
       out <- as.prdlist(step2)
       
@@ -682,17 +743,22 @@ out_conditions <- function(c1, c2) {
   }  
   
   
-  # obsfn * parfn
+  # obsfn * parfn -> obsfn
   if (inherits(p1, "obsfn") & inherits(p2, "parfn")) {
     
     conditions.p1 <- attr(p1, "conditions")
     conditions.p2 <- attr(p2, "conditions")
     conditions.out <- out_conditions(conditions.p1, conditions.p2)
     
-    outfn <- function(out, pars, fixed = NULL, deriv = TRUE, conditions = NULL) {
+    outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = NULL) {
       
-      step1 <- p2(p = pars, fixed = fixed, deriv = deriv, conditions = conditions)
-      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(out = out, pars = step1[[i]], fixed = fixed, deriv = deriv, condition = names(step1)[i])))
+      arglist <- list(...)
+      arglist <- arglist[match.fnargs(arglist, c("out", "pars"))]
+      out <- arglist[[1]]
+      pars <- arglist[[2]]
+      
+      step1 <- p2(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions)
+      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(out = out, pars = step1[[i]], fixed = fixed, deriv = deriv, conditions = names(step1)[i])))
       
       out <- as.prdlist(step2)
       
@@ -710,16 +776,22 @@ out_conditions <- function(c1, c2) {
   }  
   
   
-  # obsfn * prdfn
+  # obsfn * prdfn -> prdfn
   if (inherits(p1, "obsfn") & inherits(p2, "prdfn")) {
     
     conditions.p1 <- attr(p1, "conditions")
     conditions.p2 <- attr(p2, "conditions")
     conditions.out <- out_conditions(conditions.p1, conditions.p2)
     
-    outfn <- function(times, pars, fixed = NULL, deriv = TRUE, conditions = NULL) {
+    outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = NULL) {
+      
+      arglist <- list(...)
+      arglist <- arglist[match.fnargs(arglist, c("times", "pars"))]
+      times <- arglist[[1]]
+      pars <- arglist[[2]]
+      
       step1 <- p2(times = times, pars = pars, fixed = fixed, deriv = deriv, conditions = conditions)
-      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(out = step1[[i]], pars = attr(step1[[i]], "parameters"), fixed = fixed, deriv = deriv, condition = names(step1)[i])))
+      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(out = step1[[i]], pars = attr(step1[[i]], "parameters"), fixed = fixed, deriv = deriv, conditions = names(step1)[i])))
       
       out <- as.prdlist(step2)
       
@@ -737,7 +809,7 @@ out_conditions <- function(c1, c2) {
   }  
   
   
-  # prdfn * parfn
+  # prdfn * parfn -> prdfn
   if (inherits(p1, "prdfn") & inherits(p2, "parfn")) {
     
     
@@ -746,10 +818,15 @@ out_conditions <- function(c1, c2) {
     conditions.out <- out_conditions(conditions.p1, conditions.p2)
     
     
-    outfn <- function(times, pars, fixed = NULL, deriv = TRUE, conditions = NULL) {
+    outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = NULL) {
       
-      step1 <- p2(p = pars, fixed = fixed, deriv = deriv, conditions = conditions)
-      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(times = times, pars = step1[[i]], deriv = deriv, condition = names(step1)[i])))
+      arglist <- list(...)
+      arglist <- arglist[match.fnargs(arglist, c("times", "pars"))]
+      times <- arglist[[1]]
+      pars <- arglist[[2]]
+      
+      step1 <- p2(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions)
+      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(times = times, pars = step1[[i]], deriv = deriv, conditions = names(step1)[i])))
       
       out <- as.prdlist(step2)
       
@@ -766,7 +843,7 @@ out_conditions <- function(c1, c2) {
     
   }
   
-  # parfn * parfn
+  # parfn * parfn -> parfn
   if (inherits(p1, "parfn") & inherits(p2, "parfn")) {
     
     conditions.p1 <- attr(p1, "conditions")
@@ -774,10 +851,14 @@ out_conditions <- function(c1, c2) {
     conditions.out <- out_conditions(conditions.p1, conditions.p2)
     
     
-    outfn <- function(p, fixed=NULL, deriv = TRUE, conditions = NULL) {
+    outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = NULL) {
       
-      step1 <- p2(p = p, fixed = fixed, deriv = deriv, conditions = conditions)
-      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(p = step1[[i]], deriv = deriv, condition = names(step1)[i])))
+      arglist <- list(...)
+      arglist <- arglist[match.fnargs(arglist, c("pars"))]
+      pars <- arglist[[1]]
+      
+      step1 <- p2(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions)
+      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(pars = step1[[i]], deriv = deriv, conditions = names(step1)[i])))
       return(step2)
       
     }
@@ -790,26 +871,6 @@ out_conditions <- function(c1, c2) {
     return(outfn)
     
   }
- 
-  # objfn * parfn
-  # if (inherits(p1, "objfn") & inherits(p2, "parfn")) {
-  #   
-  #   conditions.p2 <- attr(p2, "conditions")
-  #   
-  #   outfn <- function(pouter, fixed = NULL, deriv = TRUE, conditions = conditions.p2, env = NULL) {
-  #     
-  #     step1 <- p2(p = pouter, fixed = fixed, deriv = deriv, conditions = conditions)
-  #     step2 <- p1(pouter = step1, fixed = fixed, deriv = deriv, conditions = conditions, env = env)
-  #     
-  #     return(step2)
-  #     
-  #   }
-  #   
-  #   class(outfn) <- c("objfn", "fn", "composed")
-  #   
-  #   return(outfn)
-  #   
-  # } 
   
   
 }
