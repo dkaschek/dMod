@@ -442,10 +442,10 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
 #'
 #' @details The command \code{\link{mstrust}} saves
 #'   each completed fit along the multi-start sequence such that the results can
-#'   be resurected on abortion. This commands loads a fitlist from these
+#'   be resurected on abortion. This command loads a fitlist from these
 #'   intermediate results.
 #'
-#' @return A fitlist as data frame.
+#' @return An object of class parlist.
 #'
 #' @seealso \code{\link{mstrust}}
 #'
@@ -786,9 +786,9 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
 #' @description Fitlists carry an fit index which must be held unique on merging
 #' multiple fitlists.
 #'
-#' @param ... Fitlists
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'
+#' @rdname parlist
 #' @export
 #' @export c.parlist
 c.parlist <- function(...) {

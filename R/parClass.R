@@ -15,6 +15,8 @@ as.parlist <- function(x = NULL) {
 }
 
 #' @export
+#' @param object a parlist
+#' @rdname parlist
 summary.parlist <- function(object, ...) {
   
   x <- object
@@ -152,7 +154,7 @@ as.parvec <- function(x, ...) {
 #' Parameter vector
 #' @param x numeric or named numeric, the parameter values
 #' @param names optional character vector, the parameter names. Otherwise, names
-#' are taken from \code{p}.
+#' are taken from \code{x}.
 #' @rdname parvec
 #' @export
 as.parvec.numeric <- function(x, names = NULL, deriv = NULL, ...) {

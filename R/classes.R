@@ -14,6 +14,7 @@
 #' @param ... Further arguments being passed to funC.
 #' @return list with \code{func} (ODE object) and \code{extended} (ODE+Sensitivities object)
 #' @export
+#' @example inst/examples/odemodel.R
 #' @import cOde
 odemodel <- function(f, deriv = TRUE, forcings=NULL, fixed=NULL, modelname = "odemodel", verbose = FALSE, ...) {
   
@@ -73,6 +74,7 @@ match.fnargs <- function(arglist, choices) {
 #' @param ... mathematical expressions as characters to be coerced,
 #' the right-hand sides of the equations
 #' @return object of class \code{eqnvec}, basically a named character.
+#' @example inst/examples/eqnvec.R
 #' @export
 eqnvec <- function(...) {
   
@@ -147,6 +149,9 @@ eqnlist <- function(smatrix = NULL, states = colnames(smatrix), rates = NULL, vo
 #' Generate functions that transform one parameter vector into another
 #' by means of a transformation, pushing forward the jacobian matrix
 #' of the original parameter. 
+#' Usually, this function is called internally, e.g. by \link{P}.
+#' However, you can use it to add your own specialized parameter
+#' transformations to the general framework.
 #' @param p2p a transformation function for one condition, i.e. a function
 #' \code{p2p(p, fixed, deriv)} which translates a parameter vector \code{p}
 #' and a vector of fixed parameter values \code{fixed} into a new parameter
@@ -207,6 +212,7 @@ parfn <- function(p2p, parameters = NULL, condition = NULL) {
 #' parameter specifications. The columns are divided into three parts. (1) the meta-information
 #' columns (e.g. index, value, constraint, etc.), (2) the attributes of an objective function
 #' (e.g. data contribution and prior contribution) and (3) the parameters.
+#' @seealso \link{profile}, \link{mstrust}
 #' @param x data.frame.
 #' @param parameters character vector, the names of the parameter columns.
 #' @param metanames character vector, the names of the meta-information columns.
@@ -235,10 +241,11 @@ parframe <- function(x = NULL, parameters = colnames(x), metanames = NULL, obj.a
 #' Parameter list
 #' 
 #' @description The special use of a parameter list is to save
-#' the outcome of multiple optimization runs, e.g. by \code{mstrust},
-#' into one list.#' 
+#' the outcome of multiple optimization runs provided by \link{mstrust},
+#' into one list. 
 #' @param ... Objects to be coerced to parameter list.
 #' @export
+#' @seealso \link{load.parlist}, \link{plot.parlist}
 parlist <- function(...) {
   
   mylist <- list(...)
