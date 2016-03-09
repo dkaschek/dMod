@@ -882,7 +882,7 @@ out_conditions <- function(c1, c2) {
   
 }
 
-
+## General purpose functions for different dMod classes ------------------------------
 
 #' List, get and set controls for different functions
 #' 
@@ -978,4 +978,57 @@ controls.fn <- function(x, condition = NULL, name = NULL, ...) {
   if (is.null(condition)) y <- mappings[[1]] else y <- mappings[[condition]]
   environment(y)$controls[[name]] <- value
   return(x)
+}
+
+
+#' Extract the derivatives of an object
+#' 
+#' @param x object from which the derivatives should be extracted
+#' @param ... additional arguments (not used right now)
+#' @return The derivatives in a format that depends on the class of \code{x}.
+#' This is
+#' \code{parvec -> matrix}, 
+#' \code{prdframe -> prdframe}, 
+#' \code{prdlist -> prdlist}, 
+#' \code{objlist -> named numeric}.
+#' @export
+derivatives <- function(x, ...) {
+  UseMethod("derivatives", x)
+}
+
+#' @export
+#' @rdname derivatives
+derivatives.parvec <- function(x, ...) {
+  
+  attr(x, "deriv")
+  
+}
+
+#' @export
+#' @rdname derivatives
+derivatives.prdframe <- function(x, ...) {
+  
+  prdframe(prediction = attr(x, "deriv"), parameters = attr(x, "parameters"))
+  
+}
+
+#' @export
+#' @rdname derivatives
+derivatives.prdlist <- function(x, ...) {
+  
+  as.prdlist(
+    lapply(x, function(myx) {
+      derivatives(myx)
+    }),
+    names = names(x)
+  )
+    
+}
+
+#' @export
+#' @rdname derivatives
+derivatives.objlist <- function(x, ...) {
+  
+  x$gradient
+  
 }
