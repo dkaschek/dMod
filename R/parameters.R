@@ -90,7 +90,9 @@ Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, mod
   controls <- list()
   
   # the parameter transformation function to be returned
-  p2p <- function(p, fixed=NULL, deriv = TRUE) {
+  p2p <- function(pars, fixed=NULL, deriv = TRUE) {
+    
+    p <- pars
     
     # Inherit from p
     dP <- attr(p, "deriv", exact = TRUE)
@@ -237,8 +239,10 @@ Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, co
   controls <- list(keep.root = keep.root)
   
   # the parameter transformation function to be returned
-  p2p <- function(p, fixed=NULL, deriv = TRUE) {
+  p2p <- function(pars, fixed=NULL, deriv = TRUE) {
     
+    
+    p <- pars
     keep.root <- controls$keep.root
     
     # Inherit from p

@@ -50,7 +50,7 @@
 #' trafo <- c(a = "exp(loga)", b = "exp(logb)",c = "exp(loga)*exp(logb)*exp(logc)")
 #' p <- P(trafo) 
 #' obj <- function(pOuter, fixed = NULL) 
-#'    constraintL2(p(pOuter, fixed), c(a =.1, b = 1, c = 10), 1)
+#'    constraintL2(c(pOuter, fixed), c(a =.1, b = 1, c = 10), 1)
 #'     
 #' ini <- c(loga = 1, logb = 1, logc = 1)   
 #' myfit <- trust(obj, ini, rinit=1, rmax=10)   

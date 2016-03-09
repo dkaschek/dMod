@@ -414,7 +414,7 @@ plotArray <- function(parframe, x, times, data = NULL, ..., fixed = NULL, deriv 
   
   
   prediction <- lapply(pars, function(p) {
-    pred <- x(times, p, fixed, deriv = deriv)
+    pred <- x(times, p, fixed = fixed, deriv = deriv)
     newnames <- sapply(names(pred), function(cond) paste(colnames(pred[[cond]])[-1], cond, sep = ",\n "))
     pred <- do.call(cbind, pred)
     pred <- pred[, -which(colnames(pred) == "time")]
@@ -458,7 +458,7 @@ plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux = "Fluxes:", fi
   if (is.null(names(fluxEquations))) names(fluxEquations) <- fluxEquations
   
   flux <- funC0(fluxEquations, convenient = FALSE)
-  prediction.all <- x(times, pouter, fixed, deriv = FALSE)
+  prediction.all <- x(times, pouter, fixed = fixed, deriv = FALSE)
   names.prediction.all <- names(prediction.all)
   if (is.null(names.prediction.all)) names.prediction.all <- paste0("C", 1:length(prediction.all))
   
