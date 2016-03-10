@@ -69,11 +69,30 @@ theme_dMod <- function(base_size = 12, base_family = "") {
           legend.key = element_rect(colour = NA), 
           panel.border = element_rect(colour = gray), 
           panel.grid = element_line(colour = gray, size = 0.2), 
-          strip.background = element_rect(fill = "white", colour = NA))
+          strip.background = element_rect(fill = "white", colour = NA)) 
 }
 
+dMod_colors <- c("#000000", "#0084D1", "#C5000B", "#579D1C", "#FF950E", "#4B1F6F", rep("gray", 100))
 
-ggplot <- function(...) ggplot2::ggplot(...) + theme_dMod()
+#' Standard dMod color palette
+#' 
+#' @export
+#' @examples
+#' times <- seq(0, 2*pi, 0.1)
+#' values <- sin(times)
+#' data <- data.frame(
+#'    time = times, 
+#'    value = c(values, 1.2*values, 1.4*values, 1.6*values), 
+#'    group = rep(c("C1", "C2", "C3", "C4"), each = length(times))
+#' )
+#' qplot(time, value, data = data, color = group, geom = "line") + 
+#'    theme_dMod() + scale_color_dMod()
+#' @export
+scale_color_dMod <- function() {
+  scale_color_manual(values = dMod_colors)
+}
+
+ggplot <- function(...) ggplot2::ggplot(...) + scale_color_dMod() + theme_dMod()
 
 
 #' Plot a list of model predictions
@@ -404,7 +423,8 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scale
 #' 
 #' @return A plot object of class \code{ggplot}.
 #' @export
-plotArray <- function(parframe, x, times, data = NULL, ..., fixed = NULL, deriv = FALSE, scales = "free", facet = "wrap") {
+plotArray <- function(parframe, x, times, data = NULL, ..., 
+                      fixed = NULL, deriv = FALSE, scales = "free", facet = "wrap") {
 
   # Get attributes and go back to data.frame
   parameters <- attr(parframe, "parameters")
@@ -415,7 +435,7 @@ plotArray <- function(parframe, x, times, data = NULL, ..., fixed = NULL, deriv 
   
   prediction <- lapply(pars, function(p) {
     pred <- x(times, p, fixed = fixed, deriv = deriv)
-    newnames <- sapply(names(pred), function(cond) paste(colnames(pred[[cond]])[-1], cond, sep = ",\n "))
+    newnames <- sapply(1:length(pred), function(cond) paste(colnames(pred[[cond]])[-1], names(pred)[cond], sep = ",\n "))
     pred <- do.call(cbind, pred)
     pred <- pred[, -which(colnames(pred) == "time")]
     pred <- cbind(times, pred)
@@ -424,14 +444,54 @@ plotArray <- function(parframe, x, times, data = NULL, ..., fixed = NULL, deriv 
   }); names(prediction) <- parframe[ ,"value"]
   
   
-  if(!is.null(data)) {
-    for(n in names(data)) data[[n]]$name <- paste(data[[n]]$name, n, sep = ",\n ")
+  if (!is.null(data)) {
+    for (n in 1:length(data)) data[[n]]$name <- paste(data[[n]]$name, names(data)[n], sep = ",\n ")
     data <- do.call(rbind, data)
     data <- list(data)
     names(data) <- names(prediction)[1]
   }
   
-  plotCombined(prediction, data, ..., scales = scales, facet = facet) 
+  ## Plotting (code mostly taken from plotCombined)
+  
+  mynames <- c("time", "name", "value", "sigma", "condition")
+  
+  prediction <- cbind(wide2long(prediction), sigma = NA)
+  prediction <- subset(prediction, ...)
+  
+  prediction$condition <- as.numeric(prediction$condition)
+  
+  
+  if (!is.null(data)) {
+    data <- lbind(data)
+    data <- subset(data, ...)
+    
+    data$condition <- NaN
+    
+  }
+  
+  
+   
+  total <- rbind(prediction[, mynames], data[, mynames])
+  
+  if (facet == "wrap")
+    p <- ggplot2::ggplot(total, aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma, 
+                           group = condition, color = condition)) + facet_wrap(~name, scales = scales)
+  if (facet == "grid")
+    p <- ggplot2::ggplot(total, aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma)) + facet_grid(name ~ condition, scales = scales)
+  
+  if (!is.null(prediction))
+    p <- p +  geom_line(data = prediction)
+  
+  if (!is.null(data))
+    p <- p + geom_point(data = data, color = "black", alpha = .3) + 
+    geom_errorbar(data = data, width = 0, color = "black", alpha = .3)
+  
+  p <- p + theme_dMod()
+  
+  
+  attr(p, "data") <- list(data = data, prediction = prediction)
+  return(p)
+  
   
   
 }

@@ -390,12 +390,12 @@ long2wide <- function(out) {
 lbind <- function(mylist) {
   
   conditions <- names(mylist)
-  numconditions <- suppressWarnings(as.numeric(conditions))
-  
-  if(!any(is.na(numconditions))) 
-    numconditions <- as.numeric(numconditions) 
-  else 
-    numconditions <- conditions
+  #numconditions <- suppressWarnings(as.numeric(conditions))
+  #
+  # if(!any(is.na(numconditions))) 
+  #   numconditions <- as.numeric(numconditions) 
+  # else 
+  numconditions <- conditions
 
   
   outlong <- do.call(rbind, lapply(1:length(conditions), function(cond) {
