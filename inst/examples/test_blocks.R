@@ -2,6 +2,8 @@
 library(deSolve)
 library(dMod)
 
+setwd("/tmp")
+
 ## Model definition (text-based, scripting part)
 
 r <- addReaction(NULL, "A", "B", "k1*A", "translation")
@@ -146,5 +148,5 @@ pouter <- structure(rnorm(length(outerpars)), names = outerpars)
 plot((g*pObs*x*p)(times, pouter))
 
 
-
+setwd("~/Abteilung_Timmer/RProjects/dMod/")
 
