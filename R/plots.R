@@ -72,7 +72,7 @@ theme_dMod <- function(base_size = 12, base_family = "") {
           strip.background = element_rect(fill = "white", colour = NA)) 
 }
 
-dMod_colors <- c("#000000", "#0084D1", "#C5000B", "#579D1C", "#FF950E", "#4B1F6F", rep("gray", 100))
+dMod_colors <- c("#000000", "#C5000B", "#579D1C", "#0084D1", "#FF950E", "#4B1F6F", rep("gray", 100))
 
 #' Standard dMod color palette
 #' 
@@ -562,8 +562,8 @@ plotValues <- function(x) {
  
   pars <- cbind(index = 1:nrow(pars), pars[order(pars$value),])
    
-  ggplot(pars, aes(x = index, y = value, pch = converged, color = iterations)) + geom_point() + 
-    xlab("index") + ylab("value")
+  ggplot2::ggplot(pars, aes(x = index, y = value, pch = converged, color = iterations)) + geom_point() + 
+    xlab("index") + ylab("value") + theme_dMod()
   
 }
 
