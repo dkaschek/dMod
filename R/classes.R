@@ -159,7 +159,11 @@ eqnlist <- function(smatrix = NULL, states = colnames(smatrix), rates = NULL, vo
 #' \code{deriv} with the Jacobian matrix of the parameter transformation.
 #' @param parameters character vector, the parameters accepted by the function
 #' @param condition character, the condition for which the transformation is defined
-#' @return object of class \code{parfn}. Contains attributes "mappings", a list of \code{p2p}
+#' @return object of class \code{parfn}, i.e. a function \code{p(..., fixed, deriv,
+#'  conditions, env)}. The argument \code{pars} should be passed via the \code{...}
+#'  argument.
+#'  
+#'  Contains attributes "mappings", a list of \code{p2p}
 #' functions, "parameters", the union of parameters acceted by the mappings and
 #' "conditions", the total set of conditions.
 #' @seealso \link{sumfn}, \link{P}
@@ -308,7 +312,7 @@ parvec <- function(..., deriv = NULL) {
 #' predictions for different conditions are merged or overwritten. Prediction functions can
 #' also be concatenated with other functions, e.g. observation functions (\link{obsfn}) or 
 #' parameter transformation functions (\link{parfn}) by the "*" operator, see \link{prodfn}.
-#' @return Object of class \code{prdfn}, i.e. a function \code{x(..., fixed, deriv, conditions)}
+#' @return Object of class \code{prdfn}, i.e. a function \code{x(..., fixed, deriv, conditions, env)}
 #' which returns a \link{prdlist}. The arguments \code{times} and 
 #' \code{pars} (parameter values) should be passed via the \code{...} argument, in this order. 
 #' @example inst/examples/prediction.R
@@ -367,8 +371,9 @@ prdfn <- function(P2X, parameters = NULL, condition = NULL) {
 #' observations for different conditions are merged or, overwritten. Observation functions can
 #' also be concatenated with other functions, e.g. observation functions (\link{obsfn}) or 
 #' prediction functions (\link{prdfn}) by the "*" operator, see \link{prodfn}.
-#' @return Object of class \code{obsfn}, i.e. a function \code{x(times, pars, fixed, deriv, conditions)}
-#' which returns a \link{prdlist}.
+#' @return Object of class \code{obsfn}, i.e. a function \code{x(..., fixed, deriv, conditions, env)}
+#' which returns a \link{prdlist}. The arguments \code{out} (prediction) and \code{pars} (parameter values)
+#' should be passed via the \code{...} argument.
 #' @example inst/examples/prediction.R
 #' @export
 obsfn <- function(X2Y, parameters = NULL, condition = NULL) {
@@ -988,7 +993,18 @@ out_conditions <- function(c1, c2) {
 #' @param x function
 #' @param ... arguments going to the appropriate S3 methods
 #' @return Either a print-out or the values of the control. 
+#' @examples 
+#' ## parfn with condition
+#' p <- P(eqnvec(x = "-a*x"), method = "implicit", condition = "C1")
+#' controls(p)
+#' controls(p, "C1", "keep.root")
+#' controls(p, "C1", "keep.root") <- FALSE
 #' 
+#' ## obsfn with NULL condition
+#' g <- Y(g = eqnvec(y = "s*x"), f = NULL, states = "x", parameters = "s")
+#' controls(g)
+#' controls(g, NULL, "attach.input")
+#' controls(g, NULL, "attach.input") <- FALSE 
 #' @export
 controls <- function(x, ...) {
   UseMethod("controls", x)
