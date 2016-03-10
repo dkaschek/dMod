@@ -17,10 +17,10 @@
 #' @references [1]
 #' \url{https://bitbucket.org/d2d-development/d2d-software/wiki/Home}
 #' 
-#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de} and Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'   
 #' @export
-steadyStates_old <- function(model, file, forcings = "", neglect = "", outputFormat = "R", sparsifyLevel = 2) {
+steadyStates_old <- function(model, file, forcings = list(), neglect = list(), outputFormat = "R", sparsifyLevel = 2) {
   
   # Check if file is valid
   if (!is.character(file)) stop("File name must be specified")
@@ -35,6 +35,7 @@ steadyStates_old <- function(model, file, forcings = "", neglect = "", outputFor
   
   # Calculate steady states.
   python.version.request("2.7")
+  require(rPython)
   rPython::python.load(system.file("code/steadyStates.py", package = "dMod"))
   m_ss <- rPython::python.call("ODESS", model, forcings, neglect, outputFormat, sparsifyLevel)
   
@@ -68,7 +69,7 @@ steadyStates_old <- function(model, file, forcings = "", neglect = "", outputFor
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 #'   
 #' @export
-steadyStates <- function(model, file, forcings = "", givenCQs = "", sparsifyLevel = 2, outputFormat = "R") {
+steadyStates <- function(model, file, forcings = list(), givenCQs = list(), sparsifyLevel = 2, outputFormat = "R") {
   
   # Check if file is valid
   if (!is.character(file)) stop("File name must be specified")
@@ -83,6 +84,7 @@ steadyStates <- function(model, file, forcings = "", givenCQs = "", sparsifyLeve
   
   # Calculate steady states.
   python.version.request("2.7")
+  require(rPython)
   rPython::python.load(system.file("code/steadyStates_new.py", package = "dMod"))
   m_ss <- rPython::python.call("ODESS", model, forcings, givenCQs, sparsifyLevel, outputFormat)
   

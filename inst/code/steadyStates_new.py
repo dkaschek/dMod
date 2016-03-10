@@ -761,7 +761,7 @@ def ODESS(filename,
             fluxpars.append(flux)
 
 ##### Increase Sparsity of stoichiometry matrix SM
-    print('Sparsify Stoichiometry Matrix with sparsify-level '+str(sparsifyLevel)+'!')
+    print('Sparsify stoichiometry matrix with sparsify-level '+str(sparsifyLevel)+'!')
     SM=(Sparsify(SM.T, level=sparsifyLevel)).T
     
 #### Find conserved quantities
@@ -797,6 +797,8 @@ def ODESS(filename,
         #print(cycle)
         #print(state2Rem)
         #print(fp2Rem)
+        index=list(X).index(parse_expr(state2Rem))
+        #print((SM*F)[index])
         #print(minType)
         if(minType==0):
             for LCL in LCLs:
@@ -819,55 +821,80 @@ def ODESS(filename,
             print('   '+str(state2Rem)+' --> '+str(fp2Rem))
         if(minType==3):
             anz, sign=GetDimension(state2Rem, X, SM, getSign=True)
-            index=list(X).index(parse_expr(state2Rem))
+            index=list(X).index(parse_expr(state2Rem))            
             negs, sumnegs, negfps=GetOutfluxes(state2Rem, X, SM, F, fluxpars)
             poss, sumposs, posfps=GetInfluxes(state2Rem, X, SM, F, fluxpars)
-            nenner=1
-            for j in range(anz):
-                if(j>0):
-                    nenner=nenner+parse_expr('r_'+state2Rem+'_'+str(j))
-            trafoList=[]
-            if(sign=="minus"):
-                for j in range(len(negs)):
-                    flux=negs[j]
-                    fp=negfps[j]
-                    prefactor=flux/fp
-                    if(j==0):
-                        trafoList.append(str(fp)+' = ('+str(sumposs)+')*1/('+str(nenner)+')*1/('+str(prefactor)+')')
-                    else:
-                        gesnew=gesnew+1
-                        trafoList.append(str(fp)+' = ('+str(sumposs)+')*'+'r_'+state2Rem+'_'+str(j)+'/('+str(nenner)+')*1/('+str(prefactor)+')')
-                    colindex=list(F).index(flux)
-                    for k in range(len(posfps)):
-                        SM=SM.col_insert(len(SM.row(0)),SM.col(colindex))
-                        F=F.row_insert(len(F),Matrix(1,1,[poss[k]/nenner]))
-                        fluxpars.append(posfps[k])
-                    SM.col_del(colindex)
-                    F.row_del(colindex)
-                    fluxpars.__delitem__(colindex)
-                print('   '+str(state2Rem)+' --> '+str(negfps))
-                
+            #print(negs)
+            #print(poss)
+            #print(anz)
+            if(anz==1):
+                if(sign=="minus"):
+                    fp2Rem=negfps[0]
+                    flux=negs[0]
+                else:
+                    fp2Rem=posfps[0]
+                    flux=poss[0]
+                eq=(SM*F)[index]
+                sol=solve(eq, fp2Rem, simplify=False)[0]
+                eqOut.append(str(fp2Rem)+' = '+str(sol))
+                print('   '+str(state2Rem)+' --> '+str(fp2Rem))
+                colindex=list(F).index(flux)
+                for row2repl in range(len(SM.col(0))):
+                    if(SM[row2repl,colindex]!=0 and row2repl!=index):
+                        #print(index)
+                        #print(colindex)
+                        #print(SM[index,colindex])
+                        SM=SM.row_insert(row2repl,SM.row(row2repl)-(SM[row2repl,colindex]/SM[index,colindex])*SM.row(index))
+                        SM.row_del(row2repl+1)
             else:
-                for j in range(len(poss)):
-                    flux=poss[j]
-                    fp=posfps[j]
-                    prefactor=flux/fp
-                    if(j==0):
-                        trafoList.append(str(fp)+' = ('+str(sumnegs)+')*1/('+str(nenner)+')*1/('+str(prefactor)+')')
-                    else:
-                        gesnew=gesnew+1
-                        trafoList.append(str(fp)+' = ('+str(sumnegs)+')*'+'r_'+state2Rem+'_'+str(j)+'/('+str(nenner)+')*1/('+str(prefactor)+')')
-                    colindex=list(F).index(flux)
-                    for k in range(len(posfps)):
-                        SM=SM.col_insert(len(SM.row(0)),SM.col(colindex))
-                        F=F.row_insert(len(F),Matrix(1,1,[negs[k]/nenner]))
-                        fluxpars.append(negfps[k])
-                    SM.col_del(colindex)
-                    F.row_del(colindex)
-                    fluxpars.__delitem__(colindex)
-                print('   '+str(state2Rem)+' --> '+str(posfps))
-            for eq in trafoList:
-                eqOut.append(eq)
+                nenner=1
+                for j in range(anz):
+                    if(j>0):
+                        nenner=nenner+parse_expr('r_'+state2Rem+'_'+str(j))
+                trafoList=[]
+                if(sign=="minus"):
+                    for j in range(len(negs)):
+                        flux=negs[j]
+                        fp=negfps[j]
+                        prefactor=flux/fp
+                        if(j==0):
+                            trafoList.append(str(fp)+' = ('+str(sumposs)+')*1/('+str(nenner)+')*1/('+str(prefactor)+')')
+                        else:
+                            gesnew=gesnew+1
+                            trafoList.append(str(fp)+' = ('+str(sumposs)+')*'+'r_'+state2Rem+'_'+str(j)+'/('+str(nenner)+')*1/('+str(prefactor)+')')
+                        if(True):
+                            colindex=list(F).index(flux)
+                            for k in range(len(posfps)):
+                                SM=SM.col_insert(len(SM.row(0)),SM.col(colindex))
+                                F=F.row_insert(len(F),Matrix(1,1,[poss[k]/nenner]))
+                                fluxpars.append(posfps[k])
+                            SM.col_del(colindex)
+                            F.row_del(colindex)
+                            fluxpars.__delitem__(colindex)
+                    print('   '+str(state2Rem)+' --> '+str(negfps))
+                    
+                if(sign=="plus"):
+                    for j in range(len(poss)):
+                        flux=poss[j]
+                        fp=posfps[j]
+                        prefactor=flux/fp
+                        if(j==0):
+                            trafoList.append(str(fp)+' = ('+str(sumnegs)+')*1/('+str(nenner)+')*1/('+str(prefactor)+')')
+                        else:
+                            gesnew=gesnew+1
+                            trafoList.append(str(fp)+' = ('+str(sumnegs)+')*'+'r_'+state2Rem+'_'+str(j)+'/('+str(nenner)+')*1/('+str(prefactor)+')')
+                        if(True):
+                            colindex=list(F).index(flux)
+                            for k in range(len(negfps)):
+                                SM=SM.col_insert(len(SM.row(0)),SM.col(colindex))
+                                F=F.row_insert(len(F),Matrix(1,1,[negs[k]/nenner]))
+                                fluxpars.append(negfps[k])
+                            SM.col_del(colindex)
+                            F.row_del(colindex)
+                            fluxpars.__delitem__(colindex)
+                    print('   '+str(state2Rem)+' --> '+str(posfps))
+                for eq in trafoList:
+                    eqOut.append(eq)
             X.row_del(index)
             SM.row_del(index)
         SSgraph=DetermineGraphStructure(SM, F, X)
@@ -921,8 +948,8 @@ def ODESS(filename,
         expr=simplify(expr)
         #print(expr)
         if(expr!=0):
-            print('\t'+str(ODE[i]))
-            print('\t'+str(expr))
+            print('   Equation '+str(ODE[i]))
+            print('   results:'+str(expr))
             NonSteady=True
     if(NonSteady):
         print('Solution is wrong!\n')
