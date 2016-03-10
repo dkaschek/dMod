@@ -108,6 +108,10 @@ as.parframe.parlist <- function(x, sort.by = "value", ...) {
 ## Methods for the class parframe -----------------------------------------------
 
 #' @export
+#' @param i row index in any format
+#' @param j column index in any format
+#' @param drop logical. If TRUE the result is coerced to the lowest possible dimension
+#' @rdname parframe
 "[.parframe" <- function(x, i = NULL, j = NULL, drop = FALSE){
   
   metanames <- attr(x, "metanames")
@@ -131,6 +135,8 @@ as.parframe.parlist <- function(x, sort.by = "value", ...) {
 
 
 #' @export
+#' @param ... additional arguments
+#' @rdname parframe
 subset.parframe <- function(x, ...) {
   
   x[with(as.list(x), ...), ]
@@ -204,6 +210,12 @@ print.parvec <- function(x, ...) {
 
 
 #' @export
+#' @param drop logical, drop empty columns in Jacobian after subsetting. 
+#' ATTENTION: Be careful with this option. The default behavior is to keep
+#' the columns in the Jacobian. This can lead to unintended results when
+#' subsetting the parvec and using it e.g. in another parameter
+#' transformation.
+#' @rdname parvec
 "[.parvec" <- function(x, ..., drop = FALSE) {
   out <- unclass(x)[...]
   deriv <- submatrix(attr(x, "deriv"), row = ...)
@@ -215,6 +227,7 @@ print.parvec <- function(x, ...) {
 }
 
 #' @export
+#' @rdname parvec
 c.parvec <- function(...) {
   
   mylist <- list(...) #lapply(list(...), as.parvec)

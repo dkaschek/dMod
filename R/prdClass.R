@@ -54,8 +54,8 @@ plot.prdlist <- function(x, data = NULL, ..., scales = "free", facet = "wrap", t
   
   prediction <- x
   
-  if (is.null(names(prediction))) names(prediction) <- 1:length(prediction)
-  if (!is.null(data) && is.null(names(data))) names(data) <- 1:length(data)
+  if (is.null(names(prediction))) names(prediction) <- paste0("C", 1:length(prediction))
+  if (!is.null(data) && is.null(names(data))) names(data) <- paste0("C", 1:length(data))
   
   plotCombined(prediction = prediction, data = data, ..., scales = scales, facet = facet, transform = transform)
   

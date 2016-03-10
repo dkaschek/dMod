@@ -251,7 +251,7 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
 
 #' Model prediction function from data.frame
 #' 
-#' @param data data.frame with columns "name", "times", and row names that 
+#' @param data data.frame with columns "name", "time", and row names that 
 #' are taken as parameter names. The data frame can contain a column "value"
 #' to initialize the parameters.
 #' @param condition either NULL (generic prediction for any condition) or a character, denoting
@@ -261,7 +261,7 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
 #' see also \link{Xs}. Attributes are "parameters", the parameter names (row names of
 #' the data frame), and possibly "pouter", a named numeric vector which is generated
 #' from \code{data$value}.
-#' @examples 
+#' @examples
 #' # Generate a data.frame and corresponding prediction function
 #' timesD <- seq(0, 2*pi, 0.5)
 #' mydata <- data.frame(name = "A", time = timesD, value = sin(timesD), 
@@ -270,7 +270,7 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
 #' 
 #' # Evaluate the prediction function at different time points
 #' times <- seq(0, 2*pi, 0.01)
-#' pouter <- attr(x, "pouter")
+#' pouter <- structure(mydata$value, names = rownames(mydata))
 #' prediction <- x(times, pouter)
 #' plot(prediction)
 #' 

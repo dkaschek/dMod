@@ -1,8 +1,8 @@
 Package: dMod
 Type: Package
 Title: Dynamic Modeling and Parameter Estimation in ODE Models
-Version: 0.2.1
-Date: 2015-06-09
+Version: 0.3
+Date: 2016-03-10
 Author: Daniel Kaschek
 Maintainer: Daniel Kaschek <daniel.kaschek@physik.uni-freiburg.de>
 Description: The framework provides functions to generate ODEs of reaction
@@ -21,4 +21,4 @@ Suggests:
     rPython,
     rootSolve,
     pander
-RoxygenNote: 5.0.0
+RoxygenNote: 4.1.0

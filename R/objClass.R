@@ -106,7 +106,7 @@ constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, fixed=NULL) {
 #' @param attr.name character. The constraint value is additionally returned in an 
 #' attributed with this name
 #' @return Object of class \code{obsfn}, i.e. a function 
-#' \code{obj(pouter, fixed, deriv, conditions, env)} that returns an objective list,
+#' \code{obj(..., fixed, deriv, conditions, env)} that returns an objective list,
 #' \link{objlist}.
 #' @details Objective functions can be combined by the "+" operator, see \link{sumobjfn}.
 #' @export
@@ -114,9 +114,16 @@ normL2 <- function(data, x, times = NULL, attr.name = "data") {
 
   if (is.null(times)) timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time))))) else timesD <- times
 
+  data.conditions <- names(data)
+  
   controls <- list(times = timesD, attr.name = attr.name)
   
-  myfn <- function(pouter, fixed = NULL, deriv=TRUE, conditions = names(data), env = NULL) {
+  
+  myfn <- function(..., fixed = NULL, deriv=TRUE, conditions = data.conditions, env = NULL) {
+    
+    arglist <- list(...)
+    arglist <- arglist[match.fnargs(arglist, "pars")]
+    pouter <- arglist[[1]]
     
     timesD <- controls$times
     
@@ -161,6 +168,7 @@ normL2 <- function(data, x, times = NULL, attr.name = "data") {
 
   }
   class(myfn) <- c("objfn", "fn")
+  attr(myfn, "conditions") <- data.conditions
   return(myfn)
 
 }
@@ -177,7 +185,7 @@ normL2 <- function(data, x, times = NULL, attr.name = "data") {
 #' @return object of class \code{objfn}
 #' @seealso \link{wrss}
 #' @details Computes the constraint value 
-#' \deqn{\frac{1}{2}\left(\frac{p-\mu}{\sigma}\right)^2}{0.5*(p-mu)^2/sigma^2}
+#' \deqn{\left(\frac{p-\mu}{\sigma}\right)^2}{(p-mu)^2/sigma^2}
 #' and its derivatives with respect to p.
 #' @examples
 #' mu <- c(A = 0, B = 0)
@@ -194,7 +202,12 @@ constraintL2 <- function(mu, sigma = 1, attr.name = "prior", condition = NULL) {
   
   controls <- list(mu = mu, sigma = sigma, attr.name = attr.name)
   
-  myfn <- function(pouter, fixed = NULL, deriv=TRUE, conditions = condition, env = NULL) {
+  myfn <- function(..., fixed = NULL, deriv=TRUE, conditions = condition, env = NULL) {
+    
+    arglist <- list(...)
+    arglist <- arglist[match.fnargs(arglist, "pars")]
+    pouter <- arglist[[1]]
+    
     
     # Evaluate the code in the local environment or in env
     # If evaluated in env, arguments have to be transferred
@@ -254,7 +267,7 @@ constraintL2 <- function(mu, sigma = 1, attr.name = "prior", condition = NULL) {
           hs <- t(dP) %*% hs %*% dP; colnames(hs) <- colnames(dP); rownames(hs) <- colnames(dP)
         }
         
-        objlist(value = val, gradient = gr, hessian = hs)
+        objlist(value = 2*val, gradient = 2*gr, hessian = 2*hs)
         
         
       })
@@ -271,6 +284,7 @@ constraintL2 <- function(mu, sigma = 1, attr.name = "prior", condition = NULL) {
     
   }
   class(myfn) <- c("objfn", "fn")
+  attr(myfn, "conditions") <- condition
   return(myfn)
  
   
@@ -316,8 +330,12 @@ datapointL2 <- function(name, time, value, sigma = 1, attr.name = "validation", 
   )
   
   
-  myfn <- function(pouter, fixed = NULL, deriv=TRUE, conditions = NULL, env = NULL) {
+  myfn <- function(..., fixed = NULL, deriv=TRUE, conditions = NULL, env = NULL) {
   
+    arglist <- list(...)
+    arglist <- arglist[match.fnargs(arglist, "pars")]
+    pouter <- arglist[[1]]
+    
     # Evaluate the code in the local environment or in env
     # If evaluated in env, arguments have to be transferred
     # to this environment.
@@ -390,6 +408,8 @@ datapointL2 <- function(name, time, value, sigma = 1, attr.name = "validation", 
   }
   
   class(myfn) <- c("objfn", "fn")
+  attr(myfn, "conditions") <- condition
+  
   
   return(myfn)
   
@@ -422,7 +442,12 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
   
   controls <- list(mu = mu, lambda = lambda, attr.name = attr.name)
   
-  myfn <- function(pouter, fixed = NULL, deriv=TRUE, conditions = condition, env = NULL) {
+  myfn <- function(..., fixed = NULL, deriv=TRUE, conditions = condition, env = NULL) {
+    
+    arglist <- list(...)
+    arglist <- arglist[match.fnargs(arglist, "pars")]
+    pouter <- arglist[[1]]
+    
     
     # Evaluate the code in the local environment or in env
     # If evaluated in env, arguments have to be transferred
@@ -509,6 +534,7 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
   }
   
   class(myfn) <- c("objfn", "fn")
+  attr(myfn, "conditions") <- condition
   return(myfn)
   
 }

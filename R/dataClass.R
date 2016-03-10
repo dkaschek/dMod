@@ -2,15 +2,11 @@
 ## Class "datalist" and its constructor ------------------------------------------
 
 
-#' Split a data.frame into a datalist
-#' 
 #' @param x object of class \code{data.frame} or \code{list} 
-#' @param ... arguments going to the corresponding methods
 #' @return Object of class \link{datalist}
 #' @export
-#' @examples 
-#' mydata <- data.frame(name = "A", time = 0, value = c(0, 1), sigma = .1, condition = 1:2)
-#' as.datalist(mydata)
+#' @example inst/examples/datalist.R 
+#' @rdname datalist
 as.datalist <- function(x, ...) {
   UseMethod("as.datalist", x)
 }
@@ -19,7 +15,7 @@ as.datalist <- function(x, ...) {
 #' @param split.by vector of columns names which yield a unique identifier (conditions). If NULL, all
 #' columns except for the expected standard columns "name", "time", "value" and "sigma" will be
 #' selected.
-#' @rdname as.datalist
+#' @rdname datalist
 as.datalist.data.frame <- function(x, split.by = NULL, ...) {
   
   dataframe <- x
@@ -52,7 +48,7 @@ as.datalist.data.frame <- function(x, split.by = NULL, ...) {
 
 #' @export
 #' @param names optional names vector, otherwise names are taken from \code{mylist}
-#' @rdname as.datalist
+#' @rdname datalist
 as.datalist.list <- function(x, names = NULL, ...) {
 
   mylist <- x
@@ -118,6 +114,7 @@ print.datalist <- function(x, ...) {
 plot.datalist <- function(x, ..., scales = "free", facet = "wrap") {
   
   data <- x
+  if (is.null(names(data))) names(data) <- paste0("C", 1:length(data))
   plotCombined(prediction = NULL, data = data, ..., scales = scales, facet = facet)
   
 }
