@@ -1,5 +1,8 @@
 # Generate eqnlist from the constructor
-S <- matrix(c(-1, 1, 1, -1), nrow = 2, ncol = 2, dimnames = list(NULL, c("A", "B")))
+S <- matrix(c(-1, 1, 1, -1), 
+            nrow = 2, ncol = 2, 
+            dimnames = list(NULL, c("A", "B")))
+
 rates <- c("k1*A", "k2*B")
 description <- c("forward", "backward")
 

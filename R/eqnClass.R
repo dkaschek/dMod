@@ -73,6 +73,7 @@ is.eqnlist <- function(x) {
 #'   number of conserved quantities.
 #' @author Malenke Mader, \email{Malenka.Mader@@fdm.uni-freiburg.de}
 #'   
+#' @example inst/examples/equations.R
 #' @export
 conservedQuantities <- function(S) {
   # Get kernel of S
@@ -108,6 +109,7 @@ conservedQuantities <- function(S) {
 #' @return \code{data.frame} with educts, products, rate and description. The first
 #' column is a check if the reactions comply with reaction kinetics.
 #' 
+#' @example inst/examples/equations.R
 #' @export
 getReactions <- function(eqnlist) {
   
@@ -173,11 +175,12 @@ getReactions <- function(eqnlist) {
 #' @param description Optional description instead of \code{names(rate)}.
 #' @return An object of class \link{eqnlist}.
 #' @examples 
-#' \dontrun{
 #' f <- eqnlist()
 #' f <- addReaction(f, "2*A+B", "C + 2*D", "k1*B*A^2")
 #' f <- addReaction(f, "C + A", "B + A", "k2*C*A")
-#' }
+#' 
+#' 
+#' @example inst/examples/equations.R
 #' @export
 #' @rdname addReaction
 addReaction <- function(eqnlist, from, to, rate, description = names(rate)) {
@@ -232,6 +235,7 @@ addReaction <- function(eqnlist, from, to, rate, description = names(rate)) {
 #' 
 #' @param eqnlist object of class \link{eqnlist}.
 #' @return list of named characters, the in- and out-fluxes for each state.
+#' @example inst/examples/equations.R
 #' @export
 getFluxes <- function(eqnlist) {
   
@@ -291,6 +295,64 @@ getFluxes <- function(eqnlist) {
   
   
 }
+
+
+
+#' Symbolic time derivative of equation vector given an equation list
+#' 
+#' The time evolution of the internal states is defined in the equation list.
+#' Time derivatives of observation functions are expressed in terms of the
+#' rates of the internal states.
+#' 
+#' @param observable named character vector or object of type \link{eqnvec}
+#' @param eqnlist equation list
+#' @details Observables are translated into an ODE
+#' @return An object of class \link{eqnvec}
+#' @example inst/examples/equations.R
+#' @export
+dot <- function(observable, eqnlist) {
+  
+ 
+  # Analyze the observable character expression
+  symbols <- getSymbols(observable)
+  states <- intersect(symbols, eqnlist$states)
+  derivatives <- lapply(observable, function(obs) {
+    out <- lapply(as.list(states), function(x) paste(deparse(D(parse(text=obs), x), width.cutoff = 500),collapse=""))
+    names(out) <- states
+    return(out)
+  })
+  
+  # Generate equations from eqnist
+  f <- as.eqnvec(eqnlist)
+  
+  newodes <- sapply(derivatives, function(der) {
+    
+    prodSymb(matrix(der, nrow = 1), matrix(f[names(der)], ncol = 1))
+    
+#     
+#     out <- sapply(names(der), function(n) {
+#       d <- der[n]
+#       
+#       if (d != "0") {
+#         prodSymb(matrix(d, nrow = 1), matrix(f[names(d)], ncol = 1))
+#       } else  {
+#         return("0")
+#       }
+#         
+#       
+#       
+#       #paste( paste("(", d, ")", sep="") , paste("(", f[names(d)], ")",sep=""), sep="*") else return("0")
+#     })
+#     out <- paste(out, collapse = "+")
+#     
+#     return(out)
+    
+  })
+  
+  as.eqnvec(newodes)
+}
+
+
 
 #' Coerce equation list into a data frame
 #' 
@@ -448,7 +510,6 @@ as.eqnvec <- function(x, ...) {
 #' Generate equation vector object
 #'
 #' @param names character, the left-hand sides of the equation
-#' @return object of class \code{eqnvec}, basically a named character.
 #' @rdname as.eqnvec
 #' @export
 as.eqnvec.character <- function(x = NULL, names = NULL, ...) {
@@ -476,7 +537,6 @@ as.eqnvec.character <- function(x = NULL, names = NULL, ...) {
 #' 
 #' @description An equation list stores an ODE in a list format. The function
 #' translates this list into the right-hand sides of the ODE.
-#' @return An object of class \link{eqnvec}. 
 #' @rdname as.eqnvec
 #' @export
 as.eqnvec.eqnlist <- function(x, ...) {
@@ -632,7 +692,7 @@ print.eqnvec <- function(x, width = 140, pander = FALSE, ...) {
 #' @export
 summary.eqnvec <- function(object, ...) {
   
-  eqn <- object
+  eqnvec <- object
   
   m_msg <- mapply(function(name, eqn) {
     m_symb <- paste0(getSymbols(eqn), sep = ", ", collapse = "")
@@ -641,61 +701,6 @@ summary.eqnvec <- function(object, ...) {
   cat(m_msg, sep = "\n")
 }
 
-
-#' Symbolic time derivative of equation vector given an equation list
-#' 
-#' @param observable named character vector. Names correspond to observable names, the chars 
-#' correspond to the observation function
-#' @param eqnlist equation list
-#' @details Observables are translated into an ODE
-#' @return An object of class \link{eqnvec}
-#' @export
-dot <- function(observable, eqnlist) {
-  UseMethod("dot", observable)
-}
-#' @export
-#' @rdname dot
-dot.eqnvec <- function(observable, eqnlist) {
-  
- 
-  # Analyze the observable character expression
-  symbols <- getSymbols(observable)
-  states <- intersect(symbols, eqnlist$states)
-  derivatives <- lapply(observable, function(obs) {
-    out <- lapply(as.list(states), function(x) paste(deparse(D(parse(text=obs), x), width.cutoff = 500),collapse=""))
-    names(out) <- states
-    return(out)
-  })
-  
-  # Generate equations from eqnist
-  f <- as.eqnvec(eqnlist)
-  
-  newodes <- sapply(derivatives, function(der) {
-    
-    prodSymb(matrix(der, nrow = 1), matrix(f[names(der)], ncol = 1))
-    
-#     
-#     out <- sapply(names(der), function(n) {
-#       d <- der[n]
-#       
-#       if (d != "0") {
-#         prodSymb(matrix(d, nrow = 1), matrix(f[names(d)], ncol = 1))
-#       } else  {
-#         return("0")
-#       }
-#         
-#       
-#       
-#       #paste( paste("(", d, ")", sep="") , paste("(", f[names(d)], ")",sep=""), sep="*") else return("0")
-#     })
-#     out <- paste(out, collapse = "+")
-#     
-#     return(out)
-    
-  })
-  
-  as.eqnvec(newodes)
-}
 
 #' @export
 c.eqnvec <- function(...) {
@@ -719,7 +724,7 @@ c.eqnvec <- function(...) {
 
 #' Evaluation of algebraic expressions defined by characters
 #' 
-#' @param x Object of class \code{eqnvec} or, more generally,
+#' @param x Object of class \code{eqnvec} or a
 #' named character vector with the algebraic expressions
 #' @param variables character vector, the symbols that should be treated as variables
 #' @param parameters character vector, the symbols that should be treated as parameters
@@ -739,12 +744,9 @@ c.eqnvec <- function(...) {
 #' The argument \code{attach.input} determines whether \code{M} is attached to the output.
 #' The function \code{f} returns a matrix.
 #' @examples 
-#' \dontrun{
 #' myfun <- funC0(c(y = "a*x^4 + b*x^2 + c"))
-#' out <- myfun(list(a = -1, b = 2, c = 3, x = seq(-2, 2, .1)), attach.input = TRUE)
-#' plot(out[, "x"], out[, "y"])
-#' }
-#' 
+#' out <- myfun(a = -1, b = 2, c = 3, x = seq(-2, 2, .1), attach.input = TRUE)
+#' qplot(x = x, y = y, data = as.data.frame(out), geom = "line")
 #' @export
 funC0 <- function(x, variables = getSymbols(x, exclude = parameters), 
                   parameters = NULL, compile = FALSE, modelname = NULL, 

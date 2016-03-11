@@ -75,6 +75,7 @@ match.fnargs <- function(arglist, choices) {
 #' the right-hand sides of the equations
 #' @return object of class \code{eqnvec}, basically a named character.
 #' @example inst/examples/eqnvec.R
+#' @seealso \link{eqnlist}
 #' @export
 eqnvec <- function(...) {
   
@@ -111,6 +112,7 @@ eqnvec <- function(...) {
 #' \code{NULL}, missing entries are treated as 1.
 #' @param description Character vector. Description of the single processes.
 #' @return An object of class \code{eqnlist}, basically a list.
+#' @example inst/examples/eqnlist.R
 eqnlist <- function(smatrix = NULL, states = colnames(smatrix), rates = NULL, volumes = NULL, description = NULL) {
 
   # Dimension checks and preparations for non-empty argument list.
