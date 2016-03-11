@@ -111,7 +111,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
     # Update sensNames when names are set
     select <- sensGrid[, 1] %in% names
     sensNames <- paste(sensGrid[,1][select], sensGrid[,2][select], sep = ".")  
-   
+    
     # Add event time points (required by integrator) 
     event.times <- unique(events$time)
     times <- sort(union(event.times, times))
@@ -156,7 +156,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
       myderivs <- outSens
       
     }
-   
+    
     #prdframe(out, deriv = myderivs, sensitivities = mysensitivities, parameters = unique(sensGrid[,2]))
     prdframe(out, deriv = myderivs, sensitivities = mysensitivities, parameters = pars)
     
@@ -167,7 +167,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
   attr(P2X, "forcings") <- forcings
   attr(P2X, "events") <- events
   
-
+  
   prdfn(P2X, c(variables, parameters), condition) 
   
   
@@ -227,7 +227,7 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
     if(!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
     out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = events)), optionsOde))
     #out <- cbind(out, out.inputs)      
-      
+    
     prdframe(out, deriv = NULL, parameters = P)
     
   }
@@ -236,15 +236,15 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
   attr(P2X, "equations") <- as.eqnvec(attr(func, "equations"))
   attr(P2X, "forcings") <- forcings
   attr(P2X, "events") <- events
- 
- 
-  prdfn(P2X, c(variables, parameters), condition) 
-
- 
-
   
-   
-
+  
+  prdfn(P2X, c(variables, parameters), condition) 
+  
+  
+  
+  
+  
+  
   
 }
 
@@ -318,7 +318,7 @@ Xd <- function(data, condition = NULL) {
   sensGrid <- expand.grid(states, parameters, stringsAsFactors=FALSE)
   sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")  
   
-
+  
   controls <- list()  
   
   P2X <- function(times, pars, deriv=TRUE){
@@ -357,7 +357,7 @@ Xd <- function(data, condition = NULL) {
       myderivs <- outSens
       #attr(out, "deriv") <- outSens
     }
-   
+    
     #attr(out, "parameters") <- unique(sensGrid[,2])
     
     prdframe(out, deriv = myderivs, sensitivities = mysensitivities, parameters = pars)
@@ -543,5 +543,35 @@ Y <- function(g, f, states = NULL, parameters = NULL, condition = NULL, attach.i
   
 }
 
+#' @export
+Xt <- function(condition = NULL) {
+  
+  
+  
+  # Controls to be modified from outside
+  controls <- list()
+  
+  P2X <- function(times, pars, deriv=TRUE){
+    
+    out <- matrix(times, ncol = 1, dimnames = list(NULL, "time"))
+    sens <- deriv <- out
+    
+    prdframe(out, deriv = deriv, sensitivities = sens, parameters = pars)
+    
+  }
+  
+  attr(P2X, "parameters") <- NULL
+  attr(P2X, "equations") <- NULL
+  attr(P2X, "forcings") <- NULL
+  attr(P2X, "events") <- NULL
+  
+  
+
+  prdfn(P2X, NULL, condition) 
+  
+  
+  
+  
+}
 
 
