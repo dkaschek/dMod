@@ -52,7 +52,7 @@ coordTransform <- function(data, transformations) {
 #' @param base_size numeric, font-size
 #' @param base_family character, font-name
 #' @export
-theme_dMod <- function(base_size = 12, base_family = "") {
+theme_dMod <- function(base_size = 11, base_family = "") {
   colors <- list(
     medium = c(gray = '#737373', red = '#F15A60', green = '#7AC36A', blue = '#5A9BD4', orange = '#FAA75B', purple = '#9E67AB', maroon = '#CE7058', magenta = '#D77FB4'),
     dark = c(black = '#010202', red = '#EE2E2F', green = '#008C48', blue = '#185AA9', orange = '#F47D23', purple = '#662C91', maroon = '#A21D21', magenta = '#B43894'),
@@ -109,6 +109,7 @@ ggplot <- function(...) ggplot2::ggplot(...) + scale_color_dMod() + theme_dMod()
 #' 
 #' @return A plot object of class \code{ggplot}.
 #' @import ggplot2
+#' @example inst/examples/plotting.R
 #' @export
 plotPrediction <- function(prediction, ..., scales = "free", facet = "wrap", transform = NULL) {
   
@@ -145,6 +146,7 @@ plotPrediction <- function(prediction, ..., scales = "free", facet = "wrap", tra
 #'  
 #' 
 #' @return A plot object of class \code{ggplot}.
+#' @example inst/examples/plotting.R
 #' @export
 plotCombined <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
   
@@ -199,6 +201,7 @@ plotCombined <- function(prediction, data = NULL, ..., scales = "free", facet = 
 #'  
 #' 
 #' @return A plot object of class \code{ggplot}.
+#' @example inst/examples/plotting.R
 #' @export
 plotData <- function(data, ..., scales = "free", facet = "wrap", transform = NULL) {
   
@@ -228,6 +231,7 @@ plotData <- function(data, ..., scales = "free", facet = "wrap", transform = NUL
 #' @param parlist Matrix or data.frame with columns for the parameters to be added to the plot as points.
 #' If a "value" column is contained, deltas are calculated with respect to lowest chisquare of profiles.
 #' @return A plot object of class \code{ggplot}.
+#' @details See \link{profile} for examples.
 #' @export
 plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
   
@@ -325,8 +329,9 @@ plotProfile <- function(..., maxvalue = 5, parlist = NULL) {
 #' @param relative logical indicating whether the origin should be shifted.
 #' @param scales character, either \code{"free"} or \code{"fixed"}.
 #' @return A plot object of class \code{ggplot}.
+#' @details See \link{profile} for examples.
 #' @export
-plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scales = "free") {
+plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scales = "fixed") {
   
   arglist <- list(...)
   
@@ -336,7 +341,7 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scale
     proflist <- as.data.frame(arglist[[i]])
     parameters <- attr(arglist[[i]], "parameters")
     
-    if(is.data.frame(proflist)) {
+    if (is.data.frame(proflist)) {
       whichPars <- unique(proflist$whichPar)
       proflist <- lapply(whichPars, function(n) {
         with(proflist, proflist[whichPar == n, ])
@@ -344,16 +349,19 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scale
       names(proflist) <- whichPars
     }
     
-    if(is.null(whichPar)) whichPar <- names(proflist)
-    if(is.numeric(whichPar)) whichPar <- names(proflist)[whichPar]
+    if (is.null(whichPar)) whichPar <- names(proflist)
+    if (is.numeric(whichPar)) whichPar <- names(proflist)[whichPar]
+    
     subdata <- do.call(rbind, lapply(whichPar, function(n) {
       # matirx
       paths <- as.matrix(proflist[[n]][, parameters])
-      values <- proflist[[n]][,1]
-      if(relative) 
-        for(j in 1:ncol(paths)) paths[, j] <- paths[, j] - paths[which.min(values), j]
+      values <- proflist[[n]][, "value"]
+      origin <- which.min(abs(proflist[[n]][, "constraint"]))
+      if (relative) 
+        for(j in 1:ncol(paths)) paths[, j] <- paths[, j] - paths[origin, j]
+      
       combinations <- expand.grid.alt(whichPar, colnames(paths))
-      if(sort) combinations <- apply(combinations, 1, sort) else combinations <- apply(combinations, 1, identity)
+      if (sort) combinations <- apply(combinations, 1, sort) else combinations <- apply(combinations, 1, identity)
       combinations <- submatrix(combinations, cols = -which(combinations[1,] == combinations[2,]))
       combinations <- submatrix(combinations, cols = !duplicated(paste(combinations[1,], combinations[2,])))
       
@@ -380,18 +388,18 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scale
   data$proflist <- as.factor(data$proflist)
   
   
-  if(relative)
+  if (relative)
     axis.labels <- c(expression(paste(Delta, "parameter 1")), expression(paste(Delta, "parameter 2")))  
   else
     axis.labels <- c("parameter 1", "parameter 2")
   
   
-  p <- ggplot(data, aes(x=x, y=y, group=interaction(name, proflist), color=name, lty=proflist)) + 
+  p <- ggplot(data, aes(x = x, y = y, group = interaction(name, proflist), color = name, lty = proflist)) + 
     facet_wrap(~combination, scales = scales) + 
-    geom_path() + geom_point(aes=aes(size=1), alpha=1/3) +
+    geom_path() + #geom_point(aes=aes(size=1), alpha=1/3) +
     xlab(axis.labels[1]) + ylab(axis.labels[2]) +
     scale_linetype_discrete(name = "profile\nlist") +
-    scale_color_discrete(name = "profiled\nparameter")
+    scale_color_manual(name = "profiled\nparameter", values = dMod_colors)
   
   attr(p, "data") <- data
   return(p)
@@ -422,6 +430,7 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scale
 #'  
 #' 
 #' @return A plot object of class \code{ggplot}.
+#' @example inst/examples/parlist.R
 #' @export
 plotArray <- function(parframe, x, times, data = NULL, ..., 
                       fixed = NULL, deriv = FALSE, scales = "free", facet = "wrap") {
@@ -510,7 +519,7 @@ plotArray <- function(parframe, x, times, data = NULL, ...,
 #' @return A plot object of class \code{ggplot}.
 #' @examples 
 #' \dontrun{
-#' plotFluxes(bestfit,times,attr(subset(f,"B"%in%Product), "rates"),nameFlux="B production")
+#' plotFluxes(bestfit, x, times, attr(subset(f, "B"%in%Product), "rates"), nameFlux = "B production")
 #' }
 #' @export
 plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux = "Fluxes:", fixed = NULL){
@@ -569,7 +578,7 @@ plotValues <- function(x) {
 
 #' Plot parameter values for a fitlist
 #' 
-#' @param myparframe fitlist as obtained by as.parframe(mstrust)
+#' @param myparframe parameter frame as obtained by as.parframe(mstrust)
 #' @param whichFits indexlist e.g. 1:10
 #' @export
 plotPars <- function(myparframe, whichFits = 1:length(myparframe)){

@@ -1,20 +1,25 @@
+\dontrun{
 
+################################################################  
+## Walk through the most frequently used functions in
+## connection with ODE models
+################################################################  
+  
 library(deSolve)
-library(dMod)
-
-setwd("/tmp")
 
 ## Model definition (text-based, scripting part)
-
-r <- addReaction(NULL, "A", "B", "k1*A", "translation")
-r <- addReaction(r   , "B",  "", "k2*B", "degradation")
+r <- NULL
+r <- addReaction(r, "A", "B", "k1*A", "translation")
+r <- addReaction(r, "B",  "", "k2*B", "degradation")
 
 f <- as.eqnvec(r)
 observables <- eqnvec(Bobs = "s1*B")
 
 innerpars <- getSymbols(c(names(f), f, observables))
 trafo0 <- structure(innerpars, names = innerpars)
-trafo0 <- replaceSymbols(innerpars, paste0("exp(", innerpars, ")"), trafo0)
+trafo0 <- replaceSymbols(innerpars, 
+                         paste0("exp(", innerpars, ")"), 
+                         trafo0)
 
 conditions <- c("a", "b")
 
@@ -27,7 +32,8 @@ events$a <- data.frame(var = "A", time = 5, value = 1, method = "add")
 events$b <- data.frame(var = "A", time = 5, value = 2, method = "add")
 
 
-## Model definition (generate compiled objects and functions from above information) 
+## Model definition (generate compiled objects 
+## and functions from above information) 
 
 # ODE model
 model <- odemodel(f, nGridpoints = 2, jacobian = "full")
@@ -64,7 +70,8 @@ data <- datalist(
 # Initialize times and parameters
 times <- seq(0, 10, .1)
 outerpars <- attr(p0, "parameters")
-pouter <- structure(rnorm(length(outerpars)), names = outerpars)
+pouter <- structure(rnorm(length(outerpars)), 
+                    names = outerpars)
 
 # Plot prediction
 plot((g*x*p0)(times, pouter))
@@ -73,12 +80,14 @@ plotFluxes(pouter, g*x*p0, times, getFluxes(r)$B)
 
 # Fit data with L2 constraint
 constr <- constraintL2(mu = 0*pouter, sigma = 5)
-myfit <- trust(normL2(data, g*x*p0) + constr, pouter, rinit = 1, rmax = 10)
+myfit <- trust(normL2(data, g*x*p0) + constr, 
+               pouter, rinit = 1, rmax = 10)
 plot((g*x*p0)(times, myfit$argument), data)
 
 # List of fits
 obj <- normL2(data, g*x*p0) + constr
-mylist <- mstrust(normL2(data, g*x*p0) + constr, pouter, fits = 10, cores = 4)
+mylist <- mstrust(normL2(data, g*x*p0) + constr, 
+                  pouter, fits = 10, cores = 4, sd = 4)
 plot(mylist)
 pars <- as.parframe(mylist)
 plotValues(pars)
@@ -86,20 +95,23 @@ plotValues(pars)
 bestfit <- as.parvec(pars)
 
 # Compute profiles of the fit
-profile <- profile(normL2(data, g*x*p0) + constr, bestfit, "k1", limits = c(-5, 5))
+profile <- profile(normL2(data, g*x*p0) + constr, 
+                   bestfit, "k1", limits = c(-5, 5))
 plotProfile(profile)
 
 # Add a validation objective function
 vali <- datapointL2("A", 2, "mypoint", .1, condition = "a")
 # Get validation point parameters
 mypoint <- trust(normL2(data, g*x*p0) + constr + vali, 
-                 c(mypoint = 0), rinit = 1, rmax = 10, fixed = bestfit)$argument
+                 c(mypoint = 0), rinit = 1, rmax = 10, 
+                 fixed = bestfit)$argument
 # Compoute profile and plot
-profile <- profile(normL2(data, g*x*p0) + constr + vali, c(bestfit, mypoint), "mypoint")
+profile <- profile(normL2(data, g*x*p0) + constr + vali, 
+                   c(bestfit, mypoint), "mypoint")
 plotProfile(profile)
 
 
-## Using the new controls() function -----------------------------
+## Using the controls() function to manipulate objects ------------------------
 
 # List the available controls of an object
 controls(x)
@@ -108,13 +120,15 @@ controls(x)
 controls(x, condition = "a", name = "optionsSens")
 
 # Change specific control
-controls(x, condition = "a", name = "optionsSens") <- list(method = "lsoda", rtol = 1e-8, atol = 1e-8)
+controls(x, condition = "a", name = "optionsSens") <- 
+  list(method = "lsoda", rtol = 1e-8, atol = 1e-8)
 
-# Almost every function (objfn, parfn, prdfn, obsfn) saves the arguments by which it was
-# invoked in a list named "controls", which can be manipulated by the controls() function.
+# Almost every function (objfn, parfn, prdfn, obsfn) saves the arguments 
+# by which it was invoked in a list named "controls", which can be manipulated
+# by the controls() function.
 
 
-## New example: condition-specific observation parameters ----------------------------
+## New example: condition-specific observation parameters ---------------------
 
 # Condition-specific observation parameters
 f <- eqnvec(A = "-k1*A", B = "k1*A - k2*B")
@@ -126,13 +140,21 @@ obspars <- setdiff(getSymbols(observables), dynpars)
 trafo0 <- structure(c(dynpars, obspars), names = c(dynpars, obspars))
 
 obspars_all <- outer(obspars, conditions, paste, sep = "_")
-trafo_all <- structure(c(dynpars, obspars_all), names = c(dynpars, obspars_all))
-trafo_all <- replaceSymbols(dynpars, paste0("exp(", dynpars, ")"), trafo_all)
-trafo_all <- replaceSymbols(obspars_all, paste0("exp(", obspars_all, ")"), trafo_all)
+trafo_all <- structure(c(dynpars, obspars_all), 
+                       names = c(dynpars, obspars_all))
+trafo_all <- replaceSymbols(dynpars, 
+                            paste0("exp(", dynpars, ")"), 
+                            trafo_all)
+trafo_all <- replaceSymbols(obspars_all, 
+                            paste0("exp(", obspars_all, ")"), 
+                            trafo_all)
 
 pObs <- NULL
 for (C in conditions) {
-  pObs <- pObs + P(replaceSymbols(obspars, paste(obspars, C, sep = "_"), trafo0), condition = C)
+  pObs <- pObs + P(replaceSymbols(obspars, 
+                                  paste(obspars, C, sep = "_"), 
+                                  trafo0), 
+                   condition = C)
 }
 
 
@@ -148,5 +170,4 @@ pouter <- structure(rnorm(length(outerpars)), names = outerpars)
 plot((g*pObs*x*p)(times, pouter))
 
 
-setwd("~/Abteilung_Timmer/RProjects/dMod/")
-
+}

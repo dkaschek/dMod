@@ -233,6 +233,7 @@ parfn <- function(p2p, parameters = NULL, condition = NULL) {
 #' @details Parameter frames can be subsetted either by \code{[ , ]} or by \code{subset}. If
 #' \code{[ , index]} is used, the names of the removed columns will also be removed from
 #' the corresponding attributes, i.e. metanames, obj.attributes and parameters.
+#' @example inst/examples/parlist.R
 #' @export
 parframe <- function(x = NULL, parameters = colnames(x), metanames = NULL, obj.attributes = NULL) {
 
@@ -259,6 +260,7 @@ parframe <- function(x = NULL, parameters = colnames(x), metanames = NULL, obj.a
 #' into one list. 
 #' @param ... Objects to be coerced to parameter list.
 #' @export
+#' @example inst/examples/parlist.R
 #' @seealso \link{load.parlist}, \link{plot.parlist}
 parlist <- function(...) {
   

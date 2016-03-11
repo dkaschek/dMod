@@ -10,9 +10,9 @@
 #' @param method Character, either \code{"integrate"} or \code{"optimize"}. This is a short-cut for
 #' setting stepControl, algoControl and optControl by hand.
 #' @param stepControl List of arguments controlling the step adaption. Defaults to integration set-up, i.e.
-#' \code{list(stepsize = 1e-4, min = 1e-4, max = Inf, atol = 1e-1, rtol = 1e-1, limit = 100)}
+#' \code{list(stepsize = 1e-4, min = 1e-4, max = Inf, atol = 1e-2, rtol = 1e-2, limit = 100)}
 #' @param algoControl List of arguments controlling the fast PL algorithm. defaults to
-#' \code{list(gamma = 1, W = c("hessian", "identity"), reoptimize = FALSE, correction = 1, reg = 1e-6)}
+#' \code{list(gamma = 1, W = "hessian", reoptimize = FALSE, correction = 1, reg = .Machine$double.eps)}
 #' @param optControl List of arguments controlling the \code{trust()} optimizer. Defaults to
 #' \code{list(rinit = .1, rmax = 10, iterlim = 10, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))}.
 #' See \link{trust} for more details.
@@ -41,48 +41,7 @@
 #' matrix with columns "value" (the objective value), "constraint" (deviation of the profiled paramter from
 #' the original value), "stepsize" (the stepsize take for the iteration), "gamma" (the gamma value employed for the
 #' iteration), "valueData" and "valuePrior" (if specified in obj), one column per parameter (the profile paths).
-#' @examples 
-#' 
-#' \dontrun{
-#' ## ----------------------
-#' ## Example 1 
-#' ## ----------------------
-#' trafo <- c(a = "exp(loga)", b = "exp(logb)",c = "exp(loga)*exp(logb)*exp(logc)")
-#' p <- P(trafo) 
-#' obj <- function(pOuter, fixed = NULL) 
-#'    constraintL2(c(pOuter, fixed), c(a =.1, b = 1, c = 10), 1)
-#'     
-#' ini <- c(loga = 1, logb = 1, logc = 1)   
-#' myfit <- trust(obj, ini, rinit=1, rmax=10)   
-#' profiles <- do.call(rbind, lapply(1:3, function(i) 
-#'    profile(obj, myfit$argument, whichPar = i, limits = c(-5, 5), 
-#'                  algoControl=list(gamma=1, reoptimize=FALSE), verbose=TRUE)))
-#' plotProfile(profiles)
-#' plotPaths(profiles)
-#' 
-#' ## ----------------------------
-#' ## Example 2
-#' ## ----------------------------
-#' trafo <- c(a = "exp(loga)", b = "exp(logb)",c = "exp(loga)*exp(logb)*exp(logc)")
-#' p <- P(trafo)
-#' obj <- function(pOuter, fixed = NULL, sigma) 
-#'   constraintL2(p(pOuter, fixed), c(a =.1, b = 1, c = 10), 1) +
-#'   constraintL2(pOuter, mu = c(loga = 0, logb = 0), sigma = sigma, fixed = fixed)
-#' 
-#' 
-#' ini <- c(loga = 1, logb = 1, logc = 1)
-#' myfit <- trust(obj, ini[-1], rinit=1, rmax=10, fixed = ini[1], sigma = 10)
-#' profiles.approx <- do.call(rbind, lapply(1:2, function(i) 
-#'   profile(obj, myfit$argument, whichPar = i, limits = c(-10, 10), 
-#'                 algoControl=list(gamma=1, reoptimize=FALSE), 
-#'                 verbose=TRUE, fixed = ini[1], sigma = 10))
-#' profiles.exact  <- do.call(rbind, lapply(1:2, function(i) 
-#'   profile(obj, myfit$argument, whichPar = i, limits = c(-10, 10), 
-#'                 algoControl=list(gamma=0, reoptimize=TRUE), 
-#'                 verbose=TRUE, fixed = ini[1], sigma = 10))
-#' 
-#' plotProfile(profiles.approx, profiles.exact)
-#' }
+#' @example inst/examples/profiles.R
 #' @export
 #' @import trust
 profile <- function(obj, pars, whichPar, alpha = 0.05, 
@@ -99,26 +58,26 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   
   # Initialize control parameters depending on method
   method  <- match.arg(method)
-  if(method == "integrate") {
-    sControl <- list(stepsize = 1e-4, min = 1e-4, max = Inf, atol = 1e-2, rtol = 1e-2, limit = 1000)
+  if (method == "integrate") {
+    sControl <- list(stepsize = 1e-4, min = 1e-4, max = Inf, atol = 1e-2, rtol = 1e-2, limit = 100)
     aControl <- list(gamma = 1, W = "hessian", reoptimize = FALSE, correction = 1, reg = .Machine$double.eps)
     oControl <- list(rinit = .1, rmax = 10, iterlim = 10, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))
   }
-  if(method == "optimize") {
+  if (method == "optimize") {
     sControl <- list(stepsize = 1e-2, min = 1e-4, max = Inf, atol = 1e-1, rtol = 1e-1, limit = 100)
     aControl <- list(gamma = 0, W = "identity", reoptimize = TRUE, correction = 1, reg = 0)
     oControl <- list(rinit = .1, rmax = 10, iterlim = 100, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))
   }
   
   # Substitute user-set control parameters
-  if(!is.null(stepControl)) sControl[match(names(stepControl), names(sControl))] <- stepControl
-  if(!is.null(algoControl)) aControl[match(names(algoControl), names(aControl))] <- algoControl
-  if(!is.null(optControl )) oControl[match(names(optControl), names(oControl ))] <- optControl
+  if (!is.null(stepControl)) sControl[match(names(stepControl), names(sControl))] <- stepControl
+  if (!is.null(algoControl)) aControl[match(names(algoControl), names(aControl))] <- algoControl
+  if (!is.null(optControl )) oControl[match(names(optControl), names(oControl ))] <- optControl
     
   
-  if(is.character(whichPar)) whichPar <- which(names(pars) == whichPar)
+  if (is.character(whichPar)) whichPar <- which(names(pars) == whichPar)
   whichPar.name <- names(pars)[whichPar]
-  if(any(names(list(...)) == "fixed")) fixed <- list(...)$fixed else fixed <- NULL
+  if (any(names(list(...)) == "fixed")) fixed <- list(...)$fixed else fixed <- NULL
   
   
   ## Functions needed during profile computation -----------------------
