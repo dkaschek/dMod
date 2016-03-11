@@ -45,13 +45,14 @@ P <- function(trafo = NULL, parameters=NULL, condition = NULL, keep.root = TRUE,
 #' of the parameter transformation is returned as attribute "deriv".
 #' @seealso \link{Pimpl} for implicit parameter transformations
 #' @examples
-#' \dontrun{
-#' logtrafo <- c(k1 = "exp(logk1)", k2 = "exp(logk2)", A = "exp(logA)", B = "exp(logB)")
-#' P.log <- P(logtrafo)
 #' 
-#' p.outerValue <- c(logk1 = 1, logk2 = -1, logA = 0, logB = 0)
-#' (P.log)(p.outerValue)
-#' }
+#' logtrafo <- c(k1 = "exp(logk1)", k2 = "exp(logk2)", 
+#'               A = "exp(logA)", B = "exp(logB)")
+#' p_log <- P(logtrafo)
+#' 
+#' pars <- c(logk1 = 1, logk2 = -1, logA = 0, logB = 0)
+#' out <- p_log(pars)
+#' derivatives(out)
 #' @export
 Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, modelname = NULL, verbose = FALSE) {
   
@@ -155,7 +156,6 @@ Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, mod
 #' all parameters as they are with corresponding 1-entries in the Jacobian.
 #' @seealso \link{Pexpl} for explicit parameter transformations
 #' @examples
-#' \dontrun{
 #' ########################################################################
 #' ## Example 1: Steady-state trafo
 #' ########################################################################
@@ -178,7 +178,7 @@ Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, mod
 #' 
 #' p.outerValue <- c(logk1 = 1, logk2 = -1, logA = 0, logB = 0)
 #' (P.log)(p.outerValue)
-#' (P.steadyState %o% P.log)(p.outerValue)
+#' (P.steadyState * P.log)(p.outerValue)
 #' 
 #' ########################################################################
 #' ## Example 3: Steady-states with conserved quantitites
@@ -189,7 +189,6 @@ Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, mod
 #' 
 #' pSS <- Pimpl(f, "total")
 #' pSS(c(k1 = 1, k2 = 2, A = 5, B = 5, total = 3))
-#' }
 #' @export
 Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
   
