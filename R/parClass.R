@@ -117,7 +117,7 @@ as.parframe.parlist <- function(x, sort.by = "value", ...) {
   metanames <- attr(x, "metanames")
   obj.attributes <- attr(x, "obj.attributes")
   parameters <- attr(x, "parameters")
- 
+  
   out <- as.data.frame(x)
   #out <- as.data.frame(unclass(x))
   if (!is.null(i)) out <- out[i, ]

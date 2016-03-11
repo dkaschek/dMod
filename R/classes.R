@@ -185,11 +185,12 @@ parfn <- function(p2p, parameters = NULL, condition = NULL) {
     arglist <- arglist[match.fnargs(arglist, "pars")]
     pars <- arglist[[1]]
     
-    
-    overlap <- intersect(conditions, condition)
+    overlap <- test_conditions(conditions, condition)
     # NULL if at least one argument is NULL
     # character(0) if no overlap
     # character if overlap
+    
+    if (is.null(overlap)) conditions <- union(condition, conditions)
     
     if (is.null(overlap) | length(overlap) > 0)
       result <- p2p(pars = pars, fixed = fixed, deriv = deriv)
@@ -198,9 +199,12 @@ parfn <- function(p2p, parameters = NULL, condition = NULL) {
     
     # Initialize output object
     length.out <- max(c(1, length(conditions)))
-    outlist <- lapply(1:length.out, function(i) result)
-    names(outlist) <- conditions
-
+    outlist <- structure(vector("list", length.out), names = conditions)
+    
+    if (is.null(condition)) available <- 1:length.out else available <- match(condition, conditions)
+    for (C in available[!is.na(available)]) outlist[[C]] <- result
+      
+    
     return(outlist)
     
   }
@@ -334,10 +338,15 @@ prdfn <- function(P2X, parameters = NULL, condition = NULL) {
     pars <- arglist[[2]]
     
     
-    overlap <- intersect(conditions, condition)
+    overlap <- test_conditions(conditions, condition)
     # NULL if at least one argument is NULL
     # character(0) if no overlap
     # character if overlap
+    
+    
+    
+    if (is.null(overlap)) conditions <- union(condition, conditions)
+    
     
     if (is.null(overlap) | length(overlap) > 0)
       result <- P2X(times = times, pars = pars, deriv = deriv)
@@ -346,7 +355,14 @@ prdfn <- function(P2X, parameters = NULL, condition = NULL) {
     
     # Initialize output object
     length.out <- max(c(1, length(conditions)))
-    outlist <- as.prdlist(lapply(1:length.out, function(i) result), names = conditions)
+    outlist <- structure(vector("list", length.out), names = conditions)
+    
+    if (is.null(condition)) available <- 1:length.out else available <- match(condition, conditions)
+    for (C in available[!is.na(available)]) outlist[[C]] <- result
+    outlist <- as.prdlist(outlist)
+      
+    #length.out <- max(c(1, length(conditions)))
+    #outlist <- as.prdlist(lapply(1:length.out, function(i) result), names = conditions)
     #attr(outlist, "pars") <- pars
     
     return(outlist)
@@ -393,11 +409,12 @@ obsfn <- function(X2Y, parameters = NULL, condition = NULL) {
     pars <- arglist[[2]]
     
      
-    overlap <- intersect(conditions, condition)
+    overlap <- test_conditions(conditions, condition)
     # NULL if at least one argument is NULL
     # character(0) if no overlap
     # character if overlap
     
+    if (is.null(overlap)) conditions <- union(condition, conditions)
     if (is.null(overlap) | length(overlap) > 0)
       result <- X2Y(out = out, pars = pars)
     else
@@ -405,7 +422,14 @@ obsfn <- function(X2Y, parameters = NULL, condition = NULL) {
     
     # Initialize output object
     length.out <- max(c(1, length(conditions)))
-    outlist <- as.prdlist(lapply(1:length.out, function(i) result), names = conditions)
+    outlist <- structure(vector("list", length.out), names = conditions)
+    
+    if (is.null(condition)) available <- 1:length.out else available <- match(condition, conditions)
+    for (C in available[!is.na(available)]) outlist[[C]] <- result
+    outlist <- as.prdlist(outlist)
+    
+    #length.out <- max(c(1, length(conditions)))
+    #outlist <- as.prdlist(lapply(1:length.out, function(i) result), names = conditions)
     #attr(outlist, "pars") <- pars
     
     return(outlist)
@@ -742,6 +766,11 @@ out_conditions <- function(c1, c2) {
   
 }
 
+test_conditions <- function(c1, c2) {
+  if (is.null(c1)) return(NULL)
+  if (is.null(c2)) return(NULL)
+  return(intersect(c1, c2))
+}
 
 #' Concatenation of functions
 #' 
