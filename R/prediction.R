@@ -1,6 +1,6 @@
 
 
-#' Model evaluation. 
+#' Model prediction function for ODE models. 
 #' @description Interface to combine an ODE and its sensitivity equations
 #' into one model function \code{x(times, pars, forcings, events, deriv = TRUE)} returning ODE output and sensitivities.
 #' @param odemodel object of class \link{odemodel}
@@ -23,6 +23,7 @@
 #' and the sensitivities of the ODE are multiplied according to the chain rule for
 #' differentiation. The result is saved in the attributed "deriv", 
 #' i.e. in this case the attibutes "deriv" and "sensitivities" do not coincide. 
+#' @example inst/examples/test_blocks.R
 #' @export
 Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = NULL, optionsOde=list(method = "lsoda"), optionsSens=list(method = "lsodes")) {
   
@@ -170,7 +171,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
 }
 
 
-#' Model evaluation without sensitivities. 
+#' Model prediction function for ODE models without sensitivities. 
 #' @description Interface to get an ODE 
 #' into a model function \code{x(times, pars, forcings, events)} returning ODE output.
 #' It is a reduced version of \link{Xs}, missing the sensitivities. 

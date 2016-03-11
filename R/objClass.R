@@ -638,3 +638,12 @@ wrss <- function(nout) {
   return(out12)
 }
 
+
+#' @export
+print.objfn <- function(x, ...) {
+  
+  cat("Objective function:\n")
+  str(args(x))
+  
+}
+

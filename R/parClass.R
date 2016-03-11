@@ -73,6 +73,7 @@ stat.parlist <- function(x) {
 #' @param x object to be coerced
 #' @param ... other arguments
 #' @return object of class \link{parframe}.
+#' @example inst/examples/parlist.R
 #' @export
 as.parframe <- function(x, ...) {
   UseMethod("as.parframe", x)
@@ -99,7 +100,7 @@ as.parframe.parlist <- function(x, sort.by = "value", ...) {
   # Sort by value
   m_parframe <- m_parframe[order(m_parframe[sort.by]),]
   
-  parframe(m_parframe, parameters = names(x[[m_idx[1]]]$parinit), metanames = m_metanames)
+  parframe(m_parframe, parameters = names(x[[m_idx[1]]]$argument), metanames = m_metanames)
   
   
 }
