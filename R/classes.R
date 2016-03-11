@@ -1134,6 +1134,15 @@ derivatives.prdlist <- function(x, ...) {
 
 #' @export
 #' @rdname derivatives
+derivatives.list <- function(x, ...) {
+  
+  lapply(x, function(myx) derivatives(myx))
+  
+}
+
+
+#' @export
+#' @rdname derivatives
 derivatives.objlist <- function(x, ...) {
   
   x$gradient

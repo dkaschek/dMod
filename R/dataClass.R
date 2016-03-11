@@ -26,17 +26,16 @@ as.datalist.data.frame <- function(x, split.by = NULL, ...) {
   if (is.null(split.by)) split.by <- setdiff(all.names, standard.names)
   
   
-  
+ 
   conditions <- lapply(split.by, function(n) dataframe[, n])
   splits <- do.call(interaction, c(conditions, list(sep = "_")))
   
   # condition grid
-  conditionframe <- cbind(splits, dataframe[, split.by])[!duplicated(splits),]
-  colnames(conditionframe)[1] <- "condition"
+  conditionframe <- cbind(data.frame(condition = splits), dataframe[, split.by])[!duplicated(splits),]
   
   
   # data list output
-  dataframe <- cbind(splits, dataframe[, standard.names])
+  dataframe <- cbind(data.frame(condition = splits), dataframe[, standard.names])
   out <- lapply(unique(splits), function(s) subset(dataframe, dataframe[, 1] == s)[, -1])
   names(out) <- as.character(unique(splits))
   
@@ -50,7 +49,7 @@ as.datalist.data.frame <- function(x, split.by = NULL, ...) {
 #' @param names optional names vector, otherwise names are taken from \code{mylist}
 #' @rdname datalist
 as.datalist.list <- function(x, names = NULL, ...) {
-
+  
   mylist <- x
   
   ## Check properties
