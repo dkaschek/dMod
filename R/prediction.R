@@ -18,14 +18,8 @@
 #' the condition for which the function makes a prediction.
 #' @param optionsOde list with arguments to be passed to odeC() for the ODE integration.
 #' @param optionsSens list with arguments to be passed to odeC() for integration of the extended system
-#' @return Object of class \link{prdfn}, i.e. a model prediction function 
-#' \code{x(times, pars, forcings, events, deriv = TRUE, conditions = NULL)} 
-#' representing the model evaluation. The result of
-#' \code{x(times, pars)} is a prediction frame, \link{prdframe}, containing
-#' attributes "sensitivities" and "deriv" with the sensitivities if \code{deriv=TRUE}. 
-#' If \code{deriv=FALSE}, sensitivities are not computed (saving time).
-#' If \code{pars} is
-#' the result of \code{p(pouter)} (see \link{P}), the Jacobian of the parameter transformation
+#' @return Object of class \link{prdfn}. If the function is called with parameters that
+#' result from a parameter transformation (see \link{P}), the Jacobian of the parameter transformation
 #' and the sensitivities of the ODE are multiplied according to the chain rule for
 #' differentiation. The result is saved in the attributed "deriv", 
 #' i.e. in this case the attibutes "deriv" and "sensitivities" do not coincide. 
@@ -400,14 +394,15 @@ Xd <- function(data, condition = NULL) {
 #' are multiplied according to the chain rule for differentiation.
 #' The original argument \code{out} will be attached to the evaluated observations.
 #' @export
-Y <- function(g, f, states = NULL, parameters = NULL, condition = NULL, attach.input = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
+Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, attach.input = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
   
   myattach.input <- attach.input
   
   warnings <- FALSE
   modelname_deriv <- NULL
   
-  
+  if (is.null(f) && is.null(states) && is.null(parameters)) 
+    stop("Not all three arguments f, states and parameters can be NULL")
   
   if (!is.null(modelname)) modelname_deriv <- paste(modelname, "deriv", sep = "_")
   
@@ -543,6 +538,21 @@ Y <- function(g, f, states = NULL, parameters = NULL, condition = NULL, attach.i
   
 }
 
+#' Generate a prediction function that returns times
+#' 
+#' Function to deal with non-ODE models within the framework of dMod. See example.
+#' 
+#' @param condition  either NULL (generic prediction for any condition) or a character, denoting
+#' the condition for which the function makes a prediction.
+#' @return Object of class \link{prdfn}.
+#' @examples 
+#' x <- Xt()
+#' g <- Y(c(y = "a*time^2+b"), f = NULL, parameters = c("a", "b"))
+#' 
+#' times <- seq(-1, 1, by = .05)
+#' pars <- c(a = .1, b = 1)
+#' 
+#' plot((g*x)(times, pars))
 #' @export
 Xt <- function(condition = NULL) {
   
