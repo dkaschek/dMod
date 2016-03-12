@@ -164,7 +164,7 @@ as.parvec <- function(x, ...) {
 #' are taken from \code{x}.
 #' @rdname parvec
 #' @export
-as.parvec.numeric <- function(x, names = NULL, deriv = NULL, ...) {
+as.parvec.numeric <- function(x, names = names(x), deriv = attr(x, "deriv"), ...) {
   
   p <- x
   
