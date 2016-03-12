@@ -11,7 +11,7 @@
 #' }
 #' 
 #' @export
-lsdMod <- function(classlist = c("objfn", "prdfn"), envir = .GlobalEnv){
+lsdMod <- function(classlist = c("objfn", "obsfn", "prdfn", "parfn"), envir = .GlobalEnv){
   glist <- as.list(envir)
   for (a in classlist) {
     flist <- which(sapply(glist, function(f) any(class(f) == a)))

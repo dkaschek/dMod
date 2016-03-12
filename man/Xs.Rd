@@ -156,7 +156,7 @@ profile <- profile(normL2(data, g*x*p0) + constr + vali,
 plotProfile(profile)
 
 
-## Using the new controls() function ------------------------------------------
+## Using the controls() function to manipulate objects ------------------------
 
 # List the available controls of an object
 controls(x)

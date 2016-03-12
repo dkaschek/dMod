@@ -9,7 +9,7 @@ symmetryDetection(f, obsvect = NULL, prediction = NULL, initial = NULL,
   allTrafos = FALSE)
 }
 \arguments{
-\item{f}{object of class \code{eqnvec} or named character vector, containing the ODEs}
+\item{f}{object containing the ODE for which \code{as.eqnvec()} is defined}
 
 \item{obsvect}{vector of observation functions}
 
@@ -31,5 +31,17 @@ symmetryDetection(f, obsvect = NULL, prediction = NULL, initial = NULL,
 }
 \description{
 Search for symmetries in the loaded model
+}
+\examples{
+\dontrun{
+eq <- NULL
+eq <- addReaction(eq, "A", "B", "k1*A")
+eq <- addReaction(eq, "B", "A", "k2*B")
+
+observables <- eqnvec(Aobs = "alpha * A")
+
+symmetryDetection(eq, observables)
+
+}
 }
 

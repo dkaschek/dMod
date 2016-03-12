@@ -2,7 +2,7 @@
 % Please edit documentation in R/prediction.R
 \name{Xf}
 \alias{Xf}
-\title{Model evaluation without sensitivities.}
+\title{Model prediction function for ODE models without sensitivities.}
 \usage{
 Xf(odemodel, forcings = NULL, events = NULL, condition = NULL,
   optionsOde = list(method = "lsoda"))
@@ -25,8 +25,9 @@ into a model function \code{x(times, pars, forcings, events)} returning ODE outp
 It is a reduced version of \link{Xs}, missing the sensitivities.
 }
 \details{
-Can be used to integrate additional quantities, e.g. fluxes, by adding them to \code{f}. All quantities that are not initialised by pars
-in \code{x(times, pars, forcings, events)} are initialized at 0. For more details and
+Can be used to integrate additional quantities, e.g. fluxes, by adding them to \code{f}.
+All quantities that are not initialised by pars
+in \code{x(..., forcings, events)} are initialized with 0. For more details and
 the return value see \link{Xs}.
 }
 
