@@ -181,8 +181,9 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
 #' @param condition either NULL (generic prediction for any condition) or a character, denoting
 #' the condition for which the function makes a prediction.
 #' @param optionsOde list with arguments to be passed to odeC() for the ODE integration.
-#' @details Can be used to integrate additional quantities, e.g. fluxes, by adding them to \code{f}. All quantities that are not initialised by pars 
-#' in \code{x(times, pars, forcings, events)} are initialized at 0. For more details and
+#' @details Can be used to integrate additional quantities, e.g. fluxes, by adding them to \code{f}. 
+#' All quantities that are not initialised by pars 
+#' in \code{x(..., forcings, events)} are initialized with 0. For more details and
 #' the return value see \link{Xs}.
 #' @export
 Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optionsOde=list(method = "lsoda")) {
@@ -368,10 +369,12 @@ Xd <- function(data, condition = NULL) {
 
 
 #' Observation functions. 
-#' @description Creates a function \code{y(out, pars)} that evaluates an observation function
-#' and its derivatives based on the output of a model function \code{x(times, pars)}, see \link{Xf} and \link{Xs}.
-#' @param g Named character vector defining the observation function
-#' @param f Named character, the underlying ODE
+#' 
+#' @description Creates an object of type \link{obsfn} that evaluates an observation function
+#' and its derivatives based on the output of a model prediction function, see \link{prdfn}, 
+#' as e.g. produced by \link{Xs}.
+#' @param g Named character vector or equation vector defining the observation function
+#' @param f Named character or equation vector, the underlying ODE
 #' @param states character vector, alternative definition of "states", usually the names of \code{f}
 #' @param parameters character vector, alternative definition of the "parameters",
 #' usually the symbols contained in "g" and "f" except for \code{states} and the code word \code{time}.
@@ -384,16 +387,17 @@ Xd <- function(data, condition = NULL) {
 #' C file.
 #' @param verbose Print compiler output to R command line.
 #' @return Object of class \link{obsfn}, i.e.
-#' a function \code{y(out, pars, conditions = NULL)} representing the evaluation of the 
-#' observation function. 
+#' a function \code{y(..., deriv = TRUE, conditions = NULL)} representing the evaluation of the 
+#' observation function. Arguments \code{out} (model prediction) and \code{pars} (parameter values)
+#' shoudl be passed by the \code{...} argument.
 #' If \code{out} has the attribute  "sensitivities", the result of
-#' \code{y(out, pars)}, will have an attributed "deriv" which reflec the sensitivities of 
+#' \code{y(out, pars)}, will have an attributed "deriv" which reflecs the sensitivities of 
 #' the observation with respect to the parameters.
 #' If \code{pars} is the result of a parameter transformation \code{p(pars)} (see \link{P}), 
 #' the Jacobian 
 #' of the parameter transformation and the sensitivities of the observation function
 #' are multiplied according to the chain rule for differentiation.
-#' The original argument \code{out} will be attached to the evaluated observations.
+#' @example inst/examples/prediction.R
 #' @export
 Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, attach.input = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
   
