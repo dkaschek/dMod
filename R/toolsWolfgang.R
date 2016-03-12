@@ -268,7 +268,9 @@ plSelectMin <- function(prf, context = FALSE) {
 #'   \code{\link{msnarrow}}, \code{\link{msbest}}, \code{\link{as.parframe}}
 #'   
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
-#'   
+#'  
+#' @example inst/examples/test_blocks.R
+#'     
 #' @export
 mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20, cores = 1,
                     samplefun = "rnorm", resultPath = ".", stats = FALSE,

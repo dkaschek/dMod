@@ -1,6 +1,6 @@
 #' Search for symmetries in the loaded model
 #' 
-#' @param f object of class \code{eqnvec} or named character vector, containing the ODEs
+#' @param f object containing the ODE for which \code{as.eqnvec()} is defined
 #' @param obsvect vector of observation functions
 #' @param prediction vector containing prediction to be tested
 #' @param initial vector containing initial values
@@ -11,10 +11,23 @@
 #' @param cores maximal number of cores used for the analysis
 #' @param allTrafos do not remove transformations with a common parameter factor
 #' @return NULL
+#' @examples
+#' \dontrun{
+#' eq <- NULL
+#' eq <- addReaction(eq, "A", "B", "k1*A")
+#' eq <- addReaction(eq, "B", "A", "k2*B")
+#' 
+#' observables <- eqnvec(Aobs = "alpha * A")
+#' 
+#' symmetryDetection(eq, observables)
+#' 
+#' }
 #' @export
 symmetryDetection <- function(f, obsvect = NULL, prediction = NULL,
                               initial = NULL, ansatz = 'uni', pMax = 2, inputs = NULL, fixed = NULL,
                               cores = 1, allTrafos = FALSE){
+  
+  f <- as.eqnvec(f)
   
   f <- as.character(lapply(1:length(f), function(i)
     paste(names(f)[i],'=',f[i])))
@@ -44,52 +57,3 @@ symmetryDetection <- function(f, obsvect = NULL, prediction = NULL,
                        initial, ansatz, pMax, inputs, fixed, cores, allTrafos)
   
 }
-
-
-#' Do a variable transformation in the ODE
-#' 
-#' @param observables Named character vector. The names are the new variable names, the vector
-#' entries define the new variables in terms of the old ones.
-#' @param f An object of class \code{eqnlist}, see \link{as.eqnlist} and \link{addReaction}.
-#' @param dynvar Character vector with the old variable names
-#' @param stoi The stoichiometric matrix
-#' @param flows Character vector with the rate expressions
-#' @param conserved Logical. If true, the conserved quantities derived from the
-#' stoichiometric matrix are automatically used for extending the vector of observables. See details.
-#' @details Usually, the function is called by either using the \code{f} argument and leaving the
-#' other arguments \code{NULL} or by leaving \code{f} NULL and defining the ODE by the arguments
-#' \code{dynvar}, \code{stoi} and \code{flows}.
-#' The \code{observables} vector can have less entries than the vector \code{dynvar}. In this
-#' case, the observables are automatically extended by old variables to generate a full rank
-#' variable transformation. If \code{conserved} is \code{TRUE}, the conserved quantities are
-#' preferentially used to extend the observables vector. Consequently, the transformed equations
-#' will return a certain number of zero-equation.
-#' @return Named character vector with the ODE expressed in the new variables. In addition,
-#' attributes "variables" (the variable transformation) and "inverse" (the inverse transformation)
-#' are returned.
-#' @export
-variableTransformation <- function(observables, f = NULL, dynvar = NULL, stoi = NULL, flows = NULL, conserved=TRUE){
-  
-  observation <- paste(names(observables), "=", observables) 
-  if(is.null(dynvar)) dynvar <- attr(f, "species")
-  if(is.null(stoi)) stoi <- c(t(attr(f, "SMatrix"))); stoi[is.na(stoi)] <- 0
-  if(is.null(flows)) flows <- attr(f, "rates")
-  
-  
-  rPython::python.load(paste(system.file(package="dMod"),"/code/functions_obs.py", sep = ""))
-  rPython::python.load(paste(system.file(package="dMod"),"/code/extendObservation.py", sep = ""))
-  
-  
-  out <- rPython::python.call("getObservation", observation, dynvar, stoi, flows, conserved)
-  
-  variables <- out[[3]]; names(variables) <- out[[1]]
-  f <- out[[4]]; names(f) <- out[[1]]
-  inverse <- out[[5]]; names(inverse) <- dynvar
-  
-  attr(f, "variables") <- variables
-  attr(f, "inverse") <- inverse
-  
-  return(f)
-  
-}
-

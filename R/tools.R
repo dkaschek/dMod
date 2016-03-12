@@ -236,6 +236,10 @@ submatrix <- function(M, rows = 1:nrow(M), cols = 1:ncol(M)) {
 #' @param M matrix of type character
 #' @param N matrix of type character
 #' @return Matrix of type character containing M and N as upper left and lower right block
+#' @examples
+#' M <- matrix(1:9, 3, 3, dimnames = list(letters[1:3], letters[1:3]))
+#' N <- matrix(1:4, 2, 2, dimnames = list(LETTERS[1:2], LETTERS[1:2]))
+#' blockdiagSymb(M, N)
 #' @export
 blockdiagSymb <- function(M, N) {
   
