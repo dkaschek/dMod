@@ -237,6 +237,8 @@ c.parvec <- function(...) {
   v <- unlist(lapply(mylist, function(l) as.numeric(l)))
   d <- lapply(mylist, function(l) attr(l, "deriv"))
   
+  
+  
   if (any(duplicated(n))) stop("Found duplicated names. Parameter vectors cannot be coerced.")
   
   deriv <- Reduce(combine, d)
