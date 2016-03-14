@@ -58,47 +58,31 @@ normL2 <- function(data, x, times = NULL, attr.name = "data") {
     arglist <- list(...)
     arglist <- arglist[match.fnargs(arglist, "pars")]
     pouter <- arglist[[1]]
-    
+   
+    # Import from controls
     timesD <- controls$times
+    attr.name <- controls$attr.name
     
-    # Evaluate the code in the local environment or in env
-    # If evaluated in env, arguments have to be transferred
-    # to this environment.
-    if (is.null(env)) {
-      env <- environment()
-    } else {
-      assign("env", env, envir = env) 
-      assign("pouter", pouter, envir = env)
-      assign("fixed", fixed, envir = env)
-      assign("deriv", deriv, envir = env)
-      assign("conditions", conditions, envir = env)
-      assign("timesD", timesD, envir = env)
-      assign("x", x, envir = env)
-      assign("data", data, envir = env) 
-      assign("controls", controls, envir = env)
-      
-      
+    # Create new environment if necessary
+    if (is.null(env)) env <- new.env()
+    
+    prediction <- x(times = timesD, pars = pouter, fixed = fixed, deriv = deriv, conditions = conditions)
+    
+    # Apply res() and wrss() to compute residuals and the weighted residual sum of squares
+    out.data <- lapply(conditions, function(cn) wrss(res(data[[cn]], prediction[[cn]])))
+    out.data <- Reduce("+", out.data)
+    
+    # Combine contributions and attach attributes
+    out <- out.data
+    attr(out, controls$attr.name) <- out.data$value
+    
+    if (!is.null(env)) {
+      assign("prediction", prediction, envir = env)
     }
     
-    myexpression <- expression({
-    
-      prediction <- x(times = timesD, pars = pouter, fixed = fixed, deriv = deriv, conditions = conditions)
+    attr(out, "env") <- env
+    return(out)
       
-      # Apply res() and wrss() to compute residuals and the weighted residual sum of squares
-      out.data <- lapply(conditions, function(cn) wrss(res(data[[cn]], prediction[[cn]])))
-      out.data <- Reduce("+", out.data)
-      
-      # Combine contributions and attach attributes
-      out <- out.data
-      attr(out, controls$attr.name) <- out.data$value
-      attr(out, "env") <- env
-      
-      return(out)
-      
-    })
-    
-    eval(myexpression, env, parent.frame())
-    
 
   }
   class(myfn) <- c("objfn", "fn")
@@ -142,78 +126,59 @@ constraintL2 <- function(mu, sigma = 1, attr.name = "prior", condition = NULL) {
     arglist <- arglist[match.fnargs(arglist, "pars")]
     pouter <- arglist[[1]]
     
+    # Import from controls
+    mu <- controls$mu
+    sigma <- controls$sigma
+    attr.name <- controls$attr.name
     
-    # Evaluate the code in the local environment or in env
-    # If evaluated in env, arguments have to be transferred
-    # to this environment.
-    if (is.null(env)) {
-      env <- environment()
-    } else {
-      assign("env", env, envir = env) 
-      assign("pouter", pouter, envir = env)
-      assign("fixed", fixed, envir = env)
-      assign("deriv", deriv, envir = env)
-      assign("condition", condition, envir = env)
-      assign("conditions", conditions, envir = env)
-      assign("mu", controls$mu, envir = env)
-      assign("sigma", controls$sigma, envir = env)
-      assign("controls", controls, envir = env)
+    # pouter can be a list (if result from a parameter transformation)
+    # In this case match with conditions and evaluate only those
+    # If there is no overlap, return NULL
+    # If pouter is not a list, evaluate the constraint function 
+    # for this pouter.
+    
+    if (is.list(pouter) && !is.null(conditions)) {
+      available <- intersect(names(pouter), conditions)
+      defined <- ifelse(is.null(condition), TRUE, condition %in% conditions)
+      
+      if (length(available) == 0 | !defined) return()
+      pouter <- pouter[intersect(available, condition)]
     }
+    if (!is.list(pouter)) pouter <- list(pouter)
     
-    myexpression <- expression({
+    outlist <- lapply(pouter, function(p) {
       
-      # pouter can be a list (if result from a parameter transformation)
-      # In this case match with conditions and evaluate only those
-      # If there is no overlap, return NULL
-      # If pouter is not a list, evaluate the constraint function 
-      # for this pouter.
       
-      if (is.list(pouter) && !is.null(conditions)) {
-        available <- intersect(names(pouter), conditions)
-        defined <- ifelse(is.null(condition), TRUE, condition %in% conditions)
-        
-        if (length(available) == 0 | !defined) return()
-        pouter <- pouter[intersect(available, condition)]
+      ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
+      par.fixed <- intersect(names(mu), names(fixed))
+      sumOfFixed <- 0
+      if (!is.null(par.fixed)) sumOfFixed <- sum(0.5*((fixed[par.fixed] - mu[par.fixed])/sigma[par.fixed]) ^ 2)
+      
+      # Compute prior value and derivatives
+      par <- intersect(names(mu), names(p))
+      
+      val <- sum((0.5*((p[par] - mu[par])/sigma[par]) ^ 2)) + sumOfFixed
+      gr <- rep(0, length(p)); names(gr) <- names(p)
+      gr[par] <- ((p[par] - mu[par])/(sigma[par] ^ 2))
+      
+      hs <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
+      diag(hs)[par] <- 1/sigma[par] ^ 2
+      
+      dP <- attr(p, "deriv")
+      if (!is.null(dP)) {
+        gr <- as.vector(gr %*% dP); names(gr) <- colnames(dP)
+        hs <- t(dP) %*% hs %*% dP; colnames(hs) <- colnames(dP); rownames(hs) <- colnames(dP)
       }
-      if (!is.list(pouter)) pouter <- list(pouter)
       
-      outlist <- lapply(pouter, function(p) {
-        
-        
-        ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
-        par.fixed <- intersect(names(mu), names(fixed))
-        sumOfFixed <- 0
-        if (!is.null(par.fixed)) sumOfFixed <- sum(0.5*((fixed[par.fixed] - mu[par.fixed])/sigma[par.fixed]) ^ 2)
-        
-        # Compute prior value and derivatives
-        par <- intersect(names(mu), names(p))
-        
-        val <- sum((0.5*((p[par] - mu[par])/sigma[par]) ^ 2)) + sumOfFixed
-        gr <- rep(0, length(p)); names(gr) <- names(p)
-        gr[par] <- ((p[par] - mu[par])/(sigma[par] ^ 2))
-        
-        hs <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
-        diag(hs)[par] <- 1/sigma[par] ^ 2
-        
-        dP <- attr(p, "deriv")
-        if (!is.null(dP)) {
-          gr <- as.vector(gr %*% dP); names(gr) <- colnames(dP)
-          hs <- t(dP) %*% hs %*% dP; colnames(hs) <- colnames(dP); rownames(hs) <- colnames(dP)
-        }
-        
-        objlist(value = 2*val, gradient = 2*gr, hessian = 2*hs)
-        
-        
-      })
+      objlist(value = 2*val, gradient = 2*gr, hessian = 2*hs)
       
-      out <- Reduce("+", outlist)
-      attr(out, controls$attr.name) <- out$value
-      attr(out, "env") <- env
-      return(out)
       
     })
-  
-    eval(myexpression, env, parent.frame())
+    
+    out <- Reduce("+", outlist)
+    attr(out, controls$attr.name) <- out$value
+    attr(out, "env") <- env
+    return(out)
     
     
   }
@@ -264,77 +229,66 @@ datapointL2 <- function(name, time, value, sigma = 1, attr.name = "validation", 
   
   myfn <- function(..., fixed = NULL, deriv=TRUE, conditions = NULL, env = NULL) {
   
+    # Import from controls
+    mu <- controls$mu
+    time <- controls$time
+    sigma <- controls$sigma
+    attr.name <- controls$attr.name
+    
     arglist <- list(...)
     arglist <- arglist[match.fnargs(arglist, "pars")]
     pouter <- arglist[[1]]
     
-    # Evaluate the code in the local environment or in env
-    # If evaluated in env, arguments have to be transferred
-    # to this environment.
-    if (is.null(env)) {
-      env <- environment()
+    if (!is.null(env)) {
+      prediction <- as.list(env)$prediction 
     } else {
-      assign("env", env, envir = env) 
-      assign("pouter", pouter, envir = env)
-      assign("fixed", fixed, envir = env)
-      assign("deriv", deriv, envir = env)
-      assign("conditions", conditions, envir = env)
-      assign("mu", controls$mu, envir = env)
-      assign("time", controls$time, envir = env)
-      assign("sigma", controls$sigma, envir = env)
-      assign("condition", condition, envir = env)
-      assign("controls", controls, envir = env)
+      stop("No prediction available. Use the argument env to pass an environment that contains the prediction.")
     }
-
-    myexpression <- expression({    
   
-      # Return result only when the data point condition overlaps with the evaluated conditions
-      if (!is.null(conditions) && !condition %in% conditions) return()
-       
-      # Divide parameter into data point and rest
-      datapar <- setdiff(names(mu), names(fixed))
-      parapar <- setdiff(names(pouter), c(datapar, names(fixed)))
-      
-      
-      # Get predictions and derivatives at time point
-      time.index <- which(prediction[[condition]][,"time"] == time)
-      withDeriv <- !is.null(attr(prediction[[condition]], "deriv"))
-      pred <- prediction[[condition]][time.index, ]
-      deriv <- NULL
-      if (withDeriv)
-        deriv <- attr(prediction[[condition]], "deriv")[time.index, ]
-      
-      # Reduce to name = mu
-      pred <- pred[mu]
-      if (withDeriv) {
-        mu.para <- intersect(paste(mu, parapar, sep = "."), names(deriv))
-        deriv <- deriv[mu.para]
-      }
-      
-      # Compute prior value and derivatives
-      res <- as.numeric(pred - c(fixed, pouter)[names(mu)])
-      val <- as.numeric((res/sigma) ^ 2)
-      gr <- NULL
-      hs <- NULL
-      
-      if (withDeriv) {
-        dres.dp <- structure(rep(0, length(pouter)), names = names(pouter))
-        if (length(parapar) > 0) dres.dp[parapar] <- as.numeric(deriv)
-        if (length(datapar) > 0) dres.dp[datapar] <- -1
-        gr <- 2*res*dres.dp/sigma ^ 2
-        hs <- 2*outer(dres.dp, dres.dp, "*")/sigma ^ 2; colnames(hs) <- rownames(hs) <- names(pouter)
-      }
-      
-      out <- objlist(value = val, gradient = gr, hessian = hs)
-      attr(out, controls$attr.name) <- out$value
-      
-      attr(out, "env") <- env
-      
-      return(out)
-      
-    })
+    # Return result only when the data point condition overlaps with the evaluated conditions
+    if (!is.null(conditions) && !condition %in% conditions) return()
     
-    eval(myexpression, env, parent.frame())
+    # Divide parameter into data point and rest
+    datapar <- setdiff(names(mu), names(fixed))
+    parapar <- setdiff(names(pouter), c(datapar, names(fixed)))
+    
+    
+    # Get predictions and derivatives at time point
+    time.index <- which(prediction[[condition]][,"time"] == time)
+    withDeriv <- !is.null(attr(prediction[[condition]], "deriv"))
+    pred <- prediction[[condition]][time.index, ]
+    deriv <- NULL
+    if (withDeriv)
+      deriv <- attr(prediction[[condition]], "deriv")[time.index, ]
+    
+    # Reduce to name = mu
+    pred <- pred[mu]
+    if (withDeriv) {
+      mu.para <- intersect(paste(mu, parapar, sep = "."), names(deriv))
+      deriv <- deriv[mu.para]
+    }
+    
+    # Compute prior value and derivatives
+    res <- as.numeric(pred - c(fixed, pouter)[names(mu)])
+    val <- as.numeric((res/sigma) ^ 2)
+    gr <- NULL
+    hs <- NULL
+    
+    if (withDeriv) {
+      dres.dp <- structure(rep(0, length(pouter)), names = names(pouter))
+      if (length(parapar) > 0) dres.dp[parapar] <- as.numeric(deriv)
+      if (length(datapar) > 0) dres.dp[datapar] <- -1
+      gr <- 2*res*dres.dp/sigma ^ 2
+      hs <- 2*outer(dres.dp, dres.dp, "*")/sigma ^ 2; colnames(hs) <- rownames(hs) <- names(pouter)
+    }
+    
+    out <- objlist(value = val, gradient = gr, hessian = hs)
+    attr(out, controls$attr.name) <- out$value
+    
+    attr(out, "env") <- env
+    
+    return(out)
+    
     
     
   }
@@ -380,88 +334,69 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
     arglist <- list(...)
     arglist <- arglist[match.fnargs(arglist, "pars")]
     pouter <- arglist[[1]]
+   
+    # Import from controls 
+    mu <- controls$mu
+    lambda <- controls$lambda
+    attr.name <- controls$attr.name
     
+    # pouter can be a list (if result from a parameter transformation)
+    # In this case match with conditions and evaluate only those
+    # If there is no overlap, return NULL
+    # If pouter is not a list, evaluate the constraint function 
+    # for this pouter.
     
-    # Evaluate the code in the local environment or in env
-    # If evaluated in env, arguments have to be transferred
-    # to this environment.
-    if (is.null(env)) {
-      env <- environment()
-    } else {
-      assign("env", env, envir = env) 
-      assign("pouter", pouter, envir = env)
-      assign("fixed", fixed, envir = env)
-      assign("deriv", deriv, envir = env)
-      assign("condition", condition, envir = env)
-      assign("conditions", conditions, envir = env)
-      assign("mu", controls$mu, envir = env)
-      assign("lambda", controls$lambda, envir = env)
-      assign("controls", controls, envir = env)
+    if (is.list(pouter) && !is.null(conditions)) {
+      available <- intersect(names(pouter), conditions)
+      defined <- ifelse(is.null(condition), TRUE, condition %in% conditions)
+      
+      if (length(available) == 0 | !defined) return()
+      pouter <- pouter[intersect(available, condition)]
     }
+    if (!is.list(pouter)) pouter <- list(pouter)
     
-    myexpression <- expression({
+    outlist <- lapply(pouter, function(p) {
       
-      # pouter can be a list (if result from a parameter transformation)
-      # In this case match with conditions and evaluate only those
-      # If there is no overlap, return NULL
-      # If pouter is not a list, evaluate the constraint function 
-      # for this pouter.
-
-      if (is.list(pouter) && !is.null(conditions)) {
-        available <- intersect(names(pouter), conditions)
-        defined <- ifelse(is.null(condition), TRUE, condition %in% conditions)
-        
-        if (length(available) == 0 | !defined) return()
-        pouter <- pouter[intersect(available, condition)]
+      
+      ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
+      par.fixed <- intersect(names(mu), names(fixed))
+      sumOfFixed <- 0
+      if (!is.null(par.fixed)) sumOfFixed <- sum(exp(c(fixed, p)[lambda])*(fixed[par.fixed] - mu[par.fixed]) ^ 2)
+      
+      # Compute prior value and derivatives
+      par <- intersect(names(mu), names(p))
+      par0 <- setdiff(par, lambda)
+      
+      val <- sum(exp(c(fixed, p)[lambda]) * (p[par] - mu[par]) ^ 2) + sumOfFixed
+      gr <- rep(0, length(p)); names(gr) <- names(p)
+      gr[par] <- 2*exp(c(fixed, p)[lambda])*(p[par] - mu[par])
+      if (lambda %in% names(p)) {
+        gr[lambda] <- sum(exp(c(fixed, p)[lambda]) * (p[par0] - mu[par0]) ^ 2) + 
+          sum(exp(c(fixed, p)[lambda]) * (fixed[par.fixed] - mu[par.fixed]) ^ 2)
       }
-      if (!is.list(pouter)) pouter <- list(pouter)
       
-      outlist <- lapply(pouter, function(p) {
-        
-        
-        ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
-        par.fixed <- intersect(names(mu), names(fixed))
-        sumOfFixed <- 0
-        if (!is.null(par.fixed)) sumOfFixed <- sum(exp(c(fixed, p)[lambda])*(fixed[par.fixed] - mu[par.fixed]) ^ 2)
-        
-        # Compute prior value and derivatives
-        par <- intersect(names(mu), names(p))
-        par0 <- setdiff(par, lambda)
-        
-        val <- sum(exp(c(fixed, p)[lambda]) * (p[par] - mu[par]) ^ 2) + sumOfFixed
-        gr <- rep(0, length(p)); names(gr) <- names(p)
-        gr[par] <- 2*exp(c(fixed, p)[lambda])*(p[par] - mu[par])
-        if (lambda %in% names(p)) {
-          gr[lambda] <- sum(exp(c(fixed, p)[lambda]) * (p[par0] - mu[par0]) ^ 2) + 
-            sum(exp(c(fixed, p)[lambda]) * (fixed[par.fixed] - mu[par.fixed]) ^ 2)
-        }
-        
-        hs <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
-        diag(hs)[par] <- 2*exp(c(fixed, p)[lambda])
-        if (lambda %in% names(p)) {
-          hs[lambda, lambda] <- gr[lambda] 
-          hs[lambda, par0] <- hs[par0, lambda] <- gr[par0]
-        }
-        
-        dP <- attr(p, "deriv")
-        if (!is.null(dP)) {
-          gr <- as.vector(gr %*% dP); names(gr) <- colnames(dP)
-          hs <- t(dP) %*% hs %*% dP; colnames(hs) <- colnames(dP); rownames(hs) <- colnames(dP)
-        }
-        
-        objlist(value = val, gradient = gr, hessian = hs)
-        
-      })
+      hs <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
+      diag(hs)[par] <- 2*exp(c(fixed, p)[lambda])
+      if (lambda %in% names(p)) {
+        hs[lambda, lambda] <- gr[lambda] 
+        hs[lambda, par0] <- hs[par0, lambda] <- gr[par0]
+      }
       
-      out <- Reduce("+", outlist)
-      attr(out, controls$attr.name) <- out$value
-      attr(out, "env") <- env
+      dP <- attr(p, "deriv")
+      if (!is.null(dP)) {
+        gr <- as.vector(gr %*% dP); names(gr) <- colnames(dP)
+        hs <- t(dP) %*% hs %*% dP; colnames(hs) <- colnames(dP); rownames(hs) <- colnames(dP)
+      }
       
-      return(out)
+      objlist(value = val, gradient = gr, hessian = hs)
       
     })
     
-    eval(myexpression, env, parent.frame())
+    out <- Reduce("+", outlist)
+    attr(out, controls$attr.name) <- out$value
+    attr(out, "env") <- env
+    
+    return(out)
     
     
   }
