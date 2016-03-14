@@ -170,6 +170,7 @@ as.parvec.numeric <- function(x, names = NULL, deriv = NULL, ...) {
   
   out <- as.numeric(p)
   if (is.null(names)) names(out) <- names(p) else names(out) <- names
+  if (is.null(deriv)) deriv <- attr(x, "deriv")
   if (is.null(deriv)) {
     deriv <- diag(length(out))
     colnames(deriv) <- rownames(deriv) <- names(out)
