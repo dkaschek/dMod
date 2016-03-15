@@ -6,6 +6,8 @@ print.odemodel <- function(x, ...) {
   func <- x$func
   extended <- x$extended
   
+  suppressWarnings({
+  
   cat("DLL name ODE: ", func, "\n", sep = "")
   cat("DLL name SENS: ", extended, "\n", sep = "")
   cat("Equations:\n", sep = "")
@@ -17,4 +19,5 @@ print.odemodel <- function(x, ...) {
   cat("Forcings:\n", sep = "")
   print(sort(attr(func, "forcings")))
   
+  })
 }
