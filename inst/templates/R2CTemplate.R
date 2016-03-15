@@ -26,8 +26,7 @@ forcings <- c(
   )
 
 
-# Add observable ODEs to the original ODEs or use an observation function
-# Choose one of the three options, or combine them
+# Create observation function
 g <- Y(observables, f, compile = TRUE, modelname = "obsfn")
 
 
@@ -72,7 +71,7 @@ trafoL <- lapply(conditions, function(con) {
   replaceSymbols(specific, paste(specific, con, sep = "_"), trafoL[[con]])
 })
 
-pL <- lapply(conditions, function(con) P(trafoL[[con]]))
+p <- Reduce("+", lapply(conditions, function(con) P(trafoL[[con]], condition = con)))
 
 
 # Set different forcings per condition
@@ -86,17 +85,8 @@ uL <- list(
 
 # Specify prediction functions for the different conditions (depends on different forces 
 # but not on different parameter transformations)
+x <- Reduce("+", lapply(conditions, function(con) Xs(model0, forcings = uL[[con]], condition = con)))
 
-xL <- lapply(conditions, function(con) Xs(model0, uL[[con]]))
-
-# Function for the total model prediction, returns a list of predictions (choose one of
-# the two possibilities)
-x <- prdfn({
-  pinner <- pL[[condition]](pars, fixed)
-  prediction <- xL[[condition]](times, pinner, ...)
-  observation <- g(prediction, pinner, attach.input = TRUE)
-  return(observation)
-}, conditions = conditions)
 
 ## Data ----------------------------------------------------------------------
 
@@ -106,44 +96,44 @@ data <- as.datalist(datasheet)
 ## Objective Functions -------------------------------------------------------
 
 # Initalize parameters 
-outerpars <- getSymbols(do.call(c, trafoL[conditions]))
+outerpars <- attr(p, "parameters")
 prior <- rep(0, length(outerpars)); names(prior) <- outerpars
 pouter <- rnorm(length(prior), prior, 1); names(pouter) <- outerpars
 
-# Objective function for trust()
-obj <- objfn({
-  conStraintL2(pouter, prior, sigma = 10, fixed = fixed)
-}, data = data, x = x, pouter = pouter, conditions = conditions)
+# Regularization function
+constr <- constraintL2(mu = prior, sigma = 5)
 
 
 ## Howto proceed -------------------------------------------------
 
 # Predicting and plotting
-timesD <- sort(unique(unlist(lapply(data, function(d) d$time))))
+timesD <- sort(unique(datasheet$time))
 times <- seq(min(timesD), max(timesD), len = 100)
-prediction <- x(times, pouter)
+prediction <- (g*x*p)(times, pouter)
 plot(prediction)
 plot(prediction, NULL, name %in% names(observables))
 
 # Fitting
 plot(data)
-myfit <- trust(obj, pouter, rinit = 1, rmax = 10, iterlim = 500)
-prediction <- x(times, myfit$argument)
+myfit <- trust(objfun = normL2(data, g*x*p) + constr, 
+               parinit = pouter, rinit = 1, rmax = 10, iterlim = 500)
+prediction <- (g*x*p)(times, myfit$argument)
 plot(prediction, data)
 plot(prediction, data, name %in% names(observables))
 plot(prediction, data, name %in% names(observables), facet = "grid")
 
 # Fitting from random positions
 center <- pouter
-fitlist <- mstrust(obj, center, fits = 20, cores = 4)
+fitlist <- mstrust(normL2(data, g*x*p) + constr, center, fits = 20, cores = 4)
 partable <- as.parframe(fitlist)
 plotValues(partable)
 bestfit <- as.parvec(partable)
 
 # Compare predictions of best fits
-plotArray(partable[1:10, ], x = x, times = times, data = data)
+plotArray(partable[1:10, ], x = g*x*p, times = times, data = data)
 
 # Profile likelihood
+obj <- normL2(data, g*x*p) + constr
 profiles.approx <- do.call(rbind, mclapply(names(bestfit), function(n) profile(obj, bestfit, n, method = "integrate"), mc.cores = 4))
 profiles.exact  <- do.call(rbind, mclapply(names(bestfit), function(n) profile(obj, bestfit, n, method = "optimize"), mc.cores = 4))
 plotProfile(profiles.approx, profiles.exact)
