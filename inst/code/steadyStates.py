@@ -7,16 +7,9 @@ from sympy.parsing.sympy_parser import *
 from sympy.matrices import *
 import csv
 import os
+import sys
 import random
 from random import shuffle
-
-def Reduce(eq):
-    for el in ['kPDK1', 'kAkt']:
-        el=parse_expr(el)
-        if(eq.subs(el,0)==0):
-            eq=expand(simplify(eq/el))
-    return expand(eq)
-
 
 def LCS(s1, s2):
     m = [[0] * (1 + len(s2)) for i in xrange(1 + len(s1))]
@@ -195,6 +188,10 @@ def printmatrix(M):
         print(string+']')    
     return()
     
+def printgraph(G):
+    for el in G:
+        print(el+': '+str(G[el]))
+    return()
 def is_number(s):
     try:
         float(s)
@@ -229,6 +226,39 @@ def checkPosRows(M):
             if(foundNeg==False):
                 PosRows.append(i)    
         return(PosRows)             
+
+def DetermineGraphStructure(SM, F, X, neglect):
+    graph={}    
+    for i in range(len(SM*F)):
+        liste=[]
+        for j in range(len(X)):
+            if((SM*F)[i]!=((SM*F)[i]).subs(X[j],1)):
+                if(j==i):
+                    In=((SM*F)[i]).subs(X[j],0)
+                    Out=simplify(((SM*F)[i]-In)/X[j])
+                    if(Out!=Out.subs(X[j],1)):
+                        liste.append(str(X[j]))
+                else:
+                    liste.append(str(X[j]))
+            else:
+                if(j==i):
+                    liste.append(str(X[j]))
+        graph[str(X[i])]=liste
+    for el in neglect:
+        if(parse_expr(el) in X):
+            if not graph.has_key(el):
+                graph[el]=[el]
+            else:
+                if(el not in graph[el]):
+                    graph[el].append(el)
+    return(graph)
+
+def FindCycle(graph, X):
+    for el in X:
+        cycle=find_cycle(graph, str(el), str(el), path=[])
+        if(cycle!=None):
+            return(cycle)
+    return(None)
     
 def find_cycle(graph, start, end, path=[]):
     path = path + [start]
@@ -243,51 +273,157 @@ def find_cycle(graph, start, end, path=[]):
             newpath = find_cycle(graph, node, end, path)
             if newpath: return newpath
     return None
+    
+def GetBestPair(cycle, SM, fluxpars, X, LCLs, neglect):    
+    for state in cycle:
+        for LCL in LCLs:
+            ls=parse_expr(LCL.split(' = ')[0])
+            if(ls.subs(parse_expr(state),1)!=ls):
+                return(0, state, None, False)
+    dimList=[]
+    signList=[]
+    for state in cycle:
+        dim, sign = GetDimension(state, X, SM, True)
+        signList.append(sign)
+        dimList.append(dim)
+    #minOfDimList=min(dimList)
+    beststate=None
+    bestflux=None
+    besttype=-1
+    n2beat=1000
+    signChanged=False
+    min2beat=max(dimList)+1
+    for i in range(len(dimList)):
+        if(dimList[i] < min2beat):
+            min2beat=dimList[i]
+            sign=signList[i]
+            appearList=[]
+            #print(sign)
+            if(sign=="minus"):
+                fluxpars2use=GetNegFluxParameters(SM, fluxpars, X, cycle[i])                
+            else:
+                fluxpars2use=GetPosFluxParameters(SM, fluxpars, X, cycle[i])
+            abort_flux=False
+            for fp in fluxpars2use:
+                if(str(fp) not in neglect):
+                    appearList.append(GetAppearances(fp, fluxpars, SM))
+                else:
+                    abort_flux=True
+            if(abort_flux):
+                ##### Change sign
+                print("Sign changed!")
+                signChanged=True
+                if((sign=="minus" and not signChanged) or (sign=="plus" and signChanged)):
+                    fluxpars2use=GetNegFluxParameters(SM, fluxpars, X, cycle[i])                
+                else:
+                    fluxpars2use=GetPosFluxParameters(SM, fluxpars, X, cycle[i])
+                abort_flux=False
+                for fp in fluxpars2use:
+                    if(str(fp) not in neglect):
+                        appearList.append(GetAppearances(fp, fluxpars, SM))
+                    else:
+                        abort_flux=True
+            if(sum(appearList) < n2beat and not abort_flux):
+                n2beat=sum(appearList)
+                beststate=cycle[i]
+                if((sign=="minus" and not signChanged) or (sign=="plus" and signChanged)):
+                    bestflux=GetNegFluxParameters(SM, fluxpars, X, cycle[i])[0]
+                else:
+                    bestflux=GetPosFluxParameters(SM, fluxpars, X, cycle[i])[0]
+                if(min2beat==1 and max(appearList)==1):
+                    besttype=1
+                else:
+                    if(max(appearList)==1 and min2beat>1):
+                        besttype=2
+                    else:
+                        besttype=3
+    return(besttype, beststate, bestflux, signChanged)
+    
+       
+def GetNegFluxParameters(SM, fluxpars, X, node):
+    row=list(X).index(parse_expr(node))
+    liste=[]
+    for i in range(len(SM.row(row))):
+        if(SM.row(row)[i]<0):
+            liste.append(fluxpars[i])
+    return(liste)
 
-def ChooseOptimalFlux(eq, SM, F, compromise1, compromise2):    
-    anzneg=str(eq.args).count('-')
-    anzpos=len(eq.args)-anzneg
-    #print(anzneg)
-    #print(anzpos)
-    #print(eq)
-    eq=expand(eq)
-    if(anzneg==1):
-        for arg in eq.args:
-            counter=0
-            if((str(arg)[0:2]=='2*') or (str(arg)[0:3]=='-2*')):
-                    arg=arg/2
-            for i in range(len(SM.col(0))):
-                if(SM[i,list(F).index(parse_expr(str(arg).replace('-','')))]!=0):
-                    counter=counter+1
-            #print(counter)
-            if(('-' in str(arg)) & (counter==1)):
-                return(arg)
-    if(anzpos==1):
-        for arg in eq.args:
-            #print(arg)
-            counter=0
-            if((str(arg)[0:2]=='2*') or (str(arg)[0:3]=='-2*')):
-                    arg=arg/2
-            #printmatrix(SM)
-            #print(F)
-            for i in range(len(SM.col(0))):
-                if(SM[i,list(F).index(parse_expr(str(arg).replace('-','')))]!=0):
-                    counter=counter+1
-            #print(counter)
-            if(('-' not in str(arg)) & (counter==1)):
-                return(arg)
-    if(compromise1):
-        for arg in eq.args:
-            counter=0
-            #print(arg)
-            for i in range(len(SM.col(0))):
-                if(SM[i,list(F).index(parse_expr(str(arg).replace('-','')))]!=0):
-                    counter=counter+1
-            if(counter==1):
-                return(arg)
-    if(compromise1 & compromise2):
-        return(eq.args[0])
-    return None
+def GetPosFluxParameters(SM, fluxpars, X, node):
+    row=list(X).index(parse_expr(node))
+    liste=[]    
+    for i in range(len(SM.row(row))):
+        if(SM.row(row)[i]>0):
+            liste.append(fluxpars[i])
+    return(liste)
+        
+def GetType(node, fp, fluxpars, LCLs):
+    for LCL in LCLs:
+        ls=parse_expr(LCL.split(' = ')[0])
+        if(ls.subs(parse_expr(node),1)!=ls):
+            return(0)
+    if(GetAppearances(fp, fluxpars)==1):
+        if(GetDimension(node)==1):
+            return(1)
+        else:
+            return(2)
+    else:
+        return(3)
+        
+def GetAppearances(fp, fluxpars, SM):
+    anz=0
+    cols = [i for i, x in enumerate(fluxpars) if x == fp]
+    #col=list(fluxpars).index(fp)
+    for i in cols:
+        for j in range(len(SM.col(i))):
+            if(SM.col(i)[j]!=0):
+                anz=anz+1
+    return(anz)
+
+def GetDimension(node, X, SM, getSign=False):
+    row=list(X).index(parse_expr(node))
+    anzminus=0
+    anzappearminus=0
+    for i in range(len(SM.row(row))):
+        if(SM.row(row)[i]<0):
+            anzappearminus=anzappearminus+CountNZE(SM.col(i))
+            anzminus=anzminus+1
+    anzplus=0
+    anzappearplus=0
+    for i in range(len(SM.row(row))):
+        if(SM.row(row)[i]>0):
+            anzappearplus=anzappearplus+CountNZE(SM.col(i))
+            anzplus=anzplus+1
+    if(not getSign):
+        return(min(anzminus, anzplus))
+    else:
+        if(anzminus<anzplus or (anzminus==anzplus and anzappearminus<anzappearplus)):
+            return(anzminus, "minus")
+        else:
+            return(anzplus, "plus")
+            
+def GetOutfluxes(node, X, SM, F, fluxpars):
+    row=list(X).index(parse_expr(node))
+    outsum=0
+    out=[]
+    fps=[]
+    for i in range(len(SM.row(row))):
+        if(SM.row(row)[i]<0):
+            outsum=outsum-SM.row(row)[i]*F[i]
+            out.append(-SM.row(row)[i]*F[i])
+            fps.append(fluxpars[i])
+    return(out, outsum, fps)
+
+def GetInfluxes(node, X, SM, F, fluxpars):
+    row=list(X).index(parse_expr(node))
+    outsum=0
+    out=[]
+    fps=[]
+    for i in range(len(SM.row(row))):
+        if(SM.row(row)[i]>0):
+            outsum=outsum+SM.row(row)[i]*F[i]
+            out.append(SM.row(row)[i]*F[i])
+            fps.append(fluxpars[i])
+    return(out, outsum, fps)
 
 def FindNodeToSolve(graph):
     for el in graph:
@@ -305,130 +441,75 @@ def CountNZE(V):
 def Sparsify(M, level):
     if(level==3):
         ncol=len(M.row(0))
-        for i in range(ncol):
+        print('0 columns of '+str(ncol) +' done')
+        for i in range(ncol):            
+            icol=M.col(i)
             tobeat=CountNZE(M.col(i))
             for j in range(ncol):
-                if(i!=j):
+                if(i<j):
                     for factor_j in [1,2,-1,-2,0]:
                         for k in range(ncol):
-                            if(k!=i and k!=j):
+                            if(i<k and j<k):
                                 for factor_k in [1,2,-1,-2,0]:
                                     for l in range(ncol):
-                                        if(l!=i and l!=j and l!=k):
+                                        if(i<l and j<l and k<l):
                                             for factor_l in [1,2,-1,-2,0]:
-                                                test=M.col(i)+factor_j*M.col(j)+factor_k*M.col(k)+factor_l*M.col(l)
+                                                test=icol+factor_j*M.col(j)+factor_k*M.col(k)+factor_l*M.col(l)
                                                 if(tobeat > CountNZE(test)):
-                                                    M.col_del(i)
-                                                    M=M.col_insert(i,test)
-                                                    tobeat=CountNZE(test)
+                                                    Mtest=M.copy()
+                                                    Mtest.col_del(i)
+                                                    Mtest=Mtest.col_insert(i,test)
+                                                    if(CountNZE(test)!=0 and M.rank()==Mtest.rank()):
+                                                        M=Mtest.copy()
+                                                        tobeat=CountNZE(test)
+                                                        #print(str(i)+'+'+str(factor_j)+'*'+str(j)+'+'+str(factor_k)+'*'+str(k)+'+'+str(factor_l)+'*'+str(l)+'    '+str(tobeat))
+
             print(str(i+1)+' columns of '+str(ncol) +' done')
     if(level==2):
         ncol=len(M.row(0))
         for i in range(ncol):
+            icol=M.col(i)
             tobeat=CountNZE(M.col(i))
             for j in range(ncol):
-                if(i!=j):
+                if(i<j):
                     for factor_j in [1,2,-1,-2,0]:
                         for k in range(ncol):
-                            if(k!=i and k!=j):
+                            if(i<k and j<k):
                                 for factor_k in [1,2,-1,-2,0]:
-                                    test=M.col(i)+factor_j*M.col(j)+factor_k*M.col(k)
+                                    test=icol+factor_j*M.col(j)+factor_k*M.col(k)
                                     if(tobeat > CountNZE(test)):
-                                        M.col_del(i)
-                                        M=M.col_insert(i,test)
-                                        tobeat=CountNZE(test)
-            print(str(i+1)+' columns of '+str(ncol) +' done')
+                                        Mtest=M.copy()
+                                        Mtest.col_del(i)
+                                        Mtest=Mtest.col_insert(i,test)
+                                        if(CountNZE(test)!=0 and M.rank()==Mtest.rank()):
+                                            M=Mtest.copy()
+                                            tobeat=CountNZE(test)
+                                            #print(str(i)+'+'+str(factor_j)+'*'+str(j)+'+'+str(factor_k)+'*'+str(k))
+            #sys.stdout.write('\rdone %d' %i)
+            #sys.stdout.flush()
+            #print('\r'+str(i+1)+' columns of '+str(ncol) +' done\r')
     if(level==1):
         ncol=len(M.row(0))
         for i in range(ncol):
+            icol=M.col(i)
             tobeat=CountNZE(M.col(i))
             for j in range(ncol):
-                if(i!=j):
+                if(i<j):
                     for factor_j in [1,2,-1,-2,0]:
-                        test=M.col(i)+factor_j*M.col(j)
+                        test=icol+factor_j*M.col(j)
                         if(tobeat > CountNZE(test)):
-                            M.col_del(i)
-                            M=M.col_insert(i,test)
-                            tobeat=CountNZE(test)
+                            Mtest=M.copy()
+                            Mtest.col_del(i)
+                            Mtest=Mtest.col_insert(i,test)
+                            if(CountNZE(test)!=0 and M.rank()==Mtest.rank()):
+                                M=Mtest.copy()
+                                tobeat=CountNZE(test)
     return(M)
     
-def SuggestTrafos(eqOut, UsedVars):
-    out=[]
-    for i in range(len(eqOut)):
-        eq=eqOut[i]
-        #print(eq)
-        if('-' in eq):
-            print('Finding trafo...')
-            foundTrafo=False
-            rs=parse_expr(eq.split(' = ')[1])
-            if(('1/' in str(rs.args[0])) & (len(rs.args)>=2)):
-                args=(rs.args[-1]).args
-            else:
-                args=rs.args
-            #print(args)
-            anzneg=str(args).count('-')
-            anzpos=len(args)-anzneg
-            #print(anzpos)
-            if(anzneg==1):
-                for arg in args:
-                    if('-' in str(arg)):
-                        for var in arg.atoms():
-                            if((not is_number(str(var))) & (var not in UsedVars) & (not foundTrafo)):
-                                sol=solve(rs, var, simplify=False)[0]
-                                foundTrafo=True
-                                trafo=parse_expr('('+str(sol)+')/(1+r_'+str(var)+')')
-                                trafoVar=var
-                                out.append(str(trafoVar)+' = '+str(trafo))
-            if((anzpos==1) & (not foundTrafo)):
-                for arg in args:
-                    if('-' not in str(arg)):
-                        for var in arg.atoms():
-                            if((not is_number(str(var))) & (var not in UsedVars) & (not foundTrafo)):
-                                sol=solve(rs, var, simplify=False)[0]
-                                foundTrafo=True
-                                trafo=parse_expr('('+str(sol)+')*(1+r_'+str(var)+')')
-                                trafoVar=var
-                                out.append(str(trafoVar)+' = '+str(trafo))
-            
-            if((anzpos > 1) & (anzneg > 1)):
-                negliste=[]
-                posliste=[]
-                posges=''
-                anzmal=0
-                for arg in args:
-                    if('-' in str(arg)):
-                        negliste.append(arg)
-                    else:
-                        posges=posges+str(arg)
-                        posliste.append(arg)
-                        anzmal=anzmal+str(arg).count('*')
-                if(str(simplify(parse_expr(posges))).count('*')!=anzmal):
-                    var=parse_expr(posges.split('*')[0])
-                    if(var not in UsedVars):
-                        sol=solve(rs, var)[0]
-                        foundTrafo=True
-                        trafo=parse_expr('('+str(sol)+')*(1+r_'+str(var)+')')
-                        trafoVar=var
-                        out.append(str(trafoVar)+' = '+str(trafo))
-                        
-            if(not foundTrafo):
-                print('Alles Mist')
-            else:
-                #print(trafoVar)
-                #print(out[-1])
-                for j in range(len(eqOut)):
-                    if(j >= i):
-                        ls,rs=eqOut[j].split(' = ')
-                        eqOut[j]=ls+' = '+str(simplify(parse_expr(rs).subs(trafoVar, trafo)))
-            
-        out.append(eqOut[i])
-        #print(out)
-    return(out)
-
 def ODESS(filename,
           injections=[],
-          forbidden=[],
-          ensurePositivity=True,
+          givenCQs=[],
+          neglect=[],
           sparsifyLevel = 2,
           outputFormat='R'):
     filename=str(filename)
@@ -451,7 +532,7 @@ def ODESS(filename,
             L.remove(L[i-counter])
             counter=counter+1       
     
-##### Define flux vector F	
+##### Define flux vector F  
     F=[]
     
     for i in range(1,len(L)):
@@ -482,19 +563,8 @@ def ODESS(filename,
     			SM[i][j]='0'
     		SM[i][j]=parse_expr(SM[i][j])    
     SM=Matrix(SM)
-    
-    
-##### Increase Sparsity of stoichiometry matrix SM
-    print('Sparsify Stoichiometry Matrix with sparsify-level '+str(sparsifyLevel)+'!')
-    SMorig=(SM.copy()).T
-    SM=Sparsify(SM, level=sparsifyLevel)
     SM=SM.T
-    #return(SM)
-    
-##### Read forbidden rates
-    UsedRC=[]
-    for el in forbidden:
-        UsedRC.append(parse_expr(el))
+
     
 ##### Check for zero fluxes
     icounter=0
@@ -536,14 +606,12 @@ def ODESS(filename,
                 if(F[i-counter].subs(X[row],1)!=F[i-counter] and F[i-counter].subs(X[row],0)==0):
                     F.row_del(i-counter)
                     SM.col_del(i-counter)                    
-                    SMorig.col_del(i-counter)
                     counter=counter+1
                 else:
                     if(F[i-counter].subs(X[row],1)!=F[i-counter] and F[i-counter].subs(X[row],0)!=0):
                         F[i-counter]=F[i-counter].subs(X[row],0)
             X.row_del(row)
             SM.row_del(row)
-            SMorig.row_del(row)
         else:
             row=PosRows[0]
             zeroFluxes=[]
@@ -564,7 +632,6 @@ def ODESS(filename,
                             if(F[i-counter].subs(X[row],0)==0):
                                 F.row_del(i-counter)
                                 SM.col_del(i-counter)
-                                SMorig.col_del(i-counter)
                             else:
                                 F[i-counter]=F[i-counter].subs(X[row],0)                            
                             counter=counter+1
@@ -706,446 +773,214 @@ def ODESS(filename,
 
 #### Save ODE equations for testing solutions at the end    
     print('Rank of SM is '+str(SM.rank()) + '!')
+    SMorig=SM.copy()
     ODE=SMorig*F
+#### Get Flux Parameters
+    fluxpars=[]
+    for flux in F:
+        if(flux.args!=()):
+            foundFluxpar=False
+            for el in flux.args:
+                if(not foundFluxpar and el not in X and not is_number(str(el))):
+                    if(flux.subs(el, 0)==0):
+                        fluxpars.append(el)
+                        foundFluxpar=True
+        else:
+            fluxpars.append(flux)
+
+##### Increase Sparsity of stoichiometry matrix SM
+    print('Sparsify stoichiometry matrix with sparsify-level '+str(sparsifyLevel)+'!')
+    SM=(Sparsify(SM.T, level=sparsifyLevel)).T
+    
 #### Find conserved quantities
-    print('\nFinding conserved quantities ...')
+    
     #printmatrix(CMbig)
     #print(X)
-    LCLs, rowsToDel=FindLCL(CMbig.transpose(), X)
+    if(givenCQs==[]):
+        print('\nFinding conserved quantities ...')
+        LCLs, rowsToDel=FindLCL(CMbig.transpose(), X)
+    else:
+        print('\nI took the given conserved quantities!')
+        LCLs=givenCQs
     if(LCLs!=[]):
         print(LCLs)
     else:
         print('System has no conserved quantities!')
 #### Define graph structure
     print('\nDefine graph structure ...\n')
-    graph={}    
-    for i in range(len(SM*F)):
-        liste=[]
-        for j in range(len(X)):
-            if((SM*F)[i]!=((SM*F)[i]).subs(X[j],1)):
-                if(j==i):
-                    In=((SM*F)[i]).subs(X[j],0)
-                    Out=simplify(((SM*F)[i]-In)/X[j])
-                    if(Out!=Out.subs(X[j],1)):
-                        liste.append(str(X[j]))
-                else:
-                    liste.append(str(X[j]))
-        graph[str(X[i])]=liste
-        
-#### Remove cycles step by step    
+    
+    SSgraph=DetermineGraphStructure(SM, F, X, neglect)    
+    #printgraph(SSgraph)
+    #print(fluxpars)
+#### Check for Cycles
+    cycle=FindCycle(SSgraph, X)
+#### Remove cycles step by step
     gesnew=0
-    noCycle=False
-    #UsedRC=[]
-    UsedStates=[]
     eqOut=[]
-    DependentRates=[]
-    DependentOn=[]
-    counter=0
-    while(not noCycle):    
-        i=0
-        changeposneg=False
-        counter=counter+1
-        foundCycle=False 
-        #print(graph)
-        while((not foundCycle) & (not noCycle)):
-            cycle=find_cycle(graph, str(X[i]), str(X[i]))
-            if cycle is None:
-                i=i+1
-                if(i==len(X)):
-                    noCycle=True
-                    print('There is no cycle in the system!\n')
+    while(cycle!=None):
+        print('Removing cycle '+str(counter))
+        #printmatrix(SM)
+        #print(F)
+        minType, state2Rem, fp2Rem, signChanged = GetBestPair(cycle, SM, fluxpars, X, LCLs, neglect)
+        #print(cycle)
+        #print(state2Rem)
+        #print(fp2Rem)
+        #print(minType)
+        if(minType==-1):
+            print("    The cycle")
+            print("       "+str(cycle))
+            print("    cannot be removed. Set more parameters free or enable steady-state expressions with minus signs. The latter is not yet provided by the tool.")
+            return(0)
+        if(minType==0):
+            for LCL in LCLs:
+                ls=parse_expr(LCL.split(' = ')[0])
+                if(ls.subs(parse_expr(state2Rem),1)!=ls):
+                    LCL2Rem=LCL
+            LCLs.remove(LCL2Rem)
+            index=list(X).index(parse_expr(state2Rem))
+            eqOut.append(state2Rem+' = '+state2Rem)
+            print('   '+str(state2Rem)+' --> '+'Done by CQ')
+        if(minType==1):
+            index=list(X).index(parse_expr(state2Rem))
+            eq=(SM*F)[index]
+            sol=solve(eq, fp2Rem, simplify=False)[0]
+            eqOut.append(str(fp2Rem)+' = '+str(sol))
+            print('   '+str(state2Rem)+' --> '+str(fp2Rem))
+        if(minType==2):
+            anz, sign=GetDimension(state2Rem, X, SM, getSign=True)
+            index=list(X).index(parse_expr(state2Rem))            
+            negs, sumnegs, negfps=GetOutfluxes(state2Rem, X, SM, F, fluxpars)
+            poss, sumposs, posfps=GetInfluxes(state2Rem, X, SM, F, fluxpars)
+            if(anz==1):
+                print("Error in Type Determination. Please report this bug!")
+                return(0)
             else:
-                print('Removing cycle '+str(counter))
-                foundCycle=True
-        CycleCanBeDoneByCL=False
-        if(not noCycle):
-            print(cycle)
-            for node in cycle:
-                for LCL in LCLs:
-                    if(not CycleCanBeDoneByCL):
-                        ls=parse_expr(LCL.split(' = ')[0])
-                        if(ls.subs(parse_expr(node),1)!=ls):
-                            CycleCanBeDoneByCL=True
-                            LCLToRemove=LCL
-                            UsedStates.append(parse_expr(node))
-                            nodeToRep=node
-                            print('   '+str(nodeToRep)+' --> '+'Done by CL')
-        
-        if(CycleCanBeDoneByCL):
-            LCLs.remove(LCLToRemove)
-            indexToRep=list(X).index(parse_expr(nodeToRep))
-            eqOut.append(str(nodeToRep)+' = '+str(nodeToRep))
-            X.row_del(indexToRep)
-            SM.row_del(indexToRep)
-                                
-        if((not noCycle) & (not CycleCanBeDoneByCL)):
-            compromise=False
-            compromise2=False
-            foundOptNodeAndFlux=False
-            for node in cycle:
-                if((not foundOptNodeAndFlux)  & (parse_expr(node) in list(X))):
-                    nodeToRep=node
-                    eq=Reduce((SM*F)[list(X).index(parse_expr(nodeToRep))])
-                    FluxToTake=ChooseOptimalFlux(eq,SM,F, compromise1=False, compromise2=False) 
-                    
-                    if(not FluxToTake is None):
-                        foundOptNodeAndFlux=True
-                    #print(foundOptNodeAndFlux)
-            if(not foundOptNodeAndFlux):
-                eq=Reduce(expand((SM*F)[i]))
-                l0=len(str(eq))
-                nodeToRep=str(X[i])
-                for node in cycle:
-                            l=len(str((SM*F)[list(X).index(parse_expr(node))]))
-                            if(l<l0):
-                                eq=Reduce((SM*F)[list(X).index(parse_expr(node))])
-                                nodeToRep=node                
-                print('   Do compromise for: '+nodeToRep)
-                print(eq)
-                compromise=True
+                nenner=1
+                for j in range(anz):
+                    if(j>0):
+                        nenner=nenner+parse_expr('r_'+state2Rem+'_'+str(j))
                 trafoList=[]
-                negs=parse_expr('0')
-                poss=parse_expr('0')
-                anzneg=0
-                anzpos=0
-                for arg in eq.args:
-                    if('-' in str(arg)):
-                        anzneg=anzneg+1
-                        negs=negs-arg
-                    else:
-                        anzpos=anzpos+1
-                        poss=poss+arg
-                if(anzpos == 1 and anzneg == 1):
-                    trafoList.append(str(poss)+'='+str(negs))
-                else:
-                    if(anzneg==1):
-                        nenner=1
-                        gesnew=gesnew+(anzneg-1)
-                        for j in range(anzneg):
-                            if(j>0):
-                                nenner=nenner+parse_expr('r_'+nodeToRep+'_'+str(j))
-                        trafoList.append(str(negs)+'=('+str(poss)+')*1/('+str(nenner)+')')
-                    else:
-                        if(anzpos==1):
-                            nenner=1
-                            gesnew=gesnew+(anzpos-1)
-                            for j in range(anzpos):
-                                if(j>0):
-                                    nenner=nenner+parse_expr('r_'+nodeToRep+'_'+str(j))
-                            trafoList.append(str(poss)+'=('+str(negs)+')*1/('+str(nenner)+')')                    
+                if((sign=="minus" and not signChanged) or (sign=="plus" and signChanged)):
+                    for j in range(len(negs)):
+                        flux=negs[j]
+                        fp=negfps[j]
+                        prefactor=flux/fp
+                        if(j==0):
+                            trafoList.append(str(fp)+' = ('+str(sumposs)+')*1/('+str(nenner)+')*1/('+str(prefactor)+')')
                         else:
-                            if((anzpos > anzneg) & (not changeposneg)):
-                                nenner=1
-                                gesnew=gesnew+(anzneg-1)
-                                for j in range(anzneg):
-                                    if(j>0):
-                                        nenner=nenner+parse_expr('r_'+nodeToRep+'_'+str(j))
-                                for j in range(anzneg):
-                                    if(j==0):
-                                        trafoList.append(str(negs.args[j])+'=('+str(poss)+')*1/('+str(nenner)+')')
-                                    else:
-                                        trafoList.append(str(negs.args[j])+'=('+str(poss)+')*'+'r_'+nodeToRep+'_'+str(j)+'/('+str(nenner)+')')
-                            else:
-                                nenner=1
-                                #print(poss)
-                                #print(poss.args)
-                                gesnew=gesnew+(anzpos-1)
-                                for j in range(anzpos):
-                                    if(j>0):
-                                        nenner=nenner+parse_expr('r_'+nodeToRep+'_'+str(j))
-                                for j in range(anzpos):
-                                    if(j==0):
-                                        trafoList.append(str(poss.args[j])+'=('+str(negs)+')*1/('+str(nenner)+')')
-                                    else:
-                                        trafoList.append(str(poss.args[j])+'=('+str(negs)+')*'+'r_'+nodeToRep+'_'+str(j)+'/('+str(nenner)+')')
-                         
-                tempcounter=0
-                #print(trafoList)
-                for trafo in trafoList:
-                    #print(trafo)
-                    lstrafo,rstrafo=trafo.split('=')
-                    lstrafo=parse_expr(lstrafo)
-                    rstrafo=parse_expr(rstrafo)
-                    foundRateConst=False
-                    for var in list(lstrafo.atoms()):
-                        if((var not in X) & (var not in UsedStates) & (var not in UsedRC) & (not is_number(str(var))) & (not foundRateConst)):
-                            RC=var
-                            UsedRC.append(RC)
-                            foundRateConst=True
-                    if(foundRateConst):
-                        rest=lstrafo/RC
-                        sol=rstrafo/rest
-                        eqOut.append(str(RC)+' = '+str(sol))
-                        DependentRates.append(RC)
-                        DependentOn.append(list(sol.atoms()))
-                        tempcounter=tempcounter+1
-                    else:                        
-                        compromise2=True
-                if(compromise2):
-                    print('Did not find appropriate transformation!')
-                    for temp in range(tempcounter):
-                        eqOut.pop()
-                        DependentRates.pop()
-                        DependentOn.pop()
-                        UsedRC.pop() 
+                            gesnew=gesnew+1
+                            trafoList.append(str(fp)+' = ('+str(sumposs)+')*'+'r_'+state2Rem+'_'+str(j)+'/('+str(nenner)+')*1/('+str(prefactor)+')')                        
+                    print('   '+str(state2Rem)+' --> '+str(negfps))
                     
-                if(not compromise2):
-                    indexToRep=list(X).index(parse_expr(nodeToRep))
-                    X.row_del(indexToRep)
-                    SM.row_del(indexToRep)
-                    for temp in range(tempcounter):
-                            eq=eqOut[-(temp+1)]
-                            RC=parse_expr(eq.split('=')[0])
-                            sol=parse_expr(eq.split('=')[1])
-                            for f in range(len(F)):
-                                F[f]=F[f].subs(RC, sol)
-                            print('    '+str(RC)+' --> '+str(sol))
-                leaveCompromiseLoop=False
-                lcycle=len(cycle)
-                cyclecounter=0
-                while((leaveCompromiseLoop==False) & (cyclecounter < lcycle) & compromise2):                    
-                    nodeToRep=cycle[cyclecounter]
-                    eq=expand((SM*F)[list(X).index(parse_expr(nodeToRep))])
-                    #print(eq)
-                    cyclecounter=cyclecounter+1
-                    #print(cycle)
-                    #print(nodeToRep)
-                    print(cyclecounter)
-                    print('   Do compromise 2')
-                    compromise2=False
-                    trafoList=[]
-                    negs=parse_expr('0')
-                    poss=parse_expr('0')
-                    anzneg=0
-                    anzpos=0
-                    for arg in eq.args:
-                        if('-' in str(arg)):
-                            anzneg=anzneg+1
-                            negs=negs-arg
+                else:
+                    for j in range(len(poss)):
+                        flux=poss[j]
+                        fp=posfps[j]
+                        prefactor=flux/fp
+                        if(j==0):
+                            trafoList.append(str(fp)+' = ('+str(sumnegs)+')*1/('+str(nenner)+')*1/('+str(prefactor)+')')
                         else:
-                            anzpos=anzpos+1
-                            poss=poss+arg
-                            
-                    if((anzpos > anzneg) & (not changeposneg)):
-                        nenner=1
-                        gesnew=gesnew+(anzneg-1)
-                        for j in range(anzneg):
-                            if(j>0):
-                                nenner=nenner+parse_expr('r_'+nodeToRep+'_'+str(j))
-                        for j in range(anzneg):
-                            if(j==0):
-                                trafoList.append(str(negs.args[j])+'=('+str(poss)+')*1/('+str(nenner)+')')
-                            else:
-                                trafoList.append(str(negs.args[j])+'=('+str(poss)+')*'+'r_'+nodeToRep+'_'+str(j)+'/('+str(nenner)+')')
-                    else:
-                        nenner=1
-                        gesnew=gesnew+(anzpos-1)
-                        for j in range(anzpos):
-                            if(j>0):
-                                nenner=nenner+parse_expr('r_'+nodeToRep+'_'+str(j))
-                        for j in range(anzpos):
-                            if(j==0):
-                                trafoList.append(str(poss.args[j])+'=('+str(negs)+')*1/('+str(nenner)+')')
-                            else:
-                                trafoList.append(str(poss.args[j])+'=('+str(negs)+')*'+'r_'+nodeToRep+'_'+str(j)+'/('+str(nenner)+')')
-                         
-                    tempcounter=0
-                    for trafo in trafoList:
-                        #print(trafo)
-                        lstrafo,rstrafo=trafo.split('=')
-                        lstrafo=parse_expr(lstrafo)
-                        rstrafo=parse_expr(rstrafo)
-                        foundRateConst=False
-                        for var in list(lstrafo.atoms()):
-                            if((var not in X) & (var not in UsedStates) & (var not in UsedRC) & (not is_number(str(var))) & (not foundRateConst)):
-                                RC=var
-                                UsedRC.append(RC)
-                                foundRateConst=True
-                        if(foundRateConst):
-                            rest=lstrafo/RC
-                            sol=rstrafo/rest
-                            eqOut.append(str(RC)+' = '+str(sol))
-                            DependentRates.append(RC)
-                            DependentOn.append(list(sol.atoms()))
-                            tempcounter=tempcounter+1
+                            gesnew=gesnew+1
+                            trafoList.append(str(fp)+' = ('+str(sumnegs)+')*'+'r_'+state2Rem+'_'+str(j)+'/('+str(nenner)+')*1/('+str(prefactor)+')')
+                    print('   '+str(state2Rem)+' --> '+str(posfps))
+                for eq in trafoList:
+                    eqOut.append(eq)
+        if(minType==3):
+            anz, sign=GetDimension(state2Rem, X, SM, getSign=True)
+            index=list(X).index(parse_expr(state2Rem))            
+            negs, sumnegs, negfps=GetOutfluxes(state2Rem, X, SM, F, fluxpars)
+            poss, sumposs, posfps=GetInfluxes(state2Rem, X, SM, F, fluxpars)
+            if(anz==1):
+                if((sign=="minus" and not signChanged) or (sign=="plus" and signChanged)):
+                    fp2Rem=negfps[0]
+                    flux=negs[0]
+                else:
+                    fp2Rem=posfps[0]
+                    flux=poss[0]
+                eq=(SM*F)[index]
+                sol=solve(eq, fp2Rem, simplify=False)[0]
+                eqOut.append(str(fp2Rem)+' = '+str(sol))
+                print('   '+str(state2Rem)+' --> '+str(fp2Rem))
+                colindex=list(F).index(flux)
+                for row2repl in range(len(SM.col(0))):
+                    if(SM[row2repl,colindex]!=0 and row2repl!=index):
+                        SM=SM.row_insert(row2repl,SM.row(row2repl)-(SM[row2repl,colindex]/SM[index,colindex])*SM.row(index))
+                        SM.row_del(row2repl+1)
+            else:
+                nenner=1
+                for j in range(anz):
+                    if(j>0):
+                        nenner=nenner+parse_expr('r_'+state2Rem+'_'+str(j))
+                trafoList=[]
+                if((sign=="minus" and not signChanged) or (sign=="plus" and signChanged)):
+                    for j in range(len(negs)):
+                        flux=negs[j]
+                        fp=negfps[j]
+                        prefactor=flux/fp
+                        if(j==0):
+                            trafoList.append(str(fp)+' = ('+str(sumposs)+')*1/('+str(nenner)+')*1/('+str(prefactor)+')')
                         else:
-                            compromise2=True
-                    if(compromise2):
-                        #print(eq)
-                        #print(nodeToRep)
-                        print('Did not find appropriate transformation!')
-                        for temp in range(tempcounter):
-                            eqOut.pop()
-                            DependentRates.pop()
-                            DependentOn.pop()
-                            UsedRC.pop() 
+                            gesnew=gesnew+1
+                            trafoList.append(str(fp)+' = ('+str(sumposs)+')*'+'r_'+state2Rem+'_'+str(j)+'/('+str(nenner)+')*1/('+str(prefactor)+')')
                         
-                    if(not compromise2):
-                        leaveCompromiseLoop=True
-                        indexToRep=list(X).index(parse_expr(nodeToRep))
-                        X.row_del(indexToRep)
-                        SM.row_del(indexToRep)
-                        for temp in range(tempcounter):
-                            eq=eqOut[-(temp+1)]
-                            RC=parse_expr(eq.split('=')[0])
-                            sol=parse_expr(eq.split('=')[1])
-                            for f in range(len(F)):
-                                F[f]=F[f].subs(RC, sol)
-                            print('\t'+str(RC)+' --> '+str(sol))
-                
-                    if((lcycle==cyclecounter) & (changeposneg==False)):
-                        changeposneg=True
-                        cyclecounter=0
-                        print('Change pos and neg!')
-                if((changeposneg) & (cyclecounter==lcycle)):
-                    print('Have to use equation with minus signs!')
-                    print(eq)
-                    sol=solve(eq,parse_expr(nodeToRep))[0]
-                    eqOut.append(nodeToRep+' = '+str(sol))
-                    indexToRep=list(X).index(parse_expr(nodeToRep)) 
-                    X.row_del(indexToRep)
-                    SM.row_del(indexToRep)
-                    DependentRates.append(parse_expr(nodeToRep))
-                    DependentOn.append(list(sol.atoms()))
-                    for f in range(len(F)):                
-                        F[f]=F[f].subs(parse_expr(nodeToRep), sol)
-            
-            if((not compromise) & (not compromise2)):
-                indexToRep=list(X).index(parse_expr(nodeToRep))                         
-                foundRateConst=False
-                #print(UsedStates)
-                for var in list(FluxToTake.atoms()):
-                    if((var not in X) & (var not in UsedStates) & (var not in UsedRC) & (not is_number(str(var))) & (not foundRateConst)):
-                        RC=var
-                        UsedRC.append(RC)
-                        UsedStates.append(parse_expr(nodeToRep))
-                        foundRateConst=True
-                        print('   '+str(nodeToRep)+' --> '+str(RC))
-                if(foundRateConst):
-                    #print('   '+str(len(str(eq))))
-                    sol=solve(eq, RC, simplify=False)[0]
-                    eqOut.append(str(RC)+' = '+str(sol))
-                    X.row_del(indexToRep)
-                    SM.row_del(indexToRep)
-                    #print('   '+str(len(str(sol))))
-                    DependentRates.append(RC)
-                    DependentOn.append(list(sol.atoms()))
-                    for f in range(len(F)):                
-                        F[f]=F[f].subs(RC, sol)
-               
-        graph={}
-        for i in range(len(SM*F)):
-            liste=[]
-            for rate in DependentRates:
-                if((SM*F)[i]!=((SM*F)[i]).subs(rate,1)):
-                    for var in DependentOn[DependentRates.index(rate)]:
-                        if((not is_number(str(var))) & (var!=X[i])):
-                            liste.append(str(var))
-            for j in range(len(X)):
-                    if(j==i):
-                        argus=expand((SM*F)[i]).args
-                        negs=[]
-                        poss=[]
-                        append=False
-                        for arg in argus:
-                            if('-' in str(arg)):
-                                negs.append(arg)
-                            else:
-                                poss.append(arg)
-                        for el in poss:
-                            if(el.subs(X[j],1)!=el):
-                                append=True
-                        for el in negs:
-                            if(el.subs(X[j],0)!=0):
-                                append=True
-                        
-                        if(not append):
-                            In=((SM*F)[i]).subs(X[j],0)
-                            Out=simplify(((SM*F)[i]-In)/X[j])
-                            #print(Out)
-                            if(Out!=Out.subs(X[j],1)):
-                                liste.append(str(X[j]))
+                        colindex=list(F).index(flux)
+                        for k in range(len(posfps)):
+                            SM=SM.col_insert(len(SM.row(0)),SM.col(colindex))
+                            F=F.row_insert(len(F),Matrix(1,1,[poss[k]/nenner]))
+                            fluxpars.append(posfps[k])
+                        SM.col_del(colindex)
+                        F.row_del(colindex)
+                        fluxpars.__delitem__(colindex)
+                    print('   '+str(state2Rem)+' --> '+str(negfps))
+                    
+                else:
+                    for j in range(len(poss)):
+                        flux=poss[j]
+                        fp=posfps[j]
+                        prefactor=flux/fp
+                        if(j==0):
+                            trafoList.append(str(fp)+' = ('+str(sumnegs)+')*1/('+str(nenner)+')*1/('+str(prefactor)+')')
                         else:
-                            liste.append(str(X[j]))
-                    else:
-                        if((SM*F)[i]!=((SM*F)[i]).subs(X[j],1)):
-                            liste.append(str(X[j]))
-            graph[str(X[i])]=liste
-                
+                            gesnew=gesnew+1
+                            trafoList.append(str(fp)+' = ('+str(sumnegs)+')*'+'r_'+state2Rem+'_'+str(j)+'/('+str(nenner)+')*1/('+str(prefactor)+')')
+                        colindex=list(F).index(flux)
+                        for k in range(len(negfps)):
+                            SM=SM.col_insert(len(SM.row(0)),SM.col(colindex))
+                            F=F.row_insert(len(F),Matrix(1,1,[negs[k]/nenner]))
+                            fluxpars.append(negfps[k])
+                        SM.col_del(colindex)
+                        F.row_del(colindex)
+                        fluxpars.__delitem__(colindex)
+                    print('   '+str(state2Rem)+' --> '+str(posfps))
+                for eq in trafoList:
+                    eqOut.append(eq)
+        X.row_del(index)
+        SM.row_del(index)
+        SSgraph=DetermineGraphStructure(SM, F, X, neglect)
+        #printgraph(SSgraph)
+        cycle=FindCycle(SSgraph, X)
+        counter=counter+1       
+    print('There is no cycle in the system!\n')              
     
 #### Solve remaining equations
     eqOut.reverse()
-    #print(eqOut)
     print('Solving remaining equations ...\n')
-    UsedVars=UsedRC+UsedStates
-    graph={}    
-    for i in range(len(SM*F)):
-        liste=[]
-        for j in range(len(X)):
-                if(j==i):
-                    argus=expand((SM*F)[i]).args
-                    negs=[]
-                    poss=[]
-                    append=False
-                    for arg in argus:
-                        if('-' in str(arg)):
-                            negs.append(arg)
-                        else:
-                            poss.append(arg)
-                    for el in poss:
-                        if(el.subs(X[j],1)!=el):
-                            append=True
-                    for el in negs:
-                        if(el.subs(X[j],0)!=0):
-                            append=True
-                    
-                    if(not append):
-                        In=((SM*F)[i]).subs(X[j],0)
-                        Out=simplify(((SM*F)[i]-In)/X[j])
-                        #print(Out)
-                        if(Out!=Out.subs(X[j],1)):
-                            liste.append(str(X[j]))
-                    else:
-                        liste.append(str(X[j]))
-                else:
-                    if((SM*F)[i]!=((SM*F)[i]).subs(X[j],1)):
-                        liste.append(str(X[j]))
-        graph[str(X[i])]=liste
-    while(graph!={}):
-        #print(graph)
-        node=FindNodeToSolve(graph)
+    while(SSgraph!={}):
+        #print(SSgraph)
+        node=FindNodeToSolve(SSgraph)
         #print(node)        
         index=list(X).index(parse_expr(node))
         #print((SM*F)[index])
         sol=solve((SM*F)[index],parse_expr(node), simplify=True)
         #print(sol)
-        if(sol==[]):
-            foundVarToSolveFor=False
-            for el in ((SM*F)[index]).atoms():
-                if((not is_number(str(el))) & (el not in UsedRC) & (not foundVarToSolveFor)):
-                    sol=solve((SM*F)[index],el, simplify=True)[0]
-                    var=el
-                    foundVarToSolveFor=True
-            eqOut.insert(0,str(var)+' = '+str(sol))
-            for f in range(len(F)):                
-                F[f]=F[f].subs(var, sol)
-            #print('Inserted')
-            UsedVars.append(var)
-            #print(str((SM*F)[index])+' = 0')
-        else:
-            eqOut.insert(0,node+' = '+str(sol[0]))
-            for f in range(len(F)):                
-                F[f]=F[f].subs(parse_expr(node), sol[0])
+        eqOut.insert(0,node+' = '+str(sol[0]))
+        for f in range(len(F)):                
+            F[f]=F[f].subs(parse_expr(node), sol[0])
             #print(node+' = '+str(sol[0]))
-        for el in graph:
-            if(node in graph[el]):
-                graph[el].remove(node)
-        graph.pop(node)
+        X.row_del(index)
+        SM.row_del(index)
+        SSgraph=DetermineGraphStructure(SM, F, X, neglect=[])
     
-    
-#### Find appropriate transformations to avoid negative steady state solutions
-    #eqOut=SuggestTrafos(eqOut, UsedVars)
-
 #### Test Solution  
     print('Testing Steady State...\n')
     NonSteady=False
@@ -1169,8 +1004,8 @@ def ODESS(filename,
         expr=simplify(expr)
         #print(expr)
         if(expr!=0):
-            print('\t'+str(ODE[i]))
-            print('\t'+str(expr))
+            print('   Equation '+str(ODE[i]))
+            print('   results:'+str(expr))
             NonSteady=True
     if(NonSteady):
         print('Solution is wrong!\n')
@@ -1216,4 +1051,3 @@ def ODESS(filename,
     print('Number of Equations:  '+str(len(eqOut)+len(zeroStates)))
     print('Number of new introduced variables:  '+str(gesnew))
     return(eqOutReturn)
-    
