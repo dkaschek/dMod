@@ -4,7 +4,7 @@
 \alias{plotPars}
 \title{Plot parameter values for a fitlist}
 \usage{
-plotPars(myparframe, whichFits = 1:length(myparframe))
+plotPars(myparframe, whichFits = 1:nrow(myparframe))
 }
 \arguments{
 \item{myparframe}{parameter frame as obtained by as.parframe(mstrust)}
