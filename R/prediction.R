@@ -374,7 +374,7 @@ Xd <- function(data, condition = NULL) {
 #' and its derivatives based on the output of a model prediction function, see \link{prdfn}, 
 #' as e.g. produced by \link{Xs}.
 #' @param g Named character vector or equation vector defining the observation function
-#' @param f Named character or equation vector, the underlying ODE
+#' @param f Named character or equation vector or object that can be converted to eqnvec. Represents the underlying ODE.
 #' @param states character vector, alternative definition of "states", usually the names of \code{f}
 #' @param parameters character vector, alternative definition of the "parameters",
 #' usually the symbols contained in "g" and "f" except for \code{states} and the code word \code{time}.
@@ -417,6 +417,7 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     states <- states
     parameters <- parameters
   } else {
+    f <- as.eqnvec(f)
     states <- names(f)
     parameters <- getSymbols(c(g, f), exclude = c(states, "time"))
   }
