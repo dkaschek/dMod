@@ -9,6 +9,7 @@
 #' \code{data.frame}. Alternatively, a list of such objects.
 #' @param vec2 same as vec1. Not used if vec1 is a list.
 #' @param reference numeric of length one, the reference entry.
+#' @param ... arguments going to the corresponding methods
 #' @return \code{data.frame} or list of data.frames with the differences. 
 #' 
 #' @export
@@ -48,7 +49,7 @@ compare <- function(vec1, ...) {
 
 #' @export
 #' @rdname compare
-compare.list <- function(vec1, vec2 = NULL, reference = 1) {
+compare.list <- function(vec1, vec2 = NULL, reference = 1, ...) {
   
   index <- (1:length(vec1))[-reference]
   diffable.attributes <- c("equations", "parameters", "forcings", "events")
@@ -97,7 +98,7 @@ compare.list <- function(vec1, vec2 = NULL, reference = 1) {
 
 #' @export
 #' @rdname compare
-compare.character <- function(vec1, vec2 = NULL) {
+compare.character <- function(vec1, vec2 = NULL, ...) {
   missing <- setdiff(vec1, vec2)
   additional <- setdiff(vec2, vec1)
   
@@ -117,7 +118,7 @@ compare.character <- function(vec1, vec2 = NULL) {
 
 #' @export
 #' @rdname compare
-compare.eqnvec <- function(vec1, vec2 = NULL) {
+compare.eqnvec <- function(vec1, vec2 = NULL, ...) {
 
   names1 <- names(vec1)
   names2 <- names(vec2)
@@ -144,7 +145,7 @@ compare.eqnvec <- function(vec1, vec2 = NULL) {
 
 #' @export
 #' @rdname compare
-compare.data.frame <- function(vec1, vec2 = NULL) {
+compare.data.frame <- function(vec1, vec2 = NULL, ...) {
   
   additional <- !duplicated(rbind(vec1, vec2))[-(1:nrow(vec1))]
   missing <- !duplicated(rbind(vec2, vec1))[-(1:nrow(vec2))]
@@ -216,16 +217,17 @@ combine <- function(...) {
 #' @export
 submatrix <- function(M, rows = 1:nrow(M), cols = 1:ncol(M)) {
   
+ M[rows, cols, drop = FALSE] 
   
-  
-  myrows <- (structure(1:nrow(M), names = rownames(M)))[rows]
-  mycols <- (structure(1:ncol(M), names = colnames(M)))[cols]
-  
-  if(any(is.na(myrows)) | any(is.na(mycols))) stop("subscript out of bounds")
-  
-  matrix(M[myrows, mycols], 
-         nrow = length(myrows), ncol = length(mycols), 
-         dimnames = list(rownames(M)[myrows], colnames(M)[mycols]))
+  # myrows <- (structure(1:nrow(M), names = rownames(M)))[rows]
+  # mycols <- (structure(1:ncol(M), names = colnames(M)))[cols]
+  # 
+  # if(any(is.na(myrows)) | any(is.na(mycols))) stop("subscript out of bounds")
+  # 
+  # matrix(M[myrows, mycols], 
+  #        nrow = length(myrows), ncol = length(mycols), 
+  #        dimnames = list(rownames(M)[myrows], colnames(M)[mycols]))
+
 }
 
 
@@ -234,6 +236,10 @@ submatrix <- function(M, rows = 1:nrow(M), cols = 1:ncol(M)) {
 #' @param M matrix of type character
 #' @param N matrix of type character
 #' @return Matrix of type character containing M and N as upper left and lower right block
+#' @examples
+#' M <- matrix(1:9, 3, 3, dimnames = list(letters[1:3], letters[1:3]))
+#' N <- matrix(1:4, 2, 2, dimnames = list(LETTERS[1:2], LETTERS[1:2]))
+#' blockdiagSymb(M, N)
 #' @export
 blockdiagSymb <- function(M, N) {
   
@@ -249,6 +255,9 @@ blockdiagSymb <- function(M, N) {
   A <- matrix(0, ncol=dim(N)[2], nrow=dim(M)[1])
   B <- matrix(0, ncol=dim(M)[2], nrow=dim(N)[1])
   result <- rbind(cbind(M, A), cbind(B, N))
+  colnames(result) <- c(colnames(M), colnames(N))
+  rownames(result) <- c(rownames(M), rownames(N))
+  
   return(result)
   
 }
@@ -385,12 +394,12 @@ long2wide <- function(out) {
 lbind <- function(mylist) {
   
   conditions <- names(mylist)
-  numconditions <- suppressWarnings(as.numeric(conditions))
-  
-  if(!any(is.na(numconditions))) 
-    numconditions <- as.numeric(numconditions) 
-  else 
-    numconditions <- conditions
+  #numconditions <- suppressWarnings(as.numeric(conditions))
+  #
+  # if(!any(is.na(numconditions))) 
+  #   numconditions <- as.numeric(numconditions) 
+  # else 
+  numconditions <- conditions
 
   
   outlong <- do.call(rbind, lapply(1:length(conditions), function(cond) {

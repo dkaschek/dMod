@@ -2,7 +2,7 @@
 
 #' Parameter list
 #' 
-#' @param list of lists, as returned by \code{trust}
+#' @param x list of lists, as returned by \code{trust}
 #' @rdname parlist
 #' @export
 as.parlist <- function(x = NULL) {
@@ -15,7 +15,12 @@ as.parlist <- function(x = NULL) {
 }
 
 #' @export
-summary.parlist <- function(x) {
+#' @param object a parlist
+#' @rdname parlist
+summary.parlist <- function(object, ...) {
+  
+  x <- object
+  
   # Statistics
   m_stat <- stat.parlist(x)
   m_error <- sum(m_stat == "error")
@@ -66,7 +71,9 @@ stat.parlist <- function(x) {
 #' Coerce object to a parameter frame
 #' 
 #' @param x object to be coerced
+#' @param ... other arguments
 #' @return object of class \link{parframe}.
+#' @example inst/examples/parlist.R
 #' @export
 as.parframe <- function(x, ...) {
   UseMethod("as.parframe", x)
@@ -74,9 +81,9 @@ as.parframe <- function(x, ...) {
 
 #' @export
 #' @rdname as.parframe
-#' @param sorted.by character indicating by which colum the returned parameter frame
+#' @param sort.by character indicating by which colum the returned parameter frame
 #' should be sorted. Defaults to \code{"value"}.
-as.parframe.parlist <- function(x, sort.by = "value") {
+as.parframe.parlist <- function(x, sort.by = "value", ...) {
   m_stat <- stat.parlist(x)
   m_metanames <- c("index", "value", "converged", "iterations")
   m_idx <- which("error" != m_stat)
@@ -90,17 +97,47 @@ as.parframe.parlist <- function(x, sort.by = "value") {
                             as.data.frame(as.list(fit$argument))
                           )
                         }, fit = x[m_idx], idx = m_idx, SIMPLIFY = FALSE))
-  m_parframe <- parframe(m_parframe, parameters = names(x[[m_idx[1]]]$parinit), metanames = m_metanames)
   # Sort by value
   m_parframe <- m_parframe[order(m_parframe[sort.by]),]
   
-  return(m_parframe)
+  parframe(m_parframe, parameters = names(x[[m_idx[1]]]$argument), metanames = m_metanames)
+  
+  
 }
 
 
 ## Methods for the class parframe -----------------------------------------------
 
 #' @export
+#' @param i row index in any format
+#' @param j column index in any format
+#' @param drop logical. If TRUE the result is coerced to the lowest possible dimension
+#' @rdname parframe
+"[.parframe" <- function(x, i = NULL, j = NULL, drop = FALSE){
+  
+  metanames <- attr(x, "metanames")
+  obj.attributes <- attr(x, "obj.attributes")
+  parameters <- attr(x, "parameters")
+  
+  out <- as.data.frame(x)
+  #out <- as.data.frame(unclass(x))
+  if (!is.null(i)) out <- out[i, ]
+  if (!is.null(j)) out <- out[, j, drop = drop]
+  
+  if (drop) return(out)
+  
+  metanames <- intersect(metanames, colnames(out))
+  obj.attributes <- intersect(obj.attributes, colnames(out))
+  parameters <- intersect(parameters, colnames(out))
+  
+  parframe(out, parameters = parameters, metanames = metanames, obj.attributes = obj.attributes)
+  
+}
+
+
+#' @export
+#' @param ... additional arguments
+#' @rdname parframe
 subset.parframe <- function(x, ...) {
   
   x[with(as.list(x), ...), ]
@@ -122,15 +159,18 @@ as.parvec <- function(x, ...) {
 
 
 #' Parameter vector
-#' @param p numeric or named numeric, the parameter values
+#' @param x numeric or named numeric, the parameter values
 #' @param names optional character vector, the parameter names. Otherwise, names
-#' are taken from \code{p}.
+#' are taken from \code{x}.
 #' @rdname parvec
 #' @export
-as.parvec.numeric <- function(p, names = NULL, deriv = NULL) {
+as.parvec.numeric <- function(x, names = NULL, deriv = NULL, ...) {
+  
+  p <- x
   
   out <- as.numeric(p)
   if (is.null(names)) names(out) <- names(p) else names(out) <- names
+  if (is.null(deriv)) deriv <- attr(x, "deriv")
   if (is.null(deriv)) {
     deriv <- diag(length(out))
     colnames(deriv) <- rownames(deriv) <- names(out)
@@ -147,10 +187,12 @@ as.parvec.numeric <- function(p, names = NULL, deriv = NULL) {
 #' 
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 
-#' @param par object of class \code{parvec}
+#' @param x object of class \code{parvec}
 #' @param ... not used yet.
 #' @export
-print.parvec <- function(par, ...) {
+print.parvec <- function(x, ...) {
+  
+  par <- x
   
   m_parWidth <- max(nchar(names(par)))
   m_names <- names(par)
@@ -168,50 +210,29 @@ print.parvec <- function(par, ...) {
 
 
 
-#' Pretty printing of parameter transformations, class par
-#' 
-#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
-#print.parvec <- function(p, ...) {
-  
-  ## Diese Funktion mergen mit print.eqnvec
-  ## Für parvec neue Funktion schreiben
-  
-  
-#   # Assemble parameters
-#   hInner <- "Inner"
-#   hOuter <- "Outer"
-#   arglist <- list(...)
-#   if("linewidth" %in% names(arglist)) linewidth <- arglist$linewidth else linewidth <- 79
-#   
-#   maxNameWidth <- max(nchar(names(equations)), nchar(hInner))  
-#   equationWidth <- if (linewidth - maxNameWidth - 3 > 9) linewidth - maxNameWidth -3
-#   else 10
-#   
-#   
-#   # Assemble and print parameter transformation table
-#   cat("Table of parameter transformations\n")
-#   for (i in seq(1, length(equations))) {
-#     eq <- strelide(equations[i], equationWidth, where = "right")
-#     eqName <- strpad(names(equations[i]), maxNameWidth, where = "left")
-#     cat(eqName, " = ", eq, "\n", sep = "")
-#     if (!(i %% 10)) {
-#       cat("\n")
-#     }
-#   }
-#}
-
 
 #' @export
-"[.parvec" <- function(x, ...) {
+#' @param drop logical, drop empty columns in Jacobian after subsetting. 
+#' ATTENTION: Be careful with this option. The default behavior is to keep
+#' the columns in the Jacobian. This can lead to unintended results when
+#' subsetting the parvec and using it e.g. in another parameter
+#' transformation.
+#' @rdname parvec
+"[.parvec" <- function(x, ..., drop = FALSE) {
   out <- unclass(x)[...]
-  deriv <- submatrix(attr(x, "deriv"), row = ...)
+  deriv <- submatrix(attr(x, "deriv"), rows = ...)
+  if (drop) {
+    empty.cols <- apply(deriv, 2, function(v) all(v == 0))
+    deriv <- submatrix(deriv, cols = !empty.cols)
+  }
   as.parvec(out, deriv = deriv)
 }
 
 #' @export
+#' @rdname parvec
 c.parvec <- function(...) {
   
-  mylist <- lapply(list(...), as.parvec)
+  mylist <- list(...) #lapply(list(...), as.parvec)
   
   n <- unlist(lapply(mylist, function(l) names(l)))
   v <- unlist(lapply(mylist, function(l) as.numeric(l)))
@@ -237,14 +258,55 @@ c.parvec <- function(...) {
 
 #' Pretty printing parameter transformations
 #' 
+#' @param x prediction function
+#' @param ... additional arguments
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 
 #' @export
-#' @param pfn object of class \link{parfn}
-#' @param width the print-out console width
-print.parfn <- function(pfn, width = 120) {
-  print(attr(pfn, "equations"), width)
+print.parfn <- function(x, ...) {
+  
+  conditions <- attr(x, "conditions")
+  parameters <- attr(x, "parameters")
+  mappings <- attr(x, "mappings")
+  
+  cat("Parameter transformation:\n")
+  str(args(x))
+  cat("\n")
+  cat("... conditions:", paste0(conditions, collapse = ", "), "\n")
+  cat("... parameters:", paste0(parameters, collapse = ", "), "\n")
+  
 }
 
+#' @export
+summary.parfn <- function(object, ...) {
+  
+  x <- object
+  
+  conditions <- attr(x, "conditions")
+  parameters <- attr(x, "parameters")
+  mappings <- attr(x, "mappings")
+  
+  cat("Details:\n")
+  if (!inherits(x, "composed")) {
+    
+    
+    output <- lapply(1:length(mappings), function(C) {
+      
+      list(
+        equations = attr(mappings[[C]], "equations"),
+        parameters = attr(mappings[[C]], "parameters")
+      )
+      
+    })
+    names(output) <- conditions
+    
+    print(output, ...)
+    
+  } else {
+    
+    cat("\nObject is composed. See original objects for more details.\n")
+    
+  }
+}
 
 

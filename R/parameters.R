@@ -4,48 +4,25 @@
 #' function for \link{Pexpl} and \link{Pimpl}. See for more details there.
 #' @param trafo object of class \code{eqnvec} or named character
 #' @param parameters character vector
+#' @param condition character, the condition for which the transformation is generated
+#' @param keep.root logical, applies for \code{method = "implicit"}. The root of the last
+#' evaluation of the parameter transformation function is saved as guess for the next 
+#' evaluation.
 #' @param compile logical
 #' @param modelname character
 #' @param method character, either \code{"explicit"} or \code{"implicit"}
 #' @param verbose Print out information during compilation
-#' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)}
+#' @return An object of class \link{parfn}.
 #' @export
-P <- function(trafo = NULL, parameters=NULL, compile = FALSE, modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE) {
+P <- function(trafo = NULL, parameters=NULL, condition = NULL, keep.root = TRUE, compile = FALSE, modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE) {
   
-  if(is.null(trafo)) return(P0())
+  if (is.null(trafo)) return()
   
   method <- match.arg(method)
   switch(method, 
-         explicit = Pexpl(trafo = trafo, parameters = parameters, compile = compile, modelname = modelname, verbose = verbose),
-         implicit = Pimpl(trafo = trafo, parameters = parameters, compile = compile, modelname = modelname, verbose = verbose))
+         explicit = Pexpl(trafo = trafo, parameters = parameters, condition = condition, compile = compile, modelname = modelname, verbose = verbose),
+         implicit = Pimpl(trafo = trafo, parameters = parameters, keep.root = keep.root, condition = condition, compile = compile, modelname = modelname, verbose = verbose))
   
-}
-
-#' The identity parameter transformation
-#' @export
-#' @return a function \code{p2p(p, fixed = NULL, deriv = TRUE)} returning \code{p}
-#' with unit matrix as derivative or derivative inherited from \code{p}.
-P0 <- function() {
-  
-  myfn <- function(p, fixed=NULL, deriv = TRUE) {
-    
-    # Inherit from p
-    dP <- attr(p, "deriv", exact = TRUE)
-    
-    
-    myderiv <- NULL
-    if (deriv) {
-      myderiv <- diag(x = 1, nrow = length(p), ncol = length(p))
-      rownames(myderiv) <- colnames(myderiv) <- names(p)
-      if (!is.null(dP)) myderiv <- myderiv %*% submatrix(dP, rows = colnames(myderiv))
-    }
-    
-    as.parvec(p, deriv = myderiv)
-    
-  }
-  
-  return(myfn)
-    
 }
 
 #' Parameter transformation
@@ -57,6 +34,7 @@ P0 <- function() {
 #' transformation returns values for each element in \code{parameters}. If elements of
 #' \code{parameters} are not in \code{names(trafo)} the identity transformation is assumed.
 #' @param compile Logical, compile the function (see \link{funC0})
+#' @param condition character, the condition for which the transformation is generated
 #' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
 #' C file.
 #' @param verbose Print compiler output to R command line.
@@ -65,18 +43,18 @@ P0 <- function() {
 #' \code{fixed} is a named numeric vector with values of the outer parameters being considered
 #' as fixed (no derivatives returned) and \code{deriv} is a logical determining whether the Jacobian
 #' of the parameter transformation is returned as attribute "deriv".
-#' @seealso \link{Pi} for implicit parameter transformations and
-#' \link{concatenation} for the concatenation of parameter transformations
+#' @seealso \link{Pimpl} for implicit parameter transformations
 #' @examples
-#' \dontrun{
-#' logtrafo <- c(k1 = "exp(logk1)", k2 = "exp(logk2)", A = "exp(logA)", B = "exp(logB)")
-#' P.log <- P(logtrafo)
 #' 
-#' p.outerValue <- c(logk1 = 1, logk2 = -1, logA = 0, logB = 0)
-#' (P.log)(p.outerValue)
-#' }
+#' logtrafo <- c(k1 = "exp(logk1)", k2 = "exp(logk2)", 
+#'               A = "exp(logA)", B = "exp(logB)")
+#' p_log <- P(logtrafo)
+#' 
+#' pars <- c(logk1 = 1, logk2 = -1, logA = 0, logB = 0)
+#' out <- p_log(pars)
+#' derivatives(out)
 #' @export
-Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL, verbose = FALSE) {
+Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, modelname = NULL, verbose = FALSE) {
   
   # get outer parameters
   symbols <- getSymbols(trafo)
@@ -102,19 +80,28 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL, ver
   
   #dtrafo <- jacobian; names(dtrafo) <- jacNames
   
-  PEval <- funC0(trafo, compile = compile, modelname = modelname, verbose = verbose)
-  dPEval <- funC0(dtrafo, compile = compile, modelname = paste(modelname, "deriv", sep = "_"), verbose = verbose)
+  PEval <- funC0(trafo, parameters = parameters, compile = compile, modelname = modelname, 
+                 verbose = verbose, convenient = FALSE, warnings = FALSE)
+  dPEval <- funC0(dtrafo, parameters = parameters, compile = compile, 
+                  modelname = paste(modelname, "deriv", sep = "_"), 
+                  verbose = verbose, convenient = FALSE, warnings = FALSE)
+  
+  
+  # Controls to be modified from outside
+  controls <- list()
   
   # the parameter transformation function to be returned
-  p2p <- function(p, fixed=NULL, deriv = TRUE) {
+  p2p <- function(pars, fixed=NULL, deriv = TRUE) {
+    
+    p <- pars
     
     # Inherit from p
     dP <- attr(p, "deriv", exact = TRUE)
     
     # Evaluate transformation
-    args <- c(as.list(p), as.list(fixed))
-    pinner <- PEval(args)[1,]
-    dpinner <- dPEval(args)[1,]
+    args <- c(p, fixed)
+    pinner <- PEval(p = args)[1,]
+    dpinner <- dPEval(p = args)[1,]
     
     # Construct output jacobian
     jac.vector <- rep(0, length(pinner)*length(p))
@@ -134,51 +121,24 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL, ver
     
   }
   
-  class(p2p) <- "parfn" 
   attr(p2p, "equations") <- as.eqnvec(trafo)
   attr(p2p, "parameters") <- parameters
   
-  
-  return(p2p)
+  parfn(p2p, parameters, condition)
   
 }
 
-# P.list <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL) {
-#   
-#   # Check names
-#   trafo.names <- names(trafo)
-#   if(is.null(trafo.names) || any(is.na(trafo.names))) stop("trafo must be named list")
-#   
-#   trafo.length <- length(trafo)
-#   modelname <- paste(modelname, trafo.names, sep = "_")
-#   
-#   p2p <- lapply(1:trafo.length, function(i) P.character(trafo[[i]], parameters, compile, modelname[i]))
-#   names(p2p) <- trafo.names
-#   
-#   
-#   p2p.list <- function(p, fixed=NULL, deriv = TRUE) {
-#     
-#     if(!is.list(p)) p <- lapply(p2p, function(i) p)
-#     if(!is.list(fixed)) fixed <- lapply(p2p, function(i) fixed)
-#     
-#     allnames <- intersect(union(names(p), names(fixed)), names(p2p))
-#     
-#     out.list <- lapply(allnames, function(n) p2p[[n]](p[[n]], fixed[[n]], deriv))
-#     names(out.list) <- allnames
-#     
-#     return(out.list)
-#     
-#     
-#   }
-#   
-# }
 
 #' Parameter transformation (implicit)
 #' 
 #' @param trafo Named character vector defining the equations to be set to zero. 
 #' Names correspond to dependent variables.
 #' @param parameters Character vector, the independent variables.  
+#' @param condition character, the condition for which the transformation is generated
 #' @param compile Logical, compile the function (see \link{funC0})
+#' @param keep.root logical, applies for \code{method = "implicit"}. The root of the last
+#' evaluation of the parameter transformation function is saved as guess for the next 
+#' evaluation.
 #' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
 #' C file.
 #' @param verbose Print compiler output to R command line.
@@ -194,10 +154,8 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL, ver
 #' \link[rootSolve]{multiroot}. The Jacobian of the solution with respect to dependent variables
 #' and parameters is computed by the implicit function theorem. The function \code{p2p} returns
 #' all parameters as they are with corresponding 1-entries in the Jacobian.
-#' @seealso \link{Pexpl} for explicit parameter transformations and
-#' \link{concatenation} for the concatenation of parameter transformations
+#' @seealso \link{Pexpl} for explicit parameter transformations
 #' @examples
-#' \dontrun{
 #' ########################################################################
 #' ## Example 1: Steady-state trafo
 #' ########################################################################
@@ -220,7 +178,7 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL, ver
 #' 
 #' p.outerValue <- c(logk1 = 1, logk2 = -1, logA = 0, logB = 0)
 #' (P.log)(p.outerValue)
-#' (P.steadyState %o% P.log)(p.outerValue)
+#' (P.steadyState * P.log)(p.outerValue)
 #' 
 #' ########################################################################
 #' ## Example 3: Steady-states with conserved quantitites
@@ -231,25 +189,60 @@ Pexpl <- function(trafo, parameters=NULL, compile = FALSE, modelname = NULL, ver
 #' 
 #' pSS <- Pimpl(f, "total")
 #' pSS(c(k1 = 1, k2 = 2, A = 5, B = 5, total = 3))
-#' }
 #' @export
-Pimpl <- function(trafo, parameters=NULL, keep.root = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
-
+Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
+  
+  
   states <- names(trafo)
   nonstates <- getSymbols(trafo, exclude = states)
   dependent <- setdiff(states, parameters)
   
+  modelname_dfdx <- NULL
+  modelname_dfdp <- NULL
+  if (!is.null(modelname)) {
+    modelname_dfdx <- paste(modelname, "dfdx", sep = "_")
+    modelname_dfdp <- paste(modelname, "dfdp", sep = "_")
+  }
+  
+  
   # Introduce a guess where Newton method starts
   guess <- NULL
   
-  trafo.alg <- funC0(trafo[dependent], compile = compile, modelname = modelname, verbose = verbose)
+  trafo0 <- trafo[dependent]
+  trafo0.dfdx <- jacobianSymb(trafo0, dependent)
+  trafo0.dfdp <- jacobianSymb(trafo0, c(nonstates, parameters))
+  
+  
+  trafo.alg <- funC0(trafo0, parameters = c(states, nonstates), 
+                     compile = compile, modelname = modelname, verbose = verbose,
+                     convenient = FALSE, warnings = FALSE)
+  trafo.alg.dfdx <- funC0(trafo0.dfdx, parameters = c(states, nonstates), 
+                          compile = compile, modelname = modelname_dfdx, verbose = verbose,
+                          convenient = FALSE, warnings = FALSE)
+  trafo.alg.dfdp <- funC0(trafo0.dfdp, parameters = c(states, nonstates), 
+                          compile = compile, modelname = modelname_dfdp, verbose = verbose,
+                          convenient = FALSE, warnings = FALSE)
+  
   ftrafo <- function(x, parms) {
-    out <- trafo.alg(as.list(c(x, parms)))
-    structure(as.numeric(out), names = colnames(out))
+    trafo.alg(p = c(x, parms))[1,]
+  }
+  ftrafo.dfdx <- function(x, parms) {
+    matrix(trafo.alg.dfdx(p = c(x, parms))[1,], nrow = length(dependent), ncol = length(dependent), dimnames = list(dependent, dependent))
+  }
+  ftrafo.dfdp <- function(x, parms) {
+    matrix(trafo.alg.dfdp(p = c(x, parms))[1,], nrow = length(dependent), ncol = length(nonstates) + length(parameters), dimnames = list(dependent, c(nonstates, parameters)))
   }
   
+  
+  # Controls to be modified from outside
+  controls <- list(keep.root = keep.root)
+  
   # the parameter transformation function to be returned
-  p2p <- function(p, fixed=NULL, deriv = TRUE) {
+  p2p <- function(pars, fixed=NULL, deriv = TRUE) {
+    
+    
+    p <- pars
+    keep.root <- controls$keep.root
     
     # Inherit from p
     dP <- attr(p, "deriv")
@@ -260,7 +253,7 @@ Pimpl <- function(trafo, parameters=NULL, keep.root = TRUE, compile = FALSE, mod
       if(length(is.fixed)>0) p <- p[-is.fixed]
       p <- c(p, fixed)
     }
-
+    
     # Set guess
     if(!is.null(guess)) 
       p[intersect(dependent, names(guess))] <- guess[intersect(dependent, names(guess))]
@@ -278,16 +271,12 @@ Pimpl <- function(trafo, parameters=NULL, keep.root = TRUE, compile = FALSE, mod
     if(keep.root) guess <<- out
     
     # Compute jacobian d(root)/dp
-    dfdx <- rootSolve::gradient(ftrafo, 
-                                x = myroot$root, 
-                                parms = p[setdiff(names(p), names(myroot$root))])
-    dfdp <- rootSolve::gradient(ftrafo, 
-                                x = p[setdiff(names(p), names(myroot$root))],
-                                parms = myroot$root)
+    dfdx <- ftrafo.dfdx(x = myroot$root, parms = p[setdiff(names(p), names(myroot$root))])
+    dfdp <- ftrafo.dfdp(x = p[setdiff(names(p), names(myroot$root))], parms = myroot$root)
     dxdp <- solve(dfdx, -dfdp)
     #print(dxdp)
-        
-       
+    
+    
     # Assemble total jacobian
     jacobian <- matrix(0, length(out), length(p))
     colnames(jacobian) <- names(p)
@@ -306,38 +295,14 @@ Pimpl <- function(trafo, parameters=NULL, keep.root = TRUE, compile = FALSE, mod
     
   }
   
-  class(p2p) <- "parfn"
-  
   attr(p2p, "equations") <- as.eqnvec(trafo)
   attr(p2p, "parameters") <- parameters
   
-  return(p2p)
+  parfn(p2p, parameters, condition)
+  
+  
+  
+  
   
 }
-
-#' Concatenation of parameter transformations
-#' 
-#' @param p1 Return value of \link{P} or \link{Pi}
-#' @param p2 Return value of \link{P} or \link{Pi}
-#' @return A function \code{p2p(p, fixed = NULL, deriv = TRUE)}, the concatenation of \code{p1} and 
-#' \code{p2}.
-#' @aliases concatenation
-#' @examples
-#' \dontrun{
-#' #' ########################################################################
-#' ## Example: Steady-state trafo combined with log-transform
-#' ########################################################################
-#' f <- c(A = "-k1*A + k2*B",
-#'        B = "k1*A - k2*B")
-#' P.steadyState <- Pi(f, "A")
-#' 
-#' logtrafo <- c(k1 = "exp(logk1)", k2 = "exp(logk2)", A = "exp(logA)", B = "exp(logB)")
-#' P.log <- P(logtrafo)
-#' 
-#' p.outerValue <- c(logk1 = 1, logk2 = -1, logA = 0, logB = 0)
-#' (P.log)(p.outerValue)
-#' (P.steadyState %o% P.log)(p.outerValue)
-#' }
-#' @export
-"%o%" <- function(p1, p2) function(p, fixed=NULL, deriv = TRUE) p1(p2(p, fixed = fixed, deriv = deriv), deriv = deriv)
 

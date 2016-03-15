@@ -1,6 +1,7 @@
 #' Detect number of free cores (on UNIX)
 #' 
 #' @description Read \code{/proc/loadavg} and subtract from the number of cores
+#' @param machine character, e.g. "user@@localhost".
 #' @export 
 detectFreeCores <- function(machine = NULL) {
   
@@ -58,7 +59,7 @@ detectFreeCores <- function(machine = NULL) {
 #' from the working directory and the remote machines.
 #' @export
 #' @examples
-#' 
+#' \dontrun{
 #' out_job1 <- runbg({
 #'          M <- matrix(rnorm(1e2), 10, 10)
 #'          solve(M)
@@ -68,6 +69,7 @@ detectFreeCores <- function(machine = NULL) {
 #' result <- .runbgOutput
 #' print(result)
 #' out_job1$purge()
+#' }
 runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.GlobalEnv), compile = FALSE, wait = FALSE) {
   
   
@@ -188,7 +190,7 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
   }
   
   # Run in background
-  for (m in 1:nmachines) system(paste0("ssh ", machine[m], " R CMD BATCH ", filename[m], "_folder/", filename[m], ".R --vanilla"), intern = FALSE, wait = wait)
+  for (m in 1:nmachines) system(paste0("ssh ", machine[m], " R CMD BATCH --vanilla ", filename[m], "_folder/", filename[m], ".R"), intern = FALSE, wait = wait)
   
   if (wait) {
     out$get()

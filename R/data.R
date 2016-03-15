@@ -14,12 +14,11 @@
 #' respect to the parameters).
 #' @export
 #' @import cOde
-res <- function (data, out) {
+res <- function(data, out) {
   
   # Unique times, names and parameter names
   times <- sort(unique(data$time))
   names <- as.character(unique(data$name))
-  pars <- attr(out, "parameters")
   
   # Match data times/names in unique times/names
   data.time <- match(data$time, times)
@@ -38,6 +37,8 @@ res <- function (data, out) {
   deriv <- attr(out, "deriv")
   deriv.data <- NULL
   if (!is.null(deriv)) {
+  
+    pars <- unique(unlist(lapply(strsplit(colnames(deriv)[-1], split = ".", fixed = TRUE), function(i) i[2])))
     sensnames <- as.vector(outer(names, pars, paste, sep="."))
     # Match names to the corresponding sensitivities in sensnames
     names.sensnames <- t(matrix(1:length(sensnames), nrow = length(names), ncol = length(pars)))

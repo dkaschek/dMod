@@ -1,5 +1,6 @@
 
-#' Model evaluation. 
+
+#' Model prediction function for ODE models. 
 #' @description Interface to combine an ODE and its sensitivity equations
 #' into one model function \code{x(times, pars, forcings, events, deriv = TRUE)} returning ODE output and sensitivities.
 #' @param odemodel object of class \link{odemodel}
@@ -12,20 +13,19 @@
 #' reset the sensitivities appropriately, depending on the event method. 
 #' ATTENTION: The addional events are not dynamically recalculated. If you call the prediction
 #' function with alternative events, the prediction is fine but the sensitivities can be wrong.
+#' @param names character vector with the states to be returned. If NULL, all states are returned.
+#' @param condition either NULL (generic prediction for any condition) or a character, denoting
+#' the condition for which the function makes a prediction.
 #' @param optionsOde list with arguments to be passed to odeC() for the ODE integration.
 #' @param optionsSens list with arguments to be passed to odeC() for integration of the extended system
-#' @return A model prediction function \code{x(times, pars, forcings, events, deriv = TRUE)} representing 
-#' the model evaluation. The result of
-#' \code{x(times, pars, forcings, events, deriv = TRUE)} contains
-#' attributes "sensitivities" and "deriv" with the sensitivities if \code{deriv=TRUE}. 
-#' If \code{deriv=FALSE}, sensitivities are not computed (saving time).
-#' If \code{pars} is
-#' the result of \code{p(pouter)} (see \link{P}), the Jacobian of the parameter transformation
+#' @return Object of class \link{prdfn}. If the function is called with parameters that
+#' result from a parameter transformation (see \link{P}), the Jacobian of the parameter transformation
 #' and the sensitivities of the ODE are multiplied according to the chain rule for
 #' differentiation. The result is saved in the attributed "deriv", 
 #' i.e. in this case the attibutes "deriv" and "sensitivities" do not coincide. 
+#' @example inst/examples/test_blocks.R
 #' @export
-Xs <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method = "lsoda"), optionsSens=list(method="lsodes")) {
+Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = NULL, optionsOde=list(method = "lsoda"), optionsSens=list(method = "lsodes")) {
   
   func <- odemodel$func
   extended <- odemodel$extended
@@ -77,22 +77,49 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method = "l
   sensGrid <- expand.grid(variables, c(svariables, sparameters), stringsAsFactors=FALSE)
   sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")  
   
-  P2X <- function(times, pars, forcings = NULL, events = NULL, deriv=TRUE){
+  # Only a subset of all variables/forcings is returned
+  if (is.null(names)) names <- c(variables, forcnames)
+  
+  # Controls to be modified from outside
+  controls <- list(
+    forcings = myforcings,
+    events = myevents,
+    names = names,
+    events.addon = myevents.addon,
+    optionsOde = optionsOde,
+    optionsSens = optionsSens
+  )
+  
+  P2X <- function(times, pars, deriv=TRUE){
+    
     
     yini <- pars[variables]
     mypars <- pars[parameters]
     
-    if(is.null(forcings)) forcings <- myforcings
-    if(is.null(events)) events <- myevents
+    events <- controls$events
+    forcings <- controls$forcings
+    myevents.addon <- controls$events.addon
+    optionsOde <- controls$optionsOde
+    optionsSens <- controls$optionsSens
+    names <- controls$names
+    
+    # Update sensNames when names are set
+    select <- sensGrid[, 1] %in% names
+    sensNames <- paste(sensGrid[,1][select], sensGrid[,2][select], sep = ".")  
+    
+    # Add event time points (required by integrator) 
+    event.times <- unique(events$time)
+    times <- sort(union(event.times, times))
     
     myderivs <- NULL
     mysensitivities <- NULL
-    if(!deriv) {
+    if (!deriv) {
       
       # Evaluate model without sensitivities
       loadDLL(func)
-      if(!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
-      out <- do.call(odeC, c(list(y=unclass(yini), times=times, func=func, parms=mypars, forcings=forc, events = list(data = events)), optionsOde))
+      if (!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
+      out <- do.call(odeC, c(list(y = unclass(yini), times = times, func = func, parms = mypars, forcings = forc, events = list(data = events)), optionsOde))
+      out <- submatrix(out, cols = c("time", names))
       #out <- cbind(out, out.inputs)
       
       
@@ -100,31 +127,33 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method = "l
       
       # Evaluate extended model
       loadDLL(extended)
-      if(!is.null(forcings)) forc <- setForcings(extended, forcings) else forc <- NULL
-      outSens <- do.call(odeC, c(list(y=c(unclass(yini), yiniSens), times=times, func=extended, parms=mypars, 
-                                      forcings=forc, 
+      if (!is.null(forcings)) forc <- setForcings(extended, forcings) else forc <- NULL
+      outSens <- do.call(odeC, c(list(y = c(unclass(yini), yiniSens), times = times, func = extended, parms = mypars, 
+                                      forcings = forc, 
                                       events = list(data = rbind(events, myevents.addon))), optionsSens))
       #out <- cbind(outSens[,c("time", variables)], out.inputs)
-      out <- submatrix(outSens, cols = c("time", c(variables, forcnames)))
-      mysensitivities <- submatrix(outSens, cols = !colnames(outSens)%in%c(variables, forcnames))
+      out <- submatrix(outSens, cols = c("time", names))
+      mysensitivities <- submatrix(outSens, cols = !colnames(outSens) %in% c(variables, forcnames))
       
       
       # Apply parameter transformation to the derivatives
-      sensLong <- matrix(outSens[,sensNames], nrow=dim(outSens)[1]*length(variables))
+      variables <- intersect(variables, names)
+      sensLong <- matrix(outSens[,sensNames], nrow = dim(outSens)[1]*length(variables))
       dP <- attr(pars, "deriv")
-      if(!is.null(dP)) {
-        sensLong <- sensLong%*%submatrix(dP, rows = c(svariables, sparameters))
-        sensGrid <- expand.grid(variables, colnames(dP), stringsAsFactors=FALSE)
-        sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")
+      if (!is.null(dP)) {
+        sensLong <- sensLong %*% submatrix(dP, rows = c(svariables, sparameters))
+        sensGrid <- expand.grid(variables, colnames(dP), stringsAsFactors = FALSE)
+        sensNames <- paste(sensGrid[,1], sensGrid[,2], sep = ".")
       }
-      outSens <- cbind(outSens[,1], matrix(sensLong, nrow=dim(outSens)[1]))
+      outSens <- cbind(outSens[,1], matrix(sensLong, nrow = nrow(outSens)))
       colnames(outSens) <- c("time", sensNames)
       
       myderivs <- outSens
       
     }
-   
-    prdframe(out, deriv = myderivs, sensitivities = mysensitivities, parameters = unique(sensGrid[,2]))
+    
+    #prdframe(out, deriv = myderivs, sensitivities = mysensitivities, parameters = unique(sensGrid[,2]))
+    prdframe(out, deriv = myderivs, sensitivities = mysensitivities, parameters = pars)
     
   }
   
@@ -134,21 +163,30 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method = "l
   attr(P2X, "events") <- events
   
   
-  return(P2X)
+  prdfn(P2X, c(variables, parameters), condition) 
+  
+  
   
   
 }
 
 
-#' Model evaluation without sensitivities. 
+#' Model prediction function for ODE models without sensitivities. 
 #' @description Interface to get an ODE 
 #' into a model function \code{x(times, pars, forcings, events)} returning ODE output.
 #' It is a reduced version of \link{Xs}, missing the sensitivities. 
 #' @param odemodel Object of class \link{odemodel}.
-#' @details Can be used to integrate additional quantities, e.g. fluxes, by adding them to \code{f}. All quantities that are not initialised by pars 
-#' in \code{x(times, pars, forcings, events)} are initialized at 0.
+#' @param forcings, see \link{Xs}
+#' @param events, see \link{Xs}
+#' @param condition either NULL (generic prediction for any condition) or a character, denoting
+#' the condition for which the function makes a prediction.
+#' @param optionsOde list with arguments to be passed to odeC() for the ODE integration.
+#' @details Can be used to integrate additional quantities, e.g. fluxes, by adding them to \code{f}. 
+#' All quantities that are not initialised by pars 
+#' in \code{x(..., forcings, events)} are initialized with 0. For more details and
+#' the return value see \link{Xs}.
 #' @export
-Xf <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method="lsoda")) {
+Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optionsOde=list(method = "lsoda")) {
   
   func <- odemodel$func
   
@@ -160,7 +198,22 @@ Xf <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method="lso
   yini <- rep(0,length(variables))
   names(yini) <- variables
   
-  P2X <- function(times, P, forcings = myforcings, events = myevents){
+  # Controls to be modified from outside
+  controls <- list(
+    forcings = myforcings,
+    events = myevents,
+    optionsOde = optionsOde
+  )
+  
+  P2X <- function(times, P){
+    
+    events <- controls$events
+    forcings <- controls$forcings
+    
+    # Add event time points (required by integrator) 
+    event.times <- unique(events$time)
+    times <- sort(union(event.times, times))
+    
     
     yini[names(P[names(P) %in% variables])] <- P[names(P) %in% variables]
     pars <- P[parameters]
@@ -168,10 +221,10 @@ Xf <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method="lso
     
     loadDLL(func)
     if(!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
-    out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = myevents)), optionsOde))
+    out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = events)), optionsOde))
     #out <- cbind(out, out.inputs)      
-      
-    prdframe(out, deriv = NULL, parameters = names(P))
+    
+    prdframe(out, deriv = NULL, parameters = P)
     
   }
   
@@ -181,21 +234,30 @@ Xf <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method="lso
   attr(P2X, "events") <- events
   
   
-  return(P2X)
+  prdfn(P2X, c(variables, parameters), condition) 
+  
+  
+  
+  
+  
+  
   
 }
 
 
 #' Model prediction function from data.frame
 #' 
-#' @param data data.frame with columns "name", "times", and row names that 
+#' @param data data.frame with columns "name", "time", and row names that 
 #' are taken as parameter names. The data frame can contain a column "value"
 #' to initialize the parameters.
-#' @return Prediction function, a function \code{x(times pars, deriv = TRUE)}, 
+#' @param condition either NULL (generic prediction for any condition) or a character, denoting
+#' the condition for which the function makes a prediction.
+#' @return Object of class \link{prdfn}, i.e. 
+#' a function \code{x(times pars, deriv = TRUE, conditions = NULL)}, 
 #' see also \link{Xs}. Attributes are "parameters", the parameter names (row names of
 #' the data frame), and possibly "pouter", a named numeric vector which is generated
 #' from \code{data$value}.
-#' @examples 
+#' @examples
 #' # Generate a data.frame and corresponding prediction function
 #' timesD <- seq(0, 2*pi, 0.5)
 #' mydata <- data.frame(name = "A", time = timesD, value = sin(timesD), 
@@ -204,17 +266,12 @@ Xf <- function(odemodel, forcings=NULL, events=NULL, optionsOde=list(method="lso
 #' 
 #' # Evaluate the prediction function at different time points
 #' times <- seq(0, 2*pi, 0.01)
-#' pouter <- attr(x, "pouter")
+#' pouter <- structure(mydata$value, names = rownames(mydata))
 #' prediction <- x(times, pouter)
-#' plotPrediction(list(prediction = prediction))
-#' 
-#' # Evaluate the sensitivities at these time points
-#' sensitivities <- attr(prediction, "deriv")
-#' plotPrediction(list(sens = sensitivities))
+#' plot(prediction)
 #' 
 #' @export
- 
-Xd <- function(data) {
+Xd <- function(data, condition = NULL) {
   
   states <- unique(as.character(data$name))
   
@@ -258,6 +315,7 @@ Xd <- function(data) {
   sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")  
   
   
+  controls <- list()  
   
   P2X <- function(times, pars, deriv=TRUE){
     
@@ -295,44 +353,62 @@ Xd <- function(data) {
       myderivs <- outSens
       #attr(out, "deriv") <- outSens
     }
-   
+    
     #attr(out, "parameters") <- unique(sensGrid[,2])
     
-    prdframe(out, deriv = myderivs, sensitivities = mysensitivities, parameters = unique(sensGrid[,2]))
+    prdframe(out, deriv = myderivs, sensitivities = mysensitivities, parameters = pars)
     
   }
   
   attr(P2X, "parameters") <- structure(parameters, names = NULL)
   attr(P2X, "pouter") <- pouter
-  return(P2X)
+  
+  prdfn(P2X, attr(P2X, "parameters"), condition)
   
 }
 
 
 #' Observation functions. 
-#' @description Creates a function \code{y(out, pars)} that evaluates an observation function
-#' and its derivatives based on the output of a model function \code{x(times, pars)}, see \link{Xf} and \link{Xs}.
-#' @param g Named character vector defining the observation function
-#' @param f Named character, the underlying ODE
+#' 
+#' @description Creates an object of type \link{obsfn} that evaluates an observation function
+#' and its derivatives based on the output of a model prediction function, see \link{prdfn}, 
+#' as e.g. produced by \link{Xs}.
+#' @param g Named character vector or equation vector defining the observation function
+#' @param f Named character or equation vector, the underlying ODE
+#' @param states character vector, alternative definition of "states", usually the names of \code{f}
+#' @param parameters character vector, alternative definition of the "parameters",
+#' usually the symbols contained in "g" and "f" except for \code{states} and the code word \code{time}.
+#' @param condition either NULL (generic prediction for any condition) or a character, denoting
+#' the condition for which the function makes a prediction.
+#' @param attach.input logical, indiating whether the original input should be
+#' returned with the output.
 #' @param compile Logical, compile the function (see \link{funC0})
 #' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
 #' C file.
 #' @param verbose Print compiler output to R command line.
-#' @return a function \code{y(out, pars, attach.input = FALSE)} representing the evaluation of the 
-#' observation function. 
+#' @return Object of class \link{obsfn}, i.e.
+#' a function \code{y(..., deriv = TRUE, conditions = NULL)} representing the evaluation of the 
+#' observation function. Arguments \code{out} (model prediction) and \code{pars} (parameter values)
+#' shoudl be passed by the \code{...} argument.
 #' If \code{out} has the attribute  "sensitivities", the result of
-#' \code{y(out, pars)}, will have an attributed "deriv" which reflec the sensitivities of 
+#' \code{y(out, pars)}, will have an attributed "deriv" which reflecs the sensitivities of 
 #' the observation with respect to the parameters.
 #' If \code{pars} is the result of a parameter transformation \code{p(pars)} (see \link{P}), 
 #' the Jacobian 
 #' of the parameter transformation and the sensitivities of the observation function
 #' are multiplied according to the chain rule for differentiation.
-#' If \code{attach.input = TRUE}, the original argument \code{out} will be attached to the evaluated observations.
+#' @example inst/examples/prediction.R
 #' @export
-Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname = NULL, verbose = FALSE) {
+Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, attach.input = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
+  
+  myattach.input <- attach.input
   
   warnings <- FALSE
   modelname_deriv <- NULL
+  
+  if (is.null(f) && is.null(states) && is.null(parameters)) 
+    stop("Not all three arguments f, states and parameters can be NULL")
+  
   if (!is.null(modelname)) modelname_deriv <- paste(modelname, "deriv", sep = "_")
   
   # Get potential paramters from g, forcings are treated as parameters because
@@ -348,7 +424,8 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname
   # Observables defined by g
   observables <- names(g)
   
-  gEval <- funC0(g, compile = compile, modelname = modelname, verbose = verbose)
+  gEval <- funC0(g, parameters = parameters, compile = compile, modelname = modelname, 
+                 verbose = verbose, convenient = FALSE, warnings = FALSE)
   
   # Character matrices of derivatives
   dxdp <- dgdx <- dgdp <- NULL
@@ -368,38 +445,43 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname
   
   # Sensitivities of the observables
   derivs <- as.vector(sumSymb(prodSymb(dgdx, dxdp), dgdp))
-  if (length(derivs) == 0) stop("Nor states or parameters involved")
+  if (length(derivs) == 0) stop("Neither states nor parameters involved")
   names(derivs) <- apply(expand.grid.alt(observables, c(states, parameters)), 1, paste, collapse = ".")
   
   
-  derivsEval <- funC0(derivs, compile = compile, modelname = modelname_deriv)
+  derivsEval <- funC0(derivs, parameters = parameters, compile = compile, modelname = modelname_deriv,
+                      verbose = verbose, convenient = FALSE, warnings = FALSE)
   
   # Vector with zeros for possibly missing derivatives
-  zeros <- rep(0, length(dxdp))
-  names(zeros) <- dxdp
+  # zeros <- rep(0, length(dxdp))
+  # names(zeros) <- dxdp
+  # Redundant -> missing values have been implemented in funC0
   
+  controls <- list(attach.input = attach.input) 
   
-  X2Y <- function(out, pars, attach.input = FALSE) {
+  X2Y <- function(out, pars) {
     
-    
+    attach.input <- controls$attach.input
     
     # Prepare list for with()
     nOut <- dim(out)[2]
-    outlist <- lapply(1:nOut, function(i) out[,i]); names(outlist) <- colnames(out)
+    #outlist <- lapply(1:nOut, function(i) out[,i]); names(outlist) <- colnames(out)
     
     dout <- attr(out, "sensitivities")
-    if (!is.null(dout)) {
-      nDeriv <- dim(dout)[2]
-      derivlist <- lapply(1:nDeriv, function(i) dout[,i]); names(derivlist) <- colnames(dout)  
-    } else {
-      derivlist <- NULL
-    }
+    # if (!is.null(dout)) {
+    #   nDeriv <- dim(dout)[2]
+    #   derivlist <- lapply(1:nDeriv, function(i) dout[,i]); names(derivlist) <- colnames(dout)  
+    # } else {
+    #   derivlist <- NULL
+    # }
     
     
-    x <- c(outlist, derivlist, as.list(pars), as.list(zeros))
+    #x <- c(outlist, derivlist, as.list(pars), as.list(zeros))
+    #values <- gEval(x)
     
-    values <- gEval(x)
-    if (!is.null(dout)) dvalues <- derivsEval(x)
+    values <- gEval(M = out, p = pars)
+    
+    if (!is.null(dout)) dvalues <- derivsEval(M = cbind(out, dout), p = pars)
     
     # Parameter transformation
     dP <- attr(pars, "deriv")
@@ -447,7 +529,7 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname
     
     
     # Output 
-    prdframe(prediction = values, deriv = myderivs, parameters = myparameters) 
+    prdframe(prediction = values, deriv = myderivs, parameters = pars) 
     
     
     
@@ -457,186 +539,52 @@ Y <- function(g, f, states = NULL, parameters = NULL, compile = FALSE, modelname
   attr(X2Y, "parameters") <- parameters
   attr(X2Y, "states") <- states
   
-  return(X2Y)
-  
+  obsfn(X2Y, parameters, condition)
   
 }
 
-
-
-#' Model evaluation. 
-#' @description Interface to combine an ODE, its adjoint sensitivity equations as well
-#' as the chi² and the gradient of chi²
-#' into one model function \code{x(times, pars, ...)}.
-#' @param func_fa Return value of \code{funC(fa)} where \code{fa} defines the ODE and the 
-#' adjoint sensitivities. (See also \link{generateModelIE}).
-#' @param func_l Return value of \code{funC(l))} where \code{l} defines the ODE for the
-#' time-continuous chi² function and its gradient. (See also \link{generateModelIE}).
-#' @param forcings A data.frame with columns name (factor), time (numeric) and value (numeric).
-#' The ODE forcings.
-#' @param events data.frame of events (Not yet functional in bvptwp).
-#' @param data A data.frame with columns "name", "time", "value" and "sigma".
-#' @param optionsBvp list with arguments to be passed to \link{bvptwpC} for solving the BVP problem func_fa.
-#' @param optionsOde list with arguments to be passed to \link{odeC} for the ODE integration of func_l.
-#' @param optionsData list with arguments to be passed to \link{data2forc} for generation of
-#' the data representation functions.
-#' @return a function \code{x(times, pars, forcings, events, eps, atol, nmax, guess, deriv)} representing the model evaluation. 
-#' The default values are \code{eps = 1}, \code{atol = 1e-4}, \code{nmax = 50*length(times)}, \code{guess = NULL}
-#' and \code{deriv = TRUE}.
-#' The result of
-#' \code{x(times, pars, ...)} has attributes "value" (the chi² value) 
-#' and "grad" (gradient of the chi² value) when \code{deriv=TRUE}. 
-#' If \code{deriv=FALSE}, the time-continuous chi² is not evaluated.
-#' If \code{pars} is 
-#' the result of \code{p(P)} (see \link{P}), the Jacobian of the parameter transformation
-#' and the gradient of the chi² are multiplied according to the chain rule for
-#' differentiation.
-Xv <- function(func_fa, func_l, forcings=NULL, events=NULL, data, optionsBvp=NULL, optionsOde = list(method="lsode"), optionsData = list()) {
-  
-  myforcings <- forcings
-  myevents <- events
-  
-  variables <- attr(func_fa, "variables")
-  isKnown <- which(variables%in%data$name)
-  
-  variablesD <- paste0(variables, "D")
-  variablesD <- variablesD[isKnown]
-  parameters <- attr(func_fa, "parameters")
-  boundary <- attr(func_fa, "boundary")
-  u <- attr(func_fa, "inputs")
-  
-  variables_l <- attr(func_l, "variables")
-  
-  dataforcings <- do.call(data2forc, c(list(data = data), optionsData))
+#' Generate a prediction function that returns times
+#' 
+#' Function to deal with non-ODE models within the framework of dMod. See example.
+#' 
+#' @param condition  either NULL (generic prediction for any condition) or a character, denoting
+#' the condition for which the function makes a prediction.
+#' @return Object of class \link{prdfn}.
+#' @examples 
+#' x <- Xt()
+#' g <- Y(c(y = "a*time^2+b"), f = NULL, parameters = c("a", "b"))
+#' 
+#' times <- seq(-1, 1, by = .05)
+#' pars <- c(a = .1, b = 1)
+#' 
+#' plot((g*x)(times, pars))
+#' @export
+Xt <- function(condition = NULL) {
   
   
-  P2X <- function(times, pars, forcings = myforcings, events = myevents, eps = 1, atol=1e-4, nmax = 50*length(times), guess=NULL, deriv = TRUE){
+  
+  # Controls to be modified from outside
+  controls <- list()
+  
+  P2X <- function(times, pars, deriv=TRUE){
     
-    # Initials and parameters
-    yini <- yend <- mypars <- NULL
+    out <- matrix(times, ncol = 1, dimnames = list(NULL, "time"))
+    sens <- deriv <- out
     
-    if(length(variables%in%names(pars))>0) {
-      yiniorend <- pars[variables[variables%in%names(pars)]]
-      yini <- yiniorend[!is.na(boundary$yini[match(names(yiniorend), boundary$name)])]
-      #yend <- yiniorend[!is.na(boundary$yend[match(names(yiniorend), boundary$name)])]
-    }
-    if(length(pars[parameters]>0)) mypars <- pars[parameters]; mypars <- mypars[!is.na(mypars)]
-    
-    
-    # Forcings
-    forcings <- rbind(
-      dataforcings, # measured time courses
-      myforcings # model forcings
-    )
-    forc <- setForcings(func_fa, forcings)
-    
-    # Construct guesses 
-    if(!is.null(guess)) times <- guess[,"time"]
-    xguess <- times
-    yguess <- matrix(0, length(variables), length(times)); rownames(yguess) <- variables
-    
-    if(!is.null(guess)) {
-      isProvided <- variables[variables%in%colnames(guess)]
-      yguess[isProvided,] <- t(guess[,isProvided])
-    } else {
-      guessData <- do.call(rbind, lapply(forc[variablesD], function(f) spline(f[,1], f[,2], xout=times)$y))
-      yguess[isKnown,] <- guessData 
-    }
-    
-    
-    yend <- yguess[!is.na(boundary$yend[match(variables, boundary$name)]), length(xguess)]
-    
-    #matplot(xguess, t(yguess), type="l", lty=1)
-    
-    #print(dim(yguess))
-    
-    # Solve BVP
-    
-    outAll <- do.call(bvptwpC, c(list(yini = yini, 
-                                      x = times, 
-                                      func = func_fa, 
-                                      yend = yend, 
-                                      parms = c(mypars, eps = eps), 
-                                      xguess = xguess, 
-                                      yguess = yguess, 
-                                      forcings = forc,
-                                      atol = atol,
-                                      allpoints = FALSE,
-                                      nmax = nmax), 
-                                 optionsBvp))
-    colnames(outAll)[1] <- "time"
-    
-    # attach inputs computed from outAll
-    if(!is.null(u)) {
-      forcvalues <- lapply(forc, function(myforc) approxfun(myforc[,1], myforc[,2])(outAll[,1]))
-      outvalues <- as.list(as.data.frame(outAll))
-      u <- as.data.frame(lapply(u, function(ui) with(c(as.list(mypars), outvalues, forcvalues), eval(parse(text = ui)))))
-      outAll <- cbind(outAll, u)  
-    }
-    
-    outAll <- as.matrix(outAll)
-    
-    attr(outAll, "forcings") <- forc
-    
-    if(deriv) {
-      
-      ## Log-likelihood and gradient equations
-      
-      # Initials, parameters from above
-      yini <- rep(0, length(variables_l)); names(yini) <- variables_l
-      
-      # Forcings
-      forcings <- rbind(
-        wide2long(outAll), # solution of adjoint equations
-        forcings # forcings from above
-      )
-      forc <- setForcings(func_l, forcings)
-      
-      # Solve equations
-      obj <- do.call(odeC, c(list(y=yini, times=outAll[,"time"], func=func_l, parms=mypars, forcings=forc), optionsOde))
-      last <- dim(obj)[1]
-      width <- dim(obj)[2]
-      
-      
-      
-      # Extract value and gradient
-      value <- as.numeric(obj[last, 2])
-      grad_par <- NULL
-      grad_ini <- NULL
-      
-      parameters <- names(pars)[names(pars)%in%parameters]
-      
-      if(length(parameters)>0) {
-        grad_par_names <- paste("chi", parameters, sep=".")
-        grad_par <- as.numeric(obj[last, grad_par_names]); names(grad_par) <- parameters
-      }
-      variables <- names(pars)[names(pars)%in%variables]
-      if(length(variables)>0) {
-        grad_ini_names <- paste0("adj", variables)
-        grad_ini <- as.numeric(2*outAll[1, grad_ini_names]); names(grad_ini) <- variables  
-      }
-      gradient <- c(grad_ini, grad_par)
-      
-      
-      # Do parameter transformation
-      dP <- attr(pars, "deriv")      
-      
-      if(!is.null(dP)) {
-        gradient <- as.vector(gradient%*%(dP[names(gradient),]))
-        names(gradient) <- colnames(dP)
-      }
-      
-      attr(outAll, "value") <- value
-      attr(outAll, "gradient") <- gradient
-      
-    }
-    
-    
-    return(outAll)
+    prdframe(out, deriv = deriv, sensitivities = sens, parameters = pars)
     
   }
   
-  return(P2X)
+  attr(P2X, "parameters") <- NULL
+  attr(P2X, "equations") <- NULL
+  attr(P2X, "forcings") <- NULL
+  attr(P2X, "events") <- NULL
+  
+  
+
+  prdfn(P2X, NULL, condition) 
+  
+  
   
   
 }

@@ -171,8 +171,8 @@ strelide <- function(string, width, where = "right", force = FALSE) {
 #'
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'
-#' @export
 
+## Redundant (wird von as.parvec erledigt)
 plSelectMin <- function(prf, context = FALSE) {
 
   # Remove invalid profiles.
@@ -268,7 +268,9 @@ plSelectMin <- function(prf, context = FALSE) {
 #'   \code{\link{msnarrow}}, \code{\link{msbest}}, \code{\link{as.parframe}}
 #'   
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
-#'   
+#'  
+#' @example inst/examples/test_blocks.R
+#'     
 #' @export
 mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20, cores = 1,
                     samplefun = "rnorm", resultPath = ".", stats = FALSE,
@@ -352,8 +354,8 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     msg <- paste0("Parameter assignment information\n",
                   strpad("mstrust", 12),                        ": ", paste0(nameslocal, collapse = ", "), "\n",
                   strpad("trust", 12),                          ": ", paste0(namestrust, collapse = ", "), "\n",
-                  strpad(as.character(argslist$samplefun), 12), ": ", paste0(namessample, collapse = ", "), "\n",
-                  strpad(as.character(argslist$objfun), 12),    ": ", paste0(namesobj, collapse = ", "), "\n\n")
+                  strpad(as.character(argslist$samplefun), 12), ": ", paste0(namessample, collapse = ", "), "\n\n")
+                  #strpad(as.character(argslist$objfun), 12),    ": ", paste0(namesobj, collapse = ", "), "\n\n")
     writeLines(msg, logfile)
     flush(logfile)
   }
@@ -366,9 +368,16 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     flush(logfile)
   }
 
-  m_parlist <- as.parlist(mclapply(1:fits, function(i) {
+  m_parlist <- as.parlist(parallel::mclapply(1:fits, function(i) {
     argstrust$parinit <- center + do.call(samplefun, argssample)
     fit <- do.call(trust, c(argstrust, argsobj))
+
+    # Keep only numeric attributes of object returned by trust()
+    attr.fit <- attributes(fit)
+    keep.attr <- sapply(attr.fit, is.numeric)
+    fit <- fit[1:length(fit)] # deletes attributes
+    if (any(keep.attr)) attributes(fit) <- c(attributes(fit), attr.fit[keep.attr]) # attach numeric attributes
+    
     
     # In some crashes a try-error object is returned which is not a list. Since
     # each element in the parlist is assumed to be a list, we wrap these cases.
@@ -576,10 +585,10 @@ msnarrow <- function(center, spread, fits = 100, safety = "", ...) {
 #'
 #' @details The commands \code{\link{mstrust}} or \code{\link{msnarrow}} save
 #'   each completed fit along the multi-start sequence such that the results can
-#'   be resurected on abortion. This commands loads a fitlist from these
+#'   be resurected on abortion. This command loads a fitlist from these
 #'   intermediate results.
 #'
-#' @return A fitlist as data frame.
+#' @return An object of class parlist.
 #'
 #' @seealso \code{\link{mstrust}}, \code{\link{msnarrow}}
 #'
@@ -930,11 +939,9 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
 #' @description Fitlists carry an fit index which must be held unique on merging
 #' multiple fitlists.
 #'
-#' @param ... Fitlists
-#' @param shiftrownames If true (default) the row names of the returned data frame equal the fit index.
-
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'
+#' @rdname parlist
 #' @export
 #' @export c.parlist
 c.parlist <- function(...) {
@@ -1007,7 +1014,7 @@ python.version.rpython <- function() {
 python.version.request <- function(version) {
   
   # Is rPythen installed and linked against requested python version?
-  m_installed <- if (inherits(try(library(rPython)), "try-error")) FALSE else TRUE
+  m_installed <- "rPython" %in% installed.packages()[, 1]
   if (m_installed) {
     m_curVersion <- python.version.rpython()
     if (m_curVersion == version)
@@ -1038,6 +1045,6 @@ python.version.request <- function(version) {
     try(detach("package:rPython", unload = TRUE), silent = TRUE)
     Sys.setenv(RPYTHON_PYTHON_VERSION = version)
     install.packages("rPython")
-    library(rPython)
+    # library(rPython)  (library calls produce WARNING with CRAN)
   }
 }
