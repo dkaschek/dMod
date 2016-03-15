@@ -212,6 +212,8 @@ plot((x*p)(times, myfit$argument))
 
 
 ```r
+set.seed(1)
+
 out <- mstrust(obj + regularize, center = center, rinit = 1, fits = 50, cores = 4, sd = 3)
 
 # Extract parameter frame of the best fits
