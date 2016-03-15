@@ -711,10 +711,10 @@ print0 <- function(x, list_attributes = TRUE ) {
 #' @format
 #' The following columns are mandatory for the data file.
 #' \describe{
-#'  \item{Species}{Name of the observed species.}
-#'  \item{Time}{Measurement time point.}
-#'  \item{Value}{Measurement value.}
-#'  \item{Condition}{The condition under which the observation was made.}
+#'  \item{name}{Name of the observed species.}
+#'  \item{time}{Measurement time point.}
+#'  \item{value}{Measurement value.}
+#'  \item{condition}{The condition under which the observation was made.}
 #' }
 #'
 #' In addition to these columns, any number of columns can follow to allow a
@@ -738,12 +738,12 @@ print0 <- function(x, list_attributes = TRUE ) {
 #' @return
 #' A data frame of the following variables
 #' \describe{
-#'  \item{Species}{Name of the observed species.}
-#'  \item{Time}{Measurement time point.}
-#'  \item{Mean}{Mean of replicates.}
-#'  \item{Sd}{Standard deviation of replicates, NA for single measurements.}
-#'  \item{df}{Degrees of freedom. The number of replictes reduced.}
-#'  \item{Condition}{The condition for which the mean and sd were calculated. If
+#'  \item{time}{Measurement time point.}
+#'  \item{name}{Name of the observed species.}
+#'  \item{value}{Mean of replicates.}
+#'  \item{sigma}{Standard error of the mean, NA for single measurements.}
+#'  \item{n}{The number of replicates reduced.}
+#'  \item{condition}{The condition for which the value and sigma were calculated. If
 #'        more than one column were used to define the condition, this variable
 #'        holds the effecive condition which is the combination of all applied
 #'        single conditions. }
@@ -752,10 +752,10 @@ print0 <- function(x, list_attributes = TRUE ) {
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'
 #' @export
-reduceReplicates <- function(file, select = "Condition", datatrans = NULL) {
+reduceReplicates <- function(file, select = "condition", datatrans = NULL) {
 
   # File format definiton
-  fmtnames <- c("Species", "Time",  "Value", "Condition")
+  fmtnames <- c("name", "time",  "value", "condition")
   fmtnamesnumber <- length(fmtnames)
 
   # Read data and sanity checks
@@ -766,8 +766,8 @@ reduceReplicates <- function(file, select = "Condition", datatrans = NULL) {
 
   # Transform data if requested
   if (is.character(datatrans)) {
-    x <- data$Value
-    data$Value <- eval(parse(text = datatrans))
+    x <- data$value
+    data$value <- eval(parse(text = datatrans))
   }
 
   # Experiments are usually repeated multiple times possibly under different
@@ -782,18 +782,18 @@ reduceReplicates <- function(file, select = "Condition", datatrans = NULL) {
   # variance is computed for each condition by averaging over measurements
   # recorded at the same time point. New conditions names are derived by merging
   # all conditions which were used in mean and std.
-  select <- unique(c("Species", "Time", "Condition", select))
+  select <- unique(c("name", "time", "condition", select))
   condidnt <- Reduce(paste, subset(data, select = select))
   conditions <- unique(condidnt)
   reduct <- do.call(rbind, lapply(conditions, function(cond) {
     conddata <- data[condidnt == cond,]
-    mergecond <- Reduce(paste, conddata[1, setdiff(select, c("Species", "Time"))])
-    data.frame(Species = conddata[1, "Species"],
-               Time = conddata[1, "Time"],
-               Mean = mean(conddata[, "Value"]),
-               Sd = sd(conddata[, "Value"]),
-               df = nrow(conddata) - 1,
-               Condition = mergecond)
+    mergecond <- Reduce(paste, conddata[1, setdiff(select, c("name", "time"))])
+    data.frame(time = conddata[1, "time"],
+               value = mean(conddata[, "value"]),
+               sigma = sd(conddata[, "value"])/sqrt(nrow(conddata)),
+               n = nrow(conddata),
+               name = conddata[1, "name"],
+               condition = mergecond)
   }))
 
   return(reduct)
@@ -806,14 +806,17 @@ reduceReplicates <- function(file, select = "Condition", datatrans = NULL) {
 #' @description Fit an error model to reduced replicate data, see
 #'   \code{\link{reduceReplicates}}.
 #'
-#' @param data Reduced replicate data, see \code{\link{reduceData}}.
+#' @param data Reduced replicate data, see \code{\link{reduceReplicates}}. Need 
+#'   columns "value", "sigma", "n".
 #' @param factors \option{data} is pooled with respect to the columns named
 #'   here, see Details.
-#' @param errorModel Character vector defining the error model. Use \kbd{x} to
-#'   reference the independend variable, see Details.
+#' @param errorModel Character vector defining the error model in terms of the variance. 
+#'   Use \kbd{x} to reference the independend variable, see Details.
 #' @param par Inital values for the parameters of the error model.
 #' @param plotting If TRUE, a plot of the pooled variance together with the fit
 #'   of the error model is shown.
+#' @param blather If TRUE, additional information is returned, such as fit parameters 
+#'  and sigmaLS (original sigma given in input data).
 #' @param ... Parameters handed to the optimizer \code{\link{optim}}.
 #'
 #' @details The variance estimator using \eqn{n-1} data points is \eqn{chi^2}
@@ -829,29 +832,30 @@ reduceReplicates <- function(file, select = "Condition", datatrans = NULL) {
 #'   parameter \option{data} must provide one or more columns which define the
 #'   pooling of data. In case more than one column is announced by
 #'   \option{factors}, all combinations are constructed. If, e.g.,
-#'   \option{factors = c("Condition", "Species")} is used, where "Condition" is
-#'   "a", "b", "c" and repeating and Species is "d", "e" and repeating, the
+#'   \option{factors = c("condition", "name")} is used, where "condition" is
+#'   "a", "b", "c" and repeating and "name" is "d", "e" and repeating, the
 #'   effective conditions used for pooling are "a d", "b e", "c d", "a e", "b
 #'   d", and "c e".
 #'
-#'   By default, a plot of the pooled data, Sigma and its confidence bound at
+#'   By default, a plot of the pooled data, sigma and its confidence bound at
 #'   68\% and 95\% is shown.
 #'
-#' @return Returned is a data frame with the first columns identical to
-#'   \option{data}. Appended are fit values of the parameters of the error
-#'   model, with the column names equal to the parameter names and the estimated
-#'   uncertainty Sigma. Sigma is derived by evaluating the error model with the
-#'   fit parameters. The error model is appended as the attribute "errorModel".
-#'
-#'   Confidence bounds for Sigma at confidence level 68\% and 95\% are
-#'   calculated, Their values come next in the returned data frame. Finally, the
+#' @return Returned by default is a data frame with columns as in \option{data}, 
+#'   but with the sigma values replaced by the derived values, obtained by evaluating 
+#'   the error model with the fit parameters. 
+#'   
+#'   If the blather = TRUE option is chosen, fit values of the parameters of the error
+#'   model are appended, with the column names equal to the parameter names. 
+#'   The error model is appended as the attribute "errorModel".
+#'   Confidence bounds for sigma at confidence level 68\% and 95\% are
+#'   calculated, their values come next in the returned data frame. Finally, the
 #'   effective conditions are appended to easily check how the pooling was done.
 #'
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'
 #' @export
 fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
-                          par = c(s0 = 1, srel = .1), plotting = TRUE, ...) {
+                          par = c(s0 = 1, srel = .1), plotting = TRUE, blather = FALSE, ...) {
 
   # Assemble conditions
   condidnt <- Reduce(paste, subset(data, select = factors))
@@ -860,55 +864,63 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
 
   # Fit error model
   nColData <- ncol(data)
-  data <- cbind(data, as.list(par), Sigma = NA)
+  dataErrorModel <- cbind(data, as.list(par))
 
   for (cond in conditions) {
-    subdata <- data[condidnt == cond,]
-    x <- subdata$Mean
-    y <- subdata$Sd
-    df <- subdata$df
+    subdata <- dataErrorModel[condidnt == cond,]
+    x <- subdata$value
+    n <- subdata$n
+    y <- subdata$sigma*sqrt(n)
 
     obj <- function(par) {
       value <- with(as.list(par), {
         z <- eval(parse(text = errorModel))
-        sum(log(z)-log(dchisq((df)*(y^2)/z, df = df)), na.rm = TRUE)
+        sum(log(z)-log(dchisq((n-1)*(y^2)/z, df = n-1)), na.rm = TRUE)
       })
       return(value)
     }
 
     fit <- optim(par = par, fn = obj, ...)
     sigma <- sqrt(with(as.list(fit$par), eval(parse(text = errorModel))))
-    data[condidnt == cond, -(nColData:1)] <- data.frame(as.list(fit$par), Sigma = sigma)
+    dataErrorModel[condidnt == cond, ]$sigma <- sigma 
+    dataErrorModel[condidnt == cond, -(nColData:1)] <- data.frame(as.list(fit$par))
   }
 
 
   # Calculate confidence bounds about sigma
   p68 <- (1-.683)/2
   p95 <- (1-.955)/2
-  data$cbLower68 <- sqrt(data$Sigma^2*qchisq(p = p68, df = data$df)/data$df)
-  data$cbUpper68 <- sqrt(data$Sigma^2*qchisq(p = p68, df = data$df, lower.tail = FALSE)/data$df)
-  data$cbLower95 <- sqrt(data$Sigma^2*qchisq(p = p95, df = data$df)/data$df)
-  data$cbUpper95 <- sqrt(data$Sigma^2*qchisq(p = p95, df = data$df, lower.tail = FALSE)/data$df)
+  dataErrorModel$cbLower68 <- dataErrorModel$sigma^2*qchisq(p = p68, df = dataErrorModel$n-1)/(dataErrorModel$n-1)
+  dataErrorModel$cbUpper68 <- dataErrorModel$sigma^2*qchisq(p = p68, df = dataErrorModel$n-1, lower.tail = FALSE)/(dataErrorModel$n-1)
+  dataErrorModel$cbLower95 <- dataErrorModel$sigma^2*qchisq(p = p95, df = dataErrorModel$n-1)/(dataErrorModel$n-1)
+  dataErrorModel$cbUpper95 <- dataErrorModel$sigma^2*qchisq(p = p95, df = dataErrorModel$n-1, lower.tail = FALSE)/(dataErrorModel$n-1)
 
 
   # Assemble result
-  data <- cbind(data, condidnt)
-  attr(data, "errorModel") <- errorModel
+  dataErrorModel <- cbind(dataErrorModel, condidnt, sigmaLS = data$sigma)
+  attr(dataErrorModel, "errorModel") <- errorModel
 
 
   # Plot if requested
   if (plotting) {
-    print(ggplot(data, aes(x=Mean)) +
-            geom_point(aes(y=Sd)) +
-            geom_line(aes(y=Sigma)) +
+    print(ggplot(dataErrorModel, aes(x=value)) +
+            geom_point(aes(y=sigmaLS^2*(n))) +
+            geom_line(aes(y=sigma^2)) +
             geom_ribbon(aes(ymin=cbLower95, ymax=cbUpper95), alpha=.3) +
             geom_ribbon(aes(ymin=cbLower68, ymax=cbUpper68), alpha=.3) +
+            ylab("variance") +
             facet_wrap(~condidnt, scales = "free") +
             scale_y_log10() +
             theme_dMod()
     )}
-
-  return(data)
+  
+  # Return standard error of the mean
+  dataErrorModel$sigma <- dataErrorModel$sigma/sqrt(n)
+  data$sigma <- dataErrorModel$sigma
+  if(blather)
+    return(dataErrorModel)
+  else 
+    return(data)
 }
 
 
