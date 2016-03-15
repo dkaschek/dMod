@@ -507,63 +507,110 @@ def Sparsify(M, level):
     return(M)
     
 def ODESS(filename,
+          SM=False,
+          X=[],
+          F=[],
           injections=[],
           givenCQs=[],
           neglect=[],
           sparsifyLevel = 2,
           outputFormat='R'):
-    filename=str(filename)
-    file=csv.reader(open(filename), delimiter=',')
-    print('Reading csv-file ...')
-    L=[]
-    nrrow=0
-    nrcol=0
-    for row in file:
-        nrrow=nrrow+1
-        nrcol=len(row)
-        L.append(row)
-        
-    nrspecies=nrcol-2
+    if(filename!=None):
+        filename=str(filename)
+        file=csv.reader(open(filename), delimiter=',')
+        print('Reading csv-file ...')
+        L=[]
+        nrrow=0
+        nrcol=0
+        for row in file:
+            nrrow=nrrow+1
+            nrcol=len(row)
+            L.append(row)
+            
+        nrspecies=nrcol-2
     
 ##### Remove injections  
-    counter=0
-    for i in range(1,len(L)):
-        if(L[i-counter][1] in injections):
-            L.remove(L[i-counter])
-            counter=counter+1       
+        counter=0
+        for i in range(1,len(L)):
+            if(L[i-counter][1] in injections):
+                L.remove(L[i-counter])
+                counter=counter+1       
     
-##### Define flux vector F  
-    F=[]
-    
-    for i in range(1,len(L)):
-        F.append(L[i][1])
-        #print(F)
-        F[i-1]=F[i-1].replace('^','**')
-        F[i-1]=parse_expr(F[i-1])
-        for inj in injections:
-            F[i-1]=F[i-1].subs(parse_expr(inj),0)
-    F=Matrix(F)
-    #print(F)
+##### Define flux vector F
+    if(filename!=None):
+        F=[]    
+        for i in range(1,len(L)):
+            F.append(L[i][1])
+            #print(F)
+            F[i-1]=F[i-1].replace('^','**')
+            F[i-1]=parse_expr(F[i-1])
+            for inj in injections:
+                F[i-1]=F[i-1].subs(parse_expr(inj),0)
+        F=Matrix(F)
+    else:
+        if(F!=[]):
+            flist=[]
+            for f in F:
+                flist.append(parse_expr(f))
+            F=Matrix(flist)
+        else:
+            print("You have to specify a flux vector or a model file!")
+
 ##### Define state vector X
-    X=[]
-    X=L[0][2:]
-    for i in range(len(X)):
-        X[i]=parse_expr(X[i])               
-    X=Matrix(X)
-    #print(X)
+    if(filename!=None):
+        X=[]
+        X=L[0][2:]
+        for i in range(len(X)):
+            X[i]=parse_expr(X[i])               
+        X=Matrix(X)
+    else:
+        if(X!=[]):
+            xlist=[]
+            for x in X:
+                xlist.append(parse_expr(x))
+            X=Matrix(xlist)
+        else:
+            print("You have to specify a state vector or a model file!")
+##### Save a copy of X for testing the solution at the end
     Xo=X.copy()
         
 ##### Define stoichiometry matrix SM
-    SM=[]
-    for i in range(len(L)-1):
-    	SM.append(L[i+1][2:])        
-    for i in range(len(SM)):
-    	for j in range(len(SM[0])):
-    		if (SM[i][j]==''):
-    			SM[i][j]='0'
-    		SM[i][j]=parse_expr(SM[i][j])    
-    SM=Matrix(SM)
-    SM=SM.T
+    print(SM)
+    if(filename!=None):
+        SM=[]
+        for i in range(len(L)-1):
+          SM.append(L[i+1][2:])        
+        for i in range(len(SM)):
+        	for j in range(len(SM[0])):
+        		if (SM[i][j]==''):
+        			SM[i][j]='0'
+        		SM[i][j]=parse_expr(SM[i][j])    
+        SM=Matrix(SM)
+        SM=SM.T
+    else:
+        if(SM):
+            SMfile=csv.reader(open("smatrix.csv"), delimiter=',')
+            nrrow=0
+            nrcol=0
+            L=[]
+            for row in SMfile:
+                nrrow=nrrow+1
+                nrcol=len(row)
+                L.append(row)
+            
+            nrspecies=nrcol-2
+            SM=[]
+            for i in range(len(L)-1):
+                SM.append(L[i+1][2:])
+            for i in range(len(SM)):
+              for j in range(len(SM[0])):
+        		    if (SM[i][j]=='NA'):
+        			    SM[i][j]='0'
+        		    SM[i][j]=parse_expr(SM[i][j])
+            SM=Matrix(SM)
+            SM=SM.T
+        else:
+            print("You have to specify a stoichiometry matrix or a model file.")
 
     
 ##### Check for zero fluxes
@@ -819,8 +866,7 @@ def ODESS(filename,
     eqOut=[]
     while(cycle!=None):
         print('Removing cycle '+str(counter))
-        #printmatrix(SM)
-        #print(F)
+        
         minType, state2Rem, fp2Rem, signChanged = GetBestPair(cycle, SM, fluxpars, X, LCLs, neglect)
         #print(cycle)
         #print(state2Rem)
@@ -890,6 +936,7 @@ def ODESS(filename,
             index=list(X).index(parse_expr(state2Rem))            
             negs, sumnegs, negfps=GetOutfluxes(state2Rem, X, SM, F, fluxpars)
             poss, sumposs, posfps=GetInfluxes(state2Rem, X, SM, F, fluxpars)
+            #print(anz)
             if(anz==1):
                 if((sign=="minus" and not signChanged) or (sign=="plus" and signChanged)):
                     fp2Rem=negfps[0]
@@ -926,7 +973,10 @@ def ODESS(filename,
                         colindex=list(F).index(flux)
                         for k in range(len(posfps)):
                             SM=SM.col_insert(len(SM.row(0)),SM.col(colindex))
-                            F=F.row_insert(len(F),Matrix(1,1,[poss[k]/nenner]))
+                            if(j==0):
+                                F=F.row_insert(len(F),Matrix(1,1,[poss[k]/nenner]))
+                            else:
+                                F=F.row_insert(len(F),Matrix(1,1,[parse_expr('r_'+state2Rem+'_'+str(j))*poss[k]/nenner]))
                             fluxpars.append(posfps[k])
                         SM.col_del(colindex)
                         F.row_del(colindex)
@@ -946,7 +996,10 @@ def ODESS(filename,
                         colindex=list(F).index(flux)
                         for k in range(len(negfps)):
                             SM=SM.col_insert(len(SM.row(0)),SM.col(colindex))
-                            F=F.row_insert(len(F),Matrix(1,1,[negs[k]/nenner]))
+                            if(j==0):
+                                F=F.row_insert(len(F),Matrix(1,1,[negs[k]/nenner]))
+                            else:
+                                F=F.row_insert(len(F),Matrix(1,1,[parse_expr('r_'+state2Rem+'_'+str(j))*negs[k]/nenner]))
                             fluxpars.append(negfps[k])
                         SM.col_del(colindex)
                         F.row_del(colindex)
