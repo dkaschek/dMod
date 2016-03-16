@@ -1,8 +1,11 @@
 #' Calculate analytical steady states (new version)
 #' 
-#' @param model Name of the file which the stoechiometric matric in csv format.
+#' @param model Either name of the csv-file or the eqnlist of the model. If NULL, specify smatrix, states and rates by hand.
 #' @param file Name of the file to which the steady-state equations are saved.
 #'   Read this file with \code{\link{readRDS}}.
+#' @param smatrix Numeric matrix, stiochiometry matrix of the system 
+#' @param states Character vector, state vector of the system
+#' @param rates Character vector, flux vector of the system
 #' @param forcings Character vector with the names of the forcings
 #' @param givenCQs Character vector with conserved quantities. Use the format c("A + pA = totA", "B + pB = totB"). If NULL, conserved quantities are automatically calculated.
 #' @param neglect Character vector with names of states and parameters that must not be used for solving the steady-state equations
@@ -19,32 +22,33 @@
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 #'   
 #' @export
-steadyStates <- function(model, file, forcings = NULL, givenCQs = NULL, neglect=NULL, sparsifyLevel = 2, outputFormat = "R") {
-  
-  # Check if file is valid
-  if (!is.character(file)) stop("File name must be specified")
+steadyStates <- function(model, file=NULL, smatrix = NULL, states = NULL, rates = NULL, forcings = NULL, givenCQs = NULL, neglect=NULL, sparsifyLevel = 2, outputFormat = "R") {
   
   # Check if model is an equation list
-  if (inherits(model, "eqnlist")) {
-    
+  if (inherits(model, "eqnlist")) {    
     write.eqnlist(model, file = paste0(file, "_model.csv"))
-    model <- paste0(file, "_model.csv")
-    
+    model <- paste0(file, "_model.csv")    
+  }
+  if(!is.null(smatrix)){
+    write.table(smatrix, file="smatrix.csv", sep = ",")
+    smatrix=TRUE
   }
   
   # Calculate steady states.
-  python.version.request("2.7")
   require(rPython)
+  python.version.request("2.7")  
   rPython::python.load(system.file("code/steadyStates.py", package = "dMod"))
-  m_ss <- rPython::python.call("ODESS", model, as.list(forcings), as.list(givenCQs), as.list(neglect), sparsifyLevel, outputFormat)
+  m_ss <- rPython::python.call("ODESS", model, smatrix, as.list(states), as.list(rates), as.list(forcings), as.list(givenCQs), as.list(neglect), sparsifyLevel, outputFormat)
   
   # Write steady states to disk.
-  if(m_ss!=0){
+  if(length(m_ss)>1){    
     m_ssChar <- do.call(c, lapply(strsplit(m_ss, "="), function(eq) {
       out <- eq[2]
       names(out) <- eq[1]
       return(out)
     }))
-    saveRDS(object = m_ssChar, file = file)
-  } 
+    if(!is.null(file) & is.character(file)){
+      saveRDS(object = m_ssChar, file = file)
+    }
+  } else return(0)
 }

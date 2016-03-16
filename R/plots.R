@@ -400,13 +400,14 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scale
   else
     axis.labels <- c("parameter 1", "parameter 2")
   
-  
-  p <- ggplot(data, aes(x = x, y = y, group = interaction(name, proflist), color = name, lty = proflist)) + 
-    facet_wrap(~combination, scales = scales) + 
-    geom_path() + #geom_point(aes=aes(size=1), alpha=1/3) +
-    xlab(axis.labels[1]) + ylab(axis.labels[2]) +
-    scale_linetype_discrete(name = "profile\nlist") +
-    scale_color_manual(name = "profiled\nparameter", values = dMod_colors)
+  suppressMessages(
+    p <- ggplot(data, aes(x = x, y = y, group = interaction(name, proflist), color = name, lty = proflist)) + 
+      facet_wrap(~combination, scales = scales) + 
+      geom_path() + #geom_point(aes=aes(size=1), alpha=1/3) +
+      xlab(axis.labels[1]) + ylab(axis.labels[2]) +
+      scale_linetype_discrete(name = "profile\nlist") +
+      scale_color_manual(name = "profiled\nparameter", values = dMod_colors)
+  )
   
   attr(p, "data") <- data
   return(p)
@@ -588,11 +589,11 @@ plotValues <- function(x) {
 #' @param myparframe parameter frame as obtained by as.parframe(mstrust)
 #' @param whichFits indexlist e.g. 1:10
 #' @export
-plotPars <- function(myparframe, whichFits = 1:length(myparframe)){
+plotPars <- function(myparframe, whichFits = 1:nrow(myparframe)){
   parNames <- attr(myparframe,"parameters")
   parOut <- wide2long.data.frame(out = ((myparframe[whichFits,c("value",parNames)])) , keep = 1)
   names(parOut) <- c("value","name","parvalue")
-  plot <- ggplot(parOut, aes(x = name, y = parvalue, color = value)) + geom_point() + theme(axis.text.x = element_text(angle = 270, hjust = 0))
+  plot <- ggplot2::ggplot(parOut, aes(x = name, y = parvalue, color = value)) + geom_point() + theme_dMod() + theme(axis.text.x = element_text(angle = 270, hjust = 0))
   return(plot)
 }
 

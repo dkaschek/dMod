@@ -228,22 +228,23 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       stepsize <- min(c(stepsize*2, sControl$max))
     }
     
-    # Compute progres
-    diff.thres <- diff.steps <- diff.limit <- 0
-    if (threshold < Inf)
-      diff.thres <- 1 - max(c(0, min(c(1, (threshold - lagrange.out.try$value)/delta))))
-    if (sControl$limit < Inf)
-      diff.steps <- i/sControl$limit
-    diff.limit <- switch(as.character(sign(constraint.out$value)),
-                         "1"  = 1 - (limits[2] - constraint.out$value)/limits[2],
-                         "-1" = diff.limit <- 1 - (limits[1] - constraint.out$value)/limits[1],
-                         "0"  = 0)
-    
-    percentage <- max(c(diff.thres, diff.steps, diff.limit), na.rm = TRUE)*100
-    progressBar(percentage)
-    
     ## Verbose
     if (verbose) {
+      # Compute progres
+      diff.thres <- diff.steps <- diff.limit <- 0
+      if (threshold < Inf)
+        diff.thres <- 1 - max(c(0, min(c(1, (threshold - lagrange.out.try$value)/delta))))
+      if (sControl$limit < Inf)
+        diff.steps <- i/sControl$limit
+      diff.limit <- switch(as.character(sign(constraint.out$value)),
+                           "1"  = 1 - (limits[2] - constraint.out$value)/limits[2],
+                           "-1" = diff.limit <- 1 - (limits[1] - constraint.out$value)/limits[1],
+                           "0"  = 0)
+      
+      percentage <- max(c(diff.thres, diff.steps, diff.limit), na.rm = TRUE)*100
+      progressBar(percentage)
+      
+      
       #cat("diff.thres:", diff.thres, "diff.steps:", diff.steps, "diff.limit:", diff.limit)
       myvalue <- format(substr(lagrange.out$value  , 0, 8), width = 8)
       myconst <- format(substr(constraint.out$value, 0, 8), width = 8)
@@ -287,7 +288,9 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
            out.attributes, ini)
   
   # Compute right profile
-  cat("Compute right profile\n")
+  if (verbose) {
+    cat("Compute right profile\n")
+  }
   direction <- 1
   gamma <- aControl$gamma
   stepsize <- sControl$stepsize
@@ -338,7 +341,9 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   }
   
   # Compute left profile
-  cat("\nCompute left profile\n")
+  if (verbose) {
+    cat("\nCompute left profile\n")
+  }
   i <- 0
   direction <- -1
   gamma <- aControl$gamma

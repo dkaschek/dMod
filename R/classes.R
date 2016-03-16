@@ -10,18 +10,22 @@
 #' @param fixed Character vector with the names of parameters (initial values and dynamic) for which
 #' no sensitivities are required (will speed up the integration).
 #' @param modelname Character, the name of the C file being generated.
+#' @param gridpoints Integer, the minimum number of time points where the ODE is evaluated internally
 #' @param verbose Print compiler output to R command line.
 #' @param ... Further arguments being passed to funC.
 #' @return list with \code{func} (ODE object) and \code{extended} (ODE+Sensitivities object)
 #' @export
 #' @example inst/examples/odemodel.R
 #' @import cOde
-odemodel <- function(f, deriv = TRUE, forcings=NULL, fixed=NULL, modelname = "odemodel", verbose = FALSE, ...) {
+odemodel <- function(f, deriv = TRUE, forcings=NULL, fixed=NULL, modelname = "odemodel", gridpoints = NULL, verbose = FALSE, ...) {
+  
+  
+  if (is.null(gridpoints)) gridpoints <- 2
   
   f <- as.eqnvec(f)
   modelname_s <- paste0(modelname, "_s")
   
-  func <- cOde::funC(f, forcings = forcings, modelname = modelname , ...)
+  func <- cOde::funC(f, forcings = forcings, modelname = modelname , nGridpoints = gridpoints, ...)
   extended <- NULL
   if (deriv) {  
     s <- sensitivitiesSymb(f, 

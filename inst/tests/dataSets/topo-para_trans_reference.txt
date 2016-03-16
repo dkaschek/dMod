@@ -1,6 +1,0 @@
-Table of parameter transformations
- up_Fe = exp(log_up_Fe)
- dg_Fe = exp(log_dg_Fe)
-    Fe = exp(log_Fe)
-scl_Fe = exp(log_scl_Fe)
-off_Fe = exp(log_off_Fe)
