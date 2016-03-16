@@ -504,6 +504,9 @@ prdlist <- function(...) {
 #'
 #' @description The datalist object stores time-course data in a list of data.frames.
 #' The names of the list serve as identifiers, e.g. of an experimental condition, etc.
+#' @details Datalists can be plotted, see \link{plotData} and merged, see \link{sumdatalist}.
+#' They are the basic structure when combining model prediction and data via the \link{normL2}
+#' objective function.
 #' @param ... data.frame objects to be coerced into a list and additional arguments
 #' @return Object of class \code{datalist}.
 #' @export
@@ -764,22 +767,34 @@ objframe <- function(mydata, deriv = NULL) {
   
 }
 
-#' Sum of datasets
+#' Direct sum of datasets
 #'
-#' Used to add datasets with overlapping conditions.
+#' Used to merge datasets with overlapping conditions.
 #' 
 #' @param data1 dataset of class \code{datalist}
 #' @param data2 dataset of class \code{datalist}
-#' @details Each prediction function is associated to a number of conditions. Adding functions
-#' means merging or overwriting the set of conditions.
-#' @return dataset of class \code{datalist} for the
+#' @details Each data list contains data frames for a number of conditions. 
+#' The direct sum of datalist is meant as merging the two data lists and
+#' returning the overarching datalist. 
+#' @return Object of class \code{datalist} for the
 #' union of conditions. 
+#' @aliases sumdatalist
+#' @example inst/examples/sumdatalist.R
 #' @export
 "+.datalist" <- function(data1, data2) {
   conditions <- union(names(data1), names(data2))
   data <- lapply(conditions, function(C) rbind(data1[[C]], data2[[C]]))
   names(data) <- conditions
-  return(as.datalist(data))
+  
+  grid1 <- attr(data1, "condition.grid")
+  grid2 <- attr(data2, "condition.grid")
+  grid <- combine(grid1, grid2)
+  if (is.data.frame(grid)) grid <- grid[!duplicated(grid[, 1]),]
+  
+  out <- as.datalist(data)
+  attr(out, "condition.grid") <- grid
+  
+  return(out)
 }
   
 out_conditions <- function(c1, c2) {
