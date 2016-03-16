@@ -5,17 +5,17 @@
 \title{Reduce replicated measurements to mean and standard deviation}
 \format{The following columns are mandatory for the data file.
 \describe{
- \item{Species}{Name of the observed species.}
- \item{Time}{Measurement time point.}
- \item{Value}{Measurement value.}
- \item{Condition}{The condition under which the observation was made.}
+ \item{name}{Name of the observed species.}
+ \item{time}{Measurement time point.}
+ \item{value}{Measurement value.}
+ \item{condition}{The condition under which the observation was made.}
 }
 
 In addition to these columns, any number of columns can follow to allow a
 fine grained definition of conditions. The values of all columns named in
 \option{select} are then merged to get the set of conditions.}
 \usage{
-reduceReplicates(file, select = "Condition", datatrans = NULL)
+reduceReplicates(file, select = "condition", datatrans = NULL)
 }
 \arguments{
 \item{file}{Data file of csv. See Format for details.}
@@ -29,12 +29,12 @@ conditions, see Details.}
 \value{
 A data frame of the following variables
 \describe{
- \item{Species}{Name of the observed species.}
- \item{Time}{Measurement time point.}
- \item{Mean}{Mean of replicates.}
- \item{Sd}{Standard deviation of replicates, NA for single measurements.}
- \item{df}{Degrees of freedom. The number of replictes reduced.}
- \item{Condition}{The condition for which the mean and sd were calculated. If
+ \item{time}{Measurement time point.}
+ \item{name}{Name of the observed species.}
+ \item{value}{Mean of replicates.}
+ \item{sigma}{Standard error of the mean, NA for single measurements.}
+ \item{n}{The number of replicates reduced.}
+ \item{condition}{The condition for which the value and sigma were calculated. If
        more than one column were used to define the condition, this variable
        holds the effecive condition which is the combination of all applied
        single conditions. }

@@ -5,33 +5,38 @@
 \title{Fit an error model}
 \usage{
 fitErrorModel(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
-  par = c(s0 = 1, srel = 0.1), plotting = TRUE, ...)
+  par = c(s0 = 1, srel = 0.1), plotting = TRUE, blather = FALSE, ...)
 }
 \arguments{
-\item{data}{Reduced replicate data, see \link{reduceReplicates}.}
+\item{data}{Reduced replicate data, see \code{\link{reduceReplicates}}. Need
+columns "value", "sigma", "n".}
 
 \item{factors}{\option{data} is pooled with respect to the columns named
 here, see Details.}
 
-\item{errorModel}{Character vector defining the error model. Use \kbd{x} to
-reference the independend variable, see Details.}
+\item{errorModel}{Character vector defining the error model in terms of the variance.
+Use \kbd{x} to reference the independend variable, see Details.}
 
 \item{par}{Inital values for the parameters of the error model.}
 
 \item{plotting}{If TRUE, a plot of the pooled variance together with the fit
 of the error model is shown.}
 
-\item{...}{Parameters handed to the optimizer \link[trust]{trust}.}
+\item{blather}{If TRUE, additional information is returned, such as fit parameters
+and sigmaLS (original sigma given in input data).}
+
+\item{...}{Parameters handed to the optimizer \code{\link{optim}}.}
 }
 \value{
-Returned is a data frame with the first columns identical to
-  \option{data}. Appended are fit values of the parameters of the error
-  model, with the column names equal to the parameter names and the estimated
-  uncertainty Sigma. Sigma is derived by evaluating the error model with the
-  fit parameters. The error model is appended as the attribute "errorModel".
+Returned by default is a data frame with columns as in \option{data},
+  but with the sigma values replaced by the derived values, obtained by evaluating
+  the error model with the fit parameters.
 
-  Confidence bounds for Sigma at confidence level 68\% and 95\% are
-  calculated, Their values come next in the returned data frame. Finally, the
+  If the blather = TRUE option is chosen, fit values of the parameters of the error
+  model are appended, with the column names equal to the parameter names.
+  The error model is appended as the attribute "errorModel".
+  Confidence bounds for sigma at confidence level 68\% and 95\% are
+  calculated, their values come next in the returned data frame. Finally, the
   effective conditions are appended to easily check how the pooling was done.
 }
 \description{
@@ -52,12 +57,12 @@ The variance estimator using \eqn{n-1} data points is \eqn{chi^2}
   parameter \option{data} must provide one or more columns which define the
   pooling of data. In case more than one column is announced by
   \option{factors}, all combinations are constructed. If, e.g.,
-  \option{factors = c("Condition", "Species")} is used, where "Condition" is
-  "a", "b", "c" and repeating and Species is "d", "e" and repeating, the
+  \option{factors = c("condition", "name")} is used, where "condition" is
+  "a", "b", "c" and repeating and "name" is "d", "e" and repeating, the
   effective conditions used for pooling are "a d", "b e", "c d", "a e", "b
   d", and "c e".
 
-  By default, a plot of the pooled data, Sigma and its confidence bound at
+  By default, a plot of the pooled data, sigma and its confidence bound at
   68\% and 95\% is shown.
 }
 \author{

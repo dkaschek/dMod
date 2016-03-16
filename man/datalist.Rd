@@ -35,6 +35,11 @@ Object of class \link{datalist}
 The datalist object stores time-course data in a list of data.frames.
 The names of the list serve as identifiers, e.g. of an experimental condition, etc.
 }
+\details{
+Datalists can be plotted, see \link{plotData} and merged, see \link{sumdatalist}.
+They are the basic structure when combining model prediction and data via the \link{normL2}
+objective function.
+}
 \examples{
 ## Generate datalist from scratch
 mydata1 <- data.frame(name = "A",
