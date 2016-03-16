@@ -760,6 +760,24 @@ objframe <- function(mydata, deriv = NULL) {
   
 }
 
+#' Sum of datasets
+#'
+#' Used to add datasets with overlapping conditions.
+#' 
+#' @param data1 dataset of class \code{datalist}
+#' @param data2 dataset of class \code{datalist}
+#' @details Each prediction function is associated to a number of conditions. Adding functions
+#' means merging or overwriting the set of conditions.
+#' @return dataset of class \code{datalist} for the
+#' union of conditions. 
+#' @export
+"+.datalist" <- function(data1, data2) {
+  conditions <- union(names(data1), names(data2))
+  data <- lapply(conditions, function(C) rbind(data1[[C]], data2[[C]]))
+  names(data) <- conditions
+  return(as.datalist(data))
+}
+  
 out_conditions <- function(c1, c2) {
   
   if (!is.null(c1)) return(c1)
