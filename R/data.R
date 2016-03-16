@@ -14,12 +14,11 @@
 #' respect to the parameters).
 #' @export
 #' @import cOde
-res <- function (data, out) {
+res <- function(data, out) {
   
   # Unique times, names and parameter names
   times <- sort(unique(data$time))
   names <- as.character(unique(data$name))
-  pars <- attr(out, "parameters")
   
   # Match data times/names in unique times/names
   data.time <- match(data$time, times)
@@ -38,6 +37,8 @@ res <- function (data, out) {
   deriv <- attr(out, "deriv")
   deriv.data <- NULL
   if (!is.null(deriv)) {
+  
+    pars <- unique(unlist(lapply(strsplit(colnames(deriv)[-1], split = ".", fixed = TRUE), function(i) i[2])))
     sensnames <- as.vector(outer(names, pars, paste, sep="."))
     # Match names to the corresponding sensitivities in sensnames
     names.sensnames <- t(matrix(1:length(sensnames), nrow = length(names), ncol = length(pars)))
@@ -59,63 +60,14 @@ res <- function (data, out) {
                 weighted.residual = weighted.residuals)
   data <- data[c("time", "name", "value", "prediction", "sigma", 
                  "residual", "weighted.residual")]
-  attr(data, "deriv") <- deriv.data
-  return(data)
-}
-
-
-#' Compute the weighted residual sum of squares
-#' 
-#' @param nout data.frame (result of \link{res})
-#' @return list with entries value (numeric, the weighted residual sum of squares), 
-#' gradient (numeric, gradient) and 
-#' hessian (matrix of type numeric).
-#' @export
-wrss <- function(nout) {
+  #attr(data, "deriv") <- deriv.data
   
-  obj <- sum(nout$weighted.residual^2)
-  grad <- NULL
-  hessian <- NULL
-  
-  if(!is.null(attr(nout, "deriv"))) {
-    nout$sigma[is.na(nout$sigma)] <- 1 #replace by neutral element
-  
-    sens <- as.matrix(attr(nout, "deriv")[,-(1:2)])
-    grad <- as.vector(2*matrix(nout$residual/nout$sigma^2, nrow=1)%*%sens)
-    names(grad) <- colnames(sens)
-    hessian <- 2*t(sens/nout$sigma)%*%(sens/nout$sigma)
-    
-    
-  }
-  
-  out <- list(value=obj, gradient=grad, hessian=hessian)
-  class(out) <- c("obj", "list")
-  
-  return(out)
-
-}
-
-
-#' Generate dummy list of class \code{obj} from named numeric
-#' 
-#' @param p Names numeric vector
-#' @return list with entries value (\code{0}), 
-#' gradient (\code{rep(0, length(p))}) and 
-#' hessian (\code{matrix(0, length(p), length(p))}) of class \code{obj}.
-#' @examples
-#' p <- c(A = 1, B = 2)
-#' as.obj(p)
-#' @export
-as.obj <- function(p) {
-  
-  obj <- list(
-    value = 0,
-    gradient = structure(rep(0, length(p)), names = names(p)),
-    hessian = matrix(0, length(p), length(p), dimnames = list(names(p), names(p))))
-  
-  class(obj) <- "obj"
-  
-  return(obj)
+  objframe(data, deriv = deriv.data)
   
 }
+
+
+
+
+
 

@@ -1,15 +1,36 @@
-#' Print without attributes
+#' Print list of dMod objects in .GlobalEnv
 #' 
-#' @param x The object to be printed out
-#' @param list_attributes prints a list of attribute names if TRUE (default=TRUE)
-#' @details To suppress the printout of attributes like "deriv". 
+#' @description Lists the objects for a set of classes.
+#'   
+#' @param classlist List of object classes to print.
+#' @param envir Alternative environment to search for objects.
+#' @examples 
+#' \dontrun{
+#' lsdMod()
+#' lsdMod(classlist = "prdfn", envir = environment(obj)) 
+#' }
+#' 
 #' @export
-print0 <- function(x, list_attributes=TRUE ) {
-  attributes_all <- names(attributes(x))
-  attributes_rm <- attributes_all[!(attributes_all %in% c("dim","names","dimnames","row.names","col.names"))]
-  attributes(x)[attributes_rm] <- NULL
-  print.default(x)
-  if(list_attributes)
-    cat("Attributes:",attributes_all)
+lsdMod <- function(classlist = c("objfn", "obsfn", "prdfn", "parfn"), envir = .GlobalEnv){
+  glist <- as.list(envir)
+  for (a in classlist) {
+    flist <- which(sapply(glist, function(f) any(class(f) == a)))
+    cat(a,": ")
+    cat(paste(names(glist[flist]), collapse = ", "),"\n")
+  }
 }
 
+
+#' Named repititions
+#' 
+#' @description Wrapper on rep() to input names instead of length.
+#'   
+#' @param x Value to be repeated.
+#' @param names List of names.
+#'   
+#' @export
+repWithNames <- function(x, names){
+  repnum <- rep(x,length(names))
+  names(repnum) <- names
+  return(repnum)
+}

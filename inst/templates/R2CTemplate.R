@@ -1,26 +1,22 @@
-## Library dependencies and plot theme --------------------------------------------
+## Useful libraries --------------------------------------------
 
 library(deSolve)
-library(trust)
 library(parallel)
-library(ggplot2)
-library(ggthemes)
-library(cOde)
 library(dMod)
-
-printP <- function(myplot) print(myplot + theme_few() + scale_color_colorblind() + scale_fill_colorblind())
-
 
 ## Model Definition ------------------------------------------------------
 
-# Read in model csv
-reactionlist <- read.csv("topology.csv") 
+# Read in model csv and generate equation list
+reactionlist <- as.eqnlist(read.csv("topology.csv") )
 
-# Translate data.frame into equations
-f <- generateEquations(reactionlist)
+# Add additional reactions
+reactionlist <- addReaction(reactionlist, from = "", to = "", rate = "", description = "")
+
+# Translate data.frame into equation list
+f <- as.eqnvec(reactionlist)
 
 # Define new observables based on ODE states
-observables <- c(
+observables <- eqnvec(
   # y1 = "s*x1 + off"
 )
 
@@ -29,26 +25,19 @@ forcings <- c(
   # "u1", "u2", "u3", ...
   )
 
-# List of fixed parameters which are known beforehand
-fixed <- c(
-  # "fixed1", "fixed2", ...
-  )
 
-# Add observable ODEs to the original ODEs or use an observation function
-# Choose one of the three options, or combine them
-f <- variableTransformation(observables, f)
-f <- addObservable(observables, f)
-g <- Y(observables, f)
+# Create observation function
+g <- Y(observables, f, compile = TRUE, modelname = "obsfn")
 
 
 # Generate the model C files, compile them and return a list with func and extended.
-model0 <- generateModel(f, fixed = fixed, forcings = forcings, jacobian = "inz.lsodes")
+model0 <- generateModel(f, forcings = forcings, modelname = "odefn")
 
 ## Parameter Transformations -------------------------------------------
 
 # Define inner parameters (parameters occurring in the equations except forcings)
 # Add names(observables) if addObservables(observables, f) is used
-innerpars <- getSymbols(c(f, names(f), observables), exclude=c(forcings, "time"))
+innerpars <- getSymbols(c(names(f), as.character(f), as.character(observables)), exclude = c(forcings, "time"))
 
 # Define additional parameter constraints, e.g. steady-state conditions
 # Parameters (left-hand side) are replaced in the right-hand side of consecutive lines by resolveRecurrence() 
@@ -61,32 +50,32 @@ constraints <- resolveRecurrence(c(
 # Start with the identity
 trafo <- structure(innerpars, names = innerpars)
 # Replace initial value parameters of the observables (if treated as states)
-trafo <- replaceSymbols(names(observables), observables, innerpars)
+trafo <- replaceSymbols(names(observables), observables, trafo)
 # Then employ the other parameter constraints
 trafo <- replaceSymbols(names(constraints), constraints, trafo)
 # Then do a log-transform of all parameters (if defined as positive numbers)
-trafo <- replaceSymbols(innerpars, paste0("exp(log", innerpars, ")"), trafo)
+trafo <- replaceSymbols(innerpars, paste0("exp(", innerpars, ")"), trafo)
 
 
 ## Specify different conditions -----------------------------------------------------
 
 conditions <- c(
-  #"condition1", "condition2", ...
-  )
+  #"condition1", "condition2", ... 
+); names(conditions) <- conditions
 
 # Set condition-specific parameter transformations and generate p2p function
-trafoL <- lapply(conditions, function(con) trafo); names(trafoL) <- conditions
+trafoL <- lapply(conditions, function(con) trafo)
 
 specific <- c("")
 trafoL <- lapply(conditions, function(con) {
-  replaceSymbols(specific, paste(specific, con, sep="_"), trafoL[[con]])
-}); names(trafoL) <- conditions
+  replaceSymbols(specific, paste(specific, con, sep = "_"), trafoL[[con]])
+})
 
-pL <- lapply(conditions, function(con) P(trafoL[[con]])); names(pL) <- conditions
+p <- Reduce("+", lapply(conditions, function(con) P(trafoL[[con]], condition = con)))
 
 
 # Set different forcings per condition
-timesF <- seq(0, 100, by=0.1)
+timesF <- seq(0, 100, by = 0.1)
 uL <- list(
   data.frame(name = "u1", time = timesF, value = 1*dnorm(timesF, 0, 5)),
   data.frame(name = "u2", time = timesF, value = 3*dnorm(timesF, 0, 5)),
@@ -96,113 +85,58 @@ uL <- list(
 
 # Specify prediction functions for the different conditions (depends on different forces 
 # but not on different parameter transformations)
-
-xL <- lapply(conditions, function(con) Xs(model0$func, model0$extended, uL[[con]])); names(xL) <- conditions
-
-# Function for the total model prediction, returns a list of predictions (choose one of
-# the two possibilities)
-x <- function(times, pouter, fixed=NULL, ...) {
-  
-  out <- lapply(conditions, function(cond) xL[[cond]](times, pL[[cond]](pouter, fixed), ...))
-  names(out) <- conditions
-  return(out)
-  
-}
-
-x <- function(times, pouter, fixed=NULL, ...) {
-  
-  out <- lapply(conditions, function(cond) {
-    pinner <- pL[[cond]](pouter, fixed)
-    prediction <- xL[[cond]](times, pinner, ...)
-    observation <- g(prediction, pinner, attach = TRUE)
-    return(observation)
-  }); names(out) <- conditions
-  return(out)
-  
-}
+x <- Reduce("+", lapply(conditions, function(con) Xs(model0, forcings = uL[[con]], condition = con)))
 
 
 ## Data ----------------------------------------------------------------------
 
-datasheet <- read.table("datafile.csv") # with columns condition, name, time, value, sigma
-data <- lapply(conditions, function(mycondition) subset(datasheet, condition == mycondition))
-names(data) <- conditions
+datasheet <- read.table("datafile.csv") # with columns name, time, value, sigma, condition
+data <- as.datalist(datasheet)
 
 ## Objective Functions -------------------------------------------------------
 
-# Data times
-timesD <- unique(sort(unlist(sapply(data, function(d) d$time))))
-
 # Initalize parameters 
-outerpars <- getSymbols(do.call(c, trafoL[conditions]))
+outerpars <- attr(p, "parameters")
 prior <- rep(0, length(outerpars)); names(prior) <- outerpars
 pouter <- rnorm(length(prior), prior, 1); names(pouter) <- outerpars
 
-# Objective function for trust()
-obj <- function(pouter, fixed=NULL, deriv=TRUE) {
-  
-  prediction <- x(timesD, pouter, fixed = fixed, deriv = deriv)
-  out <- lapply(names(data), function(cn) wrss(res(data[[cn]], prediction[[cn]])))
-  
-  # Working with weak prior (helps avoiding runaway solutions of the optimization problem)
-  cOuter <- constraintL2(pouter, prior, sigma = 10)
-  
-  cOuter + Reduce("+", out)
-  
-}
+# Regularization function
+constr <- constraintL2(mu = prior, sigma = 5)
 
 
 ## Howto proceed -------------------------------------------------
 
 # Predicting and plotting
-times <- seq(min(timesD), max(timesD), len=100)
-prediction <- x(times, pouter)
-plotPrediction(prediction)
-plotPrediction(prediction, name %in% names(observables))
+timesD <- sort(unique(datasheet$time))
+times <- seq(min(timesD), max(timesD), len = 100)
+prediction <- (g*x*p)(times, pouter)
+plot(prediction)
+plot(prediction, NULL, name %in% names(observables))
 
 # Fitting
-plotData(data)
-myfit <- trust(obj, pouter, rinit=1, rmax=10, iterlim=500)
-prediction <- x(times, myfit$argument)
-plotCombined(prediction, data)
-plotCombined(prediction, data, name%in%names(observables))
-plotCombined(prediction, data, name%in%names(observables)) + facet_grid(name~condition, scales="free")
-plotObjective(myfit)
+plot(data)
+myfit <- trust(objfun = normL2(data, g*x*p) + constr, 
+               parinit = pouter, rinit = 1, rmax = 10, iterlim = 500)
+prediction <- (g*x*p)(times, myfit$argument)
+plot(prediction, data)
+plot(prediction, data, name %in% names(observables))
+plot(prediction, data, name %in% names(observables), facet = "grid")
 
 # Fitting from random positions
 center <- pouter
-sink("output.txt")
-fitlist <- mclapply(1:100, function(i) {
-  
-  deviation <- rnorm(length(center), 0, 1)
-  pars <- center + deviation
-  
-  out <- NULL
-  myfit <- try(trust(obj, pars, rinit=1, rmax=10, iterlim=1000), silent=TRUE)
-  if(!inherits(myfit, "try-error")) {
-    out <- data.frame(index = i, 
-                      chisquare = myfit$value, 
-                      converged = myfit$converged, 
-                      iterations = myfit$iterations, 
-                      as.data.frame(as.list(myfit$argument)))
-    cat("out", i, myfit$value, myfit$converged, myfit$iterations, "\n")
-  }
-  
-  return(out)
-  
-}, mc.cores=24, mc.preschedule=FALSE)
-sink()
-fitlist <- do.call(rbind, fitlist[sapply(fitlist, class) == "data.frame"])
-fitlist <- fitlist[order(fitlist$chisquare),]
-save(fitlist, file="fitlist.rda")
-bestfit <- unlist(fitlist[1,-(1:4)])
-qplot(y = fitlist$chisquare)
+fitlist <- mstrust(normL2(data, g*x*p) + constr, center, fits = 20, cores = 4)
+partable <- as.parframe(fitlist)
+plotValues(partable)
+bestfit <- as.parvec(partable)
 
+# Compare predictions of best fits
+plotArray(partable[1:10, ], x = g*x*p, times = times, data = data)
 
 # Profile likelihood
-bestfit <- myfit$argument
-profiles.approx <- do.call(c, mclapply(names(bestfit), function(n) profile.trust(obj, bestfit, n, limits=c(-3, 3), algoControl = list(gamma = 0)), mc.cores=4))
-profiles.exact  <- do.call(c, mclapply(names(bestfit), function(n) profile.trust(obj, bestfit, n, limits=c(-3, 3), algoControl = list(gamma = 0, reoptimize = TRUE), optControl = list(iterlim = 10)), mc.cores=4))
+obj <- normL2(data, g*x*p) + constr
+profiles.approx <- do.call(rbind, mclapply(names(bestfit), function(n) profile(obj, bestfit, n, method = "integrate"), mc.cores = 4))
+profiles.exact  <- do.call(rbind, mclapply(names(bestfit), function(n) profile(obj, bestfit, n, method = "optimize"), mc.cores = 4))
 plotProfile(profiles.approx, profiles.exact)
-plotPaths(profiles.approx[1])
-plotPaths(profiles.approx[c(1,3)])
+plotPaths(profiles.approx, whichPar = 1)
+
+

@@ -1,3 +1,213 @@
+#' Compare two objects and return differences
+#' 
+#' Works eigher on a list or on two arguments. In case of a list,
+#' comparison is done with respect to a reference entry. Besides the
+#' objects themselves also some of their attributes are compared,
+#' i.e. "equations", "parameters" and "events" and "forcings".
+#' 
+#' @param vec1 object of class \link{eqnvec}, \code{character} or
+#' \code{data.frame}. Alternatively, a list of such objects.
+#' @param vec2 same as vec1. Not used if vec1 is a list.
+#' @param reference numeric of length one, the reference entry.
+#' @param ... arguments going to the corresponding methods
+#' @return \code{data.frame} or list of data.frames with the differences. 
+#' 
+#' @export
+#' @examples
+#' ## Compare equation vectors
+#' eq1 <- eqnvec(a = "-k1*a + k2*b", b = "k2*a - k2*b")
+#' eq2 <- eqnvec(a = "-k1*a", b = "k2*a - k2*b", c = "k2*b")
+#' compare(eq1, eq2)
+#' 
+#' ## Compare character vectors
+#' c1 <- c("a", "b")
+#' c2 <- c("b", "c")
+#' compare(c1, c2)
+#' 
+#' ## Compare data.frames
+#' d1 <- data.frame(var = "a", time = 1, value = 1:3, method = "replace")
+#' d2 <- data.frame(var = "a", time = 1, value = 2:4, method = "replace")
+#' compare(d1, d2)
+#' 
+#' ## Compare structures like prediction functions
+#' fn1 <- function(x) x^2
+#' attr(fn1, "equations") <- eq1
+#' attr(fn1, "parameters") <- c1
+#' attr(fn1, "events") <- d1
+#' 
+#' fn2 <- function(x) x^3
+#' attr(fn2, "equations") <- eq2
+#' attr(fn2, "parameters") <- c2
+#' attr(fn2, "events") <- d2
+#' 
+#' mylist <- list(f1 = fn1, f2 = fn2)
+#' compare(mylist)
+
+compare <- function(vec1, ...) {
+  UseMethod("compare", vec1)
+}
+
+#' @export
+#' @rdname compare
+compare.list <- function(vec1, vec2 = NULL, reference = 1, ...) {
+  
+  index <- (1:length(vec1))[-reference]
+  diffable.attributes <- c("equations", "parameters", "forcings", "events")
+  
+  
+  out.total <- lapply(index, function(i) {
+    
+    # Compare objects if possible
+    vec1.inner <- vec1[[reference]]
+    vec2.inner <- vec1[[i]]
+    out1 <- NULL
+    if(class(vec1.inner) %in% c("eqnvec", "data.frame")) {
+      out1 <- list(compare(vec1.inner, vec2.inner))
+      names(out1) <- "object"
+    }
+      
+    # Compare comparable attributes of the object if available
+    out2 <- NULL
+    attributes1 <- attributes(vec1.inner)[diffable.attributes]
+    attributes2 <- attributes(vec2.inner)[diffable.attributes]
+    slots <- names(attributes1)[!is.na(names(attributes1))]
+    out2 <- lapply(slots, function(n) {
+      compare(attributes1[[n]], attributes2[[n]])
+    })
+    names(out2) <- slots
+    
+    c(out1, out2)
+    
+  })
+  names(out.total) <- names(vec1)[index]
+  
+  ## Do resorting of the list
+  innernames <- names(out.total[[1]])
+  out.total <- lapply(innernames, function(n) {
+    out <- lapply(out.total, function(out) out[[n]])
+    out[!sapply(out, is.null)]
+  })
+  names(out.total) <- innernames
+  
+  
+  return(out.total)
+  
+  
+  
+}
+
+#' @export
+#' @rdname compare
+compare.character <- function(vec1, vec2 = NULL, ...) {
+  missing <- setdiff(vec1, vec2)
+  additional <- setdiff(vec2, vec1)
+  
+  out <- do.call(rbind, 
+          list(different = NULL, 
+               missing = data.frame(name = missing), 
+               additional = data.frame(name = additional)
+          )
+  )
+  
+  if(nrow(out) == 0) out <- NULL
+  return(out)
+  
+  
+  
+}
+
+#' @export
+#' @rdname compare
+compare.eqnvec <- function(vec1, vec2 = NULL, ...) {
+
+  names1 <- names(vec1)
+  names2 <- names(vec2)
+  
+  missing <- setdiff(names1, names2)
+  additional <- setdiff(names2, names1)
+  joint <- intersect(names1, names2)
+  
+  # Compare joint equations
+  v1 <- format(vec1)
+  v2 <- format(vec2)
+  not.coincide <- which(as.character(v1[joint]) != as.character(v2[joint]))
+  
+  different <- data.frame(name = names(v2[not.coincide]), equation = as.character(v2[not.coincide]))
+  missing <- data.frame(name = names(v2[missing]), equation = as.character(v2[missing]))
+  additional <- data.frame(name = names(v2[additional]), equation = as.character(v2[additional]))
+  
+  out <- do.call(rbind, list(different = different, missing = missing, additional = additional))
+  if(nrow(out) == 0) out <- NULL
+  return(out)
+  
+  
+}
+
+#' @export
+#' @rdname compare
+compare.data.frame <- function(vec1, vec2 = NULL, ...) {
+  
+  additional <- !duplicated(rbind(vec1, vec2))[-(1:nrow(vec1))]
+  missing <- !duplicated(rbind(vec2, vec1))[-(1:nrow(vec2))]
+  
+  out <- do.call(rbind, list(different = character(0), missing = vec1[missing, ], additional = vec2[additional, ]))
+  if(nrow(out) == 0) out <- NULL
+  return(out)
+  
+  
+}
+
+
+#' Combine several data.frames by rowbind
+#' 
+#' @param ... data.frames or matrices with not necessarily overlapping colnames
+#' @details This function is useful when separating models into independent csv model files,
+#' e.g.~a receptor model and several downstream pathways. Then, the models can be recombined 
+#' into one model by \code{combine()}.
+#' 
+#' @return A \code{data.frame}
+#' @export
+#' @examples
+#' data1 <- data.frame(Description = "reaction 1", Rate = "k1*A", A = -1, B = 1)
+#' data2 <- data.frame(Description = "reaction 2", Rate = "k2*B", B = -1, C = 1)
+#' combine(data1, data2)
+#' @export
+combine <- function(...) {
+  
+  # List of input data.frames
+  mylist <- list(...)
+  # Remove empty slots
+  is.empty <- sapply(mylist, is.null)
+  mylist <- mylist[!is.empty]
+  
+  mynames <- unique(unlist(lapply(mylist, function(S) colnames(S))))
+  
+  mylist <- lapply(mylist, function(l) {
+    
+    if(is.data.frame(l)) {
+      present.list <- as.list(l)
+      missing.names <- setdiff(mynames, names(present.list))
+      missing.list <- structure(as.list(rep(NA, length(missing.names))), names = missing.names)
+      combined.data <- do.call(cbind.data.frame, c(present.list, missing.list))
+    }
+    if(is.matrix(l)) {
+      present.matrix <- as.matrix(l)
+      missing.names <- setdiff(mynames, colnames(present.matrix))
+      missing.matrix <- matrix(0, nrow = nrow(present.matrix), ncol = length(missing.names), 
+                             dimnames = list(NULL, missing.names))
+      combined.data <- submatrix(cbind(present.matrix, missing.matrix), cols = mynames)
+    }
+    
+    return(combined.data)
+  })
+  
+  out <- do.call(rbind, mylist)
+  
+  return(out)
+  
+  
+}
+
 #' Submatrix of a matrix returning ALWAYS a matrix
 #' 
 #' @param M matrix
@@ -7,16 +217,17 @@
 #' @export
 submatrix <- function(M, rows = 1:nrow(M), cols = 1:ncol(M)) {
   
+ M[rows, cols, drop = FALSE] 
   
-  
-  myrows <- (structure(1:nrow(M), names = rownames(M)))[rows]
-  mycols <- (structure(1:ncol(M), names = colnames(M)))[cols]
-  
-  if(any(is.na(myrows)) | any(is.na(mycols))) stop("subscript out of bounds")
-  
-  matrix(M[myrows, mycols], 
-         nrow = length(myrows), ncol = length(mycols), 
-         dimnames = list(rownames(M)[myrows], colnames(M)[mycols]))
+  # myrows <- (structure(1:nrow(M), names = rownames(M)))[rows]
+  # mycols <- (structure(1:ncol(M), names = colnames(M)))[cols]
+  # 
+  # if(any(is.na(myrows)) | any(is.na(mycols))) stop("subscript out of bounds")
+  # 
+  # matrix(M[myrows, mycols], 
+  #        nrow = length(myrows), ncol = length(mycols), 
+  #        dimnames = list(rownames(M)[myrows], colnames(M)[mycols]))
+
 }
 
 
@@ -25,6 +236,10 @@ submatrix <- function(M, rows = 1:nrow(M), cols = 1:ncol(M)) {
 #' @param M matrix of type character
 #' @param N matrix of type character
 #' @return Matrix of type character containing M and N as upper left and lower right block
+#' @examples
+#' M <- matrix(1:9, 3, 3, dimnames = list(letters[1:3], letters[1:3]))
+#' N <- matrix(1:4, 2, 2, dimnames = list(LETTERS[1:2], LETTERS[1:2]))
+#' blockdiagSymb(M, N)
 #' @export
 blockdiagSymb <- function(M, N) {
   
@@ -40,6 +255,9 @@ blockdiagSymb <- function(M, N) {
   A <- matrix(0, ncol=dim(N)[2], nrow=dim(M)[1])
   B <- matrix(0, ncol=dim(M)[2], nrow=dim(N)[1])
   result <- rbind(cbind(M, A), cbind(B, N))
+  colnames(result) <- c(colnames(M), colnames(N))
+  rownames(result) <- c(rownames(M), rownames(N))
+  
   return(result)
   
 }
@@ -98,6 +316,7 @@ wide2long.matrix <- function(out, keep = 1, na.rm = FALSE) {
   
   timenames <- colnames(out)[keep]
   allnames <- colnames(out)[-keep]
+  if(any(duplicated(allnames))) warning("Found duplicated colnames in out. Duplicates were removed.")
   times <- out[,keep]
   ntimes<- nrow(out)
   values <- unlist(out[,allnames])
@@ -125,22 +344,17 @@ wide2long.matrix <- function(out, keep = 1, na.rm = FALSE) {
 wide2long.list <- function(out, keep = 1, na.rm = FALSE) {
   
   conditions <- names(out)
+  numconditions <- suppressWarnings(as.numeric(conditions))
   
-  outlong <- do.call(rbind, lapply(conditions, function(cond) {
+  if(!any(is.na(numconditions))) 
+    numconditions <- as.numeric(numconditions) 
+  else 
+    numconditions <- conditions
+  
+  
+  outlong <- do.call(rbind, lapply(1:length(conditions), function(cond) {
     
-    cbind(wide2long.matrix(out[[cond]]), condition = cond)
-    
-    #myout <- out[[cond]]
-    #timename <- colnames(myout)[1]
-    #allnames <- colnames(myout)[-1]
-    #times <- myout[,1]
-    #values <- unlist(myout[,allnames])
-    #myoutlong <- data.frame(time = times, 
-    #                        name = rep(allnames, each=length(times)), 
-    #                        value = as.numeric(values), 
-    #                        condition = cond)
-    #colnames(myoutlong)[1] <- timename
-    #return(myoutlong)
+    cbind(wide2long.matrix(out[[cond]]), condition = numconditions[cond])
     
   }))
   
@@ -180,11 +394,18 @@ long2wide <- function(out) {
 lbind <- function(mylist) {
   
   conditions <- names(mylist)
+  #numconditions <- suppressWarnings(as.numeric(conditions))
+  #
+  # if(!any(is.na(numconditions))) 
+  #   numconditions <- as.numeric(numconditions) 
+  # else 
+  numconditions <- conditions
+
   
-  outlong <- do.call(rbind, lapply(conditions, function(cond) {
+  outlong <- do.call(rbind, lapply(1:length(conditions), function(cond) {
     
     myout <- mylist[[cond]]
-    myoutlong <- cbind(myout, condition = cond)
+    myoutlong <- cbind(myout, condition = numconditions[cond])
     
     return(myoutlong)
     
@@ -221,108 +442,4 @@ loadTemplate <- function(i = 1) {
 
 
 
-
-#' Evaluation of algebraic expressions defined by characters
-#' 
-#' @param x Name character vector, the algebraic expressions
-#' @param compile Logical. The function is either compiled (requires the \code{inline} package) or
-#' evaluated in raw R.
-#' @return A prediction function \code{f(mylist)} where \code{mylist} is a list of numeric vectors that can
-#' be coerced into a matrix. The names correspond to the symbols used in the algebraic expressions. The
-#' function \code{f} returns a matrix.
-#' @examples 
-#' \dontrun{
-#' myfun <- funC0(c(x = "x", y = "a*x^4 + b*x^2 + c"))
-#' out <- myfun(list(a = -1, b = 2, c = 3, x = seq(-2, 2, .1)))
-#' plot(out[, 1], out[, 2])
-#' }
-#' 
-#' @export
-funC0 <- function(x, compile = TRUE) {
-    
-  # Get symbols to be substituted by x[] and y[]
-  outnames <- names(x)
-  innames <- getSymbols(x)
-  
-  x.new <- paste0(x, collapse = ", ")
-  x.new <- paste0("list(", x.new, ")")
-  x.expr <- parse(text = x.new)
-  
-  ## Compiled version based on inline package
-  ## Non-compiled version based on with() and eval()
-  if(compile) {
-    
-    # Do the replacement to obtain C syntax
-    x <- replaceOperation("^", "pow", x)
-    x <- replaceSymbols(innames, paste0("x[", (1:length(innames))-1, "+i* *k]"), x)
-    names(x) <- paste0("y[", (1:length(outnames)) - 1, "+i* *l]")
-    
-    # Paste into equation
-    x <- x[x != "0"]
-    expr <- paste(names(x), "=", x, ";")
-    
-    # Put equation into loop, body of the C function
-    body <- paste(
-      "for(int i = 0; i< *n; i++) {",
-      paste(expr, collapse=""),
-      "}"
-    )
-    
-    # Generate the C function by the inline package
-    myCfun <- inline::cfunction(sig=c(x = "double", y = "double", n = "integer", k = "integer", l = "integer"),
-                                body=body,
-                                language="C",
-                                convention=".C"
-    )
-    
-    # Generate output function
-    myRfun <- function(x) {
-      
-      # Translate the list into matrix and then into vector
-      M <- do.call(rbind, x[innames])
-      if(length(M) == 0) M <- matrix(0)
-      x <- as.double(as.vector(M))
-      
-      # Get integers for the array sizes
-      n <- as.integer(dim(M)[2])
-      k <- as.integer(length(innames))
-      if(length(k) == 0) k <- as.integer(0)
-      l <- as.integer(length(outnames))
-      
-      
-      # Initialize output vector
-      y <- double(l*n)
-      
-      # Evaluate C function and write into matrix
-      out <- matrix(myCfun(x, y, n, k, l)$y, nrow=length(outnames), ncol=n)
-      rownames(out) <- outnames
-      
-      return(t(out))    
-      
-    }
-    
-    
-    
-  } else {
-    
-    # Generate output function
-    myRfun <- function(x) {
-      
-      out.list <- with(x, eval(x.expr))
-      out.matrix <- do.call(cbind, out.list)
-      colnames(out.matrix) <- outnames
-      rownames(out.matrix) <- NULL
-      
-      return(out.matrix)
-      
-    }
-    
-  }
-  
-  
-  attr(myRfun, "equations") <- x
-  
-  return(myRfun)
-  
-}
 
