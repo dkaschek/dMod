@@ -20,5 +20,8 @@ Suggests:
     MASS,
     rPython,
     rootSolve,
-    pander
-RoxygenNote: 5.0.1
+    pander,
+    knitr,
+    rmarkdown
+RoxygenNote: 4.1.0
+VignetteBuilder: knitr
