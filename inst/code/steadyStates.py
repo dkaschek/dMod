@@ -236,7 +236,7 @@ def DetermineGraphStructure(SM, F, X, neglect):
                 if(j==i):
                     In=((SM*F)[i]).subs(X[j],0)
                     Out=simplify(((SM*F)[i]-In)/X[j])
-                    if(Out!=Out.subs(X[j],1)):
+                    if(Out!=Out.subs(X[j],1) or '-' in str(In)):
                         liste.append(str(X[j]))
                 else:
                     liste.append(str(X[j]))
@@ -575,13 +575,13 @@ def ODESS(filename,
     Xo=X.copy()
         
 ##### Define stoichiometry matrix SM
-    print(SM)
+    #print(SM)
     if(filename!=None):
         SM=[]
         for i in range(len(L)-1):
           SM.append(L[i+1][2:])        
         for i in range(len(SM)):
-        	for j in range(len(SM[0])):
+          for j in range(len(SM[0])):
         		if (SM[i][j]==''):
         			SM[i][j]='0'
         		SM[i][j]=parse_expr(SM[i][j])    
@@ -624,10 +624,8 @@ def ODESS(filename,
                     #UsedRC.append(X[j-jcounter])
                     X.row_del(j-jcounter)
                     SM.row_del(j-jcounter)
-                    SMorig.row_del(j-jcounter)
                     jcounter=jcounter+1
             SM.col_del(i-icounter)
-            SMorig.col_del(i-icounter)
             icounter=icounter+1
     
     print('Removed '+str(icounter)+' fluxes that are a priori zero!')
@@ -841,7 +839,7 @@ def ODESS(filename,
     
 #### Find conserved quantities
     
-    #printmatrix(CMbig)
+    #printmatrix(CMbig.transpose())
     #print(X)
     if(givenCQs==[]):
         print('\nFinding conserved quantities ...')
@@ -866,7 +864,8 @@ def ODESS(filename,
     eqOut=[]
     while(cycle!=None):
         print('Removing cycle '+str(counter))
-        
+        #printmatrix(SM)
+        #print(F)
         minType, state2Rem, fp2Rem, signChanged = GetBestPair(cycle, SM, fluxpars, X, LCLs, neglect)
         #print(cycle)
         #print(state2Rem)
@@ -948,7 +947,7 @@ def ODESS(filename,
                 sol=solve(eq, fp2Rem, simplify=False)[0]
                 eqOut.append(str(fp2Rem)+' = '+str(sol))
                 print('   '+str(state2Rem)+' --> '+str(fp2Rem))
-                colindex=list(F).index(flux)
+                colindex=list(fluxpars).index(fp2Rem)
                 for row2repl in range(len(SM.col(0))):
                     if(SM[row2repl,colindex]!=0 and row2repl!=index):
                         SM=SM.row_insert(row2repl,SM.row(row2repl)-(SM[row2repl,colindex]/SM[index,colindex])*SM.row(index))
@@ -970,7 +969,7 @@ def ODESS(filename,
                             gesnew=gesnew+1
                             trafoList.append(str(fp)+' = ('+str(sumposs)+')*'+'r_'+state2Rem+'_'+str(j)+'/('+str(nenner)+')*1/('+str(prefactor)+')')
                         
-                        colindex=list(F).index(flux)
+                        colindex=list(fluxpars).index(fp)
                         for k in range(len(posfps)):
                             SM=SM.col_insert(len(SM.row(0)),SM.col(colindex))
                             if(j==0):
@@ -993,7 +992,7 @@ def ODESS(filename,
                         else:
                             gesnew=gesnew+1
                             trafoList.append(str(fp)+' = ('+str(sumnegs)+')*'+'r_'+state2Rem+'_'+str(j)+'/('+str(nenner)+')*1/('+str(prefactor)+')')
-                        colindex=list(F).index(flux)
+                        colindex=list(fluxpars).index(fp)
                         for k in range(len(negfps)):
                             SM=SM.col_insert(len(SM.row(0)),SM.col(colindex))
                             if(j==0):
@@ -1011,6 +1010,9 @@ def ODESS(filename,
         SM.row_del(index)
         SSgraph=DetermineGraphStructure(SM, F, X, neglect)
         #printgraph(SSgraph)
+        #printmatrix(SM)
+        #print(F)
+        #print(X)
         cycle=FindCycle(SSgraph, X)
         counter=counter+1       
     print('There is no cycle in the system!\n')              
