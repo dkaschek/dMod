@@ -72,7 +72,7 @@ theme_dMod <- function(base_size = 11, base_family = "") {
           strip.background = element_rect(fill = "white", colour = NA)) 
 }
 
-dMod_colors <- c("#000000", "#C5000B", "#579D1C", "#0084D1", "#FF950E", "#4B1F6F", rep("gray", 100))
+dMod_colors <- c("#000000", "#C5000B", "#579D1C", "#0084D1", "#FF950E", "#8A39CC", rep("gray", 100))
 
 #' Standard dMod color palette
 #' 
