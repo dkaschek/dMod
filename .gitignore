@@ -4,3 +4,4 @@
 .Rbuildignore
 .gitignore.swp
 .f*
+inst/doc
