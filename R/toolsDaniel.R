@@ -138,7 +138,7 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
   }
   
   # Save current workspace
-  save(list = input, file = paste0(filename0, ".RData"))
+  save(list = input, file = paste0(filename0, ".RData"), envir = .GlobalEnv)
   
   # Get loaded packages
   pack <- sapply(strsplit(search(), "package:", fixed = TRUE), function(v) v[2])
