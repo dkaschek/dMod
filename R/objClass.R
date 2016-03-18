@@ -154,6 +154,7 @@ normL2 <- function(data, x, times = NULL, attr.name = "data") {
   }
   class(myfn) <- c("objfn", "fn")
   attr(myfn, "conditions") <- data.conditions
+  attr(myfn, "parameters") <- attr(x, "parameters")
   return(myfn)
 
 }
@@ -251,6 +252,7 @@ constraintL2 <- function(mu, sigma = 1, attr.name = "prior", condition = NULL) {
   }
   class(myfn) <- c("objfn", "fn")
   attr(myfn, "conditions") <- condition
+  attr(myfn, "parameters") <- names(mu)
   return(myfn)
  
   
@@ -362,6 +364,7 @@ datapointL2 <- function(name, time, value, sigma = 1, attr.name = "validation", 
   
   class(myfn) <- c("objfn", "fn")
   attr(myfn, "conditions") <- condition
+  attr(myfn, "parameters") <- value[1]
   
   
   return(myfn)
@@ -470,6 +473,7 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
   
   class(myfn) <- c("objfn", "fn")
   attr(myfn, "conditions") <- condition
+  attr(myfn, "parameters") <- names(mu)
   return(myfn)
   
 }
@@ -576,9 +580,13 @@ wrss <- function(nout) {
 
 #' @export
 print.objfn <- function(x, ...) {
+ 
+  parameters <- attr(x, "parameters")
   
   cat("Objective function:\n")
   str(args(x))
+  cat("\n")
+  cat("... parameters:", paste0(parameters, collapse = ", "), "\n")
   
 }
 
