@@ -596,8 +596,12 @@ objframe <- function(mydata, deriv = NULL) {
   
   conditions.x1 <- attr(x1, "conditions")
   conditions.x2 <- attr(x2, "conditions")
-  
   conditions12 <- union(conditions.x1, conditions.x2)
+  
+  parameters.x1 <- attr(x1, "parameters")
+  parameters.x2 <- attr(x2, "parameters")
+  parameters12 <- union(parameters.x1, parameters.x2)
+  
   
   # objfn + objfn
   if (inherits(x1, "objfn") & inherits(x2, "objfn")) {
@@ -618,6 +622,7 @@ objframe <- function(mydata, deriv = NULL) {
     
     class(outfn) <- c("objfn", "fn")
     attr(outfn, "conditions") <- conditions12
+    attr(outfn, "parameters") <- parameters12
     return(outfn)
     
   }
@@ -1167,33 +1172,33 @@ controls.fn <- function(x, condition = NULL, name = NULL, ...) {
 #' \code{prdlist -> prdlist}, 
 #' \code{objlist -> named numeric}.
 #' @export
-derivatives <- function(x, ...) {
-  UseMethod("derivatives", x)
+getDerivs <- function(x, ...) {
+  UseMethod("getDerivs", x)
 }
 
 #' @export
-#' @rdname derivatives
-derivatives.parvec <- function(x, ...) {
+#' @rdname getDerivs
+getDerivs.parvec <- function(x, ...) {
   
   attr(x, "deriv")
   
 }
 
 #' @export
-#' @rdname derivatives
-derivatives.prdframe <- function(x, ...) {
+#' @rdname getDerivs
+getDerivs.prdframe <- function(x, ...) {
   
   prdframe(prediction = attr(x, "deriv"), parameters = attr(x, "parameters"))
   
 }
 
 #' @export
-#' @rdname derivatives
-derivatives.prdlist <- function(x, ...) {
+#' @rdname getDerivs
+getDerivs.prdlist <- function(x, ...) {
   
   as.prdlist(
     lapply(x, function(myx) {
-      derivatives(myx)
+      getDerivs(myx)
     }),
     names = names(x)
   )
@@ -1201,18 +1206,92 @@ derivatives.prdlist <- function(x, ...) {
 }
 
 #' @export
-#' @rdname derivatives
-derivatives.list <- function(x, ...) {
+#' @rdname getDerivs
+getDerivs.list <- function(x, ...) {
   
-  lapply(x, function(myx) derivatives(myx))
+  lapply(x, function(myx) getDerivs(myx))
   
 }
 
 
 #' @export
-#' @rdname derivatives
-derivatives.objlist <- function(x, ...) {
+#' @rdname getDerivs
+getDerivs.objlist <- function(x, ...) {
   
   x$gradient
+  
+}
+
+
+#' Extract the parameters of an object
+#' 
+#' @param x object from which the parameters should be extracted
+#' @param ... additional arguments (not used right now)
+#' @return The parameters in a format that depends on the class of \code{x}.
+#' @export
+getParameters <- function(x, ...) {
+  UseMethod("getParameters", x)
+}
+
+#' @export
+#' @rdname getParameters
+getParameters.fn <- function(x, ...) {
+  
+  attr(x, "parameters")
+  
+}
+#' @export
+#' @rdname getParameters
+getParameters.parvec <- function(x, ...) {
+  
+  names(x)
+  
+}
+
+#' @export
+#' @rdname getParameters
+getParameters.prdframe <- function(x, ...) {
+  
+  attr(x, "parameters")
+  
+}
+
+#' @export
+#' @rdname getParameters
+getParameters.list <- function(x, ...) {
+  
+  lapply(x, function(myx) getParameters(myx))
+  
+}
+
+
+
+
+
+#' Extract the conditions of an object
+#' 
+#' @param x object from which the conditions should be extracted
+#' @param ... additional arguments (not used right now)
+#' @return The conditions in a format that depends on the class of \code{x}.
+#' @export
+getConditions <- function(x, ...) {
+  UseMethod("getConditions", x)
+}
+
+
+#' @export
+#' @rdname getConditions
+getConditions.list <- function(x, ...) {
+  
+  names(x)
+  
+}
+
+
+#' @export
+#' @rdname getConditions
+getConditions.fn <- function(x, ...) {
+  
+  attr(x, "conditions")
   
 }

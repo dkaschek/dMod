@@ -42,7 +42,7 @@ p_log <- P(logtrafo)
 
 pars <- c(logk1 = 1, logk2 = -1, logA = 0, logB = 0)
 out <- p_log(pars)
-derivatives(out)
+getDerivs(out)
 }
 \seealso{
 \link{Pimpl} for implicit parameter transformations

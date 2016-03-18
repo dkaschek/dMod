@@ -52,7 +52,7 @@ P <- function(trafo = NULL, parameters=NULL, condition = NULL, keep.root = TRUE,
 #' 
 #' pars <- c(logk1 = 1, logk2 = -1, logA = 0, logB = 0)
 #' out <- p_log(pars)
-#' derivatives(out)
+#' getDerivs(out)
 #' @export
 Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, modelname = NULL, verbose = FALSE) {
   
