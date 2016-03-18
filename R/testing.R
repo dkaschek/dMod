@@ -41,9 +41,8 @@ exmpextr <- function(test, testPath = NULL, examplePath = NULL) {
   
   # Data format
   tag <- "#-!"
-  tagStart <- "Start example code"
-  tagEnd <- "End example code"
-  tagLength <- nchar(tag)
+  tagStart <- paste0(tag, "Start example code")
+  tagEnd <- paste0(tag, "End example code")
   
   
   # Find and check example blocks
@@ -81,39 +80,32 @@ exmpextr <- function(test, testPath = NULL, examplePath = NULL) {
     # Get the current example block
     blockCode <- code[(s + 1):(e - 1)]
     
-    # Inspect lines for our tag and act upon.
+    # Inspect lines in order to remove our tag.
+    # We do not guarantee, that 'tag' is the first non-whitespace character.
+    # Thus, the first occurence of 'tag' is removed irrespective of its position
+    # in l. This seems to be a corner case which is not worth introducing an
+    # extra if statement.
     blockParsed <- do.call(rbind, lapply(blockCode, function(l) {
-      lt <- trimws(l)
-      
-      # Line is tagged. Remove tag and return line.
-      if (substr(lt, 1, tagLength) == tag) {
-        return(substr(lt, tagLength + 1, nchar(lt)))
-      }
-      # Line is untagged. Return trimmed line.
-      else {
-        return(lt)
-      }
+      return(sub(tag, "", l))
     }))
-    
   }, s = blocks[, "start"], blocks[, "end"])
   
-  
+
   # Write examples to file.
   outFile <- file(exampleFile, open = "wt")
   
-  if (is.matrix(examples)) {
+  if (!is.list(examples)) {
     writeLines(examples, outFile)
-  } else if (is.list(examples)) {
+  } else {
     lapply(examples, function(block) {
       writeLines(block, outFile)
       cat("\n\n", file = outFile)
     })
-  } else {
-    stop("Unexpected type")
   }
   
   close(outFile)
 
+  return(0)
 }
 
 
