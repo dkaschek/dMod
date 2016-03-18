@@ -26,7 +26,6 @@ knitr::opts_chunk$set(echo = TRUE, fig.width = 10, fig.height = 8, warning = FAL
 ```{r}
 library(deSolve)
 library(dMod)
-library(parallel)
 set.seed(1)
 ```
 
@@ -208,7 +207,7 @@ plot((g*x*p)(times, myfit$argument), data)
 Sometimes, the system has many local optima. A single fit converges to a neighboring optimum and we would like to spread the initial positions of optimization throughout the parameter space. This procedure is implemented in the multi-start trust procedure `mstrust()`:
 
 ```{r, fig.width = 5, fig.height = 4}
-fitlist <- mstrust(obj + constr, center = mu, fits = 20, cores = 4, lower = -1, upper = 1, samplefun = "runif")
+fitlist <- mstrust(obj + constr, center = mu, fits = 20, cores = 1, lower = -1, upper = 1, samplefun = "runif")
 pars <- as.parframe(fitlist)
 plotValues(subset(pars, converged))
 

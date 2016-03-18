@@ -19,6 +19,7 @@ Depends:
 Suggests:
     MASS,
     rPython,
+    deSolve,
     rootSolve,
     pander,
     knitr,
