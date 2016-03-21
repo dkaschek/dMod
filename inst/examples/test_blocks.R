@@ -36,7 +36,7 @@ events$b <- data.frame(var = "A", time = 5, value = 2, method = "add")
 ## and functions from above information) 
 
 # ODE model
-model <- odemodel(f, nGridpoints = 2, jacobian = "full")
+model <- odemodel(f, jacobian = "inz.lsodes")
 
 # Observation function
 g <- Y(observables, f, compile = TRUE, modelname = "obsfn")
