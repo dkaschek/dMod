@@ -1229,20 +1229,30 @@ getDerivs.objlist <- function(x, ...) {
 #' @param ... additional arguments (not used right now)
 #' @return The parameters in a format that depends on the class of \code{x}.
 #' @export
-getParameters <- function(x, ...) {
+getParameters <- function(x, conditions = NULL, ...) {
   UseMethod("getParameters", x)
 }
 
 #' @export
 #' @rdname getParameters
-getParameters.fn <- function(x, ...) {
+getParameters.fn <- function(x, conditions = NULL, ...) {
   
-  attr(x, "parameters")
+  if (is.null(conditions)) {
+    parameters <- attr(x, "parameters")
+  } else {
+    mappings <- attr(x, "mappings")
+    mappings <- mappings[intersect(names(mappings), conditions)]
+    parameters <- Reduce("union",
+                         lapply(mappings, function(m) attr(m, "parameters"))
+    )
+  }
+  
+  return(parameters)  
   
 }
 #' @export
 #' @rdname getParameters
-getParameters.parvec <- function(x, ...) {
+getParameters.parvec <- function(x, conditions = NULL, ...) {
   
   names(x)
   
@@ -1250,7 +1260,7 @@ getParameters.parvec <- function(x, ...) {
 
 #' @export
 #' @rdname getParameters
-getParameters.prdframe <- function(x, ...) {
+getParameters.prdframe <- function(x, conditions = NULL, ...) {
   
   attr(x, "parameters")
   
@@ -1258,9 +1268,11 @@ getParameters.prdframe <- function(x, ...) {
 
 #' @export
 #' @rdname getParameters
-getParameters.list <- function(x, ...) {
+getParameters.prdlist <- function(x, conditions = NULL, ...) {
   
-  lapply(x, function(myx) getParameters(myx))
+  select <- 1:length(x)
+  if (!is.null(conditions)) select <- intersect(names(x), conditions)
+  lapply(x[select], function(myx) getParameters(myx))
   
 }
 
