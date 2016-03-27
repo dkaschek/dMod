@@ -145,7 +145,7 @@ print.obsfn <- function(x, ...) {
 }
 
 #' @export
-summary.obsn <- function(object, ...) {
+summary.obsfn <- function(object, ...) {
   
   x <- object
   
