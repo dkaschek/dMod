@@ -853,7 +853,19 @@ test_conditions <- function(c1, c2) {
       
     }
     
-    attr(outfn, "mappings") <- attr(p1, "mappings")
+    # Generate mappings for observation function
+    l <- max(c(1, length(conditions.out)))
+    mappings <- lapply(1:l, function(i) {
+      mapping <- function(out, pars) {
+        outfn(out = out, pars = pars, conditions = conditions.out[i])[[1]]
+      }
+      attr(mapping, "parameters") <- getParameters(p2, conditions = conditions.out[i])
+      
+      return(mapping)
+    })
+    names(mappings) <- conditions.out
+    attr(outfn, "mappings") <- mappings
+    
     attr(outfn, "parameters") <- attr(p2, "parameters")
     attr(outfn, "conditions") <- conditions.out
     class(outfn) <- c("obsfn", "fn", "composed")
@@ -886,7 +898,19 @@ test_conditions <- function(c1, c2) {
       
     }
     
-    attr(outfn, "mappings") <- attr(p1, "mappings")
+    # Generate mappings for observation function
+    l <- max(c(1, length(conditions.out)))
+    mappings <- lapply(1:l, function(i) {
+      mapping <- function(out, pars) {
+        outfn(out = out, pars = pars, conditions = conditions.out[i])[[1]]
+      }
+      attr(mapping, "parameters") <- getParameters(p2, conditions = conditions.out[i])
+      
+      return(mapping)
+    })
+    names(mappings) <- conditions.out
+    attr(outfn, "mappings") <- mappings
+    
     attr(outfn, "parameters") <- attr(p2, "parameters")
     attr(outfn, "conditions") <- conditions.out
     class(outfn) <- c("obsfn", "fn", "composed")
@@ -919,7 +943,19 @@ test_conditions <- function(c1, c2) {
       
     }
     
-    attr(outfn, "mappings") <- attr(p1, "mappings")
+    # Generate mappings for prediction function
+    l <- max(c(1, length(conditions.out)))
+    mappings <- lapply(1:l, function(i) {
+      mapping <- function(times, pars, deriv = TRUE) {
+        outfn(times = times, pars = pars, deriv = deriv, conditions = conditions.out[i])[[1]]
+      }
+      attr(mapping, "parameters") <- getParameters(p2, conditions = conditions.out[i])
+      
+      return(mapping)
+    })
+    names(mappings) <- conditions.out
+    attr(outfn, "mappings") <- mappings
+ 
     attr(outfn, "parameters") <- attr(p2, "parameters")
     attr(outfn, "conditions") <- conditions.out
     class(outfn) <- c("prdfn", "fn", "composed")
@@ -954,7 +990,20 @@ test_conditions <- function(c1, c2) {
       
     }
     
-    attr(outfn, "mappings") <- attr(p1, "mappings")
+    # Generate mappings for prediction function
+    l <- max(c(1, length(conditions.out)))
+    mappings <- lapply(1:l, function(i) {
+      mapping <- function(times, pars, deriv = TRUE) {
+        outfn(times = times, pars = pars, deriv = deriv, conditions = conditions.out[i])[[1]]
+      }
+      attr(mapping, "parameters") <- getParameters(p2, conditions = conditions.out[i])
+      
+      return(mapping)
+    })
+    names(mappings) <- conditions.out
+    attr(outfn, "mappings") <- mappings
+    
+    
     attr(outfn, "conditions") <- conditions.out
     attr(outfn, "parameters") <- attr(p2, "parameters")
     class(outfn) <- c("prdfn", "fn", "composed")
@@ -983,7 +1032,21 @@ test_conditions <- function(c1, c2) {
       
     }
     
-    attr(outfn, "mappings") <- attr(p2, "mappings")
+
+    # Generate mappings for parameters function
+    l <- max(c(1, length(conditions.out)))
+    mappings <- lapply(1:l, function(i) {
+      mapping <- function(pars, fixed = NULL, deriv = TRUE) {
+        outfn(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions.out[i])[[1]]
+      }
+      attr(mapping, "parameters") <- getParameters(p2, conditions = conditions.out[i])
+      
+      return(mapping)
+    })
+    names(mappings) <- conditions.out
+    attr(outfn, "mappings") <- mappings
+    
+    
     attr(outfn, "parameters") <- attr(p2, "parameters")
     attr(outfn, "conditions") <- conditions.out
     class(outfn) <- c("parfn", "fn", "composed")
@@ -1012,7 +1075,19 @@ test_conditions <- function(c1, c2) {
       
     }
     
-    attr(outfn, "mappings") <- attr(p2, "mappings")
+    # Generate mappings for parameters function
+    l <- max(c(1, length(conditions.out)))
+    mappings <- lapply(1:l, function(i) {
+      mapping <- function(pars, fixed = NULL, deriv = TRUE) {
+        outfn(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions.out[i])[[1]]
+      }
+      attr(mapping, "parameters") <- getParameters(p2, conditions = conditions.out[i])
+      
+      return(mapping)
+    })
+    names(mappings) <- conditions.out
+    attr(outfn, "mappings") <- mappings
+    
     attr(outfn, "parameters") <- attr(p2, "parameters")
     attr(outfn, "conditions") <- conditions.out
     class(outfn) <- c("parfn", "fn", "composed")

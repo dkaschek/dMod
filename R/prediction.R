@@ -2,7 +2,7 @@
 
 #' Model prediction function for ODE models. 
 #' @description Interface to combine an ODE and its sensitivity equations
-#' into one model function \code{x(times, pars, forcings, events, deriv = TRUE)} returning ODE output and sensitivities.
+#' into one model function \code{x(times, pars, deriv = TRUE)} returning ODE output and sensitivities.
 #' @param odemodel object of class \link{odemodel}
 #' @param forcings data.frame with columns name (factor), time (numeric) and value (numeric).
 #' The ODE forcings.
@@ -582,7 +582,7 @@ Xt <- function(condition = NULL) {
   attr(P2X, "events") <- NULL
   
   
-
+  
   prdfn(P2X, NULL, condition) 
   
   
