@@ -863,6 +863,7 @@ reduceReplicates <- function(file, select = "condition", datatrans = NULL) {
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'
 #' @export
+#' @importFrom stats D approx optim qchisq sd time
 fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
                           par = c(s0 = 1, srel = .1), plotting = TRUE, blather = FALSE, ...) {
 

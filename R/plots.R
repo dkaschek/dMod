@@ -147,6 +147,7 @@ plotPrediction <- function(prediction, ..., scales = "free", facet = "wrap", tra
 #' 
 #' @return A plot object of class \code{ggplot}.
 #' @example inst/examples/plotting.R
+#' @importFrom graphics par
 #' @export
 plotCombined <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
   

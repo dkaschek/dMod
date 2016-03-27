@@ -384,6 +384,7 @@ as.data.frame.eqnlist <- function(x, ...) {
 #' @param ... Arguments going to \link[utils]{write.csv}
 #' 
 #' @export
+#' @importFrom utils file.edit getParseData install.packages installed.packages read.csv str tail write.csv
 write.eqnlist <- function(eqnlist, ...) {
   
   
