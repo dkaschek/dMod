@@ -794,7 +794,7 @@ objframe <- function(mydata, deriv = NULL) {
   grid1 <- attr(data1, "condition.grid")
   grid2 <- attr(data2, "condition.grid")
   grid <- combine(grid1, grid2)
-  if (is.data.frame(grid)) grid <- grid[!duplicated(grid[, 1]),]
+  if (is.data.frame(grid)) grid <- grid[!duplicated(rownames(grid)),]
   
   out <- as.datalist(data)
   attr(out, "condition.grid") <- grid
