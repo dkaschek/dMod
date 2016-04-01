@@ -1,3 +1,16 @@
+#' Open last plot in external pdf viewer
+#' 
+#' @description Convenience function to show last plot in an external viewer.
+#' @param plot \code{ggplot2} plot object.
+#' @param command character, indicatig which pdf viewer is started.
+#' @param ... arguments going to \code{ggsave}.
+#' @export
+ggopen <- function(plot = last_plot(), command = "xdg-open", ...) {
+  filename <- tempfile(pattern = "Rplot", fileext = ".pdf")
+  ggsave(filename = filename, plot = plot, ...)
+  system(command = paste(command, filename))
+}
+
 #' Coordinate transformation for data frames
 #' 
 #' Applies a symbolically defined transformation to the \code{value}
