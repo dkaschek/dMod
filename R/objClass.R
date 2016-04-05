@@ -125,6 +125,12 @@ normL2 <- function(data, x, times = NULL, attr.name = "data") {
     arglist <- list(...)
     arglist <- arglist[match.fnargs(arglist, "pars")]
     pouter <- arglist[[1]]
+    
+    template <- objlist(
+      value = 0,
+      gradient = structure(rep(0, length(pouter)), names = names(pouter)),
+      hessian = matrix(0, nrow = length(pouter), ncol = length(pouter), dimnames = list(names(pouter), names(pouter)))
+    )
    
     # Import from controls
     timesD <- controls$times
@@ -136,7 +142,15 @@ normL2 <- function(data, x, times = NULL, attr.name = "data") {
     prediction <- x(times = timesD, pars = pouter, fixed = fixed, deriv = deriv, conditions = conditions)
     
     # Apply res() and wrss() to compute residuals and the weighted residual sum of squares
-    out.data <- lapply(conditions, function(cn) wrss(res(data[[cn]], prediction[[cn]])))
+    out.data <- lapply(conditions, function(cn) {
+      mywrss <- wrss(res(data[[cn]], prediction[[cn]]))
+      available <- intersect(names(pouter), names(mywrss$gradient))
+      result <- template
+      result$value <- mywrss$value
+      result$gradient[available] <- mywrss$gradient[available]
+      result$hessian[available, available] <- mywrss$hessian[available, available]
+      return(result)
+    })
     out.data <- Reduce("+", out.data)
     
     # Combine contributions and attach attributes
