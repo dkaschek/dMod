@@ -2,25 +2,34 @@
 #' 
 #' @param prediction object of class prediction list
 #' @param data object of class data list
+#' @param ... arguments going to subsetting of prediction and data
 #' @param condition.grid data.frame with row.names according to the condition names.
 #' @param substitute Substitute "_" by character \code{substitute}.
-#' @param ... arguments going to subsetting of prediction and data
 #' @return list with prediction (data.frame) and data (data.frame)
 #' @export
-ggdata <- function(prediction, data = NULL, condition.grid = attr(data, "condition.grid"), substitute = "_", ...) {
+ggdata <- function(prediction = NULL, data = NULL, ..., condition.grid = attr(data, "condition.grid"), substitute = "_") {
   
-  prediction <- wide2long(prediction)
-  data <- lbind(data)
-  
-  for (C in colnames(condition.grid)) {
-    prediction[, C] <- condition.grid[as.character(prediction$condition), C]
-    data[, C] <- condition.grid[as.character(data$condition), C]
+  if (!is.null(prediction)) {
+    prediction <- wide2long(prediction)
+    for (C in colnames(condition.grid)) {
+      prediction[, C] <- condition.grid[as.character(prediction$condition), C]
+    }
+    prediction <- subset(prediction, ...)
+    n1 <- nrow(prediction)
+    
+  }
+    
+    
+  if (!is.null(data)) {
+    data <- lbind(data)
+    for (C in colnames(condition.grid)) {
+      data[, C] <- condition.grid[as.character(data$condition), C]
+    }
+    data <- subset(data, ...)
   }
   
-  prediction <- subset(prediction, ...)
-  if (!is.null(data)) data <- subset(data, ...)
   
-  n1 <- nrow(prediction)
+ 
   
   out <- combine(prediction, data)
   for (n in colnames(out)) {
@@ -28,7 +37,13 @@ ggdata <- function(prediction, data = NULL, condition.grid = attr(data, "conditi
     if (!is.null(mylevels)) levels(out[, n]) <- gsub("_", substitute, mylevels, fixed = TRUE)
   }
   
-  return(list(prediction = out[1:n1,], data = out[-(1:n1),]))
+  if (!is.null(prediction)) {
+    return(list(prediction = out[1:n1,], data = out[-(1:n1),]))  
+  } else {
+    return(list(prediction = NULL, data = out))
+  }
+  
+  
   
 }
 #' Generate sample for multi-start fit
