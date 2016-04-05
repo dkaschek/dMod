@@ -85,7 +85,7 @@ theme_dMod <- function(base_size = 11, base_family = "") {
           strip.background = element_rect(fill = "white", colour = NA)) 
 }
 
-dMod_colors <- c("#000000", "#C5000B", "#579D1C", "#0084D1", "#FF950E", "#4B1F6F", rep("gray", 100))
+dMod_colors <- c("#000000", "#C5000B", "#0084D1", "#579D1C", "#FF950E", "#4B1F6F", rep("gray", 100))
 
 #' Standard dMod color palette
 #' 
@@ -101,8 +101,8 @@ dMod_colors <- c("#000000", "#C5000B", "#579D1C", "#0084D1", "#FF950E", "#4B1F6F
 #' qplot(time, value, data = data, color = group, geom = "line") + 
 #'    theme_dMod() + scale_color_dMod()
 #' @export
-scale_color_dMod <- function() {
-  scale_color_manual(values = dMod_colors)
+scale_color_dMod <- function(...) {
+  scale_color_manual(..., values = dMod_colors)
 }
 
 ggplot <- function(...) ggplot2::ggplot(...) + scale_color_dMod() + theme_dMod()
