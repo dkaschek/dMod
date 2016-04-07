@@ -421,11 +421,15 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     states <- names(f)
     parameters <- getSymbols(c(g, f), exclude = c(states, "time"))
   }
+  variables.deriv <- c(
+    states, 
+    as.vector(outer(states, c(states, parameters), paste, sep = "."))
+  )
   
   # Observables defined by g
   observables <- names(g)
   
-  gEval <- funC0(g, parameters = parameters, compile = compile, modelname = modelname, 
+  gEval <- funC0(g, variables = states, parameters = parameters, compile = compile, modelname = modelname, 
                  verbose = verbose, convenient = FALSE, warnings = FALSE)
   
   # Character matrices of derivatives
@@ -448,9 +452,8 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
   derivs <- as.vector(sumSymb(prodSymb(dgdx, dxdp), dgdp))
   if (length(derivs) == 0) stop("Neither states nor parameters involved")
   names(derivs) <- apply(expand.grid.alt(observables, c(states, parameters)), 1, paste, collapse = ".")
-  
-  
-  derivsEval <- funC0(derivs, parameters = parameters, compile = compile, modelname = modelname_deriv,
+
+  derivsEval <- funC0(derivs, variables = variables.deriv, parameters = parameters, compile = compile, modelname = modelname_deriv,
                       verbose = verbose, convenient = FALSE, warnings = FALSE)
   
   # Vector with zeros for possibly missing derivatives
@@ -480,6 +483,7 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     #x <- c(outlist, derivlist, as.list(pars), as.list(zeros))
     #values <- gEval(x)
     
+    
     values <- gEval(M = out, p = pars)
     
     if (!is.null(dout)) dvalues <- derivsEval(M = cbind(out, dout), p = pars)
@@ -499,8 +503,14 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
       dP <- rbind(dP, dP.missing)
       
       # Multiplication with tangent map
+      
+      
       sensLong <- matrix(dvalues, nrow = dim(out)[1]*length(observables))
+      
       sensLong <- sensLong %*% submatrix(dP, rows = parameters.all)
+      
+      
+      
       dvalues <- matrix(sensLong, nrow = dim(out)[1])
       
       # Naming
@@ -530,7 +540,7 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     
     
     # Output 
-    prdframe(prediction = values, deriv = myderivs, parameters = pars) 
+    prdframe(prediction = values, deriv = myderivs, sensitivities = dout, parameters = pars) 
     
     
     
