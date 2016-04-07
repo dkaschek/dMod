@@ -111,7 +111,7 @@ constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, fixed=NULL) {
 #' @details Objective functions can be combined by the "+" operator, see \link{sumobjfn}.
 #' @example inst/examples/normL2.R
 #' @export
-normL2 <- function(data, x, times = NULL, attr.name = "data") {
+normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
 
   if (is.null(times)) timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time))))) else timesD <- times
 
@@ -143,7 +143,13 @@ normL2 <- function(data, x, times = NULL, attr.name = "data") {
     
     # Apply res() and wrss() to compute residuals and the weighted residual sum of squares
     out.data <- lapply(conditions, function(cn) {
-      mywrss <- wrss(res(data[[cn]], prediction[[cn]]))
+      err <- NULL
+      if (!is.null(errmodel)) {
+        err <- errmodel(out = prediction[[cn]], pars = getParameters(prediction[[cn]]), conditions = cn)
+        mywrss <- nll(res(data[[cn]], prediction[[cn]], err[[cn]]))
+      } else {
+        mywrss <- wrss(res(data[[cn]], prediction[[cn]]))  
+      }
       available <- intersect(names(pouter), names(mywrss$gradient))
       result <- template
       result$value <- mywrss$value
@@ -502,11 +508,14 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
 #' @export
 wrss <- function(nout) {
   
+  
+  
   obj <- sum(nout$weighted.residual^2)
   grad <- NULL
   hessian <- NULL
   
   if (!is.null(attr(nout, "deriv"))) {
+    
     nout$sigma[is.na(nout$sigma)] <- 1 #replace by neutral element
   
     sens <- as.matrix(attr(nout, "deriv")[, -(1:2), drop = FALSE])
@@ -514,8 +523,41 @@ wrss <- function(nout) {
     names(grad) <- colnames(sens)
     hessian <- 2*t(sens/nout$sigma) %*% (sens/nout$sigma)
     
+  }
+  
+  
+  objlist(value = obj, gradient = grad, hessian = hessian)
+  
+}
+#' Compute the negative log-likelihood
+#' 
+#' @param nout data.frame (result of \link{res}) or object of class \link{objframe}.
+#' @return list with entries value (numeric, the weighted residual sum of squares), 
+#' gradient (numeric, gradient) and 
+#' hessian (matrix of type numeric).
+#' @export
+nll <- function(nout) {
+  
+  obj <- sum(nout$weighted.residual^2) + 2 * sum(log(nout$sigma))
+  grad <- NULL
+  hessian <- NULL
+  
+  
+  if (!is.null(attr(nout, "deriv")) & !is.null(attr(nout, "deriv.err"))) {
+    
+    
+    sens <- as.matrix(attr(nout, "deriv")[, -(1:2), drop = FALSE])
+    sens.err <- as.matrix(attr(nout, "deriv.err")[, -(1:2), drop = FALSE])
+    
+    grad <- as.vector(2*matrix(nout$residual/nout$sigma^2, nrow = 1) %*% sens -
+                        2*matrix(nout$residual^2/nout$sigma^3, nrow = 1) %*% sens.err +
+                        2*matrix(1/nout$sigma, nrow = 1) %*% sens.err)
+    names(grad) <- colnames(sens)
+    
+    hessian <- 2 * t(sens/nout$sigma - sens.err*nout$residual/nout$sigma^2) %*% (sens/nout$sigma - sens.err*nout$residual/nout$sigma^2) # - 2 * t(sens.err/nout$sigma) %*% (sens.err/nout$sigma)
     
   }
+  
   
   objlist(value = obj, gradient = grad, hessian = hessian)
   

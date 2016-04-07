@@ -1309,6 +1309,22 @@ getParameters <- function(x, conditions = NULL, ...) {
   UseMethod("getParameters", x)
 }
 
+
+
+#' @export
+#' @rdname getParameters
+getParameters.odemodel <- function(x, conditions = NULL, ...) {
+
+  parameters <- c(
+    attr(x$func, "variables"),
+    attr(x$func, "parameters")
+  )
+    
+  return(parameters)
+  
+}
+
+
 #' @export
 #' @rdname getParameters
 getParameters.fn <- function(x, conditions = NULL, ...) {
