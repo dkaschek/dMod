@@ -891,6 +891,7 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
       # Initialize output
       out.list <- as.list(rep(0, ntot))
       out.list[nonempty] <- with(x, eval(x.expr))
+      out.list <- lapply(out.list, function(o) matrix(o, ncol = 1, nrow = ncol(M)))
       out.matrix <- do.call(cbind, out.list)
       colnames(out.matrix) <- outnames
       rownames(out.matrix) <- NULL
