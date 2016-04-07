@@ -105,6 +105,11 @@ scale_color_dMod <- function(...) {
   scale_color_manual(..., values = dMod_colors)
 }
 
+#' @export
+scale_fill_dMod <- function(...) {
+  scale_fill_manual(..., values = dMod_colors)
+}
+
 ggplot <- function(...) ggplot2::ggplot(...) + scale_color_dMod() + theme_dMod()
 
 
