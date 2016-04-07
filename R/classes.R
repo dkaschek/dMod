@@ -552,7 +552,7 @@ objlist <- function(value, gradient, hessian) {
 #' @param deriv matrix of the derivatives of the residuals with respect to parameters.
 #' @return An object of class \code{objframe}, i.e. a data frame with attribute "deriv".
 #' @export
-objframe <- function(mydata, deriv = NULL) {
+objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
 
   # Check column names
   mydata <- as.data.frame(mydata)
@@ -564,6 +564,7 @@ objframe <- function(mydata, deriv = NULL) {
 
   out <- mydata[, correct.names]
   attr(out, "deriv") <- deriv
+  attr(out, "deriv.err") <- deriv.err
   class(out) <- c("objframe", "data.frame")
 
   return(out)
