@@ -20,8 +20,8 @@ P <- function(trafo = NULL, parameters=NULL, condition = NULL, keep.root = TRUE,
   
   method <- match.arg(method)
   switch(method, 
-         explicit = Pexpl(trafo = trafo, parameters = parameters, condition = condition, compile = compile, modelname = modelname, verbose = verbose),
-         implicit = Pimpl(trafo = trafo, parameters = parameters, keep.root = keep.root, condition = condition, compile = compile, modelname = modelname, verbose = verbose))
+         explicit = Pexpl(trafo = as.eqnvec(trafo), parameters = parameters, condition = condition, compile = compile, modelname = modelname, verbose = verbose),
+         implicit = Pimpl(trafo = as.eqnvec(trafo), parameters = parameters, keep.root = keep.root, condition = condition, compile = compile, modelname = modelname, verbose = verbose))
   
 }
 
