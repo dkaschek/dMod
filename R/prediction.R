@@ -418,7 +418,7 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     parameters <- parameters
   } else {
     f <- as.eqnvec(f)
-    states <- names(f)
+    states <- union(names(f), "time")
     parameters <- getSymbols(c(g, f), exclude = c(states, "time"))
   }
   variables.deriv <- c(
