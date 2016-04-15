@@ -1,4 +1,4 @@
-#' Calculate analytical steady states (new version)
+#' Calculate analytical steady states
 #' 
 #' @param model Either name of the csv-file or the eqnlist of the model. If NULL, specify smatrix, states and rates by hand.
 #' @param file Name of the file to which the steady-state equations are saved.
@@ -51,4 +51,60 @@ steadyStates <- function(model, file=NULL, smatrix = NULL, states = NULL, rates 
       saveRDS(object = m_ssChar, file = file)
     }
   } else return(0)
+}
+
+
+#' Reduce the ODE system by means of a quasi steady-state assumption
+#' 
+#' @param model Either name of the csv-file or the eqnlist of the model. If NULL, specify smatrix, states and rates by hand.
+#' @param fastreact Character vector, list of flux parameters corresponding to the fast fluxes used for quasi steady-state approximation. 
+#' The ratio between participating fluxes is introduced as a new free parameter.
+#' @param state2Remove Character, name of state that is expressed by the other states during the simplification
+#' @param smatrix Numeric matrix, stiochiometry matrix of the system 
+#' @param states Character vector, state vector of the system
+#' @param rates Character vector, flux vector of the system
+#' @param outputFormat Define the output format. By default "R" generating dMod 
+#'   compatible output. To obtain an output appropriate for d2d [1] "M" must be 
+#'   selected (Not yet provided).
+#'   
+#' @return Equation List with reduced model. 
+#'   
+#' @references [1]
+#' \url{https://bitbucket.org/d2d-development/d2d-software/wiki/Home}
+#' 
+#' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
+#'   
+#' @export
+quasiSteadyStates <- function(model, fastreact, state2Remove, smatrix = NULL, states = NULL, rates = NULL, outputFormat = "R") {
+  if (inherits(model, "eqnlist")) {    
+    flist <- model    
+  } else {
+    if(!is.null(model)){
+      reactionlist <- read.csv(model) 
+      flist <- as.eqnlist(reactionlist)
+    }
+  }
+  # python.call does not deal with matrix arguments  
+  if(!is.null(model)){
+    write.table(data.frame(flist$smatrix), file="smatrix.csv", sep = ",", row.names=FALSE)
+    smatrix=TRUE
+  }
+  
+  # Analyze quasi-steady-state.
+  require(rPython)
+  python.version.request("2.7")  
+  rPython::python.load(system.file("code/quasiSteadyStates.py", package = "dMod"))
+  out  <- rPython::python.call("QSS", NULL, as.list(fastreact), state2Remove, smatrix, as.list(flist$states), as.list(flist$rates), outputFormat)
+  #print(out)
+  redrates <- flist$rates
+  redrates <- replaceSymbols(strsplit(out[1], "=")[[1]][1],strsplit(out[1], "=")[[1]][2], redrates)
+  reactionlist[,state2Remove] <- NA
+  for(expr in out[-1]){
+    index <- as.numeric(strsplit(strsplit(expr, "=")[[1]][1], "flux")[[1]][2])
+    redrates[index+1] <- strsplit(expr, "=")[[1]][2]
+    if(strsplit(expr, "=")[[1]][2]==0){ reactionlist <- reactionlist[-(index+1),]; redrates <- redrates[-(index+1)]}
+  }
+  reactionlist$Rate <- redrates
+  redflist <- as.eqnlist(reactionlist)
+  return(redflist)
 }
