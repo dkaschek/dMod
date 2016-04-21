@@ -189,6 +189,7 @@ combine <- function(...) {
       missing.names <- setdiff(mynames, names(present.list))
       missing.list <- structure(as.list(rep(NA, length(missing.names))), names = missing.names)
       combined.data <- do.call(cbind.data.frame, c(present.list, missing.list))
+      rownames(combined.data) <- rownames(l)
     }
     if(is.matrix(l)) {
       present.matrix <- as.matrix(l)
@@ -196,6 +197,7 @@ combine <- function(...) {
       missing.matrix <- matrix(0, nrow = nrow(present.matrix), ncol = length(missing.names), 
                              dimnames = list(NULL, missing.names))
       combined.data <- submatrix(cbind(present.matrix, missing.matrix), cols = mynames)
+      rownames(combined.data) <- rownames(l)
     }
     
     return(combined.data)
