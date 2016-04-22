@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-# dMod
-Dynamic modeling and parameter estimation in R
-=======
 # dMod -- Dynamic Modeling and Parameter Estimation in R
 
 The framework provides functions to generate ODEs of reaction networks, parameter transformations, observation functions, residual functions, etc. The framework follows the paradigm that derivative information should be used for optimization whenever possible. Therefore, all major functions produce and can handle expressions for symbolic derivatives.
@@ -162,5 +158,3 @@ plotProfile(profiles)
 
 ![](README_files/figure-html/profiles-1.png)
 
-
->>>>>>> development
