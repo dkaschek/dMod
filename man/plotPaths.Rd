@@ -4,11 +4,13 @@
 \alias{plotPaths}
 \title{Profile likelihood: plot of the parameter paths.}
 \usage{
-plotPaths(..., whichPar = NULL, sort = FALSE, relative = TRUE,
+plotPaths(profs, ..., whichPar = NULL, sort = FALSE, relative = TRUE,
   scales = "fixed")
 }
 \arguments{
-\item{...}{Lists of profiles as being returned by \link{profile}.}
+\item{profs}{profile or list of profiles as being returned by \link{profile}}
+
+\item{...}{arguments going to subset}
 
 \item{whichPar}{Character or index vector, indicating the parameters that are taken as possible reference (x-axis)}
 

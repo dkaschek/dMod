@@ -4,10 +4,12 @@
 \alias{plotProfile}
 \title{Profile likelihood plot}
 \usage{
-plotProfile(..., maxvalue = 5, parlist = NULL)
+plotProfile(profs, ..., maxvalue = 5, parlist = NULL)
 }
 \arguments{
-\item{...}{Lists of profiles as being returned by \link{profile}.}
+\item{profs}{Lists of profiles as being returned by \link{profile}.}
+
+\item{...}{logical going to subset before plotting.}
 
 \item{maxvalue}{Numeric, the value where profiles are cut off.}
 

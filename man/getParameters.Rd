@@ -3,23 +3,29 @@
 \name{getParameters}
 \alias{getParameters}
 \alias{getParameters.fn}
-\alias{getParameters.list}
+\alias{getParameters.odemodel}
 \alias{getParameters.parvec}
 \alias{getParameters.prdframe}
+\alias{getParameters.prdlist}
 \title{Extract the parameters of an object}
 \usage{
-getParameters(x, ...)
+getParameters(x, conditions = NULL, ...)
 
-\method{getParameters}{fn}(x, ...)
+\method{getParameters}{odemodel}(x, conditions = NULL, ...)
 
-\method{getParameters}{parvec}(x, ...)
+\method{getParameters}{fn}(x, conditions = NULL, ...)
 
-\method{getParameters}{prdframe}(x, ...)
+\method{getParameters}{parvec}(x, conditions = NULL, ...)
 
-\method{getParameters}{list}(x, ...)
+\method{getParameters}{prdframe}(x, conditions = NULL, ...)
+
+\method{getParameters}{prdlist}(x, conditions = NULL, ...)
 }
 \arguments{
 \item{x}{object from which the parameters should be extracted}
+
+\item{conditions}{character vector specifying the conditions to
+which \code{getParameters} is restricted}
 
 \item{...}{additional arguments (not used right now)}
 }

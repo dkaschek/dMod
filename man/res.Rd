@@ -4,7 +4,7 @@
 \alias{res}
 \title{Compare data and model prediction by computing residuals}
 \usage{
-res(data, out)
+res(data, out, err = NULL)
 }
 \arguments{
 \item{data}{data.frame with name (factor), time (numeric), value (numeric) and sigma (numeric)}
@@ -14,6 +14,8 @@ res(data, out)
 "parameters" (character vector of parameter names, a subsest of those
 contained in the sensitivity equations). If "deriv" is given, also "parameters"
 needs to be given.}
+
+\item{err}{output of the error model function}
 }
 \value{
 data.frame with the original data augmented by columns "prediction" (

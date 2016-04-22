@@ -31,7 +31,8 @@ as.datalist.data.frame <- function(x, split.by = NULL, ...) {
   splits <- do.call(interaction, c(conditions, list(sep = "_")))
   
   # condition grid
-  conditionframe <- cbind(data.frame(condition = splits), dataframe[, split.by])[!duplicated(splits),]
+  conditionframe <- dataframe[!duplicated(splits), split.by, drop = FALSE]
+  rownames(conditionframe) <- splits[!duplicated(splits)]
   
   
   # data list output
@@ -71,7 +72,7 @@ as.datalist.list <- function(x, names = NULL, ...) {
   ## Prepare output
   names(mylist) <- mynames
   class(mylist) <- c("datalist", "list")
-  attr(mylist, "condition.grid") <- data.frame(condition = mynames)
+  attr(mylist, "condition.grid") <- data.frame(condition = mynames, row.names = mynames)
 
   return(mylist)
 

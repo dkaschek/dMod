@@ -60,7 +60,7 @@ Next, the equation list representing the ODE is translated into the ODE model `m
 fixed.zero <- setdiff(reactions$states, "STAT") 
 # Generate odemodel
 model0 <- odemodel(reactions, modelname = "jak-stat", compile = TRUE, 
-                   fixed = fixed.zero, jacobian = "jacvec.lsodes")
+                   fixed = fixed.zero, jacobian = "inz.lsodes")
 ```
 
 ### Prediction and observation functions
@@ -69,7 +69,7 @@ The object `model0` is needed to define a prediction function, i.e. a function t
 
 ```{r, fig.width = 6, fig.height = 4}
 # Generate a prediction function
-x <- Xs(model0, optionsSens = list(method = "lsodes", lrw = 2118))
+x <- Xs(model0, optionsSens = list(method = "lsodes"))
 
 # Make a prediction based on random parameter values
 parameters <- getParameters(x)
@@ -207,9 +207,12 @@ plot((g*x*p)(times, myfit$argument), data)
 Sometimes, the system has many local optima. A single fit converges to a neighboring optimum and we would like to spread the initial positions of optimization throughout the parameter space. This procedure is implemented in the multi-start trust procedure `mstrust()`:
 
 ```{r, fig.width = 5, fig.height = 4}
-fitlist <- mstrust(obj + constr, center = mu, fits = 20, cores = 1, lower = -1, upper = 1, samplefun = "runif")
+
+set.seed(1)
+fitlist <- mstrust(obj + constr, center = mu, fits = 20, cores = 1, min = -1, max = 1, samplefun = "runif")
 pars <- as.parframe(fitlist)
 plotValues(subset(pars, converged))
+plotPars(subset(pars, converged))
 
 ```
 

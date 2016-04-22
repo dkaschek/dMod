@@ -43,7 +43,6 @@ pouter <- pouter[1:3]
 print(obj1(pouter, fixed = fixed))
 
 
-
 ## Visualize the result by a parameter profile
 myfit <- trust(obj1, pouter, rinit = 1, rmax = 10, fixed = fixed)
 myprof <- profile(obj1, myfit$argument, "a", fixed = fixed)
@@ -55,7 +54,6 @@ plotProfile(myprof)
 pouter <- prior + rnorm(length(prior))
 obj <- obj1 + obj2 + obj3
 print(obj(pouter))
-
 }
 \seealso{
 \link{normL2}, \link{constraintL2}, \link{priorL2}, \link{datapointL2}

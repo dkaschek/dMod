@@ -33,6 +33,7 @@ as.objlist <- function(p) {
 #' optimization with the trust optimizer, see \link{mstrust}.
 #' @param data object of class \link{datalist}
 #' @param x object of class \link{prdfn}
+#' @param errmodel object of class \link{obsfn}
 #' @param times numeric vector, the time points where the prediction function is to be
 #' evaluated. If NULL, time points are extacted from the datalist. If the prediction
 #' function makes use of events, \code{times} should be set by hand.
@@ -44,7 +45,7 @@ as.objlist <- function(p) {
 #' @details Objective functions can be combined by the "+" operator, see \link{sumobjfn}.
 #' @example inst/examples/normL2.R
 #' @export
-normL2 <- function(data, x, times = NULL, attr.name = "data") {
+normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
 
   if (is.null(times)) timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time))))) else timesD <- times
 
@@ -58,6 +59,12 @@ normL2 <- function(data, x, times = NULL, attr.name = "data") {
     arglist <- list(...)
     arglist <- arglist[match.fnargs(arglist, "pars")]
     pouter <- arglist[[1]]
+    
+    template <- objlist(
+      value = 0,
+      gradient = structure(rep(0, length(pouter)), names = names(pouter)),
+      hessian = matrix(0, nrow = length(pouter), ncol = length(pouter), dimnames = list(names(pouter), names(pouter)))
+    )
    
     # Import from controls
     timesD <- controls$times
@@ -69,7 +76,21 @@ normL2 <- function(data, x, times = NULL, attr.name = "data") {
     prediction <- x(times = timesD, pars = pouter, fixed = fixed, deriv = deriv, conditions = conditions)
     
     # Apply res() and wrss() to compute residuals and the weighted residual sum of squares
-    out.data <- lapply(conditions, function(cn) wrss(res(data[[cn]], prediction[[cn]])))
+    out.data <- lapply(conditions, function(cn) {
+      err <- NULL
+      if (!is.null(errmodel)) {
+        err <- errmodel(out = prediction[[cn]], pars = getParameters(prediction[[cn]]), conditions = cn)
+        mywrss <- nll(res(data[[cn]], prediction[[cn]], err[[cn]]))
+      } else {
+        mywrss <- wrss(res(data[[cn]], prediction[[cn]]))  
+      }
+      available <- intersect(names(pouter), names(mywrss$gradient))
+      result <- template
+      result$value <- mywrss$value
+      result$gradient[available] <- mywrss$gradient[available]
+      result$hessian[available, available] <- mywrss$hessian[available, available]
+      return(result)
+    })
     out.data <- Reduce("+", out.data)
     
     # Combine contributions and attach attributes
@@ -148,7 +169,6 @@ constraintL2 <- function(mu, sigma = 1, attr.name = "prior", condition = NULL) {
     if (!is.list(pouter)) pouter <- list(pouter)
     
     outlist <- lapply(pouter, function(p) {
-      
       
       ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
       par.fixed <- intersect(names(mu), names(fixed))
@@ -421,11 +441,14 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
 #' @export
 wrss <- function(nout) {
   
+  
+  
   obj <- sum(nout$weighted.residual^2)
   grad <- NULL
   hessian <- NULL
   
   if (!is.null(attr(nout, "deriv"))) {
+    
     nout$sigma[is.na(nout$sigma)] <- 1 #replace by neutral element
   
     sens <- as.matrix(attr(nout, "deriv")[, -(1:2), drop = FALSE])
@@ -433,8 +456,41 @@ wrss <- function(nout) {
     names(grad) <- colnames(sens)
     hessian <- 2*t(sens/nout$sigma) %*% (sens/nout$sigma)
     
+  }
+  
+  
+  objlist(value = obj, gradient = grad, hessian = hessian)
+  
+}
+#' Compute the negative log-likelihood
+#' 
+#' @param nout data.frame (result of \link{res}) or object of class \link{objframe}.
+#' @return list with entries value (numeric, the weighted residual sum of squares), 
+#' gradient (numeric, gradient) and 
+#' hessian (matrix of type numeric).
+#' @export
+nll <- function(nout) {
+  
+  obj <- sum(nout$weighted.residual^2) + 2 * sum(log(nout$sigma))
+  grad <- NULL
+  hessian <- NULL
+  
+  
+  if (!is.null(attr(nout, "deriv")) & !is.null(attr(nout, "deriv.err"))) {
+    
+    
+    sens <- as.matrix(attr(nout, "deriv")[, -(1:2), drop = FALSE])
+    sens.err <- as.matrix(attr(nout, "deriv.err")[, -(1:2), drop = FALSE])
+    
+    grad <- as.vector(2*matrix(nout$residual/nout$sigma^2, nrow = 1) %*% sens -
+                        2*matrix(nout$residual^2/nout$sigma^3, nrow = 1) %*% sens.err +
+                        2*matrix(1/nout$sigma, nrow = 1) %*% sens.err)
+    names(grad) <- colnames(sens)
+    
+    hessian <- 2 * t(sens/nout$sigma - sens.err*nout$residual/nout$sigma^2) %*% (sens/nout$sigma - sens.err*nout$residual/nout$sigma^2) # - 2 * t(sens.err/nout$sigma) %*% (sens.err/nout$sigma)
     
   }
+  
   
   objlist(value = obj, gradient = grad, hessian = hessian)
   

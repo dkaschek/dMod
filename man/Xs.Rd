@@ -40,7 +40,7 @@ i.e. in this case the attibutes "deriv" and "sensitivities" do not coincide.
 }
 \description{
 Interface to combine an ODE and its sensitivity equations
-into one model function \code{x(times, pars, forcings, events, deriv = TRUE)} returning ODE output and sensitivities.
+into one model function \code{x(times, pars, deriv = TRUE)} returning ODE output and sensitivities.
 }
 \examples{
 \dontrun{
@@ -81,7 +81,11 @@ events$b <- data.frame(var = "A", time = 5, value = 2, method = "add")
 ## and functions from above information) 
 
 # ODE model
+<<<<<<< HEAD
 model <- odemodel(f, jacobian = "inz.lsodes")
+=======
+model <- odemodel(f)
+>>>>>>> development
 
 # Observation function
 g <- Y(observables, f, compile = TRUE, modelname = "obsfn")

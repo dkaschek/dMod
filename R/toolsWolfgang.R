@@ -174,7 +174,8 @@ strelide <- function(string, width, where = "right", force = FALSE) {
 #'   \code{\link{runif}}. By default \code{\link{rnorm}} is used. Parameteres 
 #'   for samplefun are simply appended as named parameters to the mstrust call 
 #'   and automatically handed to samplefun by matching parameter names.
-#' @param resultPath character, the path where to store the results.
+#' @param resultPath character indicating the folder where the results should 
+#'   be stored. Defaults to ".". 
 #' @param stats If true, the same summary statistic as written to the logfile is
 #'   printed to command line on mstrust completion.
 #' @param ... Additional parameters handed to trust(), samplefun(), or the 
@@ -211,7 +212,7 @@ strelide <- function(string, width, where = "right", force = FALSE) {
 #' @return A parlist holding errored and converged fits.
 #'   
 #' @seealso \code{\link{trust}}, \code{\link{rnorm}}, \code{\link{runif}}, 
-#'   \code{\link{as.parvec}}, \code{\link{as.parframe}}
+#'   \code{\link{as.parframe}}
 #'   
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'  
@@ -222,7 +223,6 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
                     samplefun = "rnorm", resultPath = ".", stats = FALSE,
                     ...) {
 
-  # Narrowing is not enabled in this version
   narrowing <- NULL
   
   # Argument parsing, sorting, and enhancing
@@ -442,7 +442,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
 #'
 #' @param folder Path to the folder where the fit has left its results.
 #'
-#' @details The command \code{\link{mstrust}} saves
+#' @details The commands \code{\link{mstrust}} save
 #'   each completed fit along the multi-start sequence such that the results can
 #'   be resurected on abortion. This command loads a fitlist from these
 #'   intermediate results.
@@ -473,11 +473,10 @@ load.parlist <- function(folder) {
 #' 
 #' @description Obtain a parameter vector from a parameter frame.
 #' 
-#' @param x parameter frame, e.g., the output of
+#' @param parframe A parameter frame, e.g., the output of
 #'   \code{\link{as.parframe}}.
 #' @param index Integer, the parameter vector with the \code{index}-th lowest
 #'   objective value.
-#' @param ... other arguments
 #'   
 #' @details With this command, additional information included in the parameter
 #'   frame as the objective value and the convergence state are removed and a
@@ -495,8 +494,7 @@ load.parlist <- function(folder) {
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'   
 #' @export
-as.parvec.parframe <- function(x, index = 1, ...) {
-  parframe <- x
+as.parvec.parframe <- function(parframe, index = 1, ...) {
   m_order <- order(parframe$value)
   metanames <- attr(parframe, "metanames")
   best <- as.parvec(unlist(parframe[m_order[index], attr(parframe, "parameters")]))
@@ -724,6 +722,7 @@ reduceReplicates <- function(file, select = "condition", datatrans = NULL) {
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'
 #' @export
+#' @importFrom stats D approx optim qchisq sd time
 fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
                           par = c(s0 = 1, srel = .1), plotting = TRUE, blather = FALSE, ...) {
 
@@ -835,12 +834,12 @@ python.version.sys <- function(version = NULL) {
     } else {
       return(NULL)
     }
-    }))
+  }))
   
   m_version <- strsplit(m_python, "python")
   m_version <- lapply(m_version, function(p) {
     return(p[2])
-    })
+  })
   
   m_python <- as.data.frame(m_python)
   names(m_python) <- m_version
@@ -871,7 +870,7 @@ python.version.rpython <- function() {
   
   m_version <- paste0(m_info[[1]], ".", m_info[[2]])
   attr(m_version, "info") <- m_info
-
+  
   return(m_version)
 }
 
@@ -895,13 +894,13 @@ python.version.request <- function(version) {
     m_curVersion <- python.version.rpython()
     if (m_curVersion == version)
       return(TRUE)
-    }
+  }
   
   # rPython not installed or linked agains wrong python version.
   m_sysVersion <- python.version.sys(version)
   if (is.null(m_sysVersion)) {
     msg <- paste0("Requested python version ", version, " not available\n",
-                 "Your options are\n")
+                  "Your options are\n")
     cat(msg)
     print(python.version.sys())
   } else {
@@ -921,6 +920,5 @@ python.version.request <- function(version) {
     try(detach("package:rPython", unload = TRUE), silent = TRUE)
     Sys.setenv(RPYTHON_PYTHON_VERSION = version)
     install.packages("rPython")
-    # library(rPython)  (library calls produce WARNING with CRAN)
   }
 }

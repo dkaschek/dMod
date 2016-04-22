@@ -18,7 +18,7 @@ An aborted \code{\link{mstrust}}
   fits into a fitlist.
 }
 \details{
-The command \code{\link{mstrust}} saves
+The commands \code{\link{mstrust}} save
   each completed fit along the multi-start sequence such that the results can
   be resurected on abortion. This command loads a fitlist from these
   intermediate results.

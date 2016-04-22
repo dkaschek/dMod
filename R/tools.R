@@ -189,6 +189,7 @@ combine <- function(...) {
       missing.names <- setdiff(mynames, names(present.list))
       missing.list <- structure(as.list(rep(NA, length(missing.names))), names = missing.names)
       combined.data <- do.call(cbind.data.frame, c(present.list, missing.list))
+      rownames(combined.data) <- rownames(l)
     }
     if(is.matrix(l)) {
       present.matrix <- as.matrix(l)
@@ -196,6 +197,7 @@ combine <- function(...) {
       missing.matrix <- matrix(0, nrow = nrow(present.matrix), ncol = length(missing.names), 
                              dimnames = list(NULL, missing.names))
       combined.data <- submatrix(cbind(present.matrix, missing.matrix), cols = mynames)
+      rownames(combined.data) <- rownames(l)
     }
     
     return(combined.data)
@@ -316,14 +318,16 @@ wide2long.matrix <- function(out, keep = 1, na.rm = FALSE) {
   
   timenames <- colnames(out)[keep]
   allnames <- colnames(out)[-keep]
-  if(any(duplicated(allnames))) warning("Found duplicated colnames in out. Duplicates were removed.")
+  if (any(duplicated(allnames))) warning("Found duplicated colnames in out. Duplicates were removed.")
   times <- out[,keep]
-  ntimes<- nrow(out)
+  ntimes <- nrow(out)
   values <- unlist(out[,allnames])
-  outlong <- data.frame(times, name = rep(allnames, each=ntimes), value = as.numeric(values))
+  outlong <- data.frame(times, 
+                        name = factor(rep(allnames, each = ntimes), levels = allnames), 
+                        value = as.numeric(values))
   colnames(outlong)[1:length(keep)] <- timenames
   
-  if(na.rm) outlong <- outlong[!is.na(outlong$value),]
+  if (na.rm) outlong <- outlong[!is.na(outlong$value),]
   
   return(outlong)
   

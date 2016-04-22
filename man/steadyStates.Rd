@@ -4,26 +4,33 @@
 \alias{steadyStates}
 \title{Calculate analytical steady states}
 \usage{
-steadyStates(model, file, forcings = "", neglect = "", outputFormat = "R",
-  sparsifyLevel = 2)
+steadyStates(model, file = NULL, smatrix = NULL, states = NULL,
+  rates = NULL, forcings = NULL, givenCQs = NULL, neglect = NULL,
+  sparsifyLevel = 2, outputFormat = "R")
 }
 \arguments{
-\item{model}{Name of the file which the stoechiometric matric in csv format.}
+\item{model}{Either name of the csv-file or the eqnlist of the model. If NULL, specify smatrix, states and rates by hand.}
 
 \item{file}{Name of the file to which the steady-state equations are saved.
 Read this file with \code{\link{readRDS}}.}
 
+\item{smatrix}{Numeric matrix, stiochiometry matrix of the system}
+
+\item{states}{Character vector, state vector of the system}
+
+\item{rates}{Character vector, flux vector of the system}
+
 \item{forcings}{Character vector with the names of the forcings}
 
-\item{neglect}{Character vector with the names of species which must not be
-used for solving the steady state equations.}
+\item{givenCQs}{Character vector with conserved quantities. Use the format c("A + pA = totA", "B + pB = totB"). If NULL, conserved quantities are automatically calculated.}
+
+\item{neglect}{Character vector with names of states and parameters that must not be used for solving the steady-state equations}
+
+\item{sparsifyLevel}{numeric, Upper bound for length of linear combinations used for simplifying the stoichiometric matrix}
 
 \item{outputFormat}{Define the output format. By default "R" generating dMod
-compatible output. To obtain an output appropriate for d2d [1] "M" must be
-selected.}
-
-\item{sparsifyLevel}{numeric, set the level to which the stoichiometric matrix is
-  simplified by searching for clever linear combinations.}
+  compatible output. To obtain an output appropriate for d2d [1] "M" must be
+  selected.}
 }
 \value{
 Character vector of steady-state equations.
@@ -32,7 +39,7 @@ Character vector of steady-state equations.
 Calculate analytical steady states
 }
 \author{
-Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
+Marcus Rosenblatt, \email{marcus.rosenblatt@fdm.uni-freiburg.de}
 }
 \references{
 [1]

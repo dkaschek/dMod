@@ -44,9 +44,9 @@ profiles.approx.fixed <- do.call(
 
 ## Plotting
 plotProfile(profiles.approx)
-plotProfile(profiles.approx, profiles.exact)
-plotProfile(profiles.approx, profiles.approx.fixed)
+plotProfile(list(profiles.approx, profiles.exact))
+plotProfile(list(profiles.approx, profiles.approx.fixed))
 
 plotPaths(profiles.approx, sort = TRUE)
 plotPaths(profiles.approx, whichPar = "logc")
-plotPaths(profiles.approx, profiles.approx.fixed, whichPar = "logc")
+plotPaths(list(profiles.approx, profiles.approx.fixed), whichPar = "logc")

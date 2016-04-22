@@ -4,16 +4,14 @@
 \alias{as.parvec.parframe}
 \title{Select a parameter vector from a parameter frame.}
 \usage{
-\method{as.parvec}{parframe}(x, index = 1, ...)
+\method{as.parvec}{parframe}(parframe, index = 1, ...)
 }
 \arguments{
-\item{x}{parameter frame, e.g., the output of
+\item{parframe}{A parameter frame, e.g., the output of
 \code{\link{as.parframe}}.}
 
 \item{index}{Integer, the parameter vector with the \code{index}-th lowest
-objective value.}
-
-\item{...}{other arguments}
+  objective value.}
 }
 \value{
 The parameter vector with the \option{index}-th lowest objective

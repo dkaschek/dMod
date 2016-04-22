@@ -4,12 +4,14 @@
 \alias{normL2}
 \title{L2 norm between data and model prediction}
 \usage{
-normL2(data, x, times = NULL, attr.name = "data")
+normL2(data, x, errmodel = NULL, times = NULL, attr.name = "data")
 }
 \arguments{
 \item{data}{object of class \link{datalist}}
 
 \item{x}{object of class \link{prdfn}}
+
+\item{errmodel}{object of class \link{obsfn}}
 
 \item{times}{numeric vector, the time points where the prediction function is to be
 evaluated. If NULL, time points are extacted from the datalist. If the prediction

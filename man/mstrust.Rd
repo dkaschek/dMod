@@ -33,7 +33,8 @@ random numbers are to be returned, such as for \code{\link{rnorm}} or
 for samplefun are simply appended as named parameters to the mstrust call
 and automatically handed to samplefun by matching parameter names.}
 
-\item{resultPath}{character, the path where to store the results.}
+\item{resultPath}{character indicating the folder where the results should
+be stored. Defaults to ".".}
 
 \item{stats}{If true, the same summary statistic as written to the logfile is
 printed to command line on mstrust completion.}
@@ -116,7 +117,11 @@ events$b <- data.frame(var = "A", time = 5, value = 2, method = "add")
 ## and functions from above information) 
 
 # ODE model
+<<<<<<< HEAD
 model <- odemodel(f, jacobian = "inz.lsodes")
+=======
+model <- odemodel(f)
+>>>>>>> development
 
 # Observation function
 g <- Y(observables, f, compile = TRUE, modelname = "obsfn")
@@ -257,6 +262,6 @@ Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
 }
 \seealso{
 \code{\link{trust}}, \code{\link{rnorm}}, \code{\link{runif}},
-  \code{\link{as.parvec}}, \code{\link{as.parframe}}
+  \code{\link{as.parframe}}
 }
 

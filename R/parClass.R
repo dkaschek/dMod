@@ -220,7 +220,7 @@ print.parvec <- function(x, ...) {
 #' @rdname parvec
 "[.parvec" <- function(x, ..., drop = FALSE) {
   out <- unclass(x)[...]
-  deriv <- submatrix(attr(x, "deriv"), row = ...)
+  deriv <- submatrix(attr(x, "deriv"), rows = ...)
   if (drop) {
     empty.cols <- apply(deriv, 2, function(v) all(v == 0))
     deriv <- submatrix(deriv, cols = !empty.cols)

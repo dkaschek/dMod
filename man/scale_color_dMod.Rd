@@ -4,7 +4,10 @@
 \alias{scale_color_dMod}
 \title{Standard dMod color palette}
 \usage{
-scale_color_dMod()
+scale_color_dMod(...)
+}
+\arguments{
+\item{...}{arguments goint to code{scale_color_manual()}}
 }
 \description{
 Standard dMod color palette
