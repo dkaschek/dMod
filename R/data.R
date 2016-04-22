@@ -6,6 +6,7 @@
 #' "parameters" (character vector of parameter names, a subsest of those 
 #' contained in the sensitivity equations). If "deriv" is given, also "parameters"
 #' needs to be given.
+#' @param err output of the error model function
 #' @return data.frame with the original data augmented by columns "prediction" (
 #' numeric, the model prediction), "residual" (numeric, difference between
 #' prediction and data value), "weighted.residual" (numeric, residual devided

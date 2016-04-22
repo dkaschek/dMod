@@ -89,6 +89,7 @@ dMod_colors <- c("#000000", "#C5000B", "#0084D1", "#579D1C", "#FF950E", "#4B1F6F
 
 #' Standard dMod color palette
 #' 
+#' @param ... arguments goint to code{scale_color_manual()}
 #' @export
 #' @examples
 #' times <- seq(0, 2*pi, 0.1)
@@ -105,7 +106,11 @@ scale_color_dMod <- function(...) {
   scale_color_manual(..., values = dMod_colors)
 }
 
+
+#' Standard dMod color scheme
+#' 
 #' @export
+#' @param ... arguments goint to code{scale_color_manual()}
 scale_fill_dMod <- function(...) {
   scale_fill_manual(..., values = dMod_colors)
 }
@@ -204,6 +209,9 @@ plotCombined <- function(prediction, data = NULL, ..., scales = "free", facet = 
   attr(p, "data") <- list(data = data, prediction = prediction)
   return(p)
   
+  attr(p, "data") <- list(data = data, prediction = prediction)
+  return(p)
+  
 }
 
 #' Plot a list data points
@@ -246,7 +254,7 @@ plotData <- function(data, ..., scales = "free", facet = "wrap", transform = NUL
 #' Profile likelihood plot
 #' 
 #' @param profs Lists of profiles as being returned by \link{profile}.
-#' @param ... Constraints going to subset before plotting.
+#' @param ... logical going to subset before plotting.
 #' @param maxvalue Numeric, the value where profiles are cut off.
 #' @param parlist Matrix or data.frame with columns for the parameters to be added to the plot as points.
 #' If a "value" column is contained, deltas are calculated with respect to lowest chisquare of profiles.
@@ -322,7 +330,7 @@ plotProfile <- function(profs, ..., maxvalue = 5, parlist = NULL) {
     geom_point(data = data.zero) +
     geom_hline(yintercept=threshold, lty=2, color="gray") + 
     ylab(expression(paste("CL /", Delta*chi^2))) +
-    scale_y_continuous(breaks=c(1, 2.7, 3.84), labels = c("68% / 1   ", "90% / 2.71", "95% / 3.84")) +
+    scale_y_continuous(breaks=c(1, 2.7, 3.84), labels = c("68% / 1   ", "90% / 2.71", "95% / 3.84"), limits = c(NA, maxvalue)) +
     xlab("parameter value")
   
   if(!is.null(parlist)){
@@ -348,7 +356,8 @@ plotProfile <- function(profs, ..., maxvalue = 5, parlist = NULL) {
 
 #' Profile likelihood: plot of the parameter paths.
 #' 
-#' @param ... Lists of profiles as being returned by \link{profile}.
+#' @param profs profile or list of profiles as being returned by \link{profile}
+#' @param ... arguments going to subset
 #' @param whichPar Character or index vector, indicating the parameters that are taken as possible reference (x-axis)
 #' @param sort Logical. If paths from different parameter profiles are plotted together, possible
 #' combinations are either sorted or all combinations are taken as they are.
@@ -357,9 +366,13 @@ plotProfile <- function(profs, ..., maxvalue = 5, parlist = NULL) {
 #' @return A plot object of class \code{ggplot}.
 #' @details See \link{profile} for examples.
 #' @export
-plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scales = "fixed") {
+plotPaths <- function(profs, ..., whichPar = NULL, sort = FALSE, relative = TRUE, scales = "fixed") {
   
-  arglist <- list(...)
+  if ("parframe" %in% class(profs)) 
+    arglist <- list(profs)
+  else
+    arglist <- as.list(profs)
+  
   
   
   data <- do.call(rbind, lapply(1:length(arglist), function(i) {
@@ -419,6 +432,9 @@ plotPaths <- function(..., whichPar = NULL, sort = FALSE, relative = TRUE, scale
   else
     axis.labels <- c("parameter 1", "parameter 2")
   
+  
+  data <- droplevels(subset(data, ...))
+  
   suppressMessages(
     p <- ggplot(data, aes(x = x, y = y, group = interaction(name, proflist), color = name, lty = proflist)) + 
       facet_wrap(~combination, scales = scales) + 
@@ -470,14 +486,20 @@ plotArray <- function(parframe, x, times, data = NULL, ...,
   
   
   prediction <- lapply(pars, function(p) {
-    pred <- x(times, p, fixed = fixed, deriv = deriv)
-    newnames <- sapply(1:length(pred), function(cond) paste(colnames(pred[[cond]])[-1], names(pred)[cond], sep = ",\n "))
-    pred <- do.call(cbind, pred)
-    pred <- pred[, -which(colnames(pred) == "time")]
-    pred <- cbind(times, pred)
-    colnames(pred) <- c("time", newnames)
-    return(pred)
-  }); names(prediction) <- parframe[ ,"value"]
+    pred_out <- suppressWarnings(try({
+      pred <- x(times, p, fixed = fixed, deriv = deriv)
+      newnames <- sapply(1:length(pred), function(cond) paste(colnames(pred[[cond]])[-1], names(pred)[cond], sep = ",\n "))
+      pred <- do.call(cbind, pred)
+      pred <- pred[, -which(colnames(pred) == "time")]
+      pred <- cbind(times, pred)
+      colnames(pred) <- c("time", newnames)
+      return(pred)
+    }, silent = TRUE))
+    if (!inherits(pred_out, "try-error")) return(pred_out)
+  })
+  available <- !unlist(lapply(prediction, is.null))
+  prediction <- prediction[available]
+  names(prediction) <- parframe[available ,"value"]
   
   
   if (!is.null(data)) {

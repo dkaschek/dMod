@@ -113,6 +113,8 @@ exmpextr <- function(test, testPath = NULL, examplePath = NULL) {
 #' Extract example from unit tests.
 #'
 #' @details Calls exmpextr for all unit test files.
+#' @param testPath character, path to test folder 
+#' @param examplePath character path to example folder
 #'
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' 

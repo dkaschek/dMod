@@ -35,7 +35,6 @@ steadyStates <- function(model, file=NULL, smatrix = NULL, states = NULL, rates 
   }
   
   # Calculate steady states.
-  require(rPython)
   python.version.request("2.7")  
   rPython::python.load(system.file("code/steadyStates.py", package = "dMod"))
   m_ss <- rPython::python.call("ODESS", model, smatrix, as.list(states), as.list(rates), as.list(forcings), as.list(givenCQs), as.list(neglect), sparsifyLevel, outputFormat)
@@ -107,4 +106,5 @@ quasiSteadyStates <- function(model, fastreact, state2Remove, smatrix = NULL, st
   reactionlist$Rate <- redrates
   redflist <- as.eqnlist(reactionlist)
   return(redflist)
+  
 }

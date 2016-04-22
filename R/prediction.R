@@ -414,7 +414,7 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
   # Get potential paramters from g, forcings are treated as parameters because
   # sensitivities dx/dp with respect to forcings are zero.
   if (is.null(f)) {
-    states <- states
+    states <- union(states, "time")
     parameters <- parameters
   } else {
     f <- as.eqnvec(f)
@@ -590,7 +590,6 @@ Xt <- function(condition = NULL) {
   attr(P2X, "equations") <- NULL
   attr(P2X, "forcings") <- NULL
   attr(P2X, "events") <- NULL
-  
   
   
   prdfn(P2X, NULL, condition) 

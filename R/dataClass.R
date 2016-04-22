@@ -35,7 +35,6 @@ as.datalist.data.frame <- function(x, split.by = NULL, ...) {
   rownames(conditionframe) <- splits[!duplicated(splits)]
   
   
-  
   # data list output
   dataframe <- cbind(data.frame(condition = splits), dataframe[, standard.names])
   out <- lapply(unique(splits), function(s) subset(dataframe, dataframe[, 1] == s)[, -1])

@@ -226,11 +226,10 @@ plSelectMin <- function(prf, context = FALSE) {
 #'   \code{\link{runif}}. By default \code{\link{rnorm}} is used. Parameteres 
 #'   for samplefun are simply appended as named parameters to the mstrust call 
 #'   and automatically handed to samplefun by matching parameter names.
+#' @param resultPath character indicating the folder where the results should 
+#'   be stored. Defaults to ".". 
 #' @param stats If true, the same summary statistic as written to the logfile is
 #'   printed to command line on mstrust completion.
-#' @param narrowing Don't touch this. Status flag used when mstrust is called 
-#'   via \code{\link{msnarrow}}. In narrowing mode, this parameter indicates the
-#'   narrowing status, see \code{\link{msnarrow}}.
 #' @param ... Additional parameters handed to trust(), samplefun(), or the 
 #'   objective function by matching parameter names. All unmatched parameters 
 #'   are handed to the objective function objfun(). The log file starts with a 
@@ -265,7 +264,7 @@ plSelectMin <- function(prf, context = FALSE) {
 #' @return A parlist holding errored and converged fits.
 #'   
 #' @seealso \code{\link{trust}}, \code{\link{rnorm}}, \code{\link{runif}}, 
-#'   \code{\link{msnarrow}}, \code{\link{msbest}}, \code{\link{as.parframe}}
+#'   \code{\link{as.parframe}}
 #'   
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'  
@@ -274,8 +273,10 @@ plSelectMin <- function(prf, context = FALSE) {
 #' @export
 mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20, cores = 1,
                     samplefun = "rnorm", resultPath = ".", stats = FALSE,
-                    narrowing = NULL, ...) {
+                    ...) {
 
+  narrowing <- NULL
+  
   # Argument parsing, sorting, and enhancing
   # Gather all function arguments
   varargslist <- list(...)
@@ -635,7 +636,7 @@ load.parlist <- function(folder) {
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'   
 #' @export
-as.parvec.parframe <- function(parframe, index = 1) {
+as.parvec.parframe <- function(parframe, index = 1, ...) {
   m_order <- order(parframe$value)
   metanames <- attr(parframe, "metanames")
   best <- as.parvec(unlist(parframe[m_order[index], attr(parframe, "parameters")]))
@@ -958,6 +959,10 @@ c.parlist <- function(...) {
 
 
 
+#' Check which Python versions are installed on the system
+#' 
+#' @param version NULL or character. Check for specific version
+#' @return Character vector with the python versions and where they are located.
 #' @export
 python.version.sys <- function(version = NULL) {
   
@@ -971,12 +976,12 @@ python.version.sys <- function(version = NULL) {
     } else {
       return(NULL)
     }
-    }))
+  }))
   
   m_version <- strsplit(m_python, "python")
   m_version <- lapply(m_version, function(p) {
     return(p[2])
-    })
+  })
   
   m_python <- as.data.frame(m_python)
   names(m_python) <- m_version
@@ -996,21 +1001,32 @@ python.version.sys <- function(version = NULL) {
 }
 
 
-
+#' Get the Python version to which rPython is linked
+#' 
+#' @return The Python version and additional information
 #' @export
 python.version.rpython <- function() {
-  python.exec(c("def ver():", "\timport sys; return list(sys.version_info)"))
-  m_info <- as.data.frame(python.call("ver"))
+  rPython::python.exec(c("def ver():", "\timport sys; return list(sys.version_info)"))
+  m_info <- as.data.frame(rPython::python.call("ver"))
   names(m_info) <- c("major", "minor", "micro", "releselevel", "serial")
   
   m_version <- paste0(m_info[[1]], ".", m_info[[2]])
   attr(m_version, "info") <- m_info
-
+  
   return(m_version)
 }
 
 
-
+#' Check if rPython comes with the correct Python version
+#' 
+#' @description rPython is liked against a certain Python version found on the system.
+#' If Python code called from R requires a specific Python version, the rPython package
+#' needs to be reinstalled. This functions helps to do this in one line.
+#' 
+#' @param version character indicating the requested Python version
+#' 
+#' @return TRUE if rPython is linked against the requested version. Otherwise, the user
+#' is asked if rPython should be reinstalled with the correctly linked Python version.
 #' @export
 python.version.request <- function(version) {
   
@@ -1020,13 +1036,13 @@ python.version.request <- function(version) {
     m_curVersion <- python.version.rpython()
     if (m_curVersion == version)
       return(TRUE)
-    }
+  }
   
   # rPython not installed or linked agains wrong python version.
   m_sysVersion <- python.version.sys(version)
   if (is.null(m_sysVersion)) {
     msg <- paste0("Requested python version ", version, " not available\n",
-                 "Your options are\n")
+                  "Your options are\n")
     cat(msg)
     print(python.version.sys())
   } else {
@@ -1046,6 +1062,5 @@ python.version.request <- function(version) {
     try(detach("package:rPython", unload = TRUE), silent = TRUE)
     Sys.setenv(RPYTHON_PYTHON_VERSION = version)
     install.packages("rPython")
-    # library(rPython)  (library calls produce WARNING with CRAN)
   }
 }
