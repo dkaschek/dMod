@@ -1,0 +1,135 @@
+Parameter assignment information
+mstrust     : studyname, center, fits, cores, samplefun, resultPath, stats, narrowing
+trust       : objfun, rinit, rmax
+runif       : n
+
+
+-------
+Fit 1 completed
+--> iterations : 54
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+-------
+Fit 2 completed
+--> iterations : 55
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+-------
+Fit 3 completed
+--> iterations : 48
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+-------
+Fit 4 completed
+--> iterations : 51
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+-------
+Fit 5 completed
+--> iterations : 50
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+-------
+Fit 6 completed
+--> iterations : 35
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+-------
+Fit 7 completed
+--> iterations : 51
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+-------
+Fit 8 completed
+--> iterations : 45
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+-------
+Fit 9 completed
+--> iterations : 86
+-->  converged : TRUE
+--> obj. value : 80.07
+-------
+-------
+Fit 10 completed
+--> iterations : 60
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+-------
+Fit 11 completed
+--> iterations : 47
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+-------
+Fit 12 completed
+--> iterations : 52
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+-------
+Fit 13 completed
+--> iterations : 48
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+-------
+Fit 14 completed
+--> iterations : 45
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+-------
+Fit 15 completed
+--> iterations : 85
+-->  converged : TRUE
+--> obj. value : 80.07
+-------
+-------
+Fit 16 completed
+--> iterations : 89
+-->  converged : TRUE
+--> obj. value : 80.07
+-------
+-------
+Fit 17 completed
+--> iterations : 38
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+-------
+Fit 18 completed
+--> iterations : 56
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+-------
+Fit 19 completed
+--> iterations : 54
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+-------
+Fit 20 completed
+--> iterations : 57
+-->  converged : TRUE
+--> obj. value : 75.83
+-------
+Mutli start trust summary
+Outcome     : Occurrence
+Error       : 0
+Fatal       : 0 must be 0
+Unconverged : 0
+Converged   : 20
+           -----------
+Total       : 20[20]
+
