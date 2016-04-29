@@ -1,5 +1,6 @@
 from sympy import *
 from numpy import concatenate
+from numpy.linalg import matrix_rank
 from sympy.parsing.sympy_parser import *
 import csv
 
@@ -55,24 +56,42 @@ def getIndOfParticipatingSpecies(SM, F, X, fastreact):
     return(liste)
     
 def getIndOfFastReactions(F, fastreact):    
-    foundA=False
+    liste=[]
     for fr in fastreact:
         for i in range(len(F)):         
             if(fr in str(F[i])):
-                if(foundA):
-                    b=i
-                else:
-                    a=i
-                    foundA=True
-    if(foundA):
-      return(a,b)
-    else:
-      print('Wrong rate constants specified!')
-      return(0)
+                liste.append(i)
+    return(liste)
+    
+def findMin(vec):
+    m=max(max(vec),max(-vec))    
+    for el in vec:
+        if(abs(el)<m and abs(el)>1e-8):
+            m=abs(el)
+    return(m)
+    
+def nullZ(A):
+  ret = A.rref() # compute reduced row echelon form of A
+  R = ret[0]  # matrix A in rref 
+  pivcol = ret[1] #columns in which a pivot was found
+
+  n = len(A.row(0)) # number of columns of A
+  r = len(pivcol) # rank of reduced row echelon form
+  nopiv = range(n)
+  nopiv2 = [nopiv[i] for i in range(n) if i not in pivcol]  # columns in which no pivot was found
+#  print(ret)
+#  print(nopiv2)
+#  print(n)
+#  print(r)
+  if(n > r):
+    Z=eye(n-r)
+    if(r>0):
+        Z=concatenate((-R[pivcol, nopiv2], Z), axis=0)
+  return(Z) 
 
 def QSS(filename,
         fastreact=[],
-        state2Remove='A',
+        statenot2Remove='A',
           SM=False,
           X=[],
           F=[],
@@ -134,7 +153,7 @@ def QSS(filename,
         for i in range(len(L)-1):
           SM.append(L[i+1][2:])        
         for i in range(len(SM)):
-        	for j in range(len(SM[0])):
+          for j in range(len(SM[0])):
         		if (SM[i][j]==''):
         			SM[i][j]='0'
         		SM[i][j]=parse_expr(SM[i][j])    
@@ -166,52 +185,77 @@ def QSS(filename,
     #print(SM)     
     print('Simplifying System ...')
     PS=getIndOfParticipatingSpecies(SM, F, X, fastreact)
-    i1,i2 = getIndOfFastReactions(F, fastreact)
-    fastreactsymb=[parse_expr(fastreact[0]),parse_expr(fastreact[1])]
+    index_list = getIndOfFastReactions(F, fastreact)
+    frsymb_list=[parse_expr(fastreact[i]) for i in range(len(fastreact))]
     mapping={}
-    variables=[parse_expr('fastflux')]
+    #F_list=[parse_expr('fastflux'+str(i)) for i in range(len(PS))]
+    #variables=F_list[:]
+    variables=[]
     for el in X:
         if(list(X).index(el) in PS):
             mapping[el]=parse_expr(str(el)+'_dot')
-            variables.append(parse_expr(str(el)+'_dot'))
-    fastEq=F[i1]-F[i2]
-    t = symbols("t")
-    fastEqDiff=difftotal(F[i1], t, mapping)-difftotal(F[i2], t, mapping)
-    #F.row_del(i1)
-    #F=F.row_insert(i1,Matrix([parse_expr('fastflux')]))                   
-    #F.row_del(i2)
-    #F=F.row_insert(i2,Matrix([0]))
-    F[i1]=parse_expr('fastflux')
-    F[i2]=0
+            #variables.append(parse_expr(str(el)+'_dot'))
+    FF=Matrix([F[i] for i in index_list])
+    SMF=SM[PS,index_list]
+    SMStimesFS=SM[PS,:]*F-SMF*FF
+    #print(SMF)
+    #print(SMStimesFS)
+    for i in index_list:
+        F[i]=parse_expr('F_'+str(i))
+        #variables.append(parse_expr('F_'+str(i)))
+    #F_red2=Matrix([F[i] for i in index_list])
     eqs=[]
     for ps in PS:
-        eqs.append((SM.row(ps)*F)[0]-parse_expr(str(X[ps])+'_dot'))
-        #eqs.append(SM[ps]*F-parse_expr(str(X[ps])+'_dot'))
-    eqs.append(fastEqDiff)
-    #CM=getCM(eqs, variables)
-    #print("Test")
+        eqs.append(parse_expr(str(X[ps])+'_dot')-parse_expr(str(X[ps])+'_tilde')-SMStimesFS[ps])
+        variables.append(parse_expr(str(X[ps])+'_dot'))
+        #eqs.append((SM_red*F_red2)[PS.index(ps)]-parse_expr('G_'+str(X[ps])))
+        variables.append(parse_expr(str(X[ps])+'_tilde'))
+    if(max(SMF.shape) > matrix_rank(SMF)):
+        ns=nullZ(SMF.T)
+        #print(ns)
+        for i in range(ns.shape[1]):
+            eq=0
+            factor=1/findMin(ns[:,i])
+            for ps in PS:
+                eq=eq+ns[:,i][list(PS).index(ps)]*factor*parse_expr(str(X[ps])+'_tilde')
+            eqs.append(eq)
+    #print(ns)        
+    t = symbols("t")
+    fastEqDiff_list=[difftotal((SMF*FF)[i], t, mapping) for i in range(len(PS))]
+    eqs=eqs+fastEqDiff_list
+    #print(eqs)
+    #print(variables)
     sol=solve(eqs, variables)
-    if(sol!=[]):
-      fastEqVar=parse_expr(state2Remove)
-      fastEqExpr=solve(fastEq,fastEqVar)
-      if(fastEqExpr!=[]):
-        fastEqExpr=fastEqExpr[0]
-      else:
-        print("Did not find a solution for the fast reaction.")
-        return([])
-    else:
+    if(sol==[]):
         print("Did not find a solution for the equation system.")
         return([])
     ausgabe=[]
+    #print(frsymb_list)
+    varfast=[X[ps] for ps in PS]
+    varfast.remove(parse_expr(statenot2Remove))
+    solfast=solve(SMF*FF,varfast)
+    
     for var in variables:
-        term=sol[var].subs(fastEqVar, fastEqExpr)
-        term=term.subs(fastreactsymb[0],fastreactsymb[1]*parse_expr('ratio_'+str(fastreact[0])+'_'+str(fastreact[1])))
+        if(statenot2Remove+'_dot' == str(var)):
+            term=sol[var]
+            for el in solfast.keys():
+                term=term.subs(el, solfast[el])
+            for i in range(1,len(frsymb_list)):
+                term=term.subs(frsymb_list[i],frsymb_list[0]*parse_expr('r_'+str(frsymb_list[i])+'_'+str(frsymb_list[0])))
+            term=simplify(term)        
+            ausgabe.append(str(var)+' = '+str(term))
+    
+    #for ps in PS:
+    #    if(str(X[ps])!=statenot2Remove):
+    print('Use the following replacements!')
+    #print(solfast[0])
+    for el in solfast.keys():
+        term=solfast[el]
+        for i in range(1,len(frsymb_list)):
+            term=term.subs(frsymb_list[i],frsymb_list[0]*parse_expr('r_'+str(frsymb_list[i])+'_'+str(frsymb_list[0])))
         term=simplify(term)
-        ausgabe.append(str(var)+' = '+str(term))
-        #print(str(var)+' = '+str(term))
-    F[i1]=parse_expr(ausgabe[0].split(' = ')[1])
-    fastEqExpr=fastEqExpr.subs(fastreactsymb[0],fastreactsymb[1]*parse_expr('ratio_'+str(fastreact[0])+'_'+str(fastreact[1])))
-    fastEqExpr=simplify(fastEqExpr)
-    print('Use the following replacement for state '+state2Remove+'!')
-    print('    '+state2Remove+'='+str(fastEqExpr))
-    return([state2Remove+'='+str(fastEqExpr),'flux'+str(i1)+'='+str(F[i1]),'flux'+str(i2)+'='+str(F[i2])])
+        print('   '+str(el)+' = '+str(term))
+        ausgabe.append(str(el))
+    #print(solfast)
+    #print(len(solfast))
+    return(ausgabe)

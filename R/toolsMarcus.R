@@ -95,16 +95,25 @@ quasiSteadyStates <- function(model, fastreact, state2Remove, smatrix = NULL, st
   rPython::python.load(system.file("code/quasiSteadyStates.py", package = "dMod"))
   out  <- rPython::python.call("QSS", NULL, as.list(fastreact), state2Remove, smatrix, as.list(flist$states), as.list(flist$rates), outputFormat)
   #print(out)
-  redrates <- flist$rates
-  redrates <- replaceSymbols(strsplit(out[1], "=")[[1]][1],strsplit(out[1], "=")[[1]][2], redrates)
-  reactionlist[,state2Remove] <- NA
+  #print(flist)
+  #print(reactionlist)
+  #redrates <- flist$rates
+  #redrates <- replaceSymbols(strsplit(out[1], "=")[[1]][1],strsplit(out[1], "=")[[1]][2], redrates)
+  #reactionlist[,state2Remove] <- NA
   for(expr in out[-1]){
-    index <- as.numeric(strsplit(strsplit(expr, "=")[[1]][1], "flux")[[1]][2])
-    redrates[index+1] <- strsplit(expr, "=")[[1]][2]
-    if(strsplit(expr, "=")[[1]][2]==0){ reactionlist <- reactionlist[-(index+1),]; redrates <- redrates[-(index+1)]}
+    index <- which(names(reactionlist)==expr)
+    #index <- as.numeric(strsplit(strsplit(expr, "=")[[1]][1], "flux")[[1]][2])
+    #redrates[index+1] <- strsplit(expr, "=")[[1]][2]
+    reactionlist <- reactionlist[,-index]
   }
-  reactionlist$Rate <- redrates
-  redflist <- as.eqnlist(reactionlist)
-  return(redflist)
-  
+  for(rate in fastreact){ reactionlist <- subset(reactionlist, !grepl(rate, Rate))}
+  if(substr(strsplit(out[1], " = ")[[1]][2], 1, 1)=="-"){
+    reactionlist <- addReaction(reactionlist, state2Remove, "", strsplit(out[1], " = -")[[1]][2], "New reaction")
+  } else {
+    reactionlist <- addReaction(reactionlist, "", state2Remove, strsplit(out[1], "=")[[1]][2], "New reaction")
+  }
+  #reactionlist$Rate <- redrates
+  #redflist <- as.eqnlist(reactionlist)
+  #return(redflist)
+  return(reactionlist)
 }
