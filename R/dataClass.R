@@ -90,6 +90,13 @@ print.datalist <- function(x, ...) {
   }
 }
 
+# Subset of all datalist entries
+#' @export
+subset.datalist <- function(x, ...){
+  datalist <- lapply(x, function(i) subset(i, ...)) 
+  return(as.datalist(datalist))
+}
+
 #' @export
 "[.datalist" <- function(x, ...) {
   out <- unclass(x)[...]
