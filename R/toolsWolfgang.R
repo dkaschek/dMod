@@ -786,7 +786,7 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
     )}
   
   # Return standard error of the mean
-  dataErrorModel$sigma <- dataErrorModel$sigma/sqrt(dataErrModel$n)
+  dataErrorModel$sigma <- dataErrorModel$sigma/sqrt(dataErrorModel$n)
   data$sigma <- dataErrorModel$sigma
   if(blather)
     return(dataErrorModel)
