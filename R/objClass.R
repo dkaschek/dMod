@@ -100,6 +100,7 @@ constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, fixed=NULL) {
 #' optimization with the trust optimizer, see \link{mstrust}.
 #' @param data object of class \link{datalist}
 #' @param x object of class \link{prdfn}
+#' @param errmodel object of class \link{obsfn}
 #' @param times numeric vector, the time points where the prediction function is to be
 #' evaluated. If NULL, time points are extacted from the datalist. If the prediction
 #' function makes use of events, \code{times} should be set by hand.
