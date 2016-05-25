@@ -92,12 +92,18 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
       system(paste0("ssh ", machine[m], " ls ", filename[m], "_folder/ | grep -x ", filename[m], "_result.RData"), 
              intern = TRUE))))
     
-    if (all(check.out) > 0) 
+    if (all(check.out) > 0) {
       cat("Result is ready!\n")
-    else if (any(check.out) > 0)
+      return(TRUE)
+    }
+    else if (any(check.out) > 0) {
       cat("Result from machines", paste(which(check.out > 0), collapse = ", "), "are ready.")
-    else if (all(check.out) == 0)
+      return(FALSE)
+    }
+    else if (all(check.out) == 0) {
       cat("Not ready!\n") 
+      return(FALSE)
+    }
       
   }
   
