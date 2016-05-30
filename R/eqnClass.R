@@ -126,11 +126,13 @@ getReactions <- function(eqnlist) {
     
     numbers <- v[which(!is.na(v))]
     educts <- -numbers[numbers < 0]
-    educts[which(educts == 1)] <- " "
+    #educts[which(educts == 1)] <- " "
     products <- numbers[numbers > 0]
-    products[which(products == 1)] <- " "
-    educts <- paste(paste(educts, names(educts), paste = ""), collapse="+")
-    products <- paste(paste(products, names(products), paste = ""), collapse="+")
+    #products[which(products == 1)] <- 
+    educts <- paste(paste(educts, names(educts), sep = "*"), collapse=" + ")
+    products <- paste(paste(products, names(products), sep = "*"), collapse=" + ")
+    educts <- gsub("1*", "", educts, fixed = TRUE)
+    products <- gsub("1*", "", products, fixed = TRUE)
     
     reaction <- paste(educts, "->", products)
     return(c(educts, products))
@@ -433,6 +435,7 @@ subset.eqnlist <- function(x, ...) {
   
   "%in%" <- function(x, table) sapply(table, function(mytable) any(x == mytable))
   select <- which(eval(substitute(...), data.list))
+  if (length(select) == 0) return(NULL)
   
   # Translate subsetting on eqnlist entries
   # smatrix
