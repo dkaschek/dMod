@@ -236,10 +236,14 @@ addReaction <- function(eqnlist, from, to, rate, description = names(rate)) {
 #' Generate list of fluxes from equation list
 #' 
 #' @param eqnlist object of class \link{eqnlist}.
+#' @param type "conc." or "amount" for fluxes in units of concentrations or
+#' number of molecules. 
 #' @return list of named characters, the in- and out-fluxes for each state.
 #' @example inst/examples/equations.R
 #' @export
-getFluxes <- function(eqnlist) {
+getFluxes <- function(eqnlist, type = c("conc", "amount")) {
+  
+  type <- match.arg(type)
   
   description <- eqnlist$description
   rate <- eqnlist$rates
@@ -275,9 +279,16 @@ getFluxes <- function(eqnlist) {
         return(myvolume)
       })
     }
-    volumes.ratios <- paste0("*(", volumes.origin, "/", volumes.destin, ")")
-    #print(volumes.ratios)
-    volumes.ratios[volumes.destin == volumes.origin] <- ""
+    
+    switch(type,
+           conc = {
+             volumes.ratios <- paste0("*(", volumes.origin, "/", volumes.destin, ")")
+             volumes.ratios[volumes.destin == volumes.origin] <- ""
+           },
+           amount = {
+             volumes.ratios <- paste0("*(", volumes.origin, ")")
+           }
+    )
     
     numberchar <- as.character(v)
     if(nonZeros[1] %in% positives){
@@ -547,7 +558,7 @@ as.eqnvec.eqnlist <- function(x, ...) {
   
   eqnlist <- x
   
-  terme <- getFluxes(eqnlist)
+  terme <- getFluxes(eqnlist, ...)
   if(is.null(terme)) return()
   terme <- lapply(terme, function(t) paste(t, collapse=" "))
   

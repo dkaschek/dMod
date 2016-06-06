@@ -17,4 +17,5 @@ print(fdata)
 f <- as.eqnlist(fdata, volumes = c(A = "Vcyt", B = "Vnuc"))
 print(f)
 print(as.eqnvec(f))
+print(as.eqnvec(f, type = "amount"))
 
