@@ -233,6 +233,7 @@ def QSS(filename,
         print("Did not find a solution for the equation system.")
         return([])    
     #print(frsymb_list)
+    #print(state2Remove)
     if(state2Remove==[]):
         varfast=[X[ps] for ps in PS]
         pivcol = SMF.rref()[1] #columns in which a pivot was found
@@ -275,7 +276,7 @@ def QSS(filename,
     
     #for ps in PS:
     #    if(str(X[ps])!=statenot2Remove):
-    print('Use the following replacements!')
+    print('Use the following observation functions!')
     #print(solfast[0])
     for el in range(len(varfast)):
         term=solfast[el]
@@ -285,4 +286,11 @@ def QSS(filename,
         print('   '+str(varfast[el])+' = '+str(term))
     #print(solfast)
     #print(len(solfast))
-    return(ausgabe, varfast)
+    #print(ausgabe)
+    #print(varfast)
+    for i in range(len(varfast)):
+        ausgabe.append(str(varfast[i]))
+    ausgabe.append(str(len(varfast)))
+    #print(ausgabe.append(varfast))
+    print("Done")
+    return(ausgabe)

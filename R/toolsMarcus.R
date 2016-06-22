@@ -75,7 +75,7 @@ steadyStates <- function(model, file=NULL, smatrix = NULL, states = NULL, rates 
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 #'   
 #' @export
-quasiSteadyStates <- function(model, fastreact, state2Remove, smatrix = NULL, states = NULL, rates = NULL, outputFormat = "R") {
+quasiSteadyStates <- function(model, fastreact, state2Remove = list(), smatrix = NULL, states = NULL, rates = NULL, outputFormat = "R") {
   if (inherits(model, "eqnlist")) {    
     flist <- model    
   } else {
@@ -101,17 +101,27 @@ quasiSteadyStates <- function(model, fastreact, state2Remove, smatrix = NULL, st
   #redrates <- flist$rates
   #redrates <- replaceSymbols(strsplit(out[1], "=")[[1]][1],strsplit(out[1], "=")[[1]][2], redrates)
   #reactionlist[,state2Remove] <- NA
-  for(expr in out[-1]){
-    index <- which(names(reactionlist)==expr)
-    #index <- as.numeric(strsplit(strsplit(expr, "=")[[1]][1], "flux")[[1]][2])
-    #redrates[index+1] <- strsplit(expr, "=")[[1]][2]
-    reactionlist <- reactionlist[,-index]
-  }
-  for(rate in fastreact){ reactionlist <- subset(reactionlist, !grepl(rate, Rate))}
-  if(substr(strsplit(out[1], " = ")[[1]][2], 1, 1)=="-"){
-    reactionlist <- addReaction(reactionlist, state2Remove, "", strsplit(out[1], " = -")[[1]][2], "New reaction")
-  } else {
-    reactionlist <- addReaction(reactionlist, "", state2Remove, strsplit(out[1], "=")[[1]][2], "New reaction")
+  if(!is.null(out)){
+    nremove <- as.numeric(out[length(out)])
+    states2remove <- out[(length(out)-nremove):(length(out)-1)]
+    out <- out[1:(length(out)-nremove-1)]
+    #print(reactionlist)
+    #print(states2remove)
+    for(expr in states2remove){
+      index <- which(names(reactionlist)==expr)
+      reactionlist <- reactionlist[,-index]
+    }
+    #print(reactionlist)
+    for(rate in fastreact){ reactionlist <- subset(reactionlist, !grepl(rate, Rate))}
+    for(eq in out){
+      state <- strsplit(eq, "_dot = ")[[1]][1]
+      index <- which(names(reactionlist)==state)
+      reactionlist <- reactionlist[,-index]
+    }    
+    for(eq in out){
+      state <- strsplit(eq, "_dot = ")[[1]][1]
+      reactionlist <- addReaction(reactionlist, "", state, strsplit(eq, "=")[[1]][2], "New reaction")
+    }    
   }
   #reactionlist$Rate <- redrates
   #redflist <- as.eqnlist(reactionlist)
