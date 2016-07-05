@@ -419,7 +419,7 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
   } else {
     f <- as.eqnvec(f)
     states <- union(names(f), "time")
-    parameters <- getSymbols(c(g, f), exclude = c(states, "time"))
+    parameters <- getSymbols(c(unclass(g), unclass(f)), exclude = c(states, "time"))
   }
   variables.deriv <- c(
     states, 
@@ -472,6 +472,8 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     #outlist <- lapply(1:nOut, function(i) out[,i]); names(outlist) <- colnames(out)
     
     dout <- attr(out, "sensitivities")
+    
+    
     # if (!is.null(dout)) {
     #   nDeriv <- dim(dout)[2]
     #   derivlist <- lapply(1:nDeriv, function(i) dout[,i]); names(derivlist) <- colnames(dout)  
@@ -487,6 +489,8 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     values <- gEval(M = out, p = pars)
     
     if (!is.null(dout)) dvalues <- derivsEval(M = cbind(out, dout), p = pars)
+    sensitivities.export <- cbind(time = out[, 1], dvalues)
+    
     
     # Parameter transformation
     dP <- attr(pars, "deriv")
@@ -540,7 +544,7 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     
     
     # Output 
-    prdframe(prediction = values, deriv = myderivs, sensitivities = dout, parameters = pars) 
+    prdframe(prediction = values, deriv = myderivs, sensitivities = sensitivities.export, parameters = pars) 
     
     
     
