@@ -59,7 +59,7 @@ def getIndOfFastReactions(F, fastreact):
     liste=[]
     for fr in fastreact:
         for i in range(len(F)):         
-            if(fr in str(F[i])):
+            if(fr in str(F[i]) and i not in liste):
                 liste.append(i)
     return(liste)
     
@@ -91,7 +91,7 @@ def nullZ(A):
 
 def QSS(filename,
         fastreact=[],
-        statenot2Remove='A',
+        state2Remove=[],
           SM=False,
           X=[],
           F=[],
@@ -195,6 +195,7 @@ def QSS(filename,
         if(list(X).index(el) in PS):
             mapping[el]=parse_expr(str(el)+'_dot')
             #variables.append(parse_expr(str(el)+'_dot'))
+    #print(index_list)
     FF=Matrix([F[i] for i in index_list])
     SMF=SM[PS,index_list]
     SMStimesFS=SM[PS,:]*F-SMF*FF
@@ -205,8 +206,10 @@ def QSS(filename,
         #variables.append(parse_expr('F_'+str(i)))
     #F_red2=Matrix([F[i] for i in index_list])
     eqs=[]
+    #print(PS)
     for ps in PS:
-        eqs.append(parse_expr(str(X[ps])+'_dot')-parse_expr(str(X[ps])+'_tilde')-SMStimesFS[ps])
+        #print(SMStimesFS[list(PS).index(ps)])
+        eqs.append(parse_expr(str(X[ps])+'_dot')-parse_expr(str(X[ps])+'_tilde')-SMStimesFS[list(PS).index(ps)])
         variables.append(parse_expr(str(X[ps])+'_dot'))
         #eqs.append((SM_red*F_red2)[PS.index(ps)]-parse_expr('G_'+str(X[ps])))
         variables.append(parse_expr(str(X[ps])+'_tilde'))
@@ -228,18 +231,44 @@ def QSS(filename,
     sol=solve(eqs, variables)
     if(sol==[]):
         print("Did not find a solution for the equation system.")
-        return([])
-    ausgabe=[]
+        return([])    
     #print(frsymb_list)
-    varfast=[X[ps] for ps in PS]
-    varfast.remove(parse_expr(statenot2Remove))
+    #print(state2Remove)
+    if(state2Remove==[]):
+        varfast=[X[ps] for ps in PS]
+        pivcol = SMF.rref()[1] #columns in which a pivot was found
+        varfast=[varfast[i] for i in pivcol]
+        state2Remove=[str(v) for v in varfast]
+    else:
+        if(matrix_rank(SMF)==len(state2Remove)):
+            varfast=[parse_expr(state) for state in state2Remove]
+        else:
+            print("Rank of the fast stoichiometry matrix equals {}. Please specify {} states to remove from the system!".format(matrix_rank(SMF), matrix_rank(SMF)) )
+            return([])  
+    #print(varfast)
+    #print(SMF*FF)
     solfast=solve(SMF*FF,varfast)
-    
+    #print(isinstance(solfast, list))
+    #print(isinstance(solfast[0], list))
+    if(not isinstance(solfast, list)):
+        varfast=solfast.keys()
+        solfast=[solfast[el] for el in solfast.keys()]
+        #print(isinstance(solfast, list))
+    else:
+        if(isinstance(solfast[0], tuple)):
+            liste=[]
+            for i in range(len(solfast[0])):
+                liste.append(solfast[0][i])
+            solfast=liste
+    #print(varfast)
+    #print(solfast)
+    #print(solfast[0])
+    ausgabe=[]
     for var in variables:
-        if(statenot2Remove+'_dot' == str(var)):
+        if('tilde' not in str(var) and str(var).split('_dot')[0] not in state2Remove):
             term=sol[var]
-            for el in solfast.keys():
-                term=term.subs(el, solfast[el])
+            for el in range(len(varfast)):
+                term=term.subs(varfast[el], solfast[el])
             for i in range(1,len(frsymb_list)):
                 term=term.subs(frsymb_list[i],frsymb_list[0]*parse_expr('r_'+str(frsymb_list[i])+'_'+str(frsymb_list[0])))
             term=simplify(term)        
@@ -247,15 +276,21 @@ def QSS(filename,
     
     #for ps in PS:
     #    if(str(X[ps])!=statenot2Remove):
-    print('Use the following replacements!')
+    print('Use the following observation functions!')
     #print(solfast[0])
-    for el in solfast.keys():
+    for el in range(len(varfast)):
         term=solfast[el]
         for i in range(1,len(frsymb_list)):
             term=term.subs(frsymb_list[i],frsymb_list[0]*parse_expr('r_'+str(frsymb_list[i])+'_'+str(frsymb_list[0])))
         term=simplify(term)
-        print('   '+str(el)+' = '+str(term))
-        ausgabe.append(str(el))
+        print('   '+str(varfast[el])+' = '+str(term))
     #print(solfast)
     #print(len(solfast))
+    #print(ausgabe)
+    #print(varfast)
+    for i in range(len(varfast)):
+        ausgabe.append(str(varfast[i]))
+    ausgabe.append(str(len(varfast)))
+    #print(ausgabe.append(varfast))
+    print("Done")
     return(ausgabe)
