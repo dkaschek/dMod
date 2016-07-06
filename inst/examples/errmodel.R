@@ -21,8 +21,7 @@ p <- P(
 )
 x <- Xs(model)
 g <- Y(observables, f)
-err <- Y(errors, c(observables, as.eqnvec(f)), attach.input = FALSE, compile = TRUE, modelname = "err")
-err <- Y(errors, states = "B_obs", parameters = c("A", "B", "C", "sigma_rel", "sigma_abs", "off_B", "k1", "k2"), attach.input = FALSE, compile = TRUE, modelname = "err")
+err <- Y(errors, c(observables, as.eqnvec(f)), states = names(observables),  attach.input = FALSE, compile = TRUE, modelname = "err")
 
 ## Simulate data
 ptrue <- c(log_k1 = -1, log_k2 = -2, log_off_B = -1, log_sigma_rel = log(0.1), log_sigma_abs = log(.1))
@@ -35,6 +34,7 @@ data <- as.datalist(datasheet)
 
 ## Fit data with error model
 myfit <- trust(normL2(data, g*x*p, err), ptrue + rnorm(length(ptrue), 0, 1), rinit = 1, rmax = 10)
+profiles <- profile(normL2(data, g*x*p, err) + constraintL2(myfit$argument, 10), myfit$argument, names(myfit$argument), limits = c(-5, 5), cores = 4)
 
 ## Plotting
 out <- ggdata_fn(g*x*p, err, data, times = seq(0, 20, len = 100), pars = myfit$argument)
