@@ -139,6 +139,8 @@ Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, mod
 #' @param keep.root logical, applies for \code{method = "implicit"}. The root of the last
 #' evaluation of the parameter transformation function is saved as guess for the next 
 #' evaluation.
+#' @param positive logical, returns projection to the (semi)positive range. Comes with a warning if
+#' the steady state has been found to be negative. 
 #' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
 #' C file.
 #' @param verbose Print compiler output to R command line.
@@ -190,7 +192,7 @@ Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, mod
 #' pSS <- Pimpl(f, "total")
 #' pSS(c(k1 = 1, k2 = 2, A = 5, B = 5, total = 3))
 #' @export
-Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
+Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, positive = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
   
   
   states <- names(trafo)
@@ -235,7 +237,8 @@ Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, co
   
   
   # Controls to be modified from outside
-  controls <- list(keep.root = keep.root)
+  controls <- list(keep.root = keep.root,
+                   positive = positive)
   
   # the parameter transformation function to be returned
   p2p <- function(pars, fixed=NULL, deriv = TRUE) {
@@ -243,6 +246,7 @@ Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, co
     
     p <- pars
     keep.root <- controls$keep.root
+    positive <- controls$positive
     
     # Inherit from p
     dP <- attr(p, "deriv")
@@ -262,9 +266,14 @@ Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, co
     emptypars <- names(p)[!names(p)%in%c(dependent, fixed)]
     
     # Compute steady state concentrations
-    myroot <- rootSolve::multiroot(ftrafo, positive = TRUE,
+    myroot <- rootSolve::multiroot(ftrafo, positive = FALSE,
                                    start = p[dependent], 
                                    parms = p[setdiff(names(p), dependent)])
+    if (any(myroot$root < 0) & positive) {
+      myroot$root[myroot$root < 0] <- 0
+      warning("Found negative steady state. Negative elements have been set to 0.")
+    }
+    
     
     # Output parameters, write in outer environment if doGuess
     out <- c(myroot$root, p[setdiff(names(p), names(myroot$root))])
