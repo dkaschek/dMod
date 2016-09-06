@@ -127,10 +127,12 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
     arglist <- arglist[match.fnargs(arglist, "pars")]
     pouter <- arglist[[1]]
     
+    # Generate output template
+    pars_out <- colnames(getDerivs(as.parvec(pouter)))
     template <- objlist(
       value = 0,
-      gradient = structure(rep(0, length(pouter)), names = names(pouter)),
-      hessian = matrix(0, nrow = length(pouter), ncol = length(pouter), dimnames = list(names(pouter), names(pouter)))
+      gradient = structure(rep(0, length(pars_out)), names = pars_out),
+      hessian = matrix(0, nrow = length(pars_out), ncol = length(pars_out), dimnames = list(pars_out, pars_out))
     )
    
     # Import from controls
@@ -151,7 +153,7 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
       } else {
         mywrss <- wrss(res(data[[cn]], prediction[[cn]]))  
       }
-      available <- intersect(names(pouter), names(mywrss$gradient))
+      available <- intersect(pars_out, names(mywrss$gradient))
       result <- template
       result$value <- mywrss$value
       result$gradient[available] <- mywrss$gradient[available]
