@@ -490,8 +490,11 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     
     values <- gEval(M = out, p = pars)
     
-    if (!is.null(dout)) dvalues <- derivsEval(M = cbind(out, dout), p = pars)
-    sensitivities.export <- cbind(time = out[, 1], dvalues)
+    sensitivities.export <- NULL
+    if (!is.null(dout)) {
+      dvalues <- derivsEval(M = cbind(out, dout), p = pars)
+      sensitivities.export <- cbind(time = out[, 1], dvalues)
+    }
     
     
     # Parameter transformation

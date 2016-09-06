@@ -150,7 +150,7 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
   # Get loaded packages
   pack <- sapply(strsplit(search(), "package:", fixed = TRUE), function(v) v[2])
   pack <- pack[!is.na(pack)]
-  pack <- paste(paste0("library(", pack, ")"), collapse = "\n")
+  pack <- paste(paste0("try(library(", pack, "))"), collapse = "\n")
   
   # Define outputs
   output <- ".runbgOutput"
