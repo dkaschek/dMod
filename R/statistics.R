@@ -310,15 +310,21 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       
       ## Iteration step
       sufficient <- FALSE
-      while (!sufficient) {
+      retry <- 0
+      while (!sufficient & retry < 5) {
         dy <- stepsize*lagrange.out$dy
         y.try <- try(doIteration(), silent = TRUE)
         out.try <- try(doAdaption(), silent = TRUE)
-        if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
-        sufficient <- out.try$valid
-        stepsize <- out.try$stepsize
-      }
-      
+        if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) {
+          sufficient <- FALSE
+          stepsize <- stepsize/1.5
+          retry <- retry + 1
+        } else {
+          sufficient <- out.try$valid
+          stepsize <- out.try$stepsize  
+        }
+        
+      }    
       if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
       
       
@@ -364,13 +370,20 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       
       ## Iteration step
       sufficient <- FALSE
-      while (!sufficient) {
+      retry <- 0
+      while (!sufficient & retry < 5) {
         dy <- stepsize*lagrange.out$dy
         y.try <- try(doIteration(), silent = TRUE)
         out.try <- try(doAdaption(), silent = TRUE)
-        if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
-        sufficient <- out.try$valid
-        stepsize <- out.try$stepsize
+        if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) {
+          sufficient <- FALSE
+          stepsize <- stepsize/1.5
+          retry <- retry + 1
+        } else {
+          sufficient <- out.try$valid
+          stepsize <- out.try$stepsize  
+        }
+        
       }
       if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
       
