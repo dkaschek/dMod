@@ -789,15 +789,26 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
 #' @example inst/examples/sumdatalist.R
 #' @export
 "+.datalist" <- function(data1, data2) {
+  
+  overlap <- names(data2)[names(data2) %in% names(data1)]
+  if (length(overlap) > 0) {
+    warning(paste("Condition", overlap, "existed and has been overwritten."))
+    data1 <- data[!names(data1) %in% names(data2)]
+  }
+  
   conditions <- union(names(data1), names(data2))
   data <- lapply(conditions, function(C) rbind(data1[[C]], data2[[C]]))
   names(data) <- conditions
   
   grid1 <- attr(data1, "condition.grid")
   grid2 <- attr(data2, "condition.grid")
+  
   grid <- combine(grid1, grid2)
   
-  if (is.data.frame(grid)) grid <- grid[!duplicated(rownames(grid)),]
+  
+  
+  
+  if (is.data.frame(grid)) grid <- grid[!duplicated(rownames(grid)), , drop = FALSE]
   
   out <- as.datalist(data)
   attr(out, "condition.grid") <- grid

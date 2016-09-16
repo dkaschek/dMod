@@ -99,7 +99,13 @@ subset.datalist <- function(x, ...){
 
 #' @export
 "[.datalist" <- function(x, ...) {
+  condition.grid <- attr(x, "condition.grid")
   out <- unclass(x)[...]
+  attr(out, "condition.grid") <- condition.grid
+  n <- names(out)
+  if (!is.null(n)) {
+    attr(out, "condition.grid") <- condition.grid[n, , drop = FALSE]
+  }
   class(out) <- c("datalist", "list")
   return(out)
 }
