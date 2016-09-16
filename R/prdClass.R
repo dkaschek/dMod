@@ -120,7 +120,8 @@ summary.prdfn <- function(object, ...) {
     })
     names(output) <- conditions
     
-    print(output, ...)
+    #print(output, ...)
+    output
     
   } else {
     
@@ -167,7 +168,8 @@ summary.obsfn <- function(object, ...) {
     })
     names(output) <- conditions
     
-    print(output, ...)
+    #print(output, ...)
+    output
     
   } else {
     

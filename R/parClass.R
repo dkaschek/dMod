@@ -302,7 +302,8 @@ summary.parfn <- function(object, ...) {
     })
     names(output) <- conditions
     
-    print(output, ...)
+    #print(output, ...)
+    output
     
   } else {
     
