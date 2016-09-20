@@ -343,6 +343,10 @@ prdfn <- function(P2X, parameters = NULL, condition = NULL) {
     times <- arglist[[1]]
     pars <- arglist[[2]]
     
+    # yields derivatives for all parameters in pars but not in fixed
+    pars <- c(as.parvec(pars[setdiff(names(pars), names(fixed))]), 
+              fixed)
+    
     
     overlap <- test_conditions(conditions, condition)
     # NULL if at least one argument is NULL
@@ -356,6 +360,7 @@ prdfn <- function(P2X, parameters = NULL, condition = NULL) {
     
     if (is.null(overlap) | length(overlap) > 0)
       result <- P2X(times = times, pars = pars, deriv = deriv)
+    
     else
       result <- NULL
     
@@ -414,6 +419,9 @@ obsfn <- function(X2Y, parameters = NULL, condition = NULL) {
     out <- arglist[[1]]
     pars <- arglist[[2]]
     
+    # yields derivatives for all parameters in pars but not in fixed
+    pars <- c(as.parvec(pars[setdiff(names(pars), names(fixed))]), 
+              fixed)
      
     overlap <- test_conditions(conditions, condition)
     # NULL if at least one argument is NULL
