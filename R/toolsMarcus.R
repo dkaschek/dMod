@@ -91,7 +91,6 @@ quasiSteadyStates <- function(model, fastreact, state2Remove = list(), smatrix =
   }
   
   # Analyze quasi-steady-state.
-  require(rPython)
   python.version.request("2.7")  
   rPython::python.load(system.file("code/quasiSteadyStates.py", package = "dMod"))
   out  <- rPython::python.call("QSS", NULL, as.list(fastreact), state2Remove, smatrix, as.list(flist$states), as.list(flist$rates), outputFormat)

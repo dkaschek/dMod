@@ -30,9 +30,9 @@
     
     ## Subsetting of equation list
     subeq1 <- subset(eq, "pB" %in% Product)
-     print(subeq)
+     print(subeq1)
     subeq2 <- subset(eq, grepl("not_available", Description))
-     print(subeq)
+     print(subeq2)
     
     ## Time derivatives of observables
     observables <- eqnvec(pA_obs = "s1*pA", tA_obs = "s2*(A + pA)")
