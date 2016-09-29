@@ -801,7 +801,7 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
   overlap <- names(data2)[names(data2) %in% names(data1)]
   if (length(overlap) > 0) {
     warning(paste("Condition", overlap, "existed and has been overwritten."))
-    data1 <- data[!names(data1) %in% names(data2)]
+    data1 <- data1[!names(data1) %in% names(data2)]
   }
   
   conditions <- union(names(data1), names(data2))

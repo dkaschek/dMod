@@ -3,7 +3,7 @@
 #' @param obj Objective function \code{obj(pars, fixed, ...)} returning a list with "value",
 #' "gradient" and "hessian". If attribute "valueData" and/or "valuePrior are returned they are attached to the return value.
 #' @param pars Parameter vector corresponding to the log-liklihood optimum.
-#' @param whichPar Numeric or character. The parameter for which the profile is computed.
+#' @param whichPar Numeric or character vector. The parameters for which the profile is computed.
 #' @param alpha Numeric, the significance level based on the chisquare distribution with df=1
 #' @param limits Numeric vector of length 2, the lower and upper deviance from the original 
 #' value of \code{pars[whichPar]}
@@ -17,6 +17,8 @@
 #' \code{list(rinit = .1, rmax = 10, iterlim = 10, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))}.
 #' See \link{trust} for more details.
 #' @param verbose Logical, print verbose messages.
+#' @param cores number of cores used by \code{mclapply()} when computing profiles for several
+#' parameters.
 #' @param ... Arguments going to obj()
 #' @details Computation of the profile likelihood is based on the method of Lagrangian multipliers
 #' and Euler integration of the corresponding differential equation of the profile likelihood paths.

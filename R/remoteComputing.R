@@ -232,7 +232,6 @@ runbg.install <- function(type = "local", sshtarget, source = NULL) {
     system(eval(paste("R CMD build", source)))
     
     # Figure out package name
-    require(dMod)
     dModPkg <- paste0("dMod_", packageVersion("dMod"), ".tar.gz")
     
     # Install to remote host
