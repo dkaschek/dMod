@@ -34,9 +34,9 @@ as.objlist <- function(p) {
 #' @param data object of class \link{datalist}
 #' @param x object of class \link{prdfn}
 #' @param errmodel object of class \link{obsfn}
-#' @param times numeric vector, the time points where the prediction function is to be
-#' evaluated. If NULL, time points are extacted from the datalist. If the prediction
-#' function makes use of events, \code{times} should be set by hand.
+#' @param times numeric vector, additional time points where the prediction function is 
+#' evaluated. If NULL, time points are extacted from the datalist solely. If the prediction
+#' function makes use of events, hand over event \code{times} here.
 #' @param attr.name character. The constraint value is additionally returned in an 
 #' attributed with this name
 #' @return Object of class \code{obsfn}, i.e. a function 
@@ -47,7 +47,8 @@ as.objlist <- function(p) {
 #' @export
 normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
 
-  if (is.null(times)) timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time))))) else timesD <- times
+  timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))
+  if (!is.null(times)) timesD <- sort(union(times, timesD))
 
   data.conditions <- names(data)
   
