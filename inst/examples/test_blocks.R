@@ -36,11 +36,7 @@ events$b <- data.frame(var = "A", time = 5, value = 2, method = "add")
 ## and functions from above information) 
 
 # ODE model
-<<<<<<< HEAD
-model <- odemodel(f, jacobian = "inz.lsodes")
-=======
 model <- odemodel(f)
->>>>>>> development
 
 # Observation function
 g <- Y(observables, f, compile = TRUE, modelname = "obsfn")

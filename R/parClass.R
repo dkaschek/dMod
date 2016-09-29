@@ -248,6 +248,10 @@ c.parvec <- function(...) {
   deriv.missing <- matrix(0, nrow = length(n.missing), ncol = ncol(deriv), 
                           dimnames = list(n.missing, colnames(deriv)))
   
+  ## Attention: The expected way of function is that
+  ## no columns are attachd for parameters for which no derivatives
+  ## were available. This is important for prdfn() and obsfn() to 
+  ## work properly with the "fixed" argument.
   deriv <- submatrix(rbind(deriv, deriv.missing), rows = n)
   
   as.parvec(v, names = n, deriv = deriv)
@@ -302,7 +306,8 @@ summary.parfn <- function(object, ...) {
     })
     names(output) <- conditions
     
-    print(output, ...)
+    #print(output, ...)
+    output
     
   } else {
     

@@ -375,9 +375,11 @@ Xd <- function(data, condition = NULL) {
 #' as e.g. produced by \link{Xs}.
 #' @param g Named character vector or equation vector defining the observation function
 #' @param f Named character or equation vector or object that can be converted to eqnvec. Represents the underlying ODE.
-#' @param states character vector, alternative definition of "states", usually the names of \code{f}
+#' @param states character vector, alternative definition of "states", usually the names of \code{f}. If both,
+#' f and states are provided, the states argument overwrites the states derived from f.
 #' @param parameters character vector, alternative definition of the "parameters",
-#' usually the symbols contained in "g" and "f" except for \code{states} and the code word \code{time}.
+#' usually the symbols contained in "g" and "f" except for \code{states} and the code word \code{time}. If both,
+#' f and parameters are provided, the parameters argument overwrites the parameters derived from f and g.
 #' @param condition either NULL (generic prediction for any condition) or a character, denoting
 #' the condition for which the function makes a prediction.
 #' @param attach.input logical, indiating whether the original input should be
@@ -418,8 +420,8 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     parameters <- parameters
   } else {
     f <- as.eqnvec(f)
-    states <- union(names(f), "time")
-    parameters <- getSymbols(c(g, f), exclude = c(states, "time"))
+    if (is.null(states)) states <- union(names(f), "time")
+    if (is.null(parameters)) parameters <- getSymbols(c(unclass(g), unclass(f)), exclude = c(states, "time"))
   }
   variables.deriv <- c(
     states, 
@@ -472,6 +474,8 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     #outlist <- lapply(1:nOut, function(i) out[,i]); names(outlist) <- colnames(out)
     
     dout <- attr(out, "sensitivities")
+    
+    
     # if (!is.null(dout)) {
     #   nDeriv <- dim(dout)[2]
     #   derivlist <- lapply(1:nDeriv, function(i) dout[,i]); names(derivlist) <- colnames(dout)  
@@ -486,7 +490,12 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     
     values <- gEval(M = out, p = pars)
     
-    if (!is.null(dout)) dvalues <- derivsEval(M = cbind(out, dout), p = pars)
+    sensitivities.export <- NULL
+    if (!is.null(dout)) {
+      dvalues <- derivsEval(M = cbind(out, dout), p = pars)
+      sensitivities.export <- cbind(time = out[, 1], dvalues)
+    }
+    
     
     # Parameter transformation
     dP <- attr(pars, "deriv")
@@ -540,7 +549,7 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     
     
     # Output 
-    prdframe(prediction = values, deriv = myderivs, sensitivities = dout, parameters = pars) 
+    prdframe(prediction = values, deriv = myderivs, sensitivities = sensitivities.export, parameters = pars) 
     
     
     

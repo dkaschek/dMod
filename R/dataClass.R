@@ -90,9 +90,22 @@ print.datalist <- function(x, ...) {
   }
 }
 
+# Subset of all datalist entries
+#' @export
+subset.datalist <- function(x, ...){
+  datalist <- lapply(x, function(i) subset(i, ...)) 
+  return(as.datalist(datalist))
+}
+
 #' @export
 "[.datalist" <- function(x, ...) {
+  condition.grid <- attr(x, "condition.grid")
   out <- unclass(x)[...]
+  attr(out, "condition.grid") <- condition.grid
+  n <- names(out)
+  if (!is.null(n)) {
+    attr(out, "condition.grid") <- condition.grid[n, , drop = FALSE]
+  }
   class(out) <- c("datalist", "list")
   return(out)
 }

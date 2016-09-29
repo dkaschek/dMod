@@ -268,6 +268,13 @@ plotProfile <- function(profs, ..., maxvalue = 5, parlist = NULL) {
   else
     arglist <- as.list(profs)
   
+  
+  if (is.null(names(arglist))) {
+    profnames <- 1:length(arglist)
+  } else {
+    profnames <- names(arglist)
+  }
+  
   data <- do.call(rbind, lapply(1:length(arglist), function(i) {
     proflist <- as.data.frame(arglist[[i]])
     obj.attributes <- attr(arglist[[i]], "obj.attributes")
@@ -299,7 +306,7 @@ plotProfile <- function(profs, ..., maxvalue = 5, parlist = NULL) {
       parvalues <- proflist[[n]][, n]
       deltavalues <- values - zerovalue
 
-      sub <- subset(data.frame(name = n, delta = deltavalues, par = parvalues, proflist = i, mode="total", is.zero = 1:nrow(proflist[[n]]) == origin), delta <= maxvalue)
+      sub <- subset(data.frame(name = n, delta = deltavalues, par = parvalues, proflist = profnames[i], mode="total", is.zero = 1:nrow(proflist[[n]]) == origin), delta <= maxvalue)
       
       if(!is.null(obj.attributes)) {
         for(mode in obj.attributes) {
@@ -307,7 +314,7 @@ plotProfile <- function(profs, ..., maxvalue = 5, parlist = NULL) {
           originO <- which.min(abs(proflist[[n]][, "constraint"]))
           zerovalueO <- proflist[[n]][originO, mode]
           deltavaluesO <- valuesO - zerovalueO
-          sub <- rbind(sub,subset(data.frame(name = n, delta = deltavaluesO, par = parvalues, proflist = i, mode=mode, is.zero = 1:nrow(proflist[[n]]) == originO), delta <= maxvalue))
+          sub <- rbind(sub,subset(data.frame(name = n, delta = deltavaluesO, par = parvalues, proflist = profnames[i], mode=mode, is.zero = 1:nrow(proflist[[n]]) == originO), delta <= maxvalue))
         }
       }
       
@@ -326,9 +333,9 @@ plotProfile <- function(profs, ..., maxvalue = 5, parlist = NULL) {
   data <- droplevels.data.frame(subset(data, ...))
   
   p <- ggplot(data, aes(x=par, y=delta, group=interaction(proflist,mode), color=proflist, linetype=mode)) + facet_wrap(~name, scales="free_x") + 
+    geom_hline(yintercept=threshold, lty=2, color="gray") + 
     geom_line() + #geom_point(aes=aes(size=1), alpha=1/3) +
     geom_point(data = data.zero) +
-    geom_hline(yintercept=threshold, lty=2, color="gray") + 
     ylab(expression(paste("CL /", Delta*chi^2))) +
     scale_y_continuous(breaks=c(1, 2.7, 3.84), labels = c("68% / 1   ", "90% / 2.71", "95% / 3.84"), limits = c(NA, maxvalue)) +
     xlab("parameter value")
@@ -374,6 +381,12 @@ plotPaths <- function(profs, ..., whichPar = NULL, sort = FALSE, relative = TRUE
     arglist <- as.list(profs)
   
   
+  if (is.null(names(arglist))) {
+    profnames <- 1:length(arglist)
+  } else {
+    profnames <- names(arglist)
+  }
+  
   
   data <- do.call(rbind, lapply(1:length(arglist), function(i) {
     # choose a proflist
@@ -410,7 +423,7 @@ plotPaths <- function(profs, ..., whichPar = NULL, sort = FALSE, relative = TRUE
       path.data <- do.call(rbind, lapply(1:dim(combinations)[2], function(j) {
         data.frame(chisquare = values, 
                    name = n,
-                   proflist = i,
+                   proflist = profnames[i],
                    combination = paste(combinations[,j], collapse = " - \n"),
                    x = paths[, combinations[1,j]],
                    y = paths[, combinations[2,j]])
@@ -609,8 +622,9 @@ plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux = "Fluxes:", fi
 #' 
 #' @param x data.frame with columns "value", "converged" and "iterations", e.g. 
 #' a \link{parframe}.
+#' @param ... arguments for subsetting of x
 #' @export
-plotValues <- function(x) {
+plotValues <- function(x, ...) {
   
   pars <- x
   values <- "value"
@@ -619,6 +633,7 @@ plotValues <- function(x) {
   colnames(pars) <- mycolnames
  
   pars <- cbind(index = 1:nrow(pars), pars[order(pars$value),])
+  pars <- subset(pars, ...)
    
   ggplot2::ggplot(pars, aes(x = index, y = value, pch = converged, color = iterations)) + geom_point() + 
     xlab("index") + ylab("value") + theme_dMod()
@@ -627,14 +642,16 @@ plotValues <- function(x) {
 
 #' Plot parameter values for a fitlist
 #' 
-#' @param myparframe parameter frame as obtained by as.parframe(mstrust)
-#' @param whichFits indexlist e.g. 1:10
+#' @param x parameter frame as obtained by as.parframe(mstrust)
+#' @param ... arguments for subsetting of x
 #' @export
-plotPars <- function(myparframe, whichFits = 1:nrow(myparframe)){
+plotPars <- function(x, ...){
+  myparframe <- x
   parNames <- attr(myparframe,"parameters")
-  parOut <- wide2long.data.frame(out = ((myparframe[whichFits,c("value",parNames)])) , keep = 1)
+  parOut <- wide2long.data.frame(out = ((myparframe[, c("value",parNames)])) , keep = 1)
   names(parOut) <- c("value","name","parvalue")
-  plot <- ggplot2::ggplot(parOut, aes(x = name, y = parvalue, color = value)) + geom_point() + theme_dMod() + theme(axis.text.x = element_text(angle = 270, hjust = 0))
+  parOut <- subset(parOut, ...)
+  plot <- ggplot2::ggplot(parOut, aes(x = name, y = parvalue, color = value)) + geom_point() + theme_dMod() + theme(axis.text.x = element_text(angle = 270, hjust = 0, vjust = 0.5))
   return(plot)
 }
 
