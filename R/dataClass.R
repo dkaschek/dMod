@@ -131,3 +131,26 @@ plot.datalist <- function(x, ..., scales = "free", facet = "wrap") {
   plotCombined(prediction = NULL, data = data, ..., scales = scales, facet = facet)
   
 }
+
+#' Coerce to a Data Frame
+#' 
+#' @param x any R object
+#' @param ... additional arguments to be passed to or from methods
+#' @return a data frame
+#' @rdname as.data.frame.dMod
+#' @export
+as.data.frame.datalist <- function(x, ...) {
+  
+  data <- x
+  condition.grid <- attr(x, "condition.grid")
+  
+  data <- lbind(data)
+  if (!is.null(condition.grid)) {
+    for (C in colnames(condition.grid)) {
+      data[, C] <- condition.grid[as.character(data$condition), C]
+    }
+  }
+  
+  return(data)
+  
+}
