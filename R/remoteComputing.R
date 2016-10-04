@@ -220,6 +220,7 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
 #'   your dMod version. This is most probably you local dMod git repository.
 #'   
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#' @importFrom utils packageVersion
 #' @export
 runbg.install <- function(type = "local", sshtarget, source = NULL) {
   
