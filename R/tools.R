@@ -356,7 +356,7 @@ wide2long.list <- function(out, keep = 1, na.rm = FALSE) {
     numconditions <- conditions
   
   
-  outlong <- do.call(rbind, lapply(1:length(conditions), function(cond) {
+  outlong <- do.call(rbind, lapply(1:max(c(length(conditions), 1)), function(cond) {
     
     cbind(wide2long.matrix(out[[cond]]), condition = numconditions[cond])
     
