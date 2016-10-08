@@ -105,7 +105,8 @@ as.data.frame.prdlist <- function(x, data = NULL, errfn = NULL, ...) {
   
   if (!is.null(condition.grid)) {
     for (C in colnames(condition.grid)) {
-      prediction[, C] <- condition.grid[as.character(prediction$condition), C]
+      rows <- ifelse(is.na(prediction$condition), 1, as.character(prediction$condition))
+      prediction[, C] <- condition.grid[rows, C]
     }
     n1 <- nrow(prediction)
   }
