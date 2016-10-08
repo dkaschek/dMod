@@ -402,7 +402,14 @@ Xd <- function(data, condition = NULL) {
 #' @example inst/examples/prediction.R
 #' @export
 Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, attach.input = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
+ 
   
+  # Idea: 
+  # If replicate scaling is undispensible and different 
+  # observable names for different replicates is not an option, then
+  # g could be a list of observables. For this case, the observation
+  # function has to return a list of observations for each condition.
+  # Not yet clear how this works with the "+" operator.
   myattach.input <- attach.input
   
   warnings <- FALSE
