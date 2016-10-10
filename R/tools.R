@@ -277,7 +277,7 @@ blockdiagSymb <- function(M, N) {
 #' @return data.frame in long format, i.e. columns "time" (out[,1]), "name" (colnames(out[,-1])), 
 #' "value" (out[,-1]) and, if out was a list, "condition" (names(out))
 #' @export
-wide2long <- function(out, keep, na.rm) {
+wide2long <- function(out, keep = 1, na.rm = FALSE) {
   
   UseMethod("wide2long", out)
   
