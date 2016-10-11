@@ -118,6 +118,63 @@ ggdata_fn <- function(prdfn = NULL, errfn = NULL, data = NULL, times, pars, ...,
 }
 
 
+#' @export
+predict.prdfn <- function(x, times, pars, data = NULL, ...) {
+  
+  arglist <- list(...)
+  if (any(names(arglist) == "conditions")) {
+    C <- arglist[["conditions"]]
+    if (!is.null(data)) {
+      data <- data[C]
+    }
+  }
+  if (is.null(data)) data <- data.frame()
+  condition.grid.data <- attr(data, "condition.grid")
+  
+  prediction <- do.call(rbind, lapply(1:nrow(pars), function(i) {
+    
+    mypar <- as.parvec(pars, i)
+    prediction <- x(times, mypar, deriv = FALSE, ...)
+    conditions <- ifelse(is.null(names(prediction)), 1, names(prediction))
+    
+    condition.grid <- data.frame(row.names = conditions)
+    
+    # Augment by parframe metanames and obj.attributes
+    mygrid <- pars[i, !colnames(pars) %in% attr(pars, "parameters")]
+    mynames <- colnames(mygrid)
+    if (length(mynames) > 0) {
+      mynames <- paste0(".", mynames)
+      colnames(mygrid) <- mynames
+      condition.grid <- cbind(condition.grid, mygrid)
+    }
+    
+    # Augment by condition.grid of data
+    if (!is.null(condition.grid.data)) condition.grid <- cbind(condition.grid.data[conditions,], condition.grid)
+    
+    # Write condition.grid into data
+    attr(data, "condition.grid") <- condition.grid
+
+    # Return
+    print(attr(data, "condition.grid"))
+    as.data.frame(prediction, data = data)
+    
+  }))
+  
+  n <- nrow(prediction)
+  
+  if (length(data) > 0) {
+    attr(data, "condition.grid") <- condition.grid.data
+    data <- as.data.frame(data)
+    tmp <- combine(prediction, data)
+    data <- tmp[-(1:n),]
+  }
+  
+  attr(prediction, "data") <- data
+  return(prediction)  
+  
+  
+  
+}
 
 #' Generate sample for multi-start fit
 #' 
@@ -135,7 +192,16 @@ mssample <- function(center, samplefun = "rnorm", fits = 20, ...) {
   
   colnames(sample.matrix) <- names(center)
   
-  return(sample.matrix)
+  myframe <- parframe(
+    cbind(
+      index = 1:nrow(sample.matrix),
+      as.data.frame(sample.matrix)
+    ),
+    metanames = "index",
+    parameters= colnames(sample.matrix)
+  )
+  
+  return(myframe)
 
 }
 

@@ -61,6 +61,62 @@ plot.prdlist <- function(x, data = NULL, ..., scales = "free", facet = "wrap", t
   
 }
 
+#' @export
+print.prdlist <- function(x, ...) {
+  
+  mynames <- names(x)
+  if (is.null(mynames)) mynames <- rep("NULL", length(x))
+  
+  for (i in 1:length(x)) {
+    cat(mynames[i], ":\n", sep = "")
+    print(x[[i]])
+  }
+  
+}
+
+
+#' @export
+#' @param data data list oject
+#' @param errfn obsfn object, the error model function to predict sigma
+#' @rdname as.data.frame.dMod
+as.data.frame.prdlist <- function(x, data = NULL, errfn = NULL, ...) {
+  
+  prediction <- x
+  sigma <- NULL
+  condition.grid <- attr(data, "condition.grid")
+  
+  if (!is.null(errfn)) {
+    sigma <- as.prdlist(
+      lapply(1:length(prediction), 
+             function(i) errfn(prediction[[i]], 
+                               getParameters(prediction[[i]]), 
+                               conditions = names(prediction)[i])[[1]]),
+      names = names(prediction)
+    )
+    sigma <- wide2long(sigma)
+  }
+  
+  prediction <- wide2long(prediction)
+  prediction$sigma <- NaN
+  if (!is.null(sigma)) {
+    common <- intersect(unique(prediction$name), unique(sigma$name))
+    prediction$sigma[prediction$name %in% common] <- sigma$value[sigma$name %in% common]
+  }
+  
+  if (!is.null(condition.grid)) {
+    for (C in colnames(condition.grid)) {
+      rows <- ifelse(is.na(prediction$condition), 1, as.character(prediction$condition))
+      prediction[, C] <- condition.grid[rows, C]
+    }
+    n1 <- nrow(prediction)
+  }
+  
+  
+  return(prediction)
+  
+  
+} 
+
 ## Methods for class prdframe ----------------------------
 #' @export
 #' @rdname plotCombined
@@ -77,6 +133,22 @@ plot.prdframe <- function(x, data = NULL, ..., scales = "free", facet = "wrap", 
   
 }
 
+#' @export
+print.prdframe <- function(x, ...) {
+  
+  derivs <- ifelse(!is.null(attr(x, "deriv")), yes = "yes", no = "no")
+  sensitivities <- ifelse(!is.null(attr(x, "sensitivities")), yes = "yes", no = "no")
+  
+  attr(x, "deriv") <- NULL
+  attr(x, "sensitivities") <- NULL
+  attr(x, "parameters") <- NULL
+  
+  print(unclass(x))
+  cat("\n")
+  cat("The prediction contains derivatives: ", derivs, "\n", sep = "")
+  
+  
+}
 
 
 ## Methods for class prdfn ----------------------------------
@@ -120,7 +192,8 @@ summary.prdfn <- function(object, ...) {
     })
     names(output) <- conditions
     
-    print(output, ...)
+    #print(output, ...)
+    output
     
   } else {
     
@@ -167,7 +240,8 @@ summary.obsfn <- function(object, ...) {
     })
     names(output) <- conditions
     
-    print(output, ...)
+    #print(output, ...)
+    output
     
   } else {
     

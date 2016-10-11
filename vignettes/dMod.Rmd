@@ -26,7 +26,7 @@ knitr::opts_chunk$set(echo = TRUE, fig.width = 10, fig.height = 8, warning = FAL
 ```{r}
 library(deSolve)
 library(dMod)
-set.seed(1)
+set.seed(2)
 ```
 
 ## Prediction and forward simulation
@@ -59,8 +59,8 @@ Next, the equation list representing the ODE is translated into the ODE model `m
 # Define parameters that are not estimated
 fixed.zero <- setdiff(reactions$states, "STAT") 
 # Generate odemodel
-model0 <- odemodel(reactions, modelname = "jak-stat", compile = TRUE, 
-                   fixed = fixed.zero, jacobian = "inz.lsodes")
+model0 <- odemodel(reactions,  fixed = fixed.zero, 
+                   modelname = "jak-stat", compile = TRUE)
 ```
 
 ### Prediction and observation functions
@@ -69,7 +69,7 @@ The object `model0` is needed to define a prediction function, i.e. a function t
 
 ```{r, fig.width = 6, fig.height = 4}
 # Generate a prediction function
-x <- Xs(model0, optionsSens = list(method = "lsodes"))
+x <- Xs(model0)
 
 # Make a prediction based on random parameter values
 parameters <- getParameters(x)
@@ -85,7 +85,7 @@ Frequently, the ODE states cannot be directly observed in an experiment. Instead
 ```{r}
 # Define observables like total STAT, total phosphorylated STAT, etc.
 observables <- eqnvec(
-  tSTAT = "s_tSTAT*(STAT + pSTAT + 2*pSTATdimer) + off_tSTAT",
+  tSTAT = "s_tSTAT*(STAT + pSTAT + 2*pSTATdimer)",
   tpSTAT = "s_tpSTAT*(pSTAT + 2*pSTATdimer) + off_tpSTAT",
   pEpoR = paste0("s_EpoR *", receptor)
 )
@@ -187,8 +187,8 @@ Frequently, the measured data is not sufficient to guarantee a unique optimum of
 Here, we follow the second option defining a constraint function:
 
 ```{r}
-mu <- structure(rep(-1, length(parameters)), names = parameters)
-mu["multiple"] <- 0
+mu <- structure(rep(0, length(parameters) - 1), names = setdiff(parameters, "multiple"))
+fixed <- c(multiple = 2)
 constr <- constraintL2(mu = mu, sigma = 5)
 ```
 
@@ -196,9 +196,9 @@ Finally, we fit the model to the data by means of the trust region optimizer and
 
 ```{r, fig.width = 6, fig.height = 2}
 
-myfit <- trust(obj + constr, mu, rinit = 1, rmax = 10)
+myfit <- trust(obj + constr, mu, rinit = 1, rmax = 10, fixed = fixed)
 times <- 0:60
-plot((g*x*p)(times, myfit$argument), data)
+plot((g*x*p)(times, myfit$argument, fixed = fixed), data)
 
 ```
 
@@ -209,19 +209,19 @@ Sometimes, the system has many local optima. A single fit converges to a neighbo
 ```{r, fig.width = 5, fig.height = 4}
 
 set.seed(1)
-fitlist <- mstrust(obj + constr, center = mu, fits = 20, cores = 1, min = -1, max = 1, samplefun = "runif")
+fitlist <- mstrust(obj + constr, center = myfit$argument, fits = 20, cores = 1, sd = 1, samplefun = "rnorm", fixed = fixed, conditions = "Epo")
 pars <- as.parframe(fitlist)
 plotValues(subset(pars, converged))
 plotPars(subset(pars, converged))
 
 ```
 
-In our case we find two local optima. Solutions for a parameter frame can be plotted by the `plotArray()` function. To see both, internal states and observables, the controls of `g` are changed via the `controls()` function.
+In our case we find several local optima in the proximity of the original fit. Solutions for a parameter frame can be plotted by the `plotArray()` function. To see both, internal states and observables, the controls of `g` are changed via the `controls()` function.
 
 ```{r, fig.width = 6, fig.height = 5}
 
 controls(g, NULL, "attach.input") <- TRUE
-plotArray(subset(pars, converged), g*x*p, 0:60, data, !grepl("prediction", name))
+plotArray(subset(pars, converged), g*x*p, 0:60, data, !grepl("prediction", name), fixed = fixed)
 
 ```
 
@@ -234,7 +234,7 @@ i.e. the optimum over all parameters satisfying the constraint $p_i = c$.
 
 ```{r, fig.width = 4, fig.height = 3}
 
-myprofile <- profile(obj + constr, pars = myfit$argument, whichPar = "s_EpoR")
+myprofile <- profile(obj + constr, pars = myfit$argument, whichPar = "s_EpoR", fixed = fixed)
 plotProfile(myprofile)
 
 ```
@@ -251,7 +251,7 @@ The parameters `s_EpoR`, `p1` and `pEpoR` compensate each other. This non-identi
 
 ```{r, fig.width = 4, fig.height = 3}
 
-fixed <- c(p1 = 0, pEpoR = 0) # log values
+fixed <- c(p1 = 0, pEpoR = 0, multiple = 2) # log values
 pars <- mu[setdiff(names(mu), names(fixed))]
 myfit <- trust(obj + constr, pars, rinit = 1, rmax = 10, fixed = fixed)
 myprofile <- profile(obj + constr, pars = myfit$argument, whichPar = "s_EpoR", fixed = fixed)
