@@ -651,7 +651,7 @@ plotPars <- function(x, ...){
   parOut <- wide2long.data.frame(out = ((myparframe[, c("value",parNames)])) , keep = 1)
   names(parOut) <- c("value","name","parvalue")
   parOut <- subset(parOut, ...)
-  plot <- ggplot2::ggplot(parOut, aes(x = name, y = parvalue, color = value)) + geom_point() + theme_dMod() + theme(axis.text.x = element_text(angle = 270, hjust = 0, vjust = 0.5))
+  plot <- ggplot2::ggplot(parOut, aes(x = name, y = parvalue, color = value, group = value)) + geom_point() + theme_dMod() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
   return(plot)
 }
 

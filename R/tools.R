@@ -185,10 +185,12 @@ combine <- function(...) {
   mylist <- lapply(mylist, function(l) {
     
     if(is.data.frame(l)) {
+      i <- sapply(l, is.factor)
+      l[i] <- lapply(l[i], as.character)
       present.list <- as.list(l)
       missing.names <- setdiff(mynames, names(present.list))
       missing.list <- structure(as.list(rep(NA, length(missing.names))), names = missing.names)
-      combined.data <- do.call(cbind.data.frame, c(present.list, missing.list))
+      combined.data <- do.call(function(...) cbind.data.frame(..., stringsAsFactors = FALSE), c(present.list, missing.list))
       rownames(combined.data) <- rownames(l)
     }
     if(is.matrix(l)) {
