@@ -1067,3 +1067,68 @@ python.version.request <- function(version) {
     install.packages("rPython")
   }
 }
+
+
+
+#' Formulate parameter transformations by defining symbols.
+#' 
+#' @description Use this function to replace symbols in an equation with an 
+#'   expression. This function is a recast of replaceSymbols() specialized for 
+#'   the task of defining parameter transformations. See details on how to 
+#'   formulate the replacement expression.
+#'   
+#' @usage defineSymbols(symbols, expression, trafo, ...)
+#'   
+#' @param symbols Vector of symbols which are replaced in trafo.
+#' @param expression Format string defining the expression replacing the symbol.
+#' @param trafo The equation, usually a parameter transformation, in which 
+#'   symbols are searched and the replacement is made.
+#' @ ... Further replacement targets.
+#' 
+#' @details \option{expression} is a format string which defines the replacement
+#'   pattern. To define e.g., a log transformation for all parameters gathered
+#'   in a vector called innerpars, one would write defineSymbols(innerpars,
+#'   "exp(.x)", trafo). This replaces each parameter in innerpars with itself as
+#'   argument of the exponential function. As can be seen, the parameter which
+#'   is to be replaced can be reference by the fixed string ".x".
+#'   
+#'   By appending extra arguments, more general replacements can be made. E.g.,
+#'   defineSymbols(innerpars, "exp(.x)+.y", trafo, .y = "exp(5)") appends the
+#'   extra term exp(5). In this manner, arbitrary many extra replacement targets
+#'   can be added to \option{expression}. Howevere, non of them must be named
+#'   ".x" as this is already taken as reference into \option{symbols}.
+#'   
+#' @return Return \option{trafo} with redefined symbols.
+#'   
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#'   
+#' @export
+defineSymbols <- function(symbols, expression, trafo, ...) {
+  
+  # Table of replacements
+  replacements <- data.frame(.x = symbols, stringsAsFactors = FALSE)
+  extraList <- list(...)
+  if (length(extraList) > 0) {
+    replacements <- cbind(replacements, as.data.frame(list(...), stringsAsFactors = FALSE))
+  }
+  
+  targets <- names(replacements)
+
+  # Loop over parnames and replacement tokens
+  nSym <- length(symbols)
+  nTrg <- length(targets)
+   
+  replacementTable <- vector(length = nSym)
+  for (i in 1:nSym) {
+    
+    by <- expression
+    for (j in 1:nTrg) {
+      token <- targets[j]
+      repl <- replacements[token][i,]
+      by <- gsub(token, repl, by, fixed = TRUE)
+    }
+    replacementTable[i] <- by
+  }
+  
+  return(replaceSymbols(symbols, replacementTable, trafo))
+}
