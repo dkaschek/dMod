@@ -1083,7 +1083,7 @@ python.version.request <- function(version) {
 #' @param expression Format string defining the expression replacing the symbol.
 #' @param trafo The equation, usually a parameter transformation, in which 
 #'   symbols are searched and the replacement is made.
-#' @ ... Further replacement targets.
+#' @param ... Further replacement targets.
 #' 
 #' @details \option{expression} is a format string which defines the replacement
 #'   pattern. To define e.g., a log transformation for all parameters gathered
