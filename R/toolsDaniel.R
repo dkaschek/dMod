@@ -205,3 +205,53 @@ mssample <- function(center, samplefun = "rnorm", fits = 20, ...) {
 
 }
 
+#' Reparameterization
+#' 
+#' @param expr character of the form \code{"lhs ~ rhs"} where \code{rhs}
+#' reparameterizes \code{lhs}. Both \code{lhs} and \code{rhs}
+#' can contain a number of symbols whose values need to be passed by the \code{...} argument.
+#' @param trafo character or equation vector where the replacement takes place
+#' @param ... pass symbols as named arguments
+#' @return an equation vector with the reparameterization.
+#' @details Left and right-hand side of \code{expr} are searched for symbols. If separated by
+#' "_", symbols are recognized as such, e.g. in \code{Delta_x} where the symbols are 
+#' "Delta" and "x". Each symbol for which values (character or numbers) are passed by the
+#' \code{...} argument is replaced.
+#' @export
+#' @examples
+#' innerpars <- letters[1:3]
+#' constraints <- c(a = "b + c")
+#' mycondition <- "cond1"
+#' 
+#' trafo <- repar("x ~ x", x = innerpars)
+#' trafo <- repar("x ~ y", trafo, x = names(constraints), y= constraints)
+#' trafo <- repar("x ~ exp(x)", trafo, x = innerpars)
+#' trafo <- repar("x ~ x + Delta_x_condition", trafo, x = specific, condition = mycondition)
+repar <- function(expr, trafo = NULL, ...) {
+  
+  parsed.expr <- as.character(as.formula(gsub("_", ":", expr, fixed = TRUE)))
+  lhs <- parsed.expr[2]
+  lhs.symbols <- getSymbols(lhs)
+  rhs <- parsed.expr[3]
+  rhs.symbols <- getSymbols(rhs)
+  
+  replacements <- as.data.frame(list(...), stringsAsFactors = FALSE)
+  
+  lhs <- sapply(1:nrow(replacements), function(i) {
+    out <- replaceSymbols(colnames(replacements), replacements[i, ], lhs)
+    gsub(":", "_", out, fixed = TRUE)
+  })
+  
+  rhs <- sapply(1:nrow(replacements), function(i) {
+    out <- replaceSymbols(colnames(replacements), replacements[i, ], rhs)
+    gsub(":", "_", out, fixed = TRUE)
+  })
+  
+  if (is.null(trafo)) trafo <- as.eqnvec(lhs, names = lhs) else trafo <- as.eqnvec(trafo)
+  trafo <- replaceSymbols(lhs, rhs, trafo)
+  
+  return(trafo)
+  
+  
+}
+
