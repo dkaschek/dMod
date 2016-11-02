@@ -226,7 +226,7 @@ mssample <- function(center, samplefun = "rnorm", fits = 20, ...) {
 #' trafo <- repar("x ~ x", x = innerpars)
 #' trafo <- repar("x ~ y", trafo, x = names(constraints), y= constraints)
 #' trafo <- repar("x ~ exp(x)", trafo, x = innerpars)
-#' trafo <- repar("x ~ x + Delta_x_condition", trafo, x = specific, condition = mycondition)
+#' trafo <- repar("x ~ x + Delta_x_condition", trafo, x = innerpars, condition = mycondition)
 repar <- function(expr, trafo = NULL, ...) {
   
   parsed.expr <- as.character(as.formula(gsub("_", ":", expr, fixed = TRUE)))
@@ -247,7 +247,7 @@ repar <- function(expr, trafo = NULL, ...) {
     gsub(":", "_", out, fixed = TRUE)
   })
   
-  if (is.null(trafo)) trafo <- as.eqnvec(lhs, names = lhs) else trafo <- as.eqnvec(trafo)
+  if (is.null(trafo)) trafo <- structure(lhs, names = lhs)
   trafo <- replaceSymbols(lhs, rhs, trafo)
   
   return(trafo)
