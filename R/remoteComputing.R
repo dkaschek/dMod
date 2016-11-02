@@ -170,6 +170,8 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
     "rm(list = ls())",
     compile.line,
     paste0("load('", filename0, ".RData')"),
+    #"files <- list.files(pattern = '.so')",
+    #"for (f in files) dyn.load(f)",
     #".oldobjects <- ls()",
     paste0(".runbgOutput <- try(", as.character(expr), ")"),
     #".newobjects <- ls()",

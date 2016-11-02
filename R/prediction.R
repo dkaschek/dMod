@@ -344,7 +344,7 @@ Xd <- function(data, condition = NULL) {
       dP <- attr(pars, "deriv")
       if (!is.null(dP)) {
         sensLong <- sensLong %*% submatrix(dP, rows = parameters)
-        sensGrid <- expand.grid(states, colnames(dP), stringsAsFactors = FALSE)
+        sensGrid <- expand.grid.alt(states, colnames(dP))
         sensNames <- paste(sensGrid[,1], sensGrid[,2], sep = ".")
       }
       outSens <- cbind(times, matrix(sensLong, nrow = dim(outSens)[1]))

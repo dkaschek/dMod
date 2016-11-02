@@ -865,6 +865,9 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
       y <- double(l*n)
       
       # Evaluate C function and write into matrix
+      # loadDLL costs time. Probably, the check is not necessary because
+      # each time, funC0 is called, the C function being generated has
+      # or should have another name.
       loadDLL(func = funcname, cfunction = funcname)
       out <- matrix(.C(funcname, x = x, y = y, p = p, n = n, k = k, l = l)$y, nrow = length(outnames), ncol = n)
       rownames(out) <- outnames
@@ -905,7 +908,9 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
       # Initialize output
       out.list <- as.list(rep(0, ntot))
       out.list[nonempty] <- with(x, eval(x.expr))
-      out.list <- lapply(out.list, function(o) matrix(o, ncol = 1, nrow = ncol(M)))
+      ncol.M <- ncol(M)
+      mat <- matrix(0, ncol = 1, nrow = ncol(M))
+      out.list <- lapply(out.list, function(o) {mat[,1] <- o; return(mat)})
       out.matrix <- do.call(cbind, out.list)
       colnames(out.matrix) <- outnames
       rownames(out.matrix) <- NULL
