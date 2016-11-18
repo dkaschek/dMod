@@ -103,19 +103,22 @@ Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, mod
     pinner <- PEval(p = args)[1,]
     dpinner <- dPEval(p = args)[1,]
     
-    # Construct output jacobian
-    jac.vector <- rep(0, length(pinner)*length(p))
-    names(jac.vector) <- outer(names(pinner), names(p), function(x, y) paste(x, y, sep = "."))
-    
-    names.intersect <- intersect(names(dpinner), names(jac.vector))
-    jac.vector[names.intersect] <- as.numeric(dpinner[names.intersect])
-    jac.matrix <- matrix(jac.vector, length(pinner), length(p), dimnames = list(names(pinner), names(p)))
-    
-    
-    if(!is.null(dP)) jac.matrix <- jac.matrix%*%submatrix(dP, rows = colnames(jac.matrix))
-    
+      
     myderiv <- NULL
-    if(deriv) myderiv <- jac.matrix
+    if(deriv) {
+      # Construct output jacobian
+      jac.vector <- rep(0, length(pinner)*length(p))
+      names(jac.vector) <- outer(names(pinner), names(p), function(x, y) paste(x, y, sep = "."))
+      
+      names.intersect <- intersect(names(dpinner), names(jac.vector))
+      jac.vector[names.intersect] <- as.numeric(dpinner[names.intersect])
+      jac.matrix <- matrix(jac.vector, length(pinner), length(p), dimnames = list(names(pinner), names(p)))
+      
+      
+      if(!is.null(dP)) jac.matrix <- jac.matrix%*%submatrix(dP, rows = colnames(jac.matrix))
+      
+      myderiv <- jac.matrix
+    }
     
     as.parvec(pinner, deriv = myderiv)
     

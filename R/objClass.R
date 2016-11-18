@@ -205,14 +205,22 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
 #' @export
 constraintL2 <- function(mu, sigma = 1, attr.name = "prior", condition = NULL) {
 
+  
+  # Aktuell zu kompliziert aufgesetzt. Man sollte immer die komplette Hessematrix/Gradient
+  # auswerten und dann die Elemente streichen, die in fixed sind!
+  
+  
+  estimateSigma <- ifelse(is.character(sigma), TRUE, FALSE)
+  
   ## Augment sigma if length = 1
   if (length(sigma) == 1) 
     sigma <- structure(rep(sigma, length(mu)), names = names(mu))
   
   
+  
   controls <- list(mu = mu, sigma = sigma, attr.name = attr.name)
   
-  myfn <- function(..., fixed = NULL, deriv=TRUE, conditions = condition, env = NULL) {
+  myfn <- function(..., fixed = NULL, deriv = TRUE, conditions = condition, env = NULL) {
     
     arglist <- list(...)
     arglist <- arglist[match.fnargs(arglist, "pars")]
@@ -240,21 +248,57 @@ constraintL2 <- function(mu, sigma = 1, attr.name = "prior", condition = NULL) {
     
     outlist <- lapply(pouter, function(p) {
       
+      pval <- c(p, fixed)[names(mu)]
+      # overwrite sigma by parameter values provided in pouter and fixed
+      sigma.min <- 0
+      if (estimateSigma) 
+        sigma <- exp(c(p, fixed)[sigma]) + sigma.min # assume logsigma values
       
       ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
       par.fixed <- intersect(names(mu), names(fixed))
       sumOfFixed <- 0
-      if (!is.null(par.fixed)) sumOfFixed <- sum(0.5*((fixed[par.fixed] - mu[par.fixed])/sigma[par.fixed]) ^ 2)
-      
+      if (!is.null(par.fixed) & !estimateSigma) 
+        sumOfFixed <- sum(0.5*((fixed[par.fixed] - mu[par.fixed])/sigma[par.fixed]) ^ 2)
+      if (!is.null(par.fixed) & estimateSigma) {
+        spar.fixed <-  names(sigma)[match(par.fixed, names(mu))]
+        sumOfFixed <- sum(0.5*((fixed[par.fixed] - mu[par.fixed])/sigma[spar.fixed]) ^ 2) + 0.5*sum(log(sigma[spar.fixed]^2))
+      }
+
       # Compute prior value and derivatives
       par <- intersect(names(mu), names(p))
+      ipar <- match(par, names(mu))
+      spar <- intersect(controls$sigma, names(p))
+      ispar <- match(spar, controls$sigma)
+      npar <- which(names(sigma)[ipar] %in% names(p))
+      #spar <- intersect(names(sigma)[ipar], names(p))
+      #ispar <- which(names(sigma)[ipar] %in% names(p))
       
-      val <- sum((0.5*((p[par] - mu[par])/sigma[par]) ^ 2)) + sumOfFixed
+      val <- sumOfFixed
       gr <- rep(0, length(p)); names(gr) <- names(p)
-      gr[par] <- ((p[par] - mu[par])/(sigma[par] ^ 2))
-      
       hs <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
-      diag(hs)[par] <- 1/sigma[par] ^ 2
+      
+      if (all(par %in% names(p))) {
+        val <- val + sum((0.5*((p[par] - mu[par])/sigma[ipar]) ^ 2))
+        gr[par] <- ((p[par] - mu[par])/(sigma[ipar] ^ 2))
+        for (i in 1:length(par)) hs[par[i], par[i]] <- 1/sigma[ipar][i] ^ 2
+      }
+        
+      
+      # Compute second term if estimateSigma
+      # 0.5*(p - mu)^2/sigma^2 + 0.5*log(sigma^2)
+      if (estimateSigma & any(spar %in% names(p))) {
+        val <- val + 0.5*sum(log(sigma[spar]^2))
+        gr[spar] <- (-(pval[ispar] - mu[ispar])^2/sigma[spar]^3 + 1/sigma[spar])*(sigma[spar]-sigma.min)
+        # d^2constr/dsigma^2
+        for (i in 1:length(spar))
+          hs[spar[i], spar[i]] <- (3*(pval[ispar][i] - mu[ispar][i])^2/sigma[spar[i]]^4 - 1/sigma[spar[i]]^2)*(sigma[spar[i]]-sigma.min)^2 #+ gr[spar][i]
+        # d^2constr/(dsigma*dpar)
+        for (i in 1:length(spar)) {
+          if (names(mu)[ispar][i] %in% rownames(hs))
+            hs[names(mu)[ispar][i], spar[i]] <- hs[spar[i], names(mu)[ispar][i]] <- (-2*(pval[ispar][i] - mu[ispar][i])/sigma[spar[i]]^3)*(sigma[spar[i]]-sigma.min)
+        }
+        
+      }
       
       dP <- attr(p, "deriv")
       if (!is.null(dP)) {
