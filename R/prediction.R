@@ -80,6 +80,11 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
   # Only a subset of all variables/forcings is returned
   if (is.null(names)) names <- c(variables, forcnames)
   
+  # Update sensNames when names are set
+  select <- sensGrid[, 1] %in% names
+  sensNames <- paste(sensGrid[,1][select], sensGrid[,2][select], sep = ".")  
+  
+  
   # Controls to be modified from outside
   controls <- list(
     forcings = myforcings,
@@ -103,9 +108,6 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
     optionsSens <- controls$optionsSens
     names <- controls$names
     
-    # Update sensNames when names are set
-    select <- sensGrid[, 1] %in% names
-    sensNames <- paste(sensGrid[,1][select], sensGrid[,2][select], sep = ".")  
     
     # Add event time points (required by integrator) 
     event.times <- unique(events$time)
@@ -142,13 +144,12 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
       dP <- attr(pars, "deriv")
       if (!is.null(dP)) {
         sensLong <- sensLong %*% submatrix(dP, rows = c(svariables, sparameters))
-        sensGrid <- expand.grid(variables, colnames(dP), stringsAsFactors = FALSE)
+        sensGrid <- expand.grid.alt(variables, colnames(dP))
         sensNames <- paste(sensGrid[,1], sensGrid[,2], sep = ".")
       }
-      outSens <- cbind(outSens[,1], matrix(sensLong, nrow = nrow(outSens)))
-      colnames(outSens) <- c("time", sensNames)
-      
-      myderivs <- outSens
+      myderivs <- matrix(0, nrow = nrow(outSens), ncol = 1 + length(sensNames), dimnames = list(NULL, c("time", sensNames)))
+      myderivs[, 1] <- out[, 1]
+      myderivs[, -1] <- sensLong
       
     }
     
@@ -477,27 +478,11 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     attach.input <- controls$attach.input
     
     # Prepare list for with()
-    nOut <- dim(out)[2]
-    #outlist <- lapply(1:nOut, function(i) out[,i]); names(outlist) <- colnames(out)
-    
-    dout <- attr(out, "sensitivities")
-    
-    
-    # if (!is.null(dout)) {
-    #   nDeriv <- dim(dout)[2]
-    #   derivlist <- lapply(1:nDeriv, function(i) dout[,i]); names(derivlist) <- colnames(dout)  
-    # } else {
-    #   derivlist <- NULL
-    # }
-    
-    
-    #x <- c(outlist, derivlist, as.list(pars), as.list(zeros))
-    #values <- gEval(x)
-    
-    
+    nOut <- ncol(out)
     values <- gEval(M = out, p = pars)
     
     sensitivities.export <- NULL
+    dout <- attr(out, "sensitivities")
     if (!is.null(dout)) {
       dvalues <- derivsEval(M = cbind(out, dout), p = pars)
       sensitivities.export <- cbind(time = out[, 1], dvalues)
@@ -514,23 +499,16 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
       if (length(parameters.missing) > 0 & warnings)
         warning("Parameters ", paste(parameters.missing, collapse = ", ", "are missing in the Jacobian of the parameter transformation. Zeros are introduced."))
       
-      dP.missing <- matrix(0, nrow = length(parameters.missing), ncol = dim(dP)[2], 
-                           dimnames = list(parameters.missing, colnames(dP)))
-      dP <- rbind(dP, dP.missing)
-      
+      dP.full <- matrix(0, nrow = length(parameters.all), ncol = ncol(dP), dimnames = list(parameters.all, colnames(dP)))
+      dP.full[rownames(dP),] <- dP
+
       # Multiplication with tangent map
-      
-      
-      sensLong <- matrix(dvalues, nrow = dim(out)[1]*length(observables))
-      
-      sensLong <- sensLong %*% submatrix(dP, rows = parameters.all)
-      
-      
-      
+      sensLong <- matrix(dvalues, nrow = nrow(out)*length(observables))
+      sensLong <- sensLong %*% dP.full
       dvalues <- matrix(sensLong, nrow = dim(out)[1])
       
       # Naming
-      sensGrid <- expand.grid.alt(observables, colnames(dP))
+      sensGrid <- expand.grid.alt(observables, colnames(dP.full))
       sensNames <- paste(sensGrid[,1], sensGrid[,2], sep = ".")
       colnames(dvalues) <- sensNames
       
