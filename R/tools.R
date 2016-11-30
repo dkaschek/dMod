@@ -61,7 +61,7 @@ compare.list <- function(vec1, vec2 = NULL, reference = 1, ...) {
     vec1.inner <- vec1[[reference]]
     vec2.inner <- vec1[[i]]
     out1 <- NULL
-    if(class(vec1.inner) %in% c("eqnvec", "data.frame")) {
+    if(any(class(vec1.inner) %in% c("eqnvec", "data.frame"))) {
       out1 <- list(compare(vec1.inner, vec2.inner))
       names(out1) <- "object"
     }
