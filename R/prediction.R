@@ -500,7 +500,7 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
         warning("Parameters ", paste(parameters.missing, collapse = ", ", "are missing in the Jacobian of the parameter transformation. Zeros are introduced."))
       
       dP.full <- matrix(0, nrow = length(parameters.all), ncol = ncol(dP), dimnames = list(parameters.all, colnames(dP)))
-      dP.full[rownames(dP),] <- dP
+      dP.full[intersect(rownames(dP), parameters.all),] <- dP[intersect(rownames(dP), parameters.all),]
 
       # Multiplication with tangent map
       sensLong <- matrix(dvalues, nrow = nrow(out)*length(observables))
