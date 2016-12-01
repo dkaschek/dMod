@@ -7,18 +7,25 @@
 detectFreeCores <- function(machine = NULL) {
   
   if (!is.null(machine)) {
-    nCores <- sapply(machine, function(m) {
+    output <- lapply(machine, function(m) {
       occupied <- as.numeric(strsplit(system(paste("ssh", m, "cat /proc/loadavg"), intern = TRUE), split = " ", fixed = TRUE)[[1]][1])  
       nCores <- as.numeric(system(paste("ssh", m, "nproc"), intern = TRUE))
-      max(c(0, round(nCores - occupied)))
+      free <- max(c(0, round(nCores - occupied)))
+      list(free, nCores, occupied)
     })
+    freeCores <- unlist(lapply(output, function(o) o[[1]]))
+    attr(freeCores, "ncores") <- unlist(lapply(output, function(o) o[[2]]))
+    attr(freeCores, "used") <- unlist(lapply(output, function(o) o[[3]]))
   } else {
     occupied <- as.numeric(strsplit(system("cat /proc/loadavg", intern = TRUE), split = " ", fixed = TRUE)[[1]][1])      
     nCores <- as.numeric(system("nproc", intern = TRUE))
-    nCores <- max(c(0, round(nCores - occupied)))
+    freeCores <- max(c(0, round(nCores - occupied)))
+    attr(freeCores, "ncores") <- nCores
+    attr(freeCores, "used") <- occupied
   }
   
-  return(nCores)   
+  
+  return(freeCores)   
   
   
 }
