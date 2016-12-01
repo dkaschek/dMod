@@ -131,7 +131,7 @@ predict.prdfn <- function(x, times, pars, data = NULL, ...) {
   if (is.null(data)) data <- data.frame()
   condition.grid.data <- attr(data, "condition.grid")
   
-  prediction <- do.call(rbind, lapply(1:nrow(pars), function(i) {
+  prediction <- do.call(combine, lapply(1:nrow(pars), function(i) {
     
     mypar <- as.parvec(pars, i)
     prediction <- x(times, mypar, deriv = FALSE, ...)
@@ -228,7 +228,9 @@ mssample <- function(center, samplefun = "rnorm", fits = 20, ...) {
 #' trafo <- repar("x ~ exp(x)", trafo, x = innerpars)
 #' trafo <- repar("x ~ x + Delta_x_condition", trafo, x = innerpars, condition = mycondition)
 repar <- function(expr, trafo = NULL, ...) {
-  
+ 
+  if (inherits(expr, "formula")) expr <- deparse(expr)
+   
   parsed.expr <- as.character(as.formula(gsub("_", ":", expr, fixed = TRUE)))
   lhs <- parsed.expr[2]
   lhs.symbols <- getSymbols(lhs)
