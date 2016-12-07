@@ -1,3 +1,76 @@
+#' Model Predictions
+#' 
+#' Make a model prediction for times and a parameter frame. The
+#' function is a generalization of the standard prediction by a
+#' prediction function object in that it allows to pass a parameter
+#' frame instead of a single parameter vector.
+#' 
+#' @param x prediction function
+#' @param times numeric vector of time points
+#' @param pars parameter frame, e.g. output from \link{mstrust} or 
+#' \link{profile}
+#' @param data data list object. If data is passed, its condition.grid
+#' attribute is used to augment the output dataframe by additional 
+#' columns. \code{"data"} itself is returned as an attribute.
+#' @param ... Further arguments goint to the prediction function
+#' @return A data frame
+#' @export
+predict.prdfn <- function(x, times, pars, data = NULL, ...) {
+  
+  arglist <- list(...)
+  if (any(names(arglist) == "conditions")) {
+    C <- arglist[["conditions"]]
+    if (!is.null(data)) {
+      data <- data[C]
+    }
+  }
+  if (is.null(data)) data <- data.frame()
+  condition.grid.data <- attr(data, "condition.grid")
+  
+  prediction <- do.call(combine, lapply(1:nrow(pars), function(i) {
+    
+    mypar <- as.parvec(pars, i)
+    prediction <- x(times, mypar, deriv = FALSE, ...)
+    conditions <- ifelse(is.null(names(prediction)), 1, names(prediction))
+    
+    condition.grid <- data.frame(row.names = conditions)
+    
+    # Augment by parframe metanames and obj.attributes
+    mygrid <- pars[i, !colnames(pars) %in% attr(pars, "parameters")]
+    mynames <- colnames(mygrid)
+    if (length(mynames) > 0) {
+      mynames <- paste0(".", mynames)
+      colnames(mygrid) <- mynames
+      condition.grid <- cbind(condition.grid, mygrid)
+    }
+    
+    # Augment by condition.grid of data
+    if (!is.null(condition.grid.data)) condition.grid <- cbind(condition.grid.data[conditions,], condition.grid)
+    
+    # Write condition.grid into data
+    attr(data, "condition.grid") <- condition.grid
+
+    # Return
+    as.data.frame(prediction, data = data)
+    
+  }))
+  
+  n <- nrow(prediction)
+  
+  if (length(data) > 0) {
+    attr(data, "condition.grid") <- condition.grid.data
+    data <- as.data.frame(data)
+    tmp <- combine(prediction, data)
+    data <- tmp[-(1:n),]
+  }
+  
+  attr(prediction, "data") <- data
+  return(prediction)  
+  
+  
+  
+}
+
 #' Generate sample for multi-start fit
 #' 
 #' @param center named numeric, the center around we sample
