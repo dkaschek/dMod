@@ -810,6 +810,7 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
     
     # Do the replacement to obtain C syntax
     x <- replaceOperation("^", "pow", x)
+    x <- replaceOperation("**", "pow", x)
     if (!is.null(innames))
       x <- replaceSymbols(innames, paste0("x[", (1:length(innames)) - 1, "+i**k]"), x)
     if (!is.null(parameters))

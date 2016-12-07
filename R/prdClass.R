@@ -169,7 +169,7 @@ print.prdfn <- function(x, ...) {
 }
 
 #' @export
-summary.prdfn <- function(object, ...) {
+summary.prdfn <- function(object,...) {
   
   x <- object
   
