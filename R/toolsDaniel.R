@@ -117,7 +117,22 @@ ggdata_fn <- function(prdfn = NULL, errfn = NULL, data = NULL, times, pars, ...,
   
 }
 
-
+#' Model Predictions
+#' 
+#' Make a model prediction for times and a parameter frame. The
+#' function is a generalization of the standard prediction by a
+#' prediction function object in that it allows to pass a parameter
+#' frame instead of a single parameter vector.
+#' 
+#' @param x prediction function
+#' @param times numeric vector of time points
+#' @param pars parameter frame, e.g. output from \link{mstrust} or 
+#' \link{profile}
+#' @param data data list object. If data is passed, its condition.grid
+#' attribute is used to augment the output dataframe by additional 
+#' columns. \code{"data"} itself is returned as an attribute.
+#' @param ... Further arguments goint to the prediction function
+#' @return A data frame
 #' @export
 predict.prdfn <- function(x, times, pars, data = NULL, ...) {
   
@@ -155,7 +170,6 @@ predict.prdfn <- function(x, times, pars, data = NULL, ...) {
     attr(data, "condition.grid") <- condition.grid
 
     # Return
-    print(attr(data, "condition.grid"))
     as.data.frame(prediction, data = data)
     
   }))
