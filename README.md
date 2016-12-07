@@ -2,12 +2,19 @@
 
 The framework provides functions to generate ODEs of reaction networks, parameter transformations, observation functions, residual functions, etc. The framework follows the paradigm that derivative information should be used for optimization whenever possible. Therefore, all major functions produce and can handle expressions for symbolic derivatives.
 
+## Howto install dMod
+
+### Way 1
+Use the "Clone or download" button to get a local copy of dMod. Navigate to the folder where dMod is stored and run `R CMD build --no-build-vignettes dMod` to create the package. With `R CMD INSTALL dMod_<version>.tar.gz` the package is installed.
+
+### Way 2
+Install the R package `devtools` from CRAN. In R run `devtools::install_github("dkaschek/dMod")` to install the package directly from github. Use the `ref`-agument to specify another branch, e.g. development.
+
 ## Simple example: enzyme kinetics
 
 ### Load required packages
 
 ```r
-library(deSolve)
 library(dMod)
 ```
 
@@ -53,7 +60,7 @@ observables <- eqnvec(
   enzyme = "(Enz + Compl)"
 )
 
-# Generate observation functions2
+# Generate observation functions
 g <- Y(observables, f, compile = TRUE, modelname = "obsfn", attach.input = FALSE)
 ```
 
@@ -63,12 +70,10 @@ g <- Y(observables, f, compile = TRUE, modelname = "obsfn", attach.input = FALSE
 # Get all parameters
 innerpars <- getParameters(g*x)
 # Symbolically write down a log-transform
-trafo1 <- trafo2 <- structure(paste0("exp(log", innerpars, ")"), names = innerpars)
-# Set some initial parameters
-trafo1["Compl"] <- trafo2["Compl"] <- "0"
-trafo1["Prod"] <- trafo2["Prod"] <- "0"
-# Set the degradation rate in the first condition to 0
-trafo1["k4"] <- "0"
+trafo1 <- trafo2 <- repar("x~exp(x)", x = innerpars)
+# Set some initial parameters and one degradation rate
+trafo1[c("Compl", "Prod", "k4")] <- "0"
+trafo2[c("Compl", "Prod")] <- "0"
 
 # Generate parameter transformation functions
 
@@ -90,7 +95,7 @@ times <- 0:100
 plot((g*x*p)(times, pouter))
 ```
 
-![](README_files/figure-html/prediction-1.png)
+![](README_files/figure-html/prediction-1.png)<!-- -->
 
 ### Define data to be fitted by the model
 
@@ -114,13 +119,13 @@ timesD <- sort(unique(unlist(lapply(data, function(d) d$time))))
 plot(data) + geom_line()
 ```
 
-![](README_files/figure-html/data-1.png)
+![](README_files/figure-html/data-1.png)<!-- -->
 
 ```r
 plot((g*x*p)(times, pouter), data)
 ```
 
-![](README_files/figure-html/data-2.png)
+![](README_files/figure-html/data-2.png)<!-- -->
 
 ### Define an objective function to be minimized and run minimization by `trust()`
 
@@ -137,24 +142,20 @@ myfit <- trust(obj, pouter, rinit = 1, rmax = 10)
 plot((g*x*p)(times, myfit$argument), data)
 ```
 
-![](README_files/figure-html/trust-1.png)
+![](README_files/figure-html/trust-1.png)<!-- -->
 
 
 ### Compute the profile likelihood to analyze parameter identifiability
 
 ```r
-library(parallel)
 bestfit <- myfit$argument
 
-profiles <- do.call(rbind, 
-                    mclapply(names(bestfit), 
-                             function(n) profile(obj, bestfit, n, limits = c(-10, 10)), 
-                             mc.cores = 4, mc.preschedule = FALSE)
-)
+profiles <- profile(obj, bestfit, names(bestfit), cores = 4)
 
-# Take a look at each parameter
+# Take a look at the parameter profiles
 plotProfile(profiles)
 ```
 
-![](README_files/figure-html/profiles-1.png)
+![](README_files/figure-html/profiles-1.png)<!-- -->
+
 
