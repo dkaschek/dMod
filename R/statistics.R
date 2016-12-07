@@ -45,7 +45,6 @@
 #' iteration), "valueData" and "valuePrior" (if specified in obj), one column per parameter (the profile paths).
 #' @example inst/examples/profiles.R
 #' @export
-#' @import trust
 profile <- function(obj, pars, whichPar, alpha = 0.05, 
                           limits = c(lower = -Inf, upper = Inf), 
                           method = c("integrate", "optimize"),
