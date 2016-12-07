@@ -4,6 +4,3 @@
 .Rbuildignore
 .gitignore.swp
 .f*
-man/*
-NAMESPACE
-inst/doc
