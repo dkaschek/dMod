@@ -11,7 +11,7 @@
 #' }
 #' 
 #' @export
-lsdMod <- function(classlist = c("odemodel", "parfn", "prdfn", "obsfn", "objfn"), envir = .GlobalEnv){
+lsdMod <- function(classlist = c("odemodel", "parfn", "prdfn", "obsfn", "objfn", "datalist"), envir = .GlobalEnv){
   glist <- as.list(envir)
   out <- list()
   for (a in classlist) {
