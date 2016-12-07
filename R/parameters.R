@@ -33,6 +33,8 @@ P <- function(trafo = NULL, parameters=NULL, condition = NULL, keep.root = TRUE,
 #' @param parameters Character vector. Optional. If given, the generated parameter
 #' transformation returns values for each element in \code{parameters}. If elements of
 #' \code{parameters} are not in \code{names(trafo)} the identity transformation is assumed.
+#' @param attach.input attach the incoming parameter vector as output. The function will
+#' not throw an error if parameter names turn out to be duplicated!
 #' @param compile Logical, compile the function (see \link{funC0})
 #' @param condition character, the condition for which the transformation is generated
 #' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
@@ -54,7 +56,7 @@ P <- function(trafo = NULL, parameters=NULL, condition = NULL, keep.root = TRUE,
 #' out <- p_log(pars)
 #' getDerivs(out)
 #' @export
-Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, modelname = NULL, verbose = FALSE) {
+Pexpl <- function(trafo, parameters=NULL, attach.input = FALSE, condition = NULL, compile = FALSE, modelname = NULL, verbose = FALSE) {
   
   # get outer parameters
   symbols <- getSymbols(trafo)
@@ -66,19 +68,8 @@ Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, mod
     names(identity) <- identity
     trafo <- c(trafo, identity)
   }
-  
-  
-  # expression list for parameter and jacobian evaluation
-  #trafo.list <- lapply(trafo, function(myrel) parse(text=as.character(myrel)))
-  #jacobian <- unlist(lapply(parameters, function(var) {
-  #  unlist(lapply(trafo.list, function(myexp) paste(deparse(D(myexp, as.character(var))), collapse="")))
-  #}))
+
   dtrafo <- jacobianSymb(trafo, parameters)
-  
-  #jacNames <- expand.grid.alt(names(trafo), parameters)
-  #jacNames <- paste(jacNames[,1], jacNames[,2], sep=".")
-  
-  #dtrafo <- jacobian; names(dtrafo) <- jacNames
   
   PEval <- funC0(trafo, parameters = parameters, compile = compile, modelname = modelname, 
                  verbose = verbose, convenient = FALSE, warnings = FALSE)
@@ -88,36 +79,34 @@ Pexpl <- function(trafo, parameters=NULL, condition = NULL, compile = FALSE, mod
   
   
   # Controls to be modified from outside
-  controls <- list()
+  controls <- list(attach.input = attach.input)
   
   # the parameter transformation function to be returned
   p2p <- function(pars, fixed=NULL, deriv = TRUE) {
     
     p <- pars
-    
-    # Inherit from p
-    dP <- attr(p, "deriv", exact = TRUE)
+    attach.input <- controls$attach.input
     
     # Evaluate transformation
     args <- c(p, fixed)
     pinner <- PEval(p = args)[1,]
-    dpinner <- dPEval(p = args)[1,]
-    
-    # Construct output jacobian
-    jac.vector <- rep(0, length(pinner)*length(p))
-    names(jac.vector) <- outer(names(pinner), names(p), function(x, y) paste(x, y, sep = "."))
-    
-    names.intersect <- intersect(names(dpinner), names(jac.vector))
-    jac.vector[names.intersect] <- as.numeric(dpinner[names.intersect])
-    jac.matrix <- matrix(jac.vector, length(pinner), length(p), dimnames = list(names(pinner), names(p)))
-    
-    
-    if(!is.null(dP)) jac.matrix <- jac.matrix%*%submatrix(dP, rows = colnames(jac.matrix))
-    
+
     myderiv <- NULL
-    if(deriv) myderiv <- jac.matrix
+    if(deriv) {
+      
+      jac.matrix <- matrix(0, nrow = length(pinner), ncol = length(args), dimnames = list(names(pinner), names(args)))
+      jac.matrix[1:length(pinner), match(parameters, names(args))] <- dPEval(p = args)[1,]
+      jac.matrix <- jac.matrix[, names(p)] # delete fixed
+  
+      dP <- attr(p, "deriv", exact = TRUE)
+      if(!is.null(dP)) jac.matrix <- jac.matrix %*% submatrix(dP, rows = colnames(jac.matrix))
+      
+      myderiv <- jac.matrix
+    }
     
-    as.parvec(pinner, deriv = myderiv)
+    pouter <- as.parvec(pinner, deriv = myderiv)
+    if (attach.input) pouter <- c(pouter, as.parvec(pars))
+    return(pouter)
     
   }
   

@@ -61,7 +61,7 @@ compare.list <- function(vec1, vec2 = NULL, reference = 1, ...) {
     vec1.inner <- vec1[[reference]]
     vec2.inner <- vec1[[i]]
     out1 <- NULL
-    if(class(vec1.inner) %in% c("eqnvec", "data.frame")) {
+    if(any(class(vec1.inner) %in% c("eqnvec", "data.frame"))) {
       out1 <- list(compare(vec1.inner, vec2.inner))
       names(out1) <- "object"
     }
@@ -185,10 +185,12 @@ combine <- function(...) {
   mylist <- lapply(mylist, function(l) {
     
     if(is.data.frame(l)) {
+      i <- sapply(l, is.factor)
+      l[i] <- lapply(l[i], as.character)
       present.list <- as.list(l)
       missing.names <- setdiff(mynames, names(present.list))
       missing.list <- structure(as.list(rep(NA, length(missing.names))), names = missing.names)
-      combined.data <- do.call(cbind.data.frame, c(present.list, missing.list))
+      combined.data <- do.call(function(...) cbind.data.frame(..., stringsAsFactors = FALSE), c(present.list, missing.list))
       rownames(combined.data) <- rownames(l)
     }
     if(is.matrix(l)) {
@@ -277,7 +279,7 @@ blockdiagSymb <- function(M, N) {
 #' @return data.frame in long format, i.e. columns "time" (out[,1]), "name" (colnames(out[,-1])), 
 #' "value" (out[,-1]) and, if out was a list, "condition" (names(out))
 #' @export
-wide2long <- function(out, keep, na.rm) {
+wide2long <- function(out, keep = 1, na.rm = FALSE) {
   
   UseMethod("wide2long", out)
   
@@ -356,7 +358,7 @@ wide2long.list <- function(out, keep = 1, na.rm = FALSE) {
     numconditions <- conditions
   
   
-  outlong <- do.call(rbind, lapply(1:length(conditions), function(cond) {
+  outlong <- do.call(rbind, lapply(1:max(c(length(conditions), 1)), function(cond) {
     
     cbind(wide2long.matrix(out[[cond]]), condition = numconditions[cond])
     
@@ -443,6 +445,108 @@ loadTemplate <- function(i = 1) {
   
 }
 
+#' Save snapeshot of your dMod project
+#' 
+#' @param ... objects in the global environment (as symbols or 
+#' character strings) to be saved \strong{in addition to} standard
+#' dMod objects as being return by \link{lsdMod} and data list objects.
+#' @param objfn character specifying the objective function, e.g. 
+#' \code{"normL2(data, g*x*p) + constr"}.
+#' @param files additional files to be saved, e.g. script files.
+#' @param filename name of the file where everything is saved.
+#' @return A zip file is written in the working directory containing
+#' an image file with the dMod objects, C files associated to the
+#' dMod objects and additional files specified by the 'files' argument.
+#' @seealso \link{loaddMod}
+#' @examples 
+#' \dontrun{
+#' savedMod(pouter, bestfit, fitlist,
+#'          objfn = "normL2(data, g*x*p) + constr",
+#'          files = c("modelsetup.R", "analysis.R"),
+#'          filename = "snapshot_161207")
+#' 
+#' } 
+#' @export
+savedMod <- function(..., objfn = NULL, files = NULL, filename = stop("'filename' must be specified")) {
+  
+  list <- lsdMod()
+  
+  # Collect object names from ... and list, and add datalist objects
+  names <- as.character(substitute(list(...)))[-1]
+  object.names <- unique(c(names, list, lsdMod("datalist")))
+  
+  cat("Saving the following objects: ")
+  cat(paste(object.names, collapse = ", "), "\n")
+  
+  # Get objects corresponding to names
+  objects <- as.list(.GlobalEnv)[object.names]
+  
+  # Generate expression for objective function from objfn argument
+  .objfn <- NULL
+  if (!is.null(objfn))
+    .objfn <- parse(text = paste("obj <-", objfn))
+  
+  
+  # Extract necessary C files
+  cfiles <- list()
+  # odemodels
+  n <- objects[sapply(objects, function(o) inherits(o, "odemodel"))]
+  cfiles[[1]] <- do.call("c", lapply(n, unlist))
+  # obsfn
+  n <- objects[sapply(objects, function(o) inherits(o, "obsfn"))]
+  cfiles[[2]] <- unlist(lapply(n, function(obs) unlist(lapply(attr(obs, "mappings"), function(m) as.list(environment(m))[["modelname"]]))))
+  # parfn
+  n <- objects[sapply(objects, function(o) inherits(o, "parfn"))]
+  cfiles[[3]] <- unlist(lapply(n, function(obs) unlist(lapply(attr(obs, "mappings"), function(m) as.list(environment(m))[["modelname"]]))))
+  
+  cfiles <- unlist(cfiles)
+  
+  # Get comprehensive list of C files (including derivative C files)
+  # Add workspace file to filelist
+  # Add additional files passed by 'files' argument to filelist
+  imagefile <- paste0(basename(filename), ".RData")
+  .filelist <- c(unlist(lapply(paste0("^", cfiles, ".*.c$"), function(x) list.files(pattern = x))), imagefile, files)
+  
+  # dMod package version
+  .dModVersion <- packageVersion("dMod")
+  
+  # Save objects into workspace file
+  save(list = c(".dModVersion", ".filelist", ".objfn", object.names), file = imagefile)
+  
+  # Write zip file and delete saved image
+  zip(filename, files = .filelist)
+  unlink(imagefile)
+
+  
+}
+
+#' Load dMod snapshot
+#' 
+#' @param filename filename, expectes a zip file produced by 
+#' \link{savedMod}
+#' @param flags additional flags going to \code{R CMD SHLIB}, e.g.
+#' \code{"-leinspline"}.
+#' @return Saved objects are loaded into the global environment. 
+#' C files contained in the snapshot file are compiled with additional
+#' flags if necessary. An objective function is created from dMod
+#' objects.
+#' @seealso \link{savedMod}
+#' @export
+loaddMod <- function(filename = stop("'filename' must be specified"), flags = NULL) {
+  
+  unzip(filename)
+  name <- list.files(pattern = "*.RData")
+  cat("Loading image file(s):", paste(name, collapse = ", "), "\n")
+  for (l in name) load(l, envir = .GlobalEnv)
+  cat("Compile files ... ")
+  for (f in .filelist) system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", f, " ", flags), intern = TRUE)
+  cat("done\n")
+  eval(.objfn, envir = .GlobalEnv)
+  cat("Objective function:", as.character(.objfn), "\n\n")
+  cat("Snapshot was created with dMod version", as.character(.dModVersion), "\n")
+  
+  
+}
 
 
 

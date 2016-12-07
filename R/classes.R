@@ -1322,21 +1322,26 @@ getDerivs.objlist <- function(x, ...) {
 
 #' Extract the parameters of an object
 #' 
-#' @param x object from which the parameters should be extracted
+#' @param ... objects from which the parameters should be extracted
 #' @param conditions character vector specifying the conditions to 
 #' which \code{getParameters} is restricted
-#' @param ... additional arguments (not used right now)
 #' @return The parameters in a format that depends on the class of \code{x}.
 #' @export
-getParameters <- function(x, conditions = NULL, ...) {
-  UseMethod("getParameters", x)
+getParameters <- function(..., conditions = NULL) {
+  
+  
+  Reduce("union", lapply(list(...), function(x) {
+    UseMethod("getParameters", x)  
+  }))
+  
+  
 }
 
 
 
 #' @export
 #' @rdname getParameters
-getParameters.odemodel <- function(x, conditions = NULL, ...) {
+getParameters.odemodel <- function(x, conditions = NULL) {
 
   parameters <- c(
     attr(x$func, "variables"),
@@ -1350,7 +1355,7 @@ getParameters.odemodel <- function(x, conditions = NULL, ...) {
 
 #' @export
 #' @rdname getParameters
-getParameters.fn <- function(x, conditions = NULL, ...) {
+getParameters.fn <- function(x, conditions = NULL) {
   
   if (is.null(conditions)) {
     parameters <- attr(x, "parameters")
@@ -1367,7 +1372,7 @@ getParameters.fn <- function(x, conditions = NULL, ...) {
 }
 #' @export
 #' @rdname getParameters
-getParameters.parvec <- function(x, conditions = NULL, ...) {
+getParameters.parvec <- function(x, conditions = NULL) {
   
   names(x)
   
@@ -1375,7 +1380,7 @@ getParameters.parvec <- function(x, conditions = NULL, ...) {
 
 #' @export
 #' @rdname getParameters
-getParameters.prdframe <- function(x, conditions = NULL, ...) {
+getParameters.prdframe <- function(x, conditions = NULL) {
   
   attr(x, "parameters")
   
@@ -1383,7 +1388,7 @@ getParameters.prdframe <- function(x, conditions = NULL, ...) {
 
 #' @export
 #' @rdname getParameters
-getParameters.prdlist <- function(x, conditions = NULL, ...) {
+getParameters.prdlist <- function(x, conditions = NULL) {
   
   select <- 1:length(x)
   if (!is.null(conditions)) select <- intersect(names(x), conditions)

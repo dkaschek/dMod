@@ -45,7 +45,6 @@
 #' iteration), "valueData" and "valuePrior" (if specified in obj), one column per parameter (the profile paths).
 #' @example inst/examples/profiles.R
 #' @export
-#' @import trust
 profile <- function(obj, pars, whichPar, alpha = 0.05, 
                           limits = c(lower = -Inf, upper = Inf), 
                           method = c("integrate", "optimize"),
@@ -202,7 +201,8 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                      oControl[names(oControl)!="rinit"],
                      list(...)[names(list(...)) != "fixed"])
         
-        myfit <- try(do.call(trust::trust, arglist), silent=FALSE)
+        
+        myfit <- try(do.call(trust, arglist), silent=FALSE)
         if(!inherits(myfit, "try-error")) {
           y.try[names(myfit$argument)] <- as.vector(myfit$argument)  
         } else {

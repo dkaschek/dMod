@@ -74,6 +74,49 @@ print.prdlist <- function(x, ...) {
   
 }
 
+
+#' @export
+#' @param data data list oject
+#' @param errfn obsfn object, the error model function to predict sigma
+#' @rdname as.data.frame.dMod
+as.data.frame.prdlist <- function(x, data = NULL, errfn = NULL, ...) {
+  
+  prediction <- x
+  sigma <- NULL
+  condition.grid <- attr(data, "condition.grid")
+  
+  if (!is.null(errfn)) {
+    sigma <- as.prdlist(
+      lapply(1:length(prediction), 
+             function(i) errfn(prediction[[i]], 
+                               getParameters(prediction[[i]]), 
+                               conditions = names(prediction)[i])[[1]]),
+      names = names(prediction)
+    )
+    sigma <- wide2long(sigma)
+  }
+  
+  prediction <- wide2long(prediction)
+  prediction$sigma <- NaN
+  if (!is.null(sigma)) {
+    common <- intersect(unique(prediction$name), unique(sigma$name))
+    prediction$sigma[prediction$name %in% common] <- sigma$value[sigma$name %in% common]
+  }
+  
+  if (!is.null(condition.grid)) {
+    for (C in colnames(condition.grid)) {
+      rows <- ifelse(is.na(prediction$condition), 1, as.character(prediction$condition))
+      prediction[, C] <- condition.grid[rows, C]
+    }
+    n1 <- nrow(prediction)
+  }
+  
+  
+  return(prediction)
+  
+  
+} 
+
 ## Methods for class prdframe ----------------------------
 #' @export
 #' @rdname plotCombined
@@ -126,7 +169,7 @@ print.prdfn <- function(x, ...) {
 }
 
 #' @export
-summary.prdfn <- function(object, ...) {
+summary.prdfn <- function(object,...) {
   
   x <- object
   
