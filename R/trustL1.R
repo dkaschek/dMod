@@ -68,7 +68,7 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     stop("parinit not feasible")
   
   #set gradient and hessian to zero on boundary
-  g_boundary <- c(which(out$gradient[upper] < 0), which(out$gradient[lower] > 0))
+  g_boundary <- c(upper[which(out$gradient[upper] < 0)], lower[which(out$gradient[lower] > 0)])
   out$gradient[g_boundary] <- 0
   out$hessian[g_boundary,] <- 0
   out$hessian[,g_boundary] <- 0
@@ -182,7 +182,7 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
       break
     
     #set gradient and hessian to zero parameters on boundary
-    g_boundary <- c(which(out$gradient[upper] < 0), which(out$gradient[lower] > 0))
+    g_boundary <- c(upper[which(out$gradient[upper] < 0)], lower[which(out$gradient[lower] > 0)])
     out$gradient[g_boundary] <- 0
     out$hessian[g_boundary,] <- 0
     out$hessian[,g_boundary] <- 0
