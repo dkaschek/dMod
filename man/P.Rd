@@ -5,7 +5,7 @@
 \title{Generate a parameter transformation function}
 \usage{
 P(trafo = NULL, parameters = NULL, condition = NULL,
-  attach.input = TRUE, keep.root = TRUE, compile = FALSE,
+  attach.input = FALSE, keep.root = TRUE, compile = FALSE,
   modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE)
 }
 \arguments{

@@ -16,7 +16,7 @@
 #' @param verbose Print out information during compilation
 #' @return An object of class \link{parfn}.
 #' @export
-P <- function(trafo = NULL, parameters=NULL, condition = NULL, attach.input = TRUE,  keep.root = TRUE, compile = FALSE, modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE) {
+P <- function(trafo = NULL, parameters=NULL, condition = NULL, attach.input = FALSE,  keep.root = TRUE, compile = FALSE, modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE) {
   
   if (is.null(trafo)) return()
   
@@ -107,7 +107,9 @@ Pexpl <- function(trafo, parameters=NULL, attach.input = FALSE, condition = NULL
     }
     
     pinner <- as.parvec(pinner, deriv = myderiv)
-    if (attach.input) pinner <- c(pinner, as.parvec(pars[setdiff(names(pars), names(pinner))]))
+    if (attach.input & !all(names(pars) %in% names(pinner)))
+      pinner <- c(pinner, as.parvec(pars[setdiff(names(pars), names(pinner))]))
+    
     return(pinner)
     
   }
