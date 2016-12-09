@@ -4,9 +4,9 @@
 \alias{P}
 \title{Generate a parameter transformation function}
 \usage{
-P(trafo = NULL, parameters = NULL, condition = NULL, keep.root = TRUE,
-  compile = FALSE, modelname = NULL, method = c("explicit", "implicit"),
-  verbose = FALSE)
+P(trafo = NULL, parameters = NULL, condition = NULL,
+  attach.input = TRUE, keep.root = TRUE, compile = FALSE,
+  modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE)
 }
 \arguments{
 \item{trafo}{object of class \code{eqnvec} or named character}
@@ -14,6 +14,9 @@ P(trafo = NULL, parameters = NULL, condition = NULL, keep.root = TRUE,
 \item{parameters}{character vector}
 
 \item{condition}{character, the condition for which the transformation is generated}
+
+\item{attach.input}{attach those incoming parameters to output which are not overwritten by
+the parameter transformation.}
 
 \item{keep.root}{logical, applies for \code{method = "implicit"}. The root of the last
 evaluation of the parameter transformation function is saved as guess for the next 

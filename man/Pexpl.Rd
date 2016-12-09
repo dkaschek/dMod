@@ -16,8 +16,8 @@ the inner parameters in terms of other parameters (the outer parameters)}
 transformation returns values for each element in \code{parameters}. If elements of
 \code{parameters} are not in \code{names(trafo)} the identity transformation is assumed.}
 
-\item{attach.input}{attach the incoming parameter vector as output. The function will
-not throw an error if parameter names turn out to be duplicated!}
+\item{attach.input}{attach those incoming parameters to output which are not overwritten by
+the parameter transformation.}
 
 \item{condition}{character, the condition for which the transformation is generated}
 

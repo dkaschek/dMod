@@ -5,6 +5,8 @@
 #' @param trafo object of class \code{eqnvec} or named character
 #' @param parameters character vector
 #' @param condition character, the condition for which the transformation is generated
+#' @param attach.input attach those incoming parameters to output which are not overwritten by
+#' the parameter transformation.
 #' @param keep.root logical, applies for \code{method = "implicit"}. The root of the last
 #' evaluation of the parameter transformation function is saved as guess for the next 
 #' evaluation.
@@ -14,13 +16,13 @@
 #' @param verbose Print out information during compilation
 #' @return An object of class \link{parfn}.
 #' @export
-P <- function(trafo = NULL, parameters=NULL, condition = NULL, keep.root = TRUE, compile = FALSE, modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE) {
+P <- function(trafo = NULL, parameters=NULL, condition = NULL, attach.input = TRUE,  keep.root = TRUE, compile = FALSE, modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE) {
   
   if (is.null(trafo)) return()
   
   method <- match.arg(method)
   switch(method, 
-         explicit = Pexpl(trafo = as.eqnvec(trafo), parameters = parameters, condition = condition, compile = compile, modelname = modelname, verbose = verbose),
+         explicit = Pexpl(trafo = as.eqnvec(trafo), parameters = parameters, attach.input = attach.input, condition = condition, compile = compile, modelname = modelname, verbose = verbose),
          implicit = Pimpl(trafo = as.eqnvec(trafo), parameters = parameters, keep.root = keep.root, condition = condition, compile = compile, modelname = modelname, verbose = verbose))
   
 }
@@ -33,8 +35,8 @@ P <- function(trafo = NULL, parameters=NULL, condition = NULL, keep.root = TRUE,
 #' @param parameters Character vector. Optional. If given, the generated parameter
 #' transformation returns values for each element in \code{parameters}. If elements of
 #' \code{parameters} are not in \code{names(trafo)} the identity transformation is assumed.
-#' @param attach.input attach the incoming parameter vector as output. The function will
-#' not throw an error if parameter names turn out to be duplicated!
+#' @param attach.input attach those incoming parameters to output which are not overwritten by
+#' the parameter transformation. 
 #' @param compile Logical, compile the function (see \link{funC0})
 #' @param condition character, the condition for which the transformation is generated
 #' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
@@ -104,9 +106,9 @@ Pexpl <- function(trafo, parameters=NULL, attach.input = FALSE, condition = NULL
       myderiv <- jac.matrix
     }
     
-    pouter <- as.parvec(pinner, deriv = myderiv)
-    if (attach.input) pouter <- c(pouter, as.parvec(pars))
-    return(pouter)
+    pinner <- as.parvec(pinner, deriv = myderiv)
+    if (attach.input) pinner <- c(pinner, as.parvec(pars[setdiff(names(pars), names(pinner))]))
+    return(pinner)
     
   }
   
