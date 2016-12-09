@@ -67,11 +67,15 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
   if (!is.finite(out$value)) 
     stop("parinit not feasible")
   
-  #set gradient and hessian to zero on boundary
-  g_boundary <- c(upper[which(out$gradient[upper] < 0)], lower[which(out$gradient[lower] > 0)])
-  out$gradient[g_boundary] <- 0
-  out$hessian[g_boundary,] <- 0
-  out$hessian[,g_boundary] <- 0
+  #remove boundary elements from gradient and hessian
+  # g_boundary <- c(upper[which(out$gradient[upper] < 0)], lower[which(out$gradient[lower] > 0)])
+  # g_noboundary <- setdiff(1:d, g_boundary)
+  # n_boundary <- length(g_boundary)
+  # if (n_boundary > 0) {
+  #   out$gradient <- out$gradient[-g_boundary]
+  #   out$hessian <- out$hessian[-g_boundary, , drop = FALSE]
+  #   out$hessian <- out$hessian[, -g_boundary, drop = FALSE]
+  # }
   
   accept <- TRUE
   if (blather) {
@@ -96,6 +100,21 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
       else val.blather <- c(val.blather, out.value.save)
     }
     if (accept) {
+     
+      if (minimize)
+        g_boundary <- c(upper[which(out$gradient[upper] < 0)], lower[which(out$gradient[lower] > 0)])
+      if (!minimize)
+        g_boundary <- c(upper[which(out$gradient[upper] > 0)], lower[which(out$gradient[lower] < 0)])
+      
+      g_noboundary <- setdiff(1:d, g_boundary)
+      n_boundary <- length(g_boundary)
+      if (n_boundary > 0) {
+        out$gradient <- out$gradient[-g_boundary]
+        out$hessian <- out$hessian[-g_boundary, , drop = FALSE]
+        out$hessian <- out$hessian[, -g_boundary, drop = FALSE]
+      }
+      
+      
       B <- out$hessian
       g <- out$gradient
       f <- out$value
@@ -167,10 +186,12 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     }
     preddiff <- sum(ptry * (g + as.numeric(B %*% ptry)/2))
     if (rescale) {
-      theta.try <- theta + ptry/parscale
+      theta.try <- theta
+      theta.try[g_noboundary] <- theta.try[g_noboundary] + ptry/parscale[g_noboundary]
     }
     else {
-      theta.try <- theta + ptry
+      theta.try <- theta
+      theta.try[g_noboundary] <- theta.try[g_noboundary] + ptry
     }
     upper <- which(!(theta.try < parupper))
     lower <- which(!(theta.try > parlower))
@@ -181,11 +202,7 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     if (inherits(out, "try-error")) 
       break
     
-    #set gradient and hessian to zero parameters on boundary
-    g_boundary <- c(upper[which(out$gradient[upper] < 0)], lower[which(out$gradient[lower] > 0)])
-    out$gradient[g_boundary] <- 0
-    out$hessian[g_boundary,] <- 0
-    out$hessian[,g_boundary] <- 0
+    
     
     check.objfun.output(out, minimize, d)
     ftry <- out$value
@@ -218,6 +235,7 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
           r <- min(2 * r, rmax)
       }
     }
+    
     if (blather) {
       theta.try.blather <- rbind(theta.try.blather, theta.try)
       val.try.blather <- c(val.try.blather, out$value)
