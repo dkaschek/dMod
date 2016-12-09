@@ -251,7 +251,10 @@ repar <- function(expr, trafo = NULL, ...) {
   rhs <- parsed.expr[3]
   rhs.symbols <- getSymbols(rhs)
   
-  replacements <- as.data.frame(list(...), stringsAsFactors = FALSE)
+  # Make sure that arguments are characters
+  args <- lapply(list(...), as.character)
+  
+  replacements <- as.data.frame(args, stringsAsFactors = FALSE)
   
   lhs <- sapply(1:nrow(replacements), function(i) {
     out <- replaceSymbols(colnames(replacements), replacements[i, ], lhs)
