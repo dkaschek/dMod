@@ -5,7 +5,8 @@
 \title{Generate the model objects for use in Xs (models with sensitivities)}
 \usage{
 odemodel(f, deriv = TRUE, forcings = NULL, fixed = NULL,
-  modelname = "odemodel", gridpoints = NULL, verbose = FALSE, ...)
+  modelname = "odemodel", solver = c("deSolve", "Sundials"),
+  gridpoints = NULL, verbose = FALSE, ...)
 }
 \arguments{
 \item{f}{Something that can be converted to \link{eqnvec}, 
@@ -19,6 +20,8 @@ e.g. a named character vector with the ODE}
 no sensitivities are required (will speed up the integration).}
 
 \item{modelname}{Character, the name of the C file being generated.}
+
+\item{solver}{Solver for which the equations are prepared.}
 
 \item{gridpoints}{Integer, the minimum number of time points where the ODE is evaluated internally}
 
