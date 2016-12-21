@@ -222,16 +222,16 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
 #' Remote install dMod to a ssh-reachable host
 #' 
 #' @description Install your local dMod version to a remote host via ssh.
-#' @param type Which dMod to install. At the moment, only your local version is
-#'   supported.
 #' @param sshtarget The ssh host url.
 #' @param source If type = local, source must point to the source directory of
 #'   your dMod version. This is most probably you local dMod git repository.
+#' @param type Which dMod to install. At the moment, only your local version is
+#'   supported.
 #'   
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #' @importFrom utils packageVersion
 #' @export
-runbg.install <- function(type = "local", sshtarget, source = NULL) {
+runbgInstall <- function(sshtarget, source = NULL, type = "local") {
   
   if (type == "local") {
     # Build dMod package
@@ -239,7 +239,7 @@ runbg.install <- function(type = "local", sshtarget, source = NULL) {
       stop("dMod source location not specified.")
     }
     cat("* Preparing local dMod version for remote installation:\n")
-    system(eval(paste("R CMD build", source)))
+    system(eval(paste("R CMD build --no-build-vignettes", source)))
     
     # Figure out package name
     dModPkg <- paste0("dMod_", packageVersion("dMod"), ".tar.gz")
