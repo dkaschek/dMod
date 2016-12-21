@@ -150,7 +150,12 @@ predict.prdfn <- function(x, times, pars, data = NULL, ...) {
     
     mypar <- as.parvec(pars, i)
     prediction <- x(times, mypar, deriv = FALSE, ...)
-    conditions <- ifelse(is.null(names(prediction)), 1, names(prediction))
+    
+    if (is.null(names(prediction))) {
+      conditions <- 1
+    } else {
+      conditions <- names(prediction)
+    }
     
     condition.grid <- data.frame(row.names = conditions)
     
