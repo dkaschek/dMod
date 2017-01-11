@@ -10,7 +10,6 @@
 #' @param fixed Character vector with the names of parameters (initial values and dynamic) for which
 #' no sensitivities are required (will speed up the integration).
 #' @param modelname Character, the name of the C file being generated.
-#' @param solver Solver for which the equations are prepared.
 #' @param gridpoints Integer, the minimum number of time points where the ODE is evaluated internally
 #' @param verbose Print compiler output to R command line.
 #' @param ... Further arguments being passed to funC.
@@ -18,18 +17,17 @@
 #' @export
 #' @example inst/examples/odemodel.R
 #' @import cOde
-odemodel <- function(f, deriv = TRUE, forcings=NULL, fixed=NULL, modelname = "odemodel", solver = c("deSolve", "Sundials"), gridpoints = NULL, verbose = FALSE, ...) {
+odemodel <- function(f, deriv = TRUE, forcings=NULL, fixed=NULL, modelname = "odemodel", gridpoints = NULL, verbose = FALSE, ...) {
   
   
   if (is.null(gridpoints)) gridpoints <- 2
   
   f <- as.eqnvec(f)
   modelname_s <- paste0(modelname, "_s")
-  solver <- match.arg(solver)
   
-  func <- cOde::funC(f, forcings = forcings, fixed = fixed, modelname = modelname , solver = solver, nGridpoints = gridpoints, ...)
-  extended <- if (solver == "Sundials") func else NULL
-  if (deriv && solver == "deSolve") {  
+  func <- cOde::funC(f, forcings = forcings, modelname = modelname , nGridpoints = gridpoints, ...)
+  extended <- NULL
+  if (deriv) {  
     s <- sensitivitiesSymb(f, 
                            states = setdiff(attr(func, "variables"), fixed), 
                            parameters = setdiff(attr(func, "parameters"), fixed), 
@@ -37,7 +35,7 @@ odemodel <- function(f, deriv = TRUE, forcings=NULL, fixed=NULL, modelname = "od
                            reduce = TRUE)
     fs <- c(f, s)
     outputs <- attr(s, "outputs")
-    extended <- cOde::funC(fs, forcings = forcings, outputs = outputs, modelname = modelname_s, solver = solver, ...)
+    extended <- cOde::funC(fs, forcings = forcings, outputs = outputs, modelname = modelname_s, ...)
   }  
   
   out <- list(func = func, extended = extended)
