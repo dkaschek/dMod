@@ -28,12 +28,7 @@ odemodel <- function(f, deriv = TRUE, forcings=NULL, fixed=NULL, modelname = "od
   solver <- match.arg(solver)
   
   func <- cOde::funC(f, forcings = forcings, fixed = fixed, modelname = modelname , solver = solver, nGridpoints = gridpoints, ...)
-  extended <- NULL
-  if (solver == "Sundials") {
-    extended <- func
-    attr(extended, "deriv") <- TRUE 
-  }
-  
+  extended <- if (solver == "Sundials") func else NULL
   if (deriv && solver == "deSolve") {  
     s <- sensitivitiesSymb(f, 
                            states = setdiff(attr(func, "variables"), fixed), 
