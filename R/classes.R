@@ -30,8 +30,10 @@ odemodel <- function(f, deriv = TRUE, forcings=NULL, fixed=NULL, modelname = "od
   func <- cOde::funC(f, forcings = forcings, fixed = fixed, modelname = modelname , solver = solver, nGridpoints = gridpoints, ...)
   extended <- NULL
   if (solver == "Sundials") {
+    # Sundials does not need "extended" by itself, but dMod relies on it.
     extended <- func
-    attr(extended, "deriv") <- TRUE 
+    attr(extended, "deriv") <- TRUE
+    attr(extended, "variables") <- c(attr(extended, "variables"), attr(extended, "variablesSens"))
   }
   
   if (deriv && solver == "deSolve") {  
