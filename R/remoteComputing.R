@@ -219,6 +219,169 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
 }
 
 
+#' Run an R expression on the bwForCluster
+#' 
+#' @description Generate an R code of the expression that is copied via \code{scp}
+#' to the bwForCluster (ssh-key needed). Then collect the results.
+#' @details \code{runbg()} generates a workspace from the \code{input} argument
+#' and copies the workspace and all C files or .so files to the remote machines via
+#' \code{scp}. This will only work if *an ssh-key had been generated and added
+#' to the authorized keys on the remote machine*. On the remote machine, the script
+#' will attempt to load all packages that had been loaded in the local R session.
+#' This means that *all loaded packages must be present on the remote machine*. The
+#' code snippet, i.e. the \code{...} argument, can include several intermediate results
+#' but only the last call which is not redirected into a variable is returned via the
+#' variable \code{.runbgOutput}, see example below.
+#' @param ... Some R code
+#' @param machine e.g. \code{fr_dk846@@bwfor.cluster.uni-mannheim.de}
+#' @param filename Character, defining the filename of the temporary file. Random
+#' file name ist chosen if NULL.
+#' @param nodes Number of nodes, e.g. 10
+#' @param cores Number of cores, e.g. 16
+#' @param walltime estimated runtime in the format \code{hh:mm:ss}, e.g. \code{01:30:00}
+#' @param input Character vector, the objects in the workspace that are stored
+#' into an R data file and copied to the remove machine.
+#' @param compile Logical. If \code{TRUE}, C files are copied and compiled on the remote machine.
+#' Otherwise, the .so files are copied.
+#' @export
+runbg_bwfor <- function(..., machine, filename = NULL, nodes = 1, cores = 1, walltime = "01:00:00", input = ls(.GlobalEnv), compile = TRUE) {
+  
+  
+  expr <- as.expression(substitute(...))
+  
+  # Set file name
+  if (is.null(filename))
+    filename <- paste0("tmp_", paste(sample(c(0:9, letters), 5, replace = TRUE), collapse = ""))
+  
+  filename0 <- filename
+  
+  # Initialize output
+  out <- structure(vector("list", 3), names = c("check", "get", "purge"))
+  out[[1]] <- function() {
+    
+    check.out <- length(suppressWarnings(
+      system(paste0("ssh ", machine, " ls ", filename, "_folder/ | grep -x ", filename, "_result.RData"), 
+             intern = TRUE)))
+    
+    if (check.out > 0) {
+      cat("Result is ready!\n")
+      return(TRUE)
+    }
+    else if (check.out == 0) {
+      cat("Not ready!\n") 
+      return(FALSE)
+    }
+      
+  }
+  
+  out[[2]] <- function() {
+    
+    system(paste0("scp ", machine, ":", filename, "_folder/", filename, "_result.RData ./"), ignore.stdout = TRUE, ignore.stderr = TRUE)
+    check <- try(load(file = paste0(filename, "_result.RData")), silent = TRUE) 
+    if (!inherits("try-error", check)) result <- .runbgOutput
+    
+    .GlobalEnv$.runbgOutput <- result
+    
+  }
+  
+  out[[3]] <- function() {
+    
+    system(paste0("ssh ", machine, " rm -r ", filename, "_folder"))
+    system(paste0("ssh ", machine, " rm ", filename, ".*"))
+    system(paste0("rm ", filename0, "*"))
+    
+  }
+  
+  
+  # Save current workspace
+  save(list = input, file = paste0(filename0, ".RData"), envir = .GlobalEnv)
+  
+  # Get loaded packages
+  pack <- sapply(strsplit(search(), "package:", fixed = TRUE), function(v) v[2])
+  pack <- pack[!is.na(pack)]
+  pack <- paste(paste0("try(library(", pack, "))"), collapse = "\n")
+  
+  # Define outputs
+  output <- ".runbgOutput"
+
+ 
+  compile.line <- NULL
+  if (compile)
+    compile.line <- "cfiles <- list.files(pattern = '.c$'); for(cf in cfiles) system(paste('R CMD SHLIB', cf))"
+   
+  # Write program into character
+  program <- paste(
+    pack,
+    paste0("setwd('~/", filename, "_folder')"),
+    "rm(list = ls())",
+    compile.line,
+    "library(doParallel)",
+    "procs <- as.numeric(Sys.getenv('MOAB_PROCCOUNT'))",
+    "registerDoParallel(cores=procs)",
+    paste0("load('", filename0, ".RData')"),
+    paste0(".runbgOutput <- try(", as.character(expr), ")"),
+
+    paste0("save(", output ,", file = '", filename, "_result.RData')"),
+    sep = "\n"
+  )
+  
+  # Write program code into file
+  cat(program, file = paste0(filename, ".R"))
+  
+  # Write job file to be called by msub
+  job <- paste(
+    "#!/bin/sh", 
+    "########## Begin MOAB/Slurm header ##########",
+    "#",
+    "# Give job a reasonable name",
+    paste0("#MOAB -N ", filename),
+    "#",
+    "# Request number of nodes and CPU cores per node for job",
+    paste0("#MOAB -l nodes=", nodes, ":ppn=", cores),
+    "#",
+    "# Estimated wallclock time for job",
+    paste0("#MOAB -l walltime=", walltime),
+    "#",
+    "# Write standard output and errors in same file",
+    "#MOAB -j oe ",
+    "#",
+    "########### End MOAB header ##########",
+    "",
+    "# Setup R Environment",
+    "module load math/R",
+    "# Start program",
+    paste0("R CMD BATCH --vanilla ", filename, "_folder/", filename, ".R"),
+    sep = "\n"
+  )
+  
+  # Write job file to file
+  cat(job, file = paste0(filename, ".moab"))
+  
+  # Copy files to temporal folder
+  system(paste0("ssh ", machine, " mkdir ", filename, "_folder/"), ignore.stdout = TRUE, ignore.stderr = TRUE)
+  system(paste0("ssh ", machine, " rm ", filename, "_folder/*"), ignore.stdout = TRUE, ignore.stderr = TRUE)
+  system(paste0("scp ", getwd(), "/", filename0, ".RData* ", machine, ":", filename, "_folder/"))
+  system(paste0("scp ", getwd(), "/", filename, ".R* ", machine, ":", filename, "_folder/"))
+  system(paste0("scp ", getwd(), "/", filename, ".moab ", machine, ":"))
+  if (compile) {
+    system(paste0("scp ", getwd(), "/*.c ", machine, ":", filename, "_folder/"))
+  } else {
+    system(paste0("scp ", getwd(), "/*.so ", machine, ":", filename, "_folder/"))
+  }
+  
+  
+  # Run in background
+  system(paste0("ssh ", machine, " msub ", filename, ".moab"), intern = FALSE)
+  
+  
+  return(out)
+  
+  
+}
+
+
+
+
 #' Remote install dMod to a ssh-reachable host
 #' 
 #' @description Install your local dMod version to a remote host via ssh.
