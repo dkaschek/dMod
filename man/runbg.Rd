@@ -46,9 +46,7 @@ to any machine (ssh-key needed). Then collect the results.
 \code{runbg()} generates a workspace from the \code{input} argument
 and copies the workspace and all C files or .so files to the remote machines via
 \code{scp}. This will only work if *an ssh-key had been generated and added
-to the authorized keys on the remote machine*. On the remote machine, the script
-will attempt to load all packages that had been loaded in the local R session.
-This means that *all loaded packages must be present on the remote machine*. The
+to the authorized keys on the remote machine*. The
 code snippet, i.e. the \code{...} argument, can include several intermediate results
 but only the last call which is not redirected into a variable is returned via the
 variable \code{.runbgOutput}, see example below.

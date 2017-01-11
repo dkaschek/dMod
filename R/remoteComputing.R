@@ -37,9 +37,7 @@ detectFreeCores <- function(machine = NULL) {
 #' @details \code{runbg()} generates a workspace from the \code{input} argument
 #' and copies the workspace and all C files or .so files to the remote machines via
 #' \code{scp}. This will only work if *an ssh-key had been generated and added
-#' to the authorized keys on the remote machine*. On the remote machine, the script
-#' will attempt to load all packages that had been loaded in the local R session.
-#' This means that *all loaded packages must be present on the remote machine*. The
+#' to the authorized keys on the remote machine*. The
 #' code snippet, i.e. the \code{...} argument, can include several intermediate results
 #' but only the last call which is not redirected into a variable is returned via the
 #' variable \code{.runbgOutput}, see example below.
@@ -226,9 +224,7 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
 #' @details \code{runbg()} generates a workspace from the \code{input} argument
 #' and copies the workspace and all C files or .so files to the remote machines via
 #' \code{scp}. This will only work if *an ssh-key had been generated and added
-#' to the authorized keys on the remote machine*. On the remote machine, the script
-#' will attempt to load all packages that had been loaded in the local R session.
-#' This means that *all loaded packages must be present on the remote machine*. The
+#' to the authorized keys on the remote machine*. The
 #' code snippet, i.e. the \code{...} argument, can include several intermediate results
 #' but only the last call which is not redirected into a variable is returned via the
 #' variable \code{.runbgOutput}, see example below.
@@ -238,11 +234,36 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
 #' file name ist chosen if NULL.
 #' @param nodes Number of nodes, e.g. 10
 #' @param cores Number of cores, e.g. 16
-#' @param walltime estimated runtime in the format \code{hh:mm:ss}, e.g. \code{01:30:00}
+#' @param walltime estimated runtime in the format \code{hh:mm:ss}, e.g. \code{01:30:00}.
+#' Jobs with a walltime up to 30 min are sent to a quick queue. When the walltime
+#' is exceeded, all jobs are automatically killed by the queue.
 #' @param input Character vector, the objects in the workspace that are stored
 #' into an R data file and copied to the remove machine.
 #' @param compile Logical. If \code{TRUE}, C files are copied and compiled on the remote machine.
 #' Otherwise, the .so files are copied.
+#' @return List of functions \code{check()}, \code{get()} and \code{purge()}. 
+#' \code{check()} checks, if the result is ready.
+#' \code{get()} copies the result file
+#' to the working directory and loads it into the workspace as an object called \code{.runbgOutput}. 
+#' This object is a list named according to the machines that contains the results returned by each
+#' machine.
+#' \code{purge()} deletes the temporary folder
+#' from the working directory and the remote machines.
+#' @examples
+#' \dontrun{
+#' out_job1 <- runbg({
+#'    mstrust(obj, center, fits = 10, cores = 2)
+#'  }, 
+#'  machine = "bwfor", nodes = 2, cores = "2:best", 
+#'  walltime = "00:01:00", 
+#'  filename = "job1")
+#' out_job1$check()          
+#' out_job1$get()
+#' out_job1$purge()
+#' result <- .runbgOutput
+#' print(result)
+#' }
+#' 
 #' @export
 runbg_bwfor <- function(..., machine, filename = NULL, nodes = 1, cores = 1, walltime = "01:00:00", input = ls(.GlobalEnv), compile = TRUE) {
   
