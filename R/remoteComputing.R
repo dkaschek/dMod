@@ -254,31 +254,36 @@ runbg_bwfor <- function(..., machine, filename = NULL, nodes = 1, cores = 1, wal
     filename <- paste0("tmp_", paste(sample(c(0:9, letters), 5, replace = TRUE), collapse = ""))
   
   filename0 <- filename
+  filename <- paste(filename, 1:nodes, sep = "_")
   
   # Initialize output
   out <- structure(vector("list", 3), names = c("check", "get", "purge"))
   out[[1]] <- function() {
     
     check.out <- length(suppressWarnings(
-      system(paste0("ssh ", machine, " ls ", filename, "_folder/ | grep -x ", filename, "_result.RData"), 
+      system(paste0("ssh ", machine, " ls ", filename0, "_folder/ | grep result.RData"), 
              intern = TRUE)))
     
-    if (check.out > 0) {
+    if (check.out == nodes) {
       cat("Result is ready!\n")
       return(TRUE)
     }
-    else if (check.out == 0) {
-      cat("Not ready!\n") 
+    else if (check.out  < nodes) {
+      cat("Result from", check.out, "out of", nodes, "nodes are ready.")
       return(FALSE)
     }
-      
+    
+    
   }
   
   out[[2]] <- function() {
     
-    system(paste0("scp ", machine, ":", filename, "_folder/", filename, "_result.RData ./"), ignore.stdout = TRUE, ignore.stderr = TRUE)
-    check <- try(load(file = paste0(filename, "_result.RData")), silent = TRUE) 
-    if (!inherits("try-error", check)) result <- .runbgOutput
+    result <- structure(vector(mode = "list", length = nodes))
+    system(paste0("scp ", machine, ":", filename0, "_folder/*", "_result.RData ./"), ignore.stdout = TRUE, ignore.stderr = TRUE)
+    for (m in 1:nodes) {
+      check <- try(load(file = paste0(filename[m], "_result.RData")), silent = TRUE) 
+      if (!inherits("try-error", check)) result[[m]] <- .runbgOutput
+    }
     
     .GlobalEnv$.runbgOutput <- result
     
@@ -286,9 +291,8 @@ runbg_bwfor <- function(..., machine, filename = NULL, nodes = 1, cores = 1, wal
   
   out[[3]] <- function() {
     
-    system(paste0("ssh ", machine, " rm -r ", filename, "_folder"))
-    system(paste0("ssh ", machine, " rm ", filename, ".*"))
-    system(paste0("rm ", filename0, "*"))
+    system(paste0("rm ", filename0, "*"), wait = TRUE)
+    system(paste0("ssh ", machine, " rm -r ", filename0, "*"), wait = TRUE)
     
   }
   
@@ -310,68 +314,73 @@ runbg_bwfor <- function(..., machine, filename = NULL, nodes = 1, cores = 1, wal
     compile.line <- "cfiles <- list.files(pattern = '.c$'); for(cf in cfiles) system(paste('R CMD SHLIB', cf))"
    
   # Write program into character
-  program <- paste(
-    pack,
-    paste0("setwd('~/", filename, "_folder')"),
-    "rm(list = ls())",
-    compile.line,
-    "library(doParallel)",
-    "procs <- as.numeric(Sys.getenv('MOAB_PROCCOUNT'))",
-    "registerDoParallel(cores=procs)",
-    paste0("load('", filename0, ".RData')"),
-    paste0(".runbgOutput <- try(", as.character(expr), ")"),
-
-    paste0("save(", output ,", file = '", filename, "_result.RData')"),
-    sep = "\n"
-  )
+  program <- lapply(1:nodes, function(m) {
+    paste(
+      pack,
+      paste0("setwd('~/", filename0, "_folder')"),
+      "rm(list = ls())",
+      compile.line,
+      "library(doParallel)",
+      "procs <- as.numeric(Sys.getenv('MOAB_PROCCOUNT'))",
+      "registerDoParallel(cores=procs)",
+      paste0("load('", filename0, ".RData')"),
+      paste0(".runbgOutput <- try(", as.character(expr), ")"),
+      
+      paste0("save(", output ,", file = '", filename[m], "_result.RData')"),
+      sep = "\n"
+    )
+  })
   
   # Write program code into file
-  cat(program, file = paste0(filename, ".R"))
+  for (m in 1:nodes) cat(program[[m]], file = paste0(filename[m], ".R"))
   
   # Write job file to be called by msub
-  job <- paste(
-    "#!/bin/sh", 
-    "########## Begin MOAB/Slurm header ##########",
-    "#",
-    "# Give job a reasonable name",
-    paste0("#MOAB -N ", filename),
-    "#",
-    "# Request number of nodes and CPU cores per node for job",
-    paste0("#MOAB -l nodes=", nodes, ":ppn=", cores),
-    "#",
-    "# Estimated wallclock time for job",
-    paste0("#MOAB -l walltime=", walltime),
-    "#",
-    "# Write standard output and errors in same file",
-    "#MOAB -j oe ",
-    "#",
-    "########### End MOAB header ##########",
-    "",
-    "# Setup R Environment",
-    "module load math/R",
-    "# Start program",
-    paste0("R CMD BATCH --vanilla ", filename, "_folder/", filename, ".R"),
-    sep = "\n"
-  )
+  job <- lapply(1:nodes, function(m) {
+    paste(
+      "#!/bin/sh", 
+      "########## Begin MOAB/Slurm header ##########",
+      "#",
+      "# Give job a reasonable name",
+      paste0("#MOAB -N ", filename[m]),
+      "#",
+      "# Request number of nodes and CPU cores per node for job",
+      paste0("#MOAB -l nodes=1:ppn=", cores),
+      "#",
+      "# Estimated wallclock time for job",
+      paste0("#MOAB -l walltime=", walltime),
+      "#",
+      "# Write standard output and errors in same file",
+      "#MOAB -j oe ",
+      "#",
+      "########### End MOAB header ##########",
+      "",
+      "# Setup R Environment",
+      "module load math/R",
+      "export OPENBLAS_NUM_THREADS=1",
+      "# Start program",
+      paste0("R CMD BATCH --no-save --no-restore --slave ", filename0, "_folder/", filename[m], ".R"),
+      sep = "\n"
+    )
+  })
   
   # Write job file to file
-  cat(job, file = paste0(filename, ".moab"))
+  for (m in 1:nodes) cat(job[[m]], file = paste0(filename[m], ".moab"))
   
   # Copy files to temporal folder
-  system(paste0("ssh ", machine, " mkdir ", filename, "_folder/"), ignore.stdout = TRUE, ignore.stderr = TRUE)
-  system(paste0("ssh ", machine, " rm ", filename, "_folder/*"), ignore.stdout = TRUE, ignore.stderr = TRUE)
-  system(paste0("scp ", getwd(), "/", filename0, ".RData* ", machine, ":", filename, "_folder/"))
-  system(paste0("scp ", getwd(), "/", filename, ".R* ", machine, ":", filename, "_folder/"))
-  system(paste0("scp ", getwd(), "/", filename, ".moab ", machine, ":"))
+  system(paste0("ssh ", machine, " mkdir ", filename0, "_folder/"), ignore.stdout = TRUE, ignore.stderr = TRUE)
+  system(paste0("ssh ", machine, " rm ", filename0, "_folder/*"), ignore.stdout = TRUE, ignore.stderr = TRUE)
+  system(paste0("scp ", getwd(), "/", filename0, ".RData* ", machine, ":", filename0, "_folder/"))
+  system(paste0("scp ", getwd(), "/", filename0, "*.R* ", machine, ":", filename0, "_folder/"))
+  system(paste0("scp ", getwd(), "/", filename0, "*.moab ", machine, ":"))
   if (compile) {
-    system(paste0("scp ", getwd(), "/*.c ", machine, ":", filename, "_folder/"))
+    system(paste0("scp ", getwd(), "/*.c ", machine, ":", filename0, "_folder/"))
   } else {
-    system(paste0("scp ", getwd(), "/*.so ", machine, ":", filename, "_folder/"))
+    system(paste0("scp ", getwd(), "/*.so ", machine, ":", filename0, "_folder/"))
   }
   
   
   # Run in background
-  system(paste0("ssh ", machine, " msub ", filename, ".moab"), intern = FALSE)
+  for (m in 1:nodes) system(paste0("ssh ", machine, " msub ", filename[m], ".moab"), intern = FALSE)
   
   
   return(out)
