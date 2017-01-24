@@ -460,7 +460,7 @@ subset.eqnlist <- function(x, ...) {
   
   # volumes
   volumes <- eqnlist$volumes
-  if(!is.null(volumes)) volumes <- volumes[names(volumes) %in% states]
+  if(!is.null(volumes)) volumes <- volumes[intersect(names(volumes),  states)]
   
   # description
   description <- eqnlist$description[select]
