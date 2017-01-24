@@ -340,7 +340,7 @@ runbg_bwfor <- function(..., machine, filename = NULL, nodes = 1, cores = 1, wal
       pack,
       paste0("setwd('~/", filename0, "_folder')"),
       "rm(list = ls())",
-      compile.line,
+      # compile.line,
       "library(doParallel)",
       "procs <- as.numeric(Sys.getenv('MOAB_PROCCOUNT'))",
       "registerDoParallel(cores=procs)",
@@ -395,6 +395,7 @@ runbg_bwfor <- function(..., machine, filename = NULL, nodes = 1, cores = 1, wal
   system(paste0("scp ", getwd(), "/", filename0, "*.moab ", machine, ":"))
   if (compile) {
     system(paste0("scp ", getwd(), "/*.c ", machine, ":", filename0, "_folder/"))
+    system(paste0("ssh ", machine, " 'for f in ", filename0, "_folder/*.c; do module load math/R && R CMD SHLIB $f; done'"))
   } else {
     system(paste0("scp ", getwd(), "/*.so ", machine, ":", filename0, "_folder/"))
   }
