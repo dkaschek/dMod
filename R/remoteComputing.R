@@ -178,6 +178,7 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
     #"files <- list.files(pattern = '.so')",
     #"for (f in files) dyn.load(f)",
     #".oldobjects <- ls()",
+    paste0(".node <- ", m),
     paste0(".runbgOutput <- try(", as.character(expr), ")"),
     #".newobjects <- ls()",
     
@@ -345,6 +346,7 @@ runbg_bwfor <- function(..., machine, filename = NULL, nodes = 1, cores = 1, wal
       "procs <- as.numeric(Sys.getenv('MOAB_PROCCOUNT'))",
       "registerDoParallel(cores=procs)",
       paste0("load('", filename0, ".RData')"),
+      paste0(".node <- ", m),
       paste0(".runbgOutput <- try(", as.character(expr), ")"),
       
       paste0("save(", output ,", file = '", filename[m], "_result.RData')"),
