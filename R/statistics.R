@@ -450,3 +450,89 @@ progressBar <- function(percentage, size = 50, number = TRUE) {
   
 }
 
+#' Profile uncertainty extraction
+#' 
+#' @description extract parameter uncertainties from profiles
+#' @param profile 
+#' @param maxvalue
+confint.parframe <- function(profile, maxvalue = 3.84) {
+  
+  proflist <- as.data.frame(profile)
+  obj.attributes <- attr(profile, "obj.attributes")
+  
+  if(is.data.frame(proflist)) {
+    whichPars <- unique(proflist$whichPar)
+    proflist <- lapply(whichPars, function(n) {
+      with(proflist, proflist[whichPar == n, ])
+    })
+    names(proflist) <- whichPars
+  }
+  
+  # Discard faulty profiles
+  proflistidx <- sapply(proflist, function(prf) any(class(prf) == "data.frame"))
+  proflist <- proflist[proflistidx]
+  if (sum(!proflistidx) > 0) {
+    warning(sum(!proflistidx), " profiles discarded.", call. = FALSE)
+  }
+  subdata <- do.call(rbind, lapply(names(proflist), function(n) {
+    #print(n)
+    parvalues <- proflist[[n]][, n]
+    values <- proflist[[n]][, "value"]
+    origin <- which.min(abs(proflist[[n]][, "constraint"]))
+    zerovalue <- proflist[[n]][origin, "value"]
+    deltavalues <- values - zerovalue
+    deltavalues[deltavalues < 0] <- 0
+    deltavalues <- sqrt(deltavalues)
+    deltavalues[1:origin] <- - deltavalues[1:origin]
+    lpars <- length(parvalues)
+    x <- abs(deltavalues - sqrt(maxvalue))
+    position_upper <- which(x %in% sort(x)[1:2])
+    x <- abs(deltavalues + sqrt(maxvalue))
+    position_lower <- which(x %in% sort(x)[1:2])
+    #cat("deltas:",deltavalues[position_lower],deltavalues[position_upper], "\n")
+    #cat("pars:",parvalues[position_lower],parvalues[position_upper], "\n")
+    parlower <- approxExtrap(deltavalues[position_lower], y = parvalues[position_lower], xout = -sqrt(maxvalue))
+    parupper <- approxExtrap(deltavalues[position_upper], y = parvalues[position_upper], xout = sqrt(maxvalue))
+    parmin <- parvalues[origin]
+    data.frame(name = n, par = parmin, lower = parlower$y, upper = parupper$y)
+  }))
+  return(subdata)
+}
+
+#' Extrapolation extension to approx
+#' 
+#' @description from Hmisc package, built on approx
+approxExtrap <- function (x, y, xout, method = "linear", n = 50, rule = 2, f = 0, 
+ties = "ordered", na.rm = FALSE) 
+{
+if (is.list(x)) {
+  y <- x[[2]]
+  x <- x[[1]]
+}
+if (na.rm) {
+  d <- !is.na(x + y)
+  x <- x[d]
+  y <- y[d]
+}
+d <- !duplicated(x)
+x <- x[d]
+y <- y[d]
+d <- order(x)
+x <- x[d]
+y <- y[d]
+w <- approx(x, y, xout = xout, method = method, n = n, rule = 2, 
+            f = f, ties = ties)$y
+r <- range(x)
+d <- xout < r[1]
+if (any(is.na(d))) 
+  stop("NAs not allowed in xout")
+if (any(d)) 
+  w[d] <- (y[2] - y[1])/(x[2] - x[1]) * (xout[d] - x[1]) + 
+  y[1]
+d <- xout > r[2]
+n <- length(y)
+if (any(d)) 
+  w[d] <- (y[n] - y[n - 1])/(x[n] - x[n - 1]) * (xout[d] - 
+                                                   x[n - 1]) + y[n - 1]
+list(x = xout, y = w)
+}
