@@ -61,12 +61,12 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   # Initialize control parameters depending on method
   method  <- match.arg(method)
   if (method == "integrate") {
-    sControl <- list(stepsize = 1e-4, min = 1e-4, max = Inf, atol = 1e-2, rtol = 1e-2, limit = 500)
+    sControl <- list(stepsize = 1e-4, min = 1e-4, max = Inf, atol = 1e-2, rtol = 1e-2, limit = 500, stop = "value")
     aControl <- list(gamma = 1, W = "hessian", reoptimize = FALSE, correction = 1, reg = .Machine$double.eps)
     oControl <- list(rinit = .1, rmax = 10, iterlim = 10, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))
   }
   if (method == "optimize") {
-    sControl <- list(stepsize = 1e-2, min = 1e-4, max = Inf, atol = 1e-1, rtol = 1e-1, limit = 100)
+    sControl <- list(stepsize = 1e-2, min = 1e-4, max = Inf, atol = 1e-1, rtol = 1e-1, limit = 100, stop = "value")
     aControl <- list(gamma = 0, W = "identity", reoptimize = TRUE, correction = 1, reg = 0)
     oControl <- list(rinit = .1, rmax = 10, iterlim = 100, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))
   }
@@ -171,8 +171,12 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       out.attributes <- attributes(out)[sapply(attributes(out), is.numeric)]
       out.attributes.names <- names(out.attributes)
       
+      
       return(c(list(dy = dy, value = out$value, gradient = out$gradient, correction = correction, valid = valid, attributes = out.attributes.names),
                out.attributes))
+      
+      
+      
       
     }
     doIteration <- function() {
@@ -286,7 +290,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     
     
     
-    threshold <- lagrange.out$value + delta
+    threshold <- lagrange.out[[sControl$stop]] + delta
     out.attributes <- unlist(lagrange.out[lagrange.out$attributes])
     
     out <- c(value = lagrange.out$value, 
@@ -348,8 +352,8 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                      out.attributes, 
                      y))
       
-      
-      if (lagrange.out$value > threshold | constraint.out$value > limits[2]) break
+      value <- lagrange.out[[sControl$stop]]
+      if (value > threshold | constraint.out$value > limits[2]) break
       
       i <- i + 1
       
@@ -408,7 +412,8 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                      y), 
                    out)
       
-      if(lagrange.out$value > threshold  | constraint.out$value < limits[1]) break
+      value <- lagrange.out[[sControl$stop]]
+      if (value > threshold | constraint.out$value < limits[1]) break
       
       i <- i + 1
       
