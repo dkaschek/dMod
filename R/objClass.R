@@ -117,12 +117,15 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
   timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))
   if (!is.null(times)) timesD <- sort(union(times, timesD))
 
+  x.conditions <- names(attr(x, "mappings"))
   data.conditions <- names(data)
+  if (!all(data.conditions %in% x.conditions)) 
+    stop("The prediction function does not provide predictions for all conditions in the data.")
   
-  controls <- list(times = timesD, attr.name = attr.name)
+  controls <- list(times = timesD, attr.name = attr.name, conditions = x.conditions)
   
   
-  myfn <- function(..., fixed = NULL, deriv=TRUE, conditions = data.conditions, env = NULL) {
+  myfn <- function(..., fixed = NULL, deriv=TRUE, conditions = controls$conditions, env = NULL) {
     
     arglist <- list(...)
     arglist <- arglist[match.fnargs(arglist, "pars")]
@@ -408,7 +411,12 @@ datapointL2 <- function(name, time, value, sigma = 1, attr.name = "validation", 
     }
   
     # Return result only when the data point condition overlaps with the evaluated conditions
-    if (!is.null(conditions) && !condition %in% conditions) return()
+    if (!is.null(conditions) && !condition %in% conditions) 
+      return()
+    if (is.null(conditions) && !condition %in% names(prediction))
+      stop("datapointL2 requests unavailable condition. Call the objective function explicitly stating the conditions argument.")
+    
+    
     
     # Divide parameter into data point and rest
     datapar <- setdiff(names(mu), names(fixed))
@@ -418,7 +426,7 @@ datapointL2 <- function(name, time, value, sigma = 1, attr.name = "validation", 
     # Get predictions and derivatives at time point
     time.index <- which(prediction[[condition]][,"time"] == time)
     if (length(time.index) == 0) 
-      stop("datapointL2() requests time point for which no prediction is available. Consider adding the time point by the times argument in normL2()")
+      stop("datapointL2() requests time point for which no prediction is available. Please add missing time point by the times argument in normL2()")
     withDeriv <- !is.null(attr(prediction[[condition]], "deriv"))
     pred <- prediction[[condition]][time.index, ]
     deriv <- NULL
@@ -448,6 +456,7 @@ datapointL2 <- function(name, time, value, sigma = 1, attr.name = "validation", 
     
     out <- objlist(value = val, gradient = gr, hessian = hs)
     attr(out, controls$attr.name) <- out$value
+    attr(out, "prediction") <- pred
     
     attr(out, "env") <- env
     
