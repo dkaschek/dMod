@@ -251,26 +251,45 @@ Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, po
       p <- c(p, fixed)
     }
     
-    # Set guess
-    if(!is.null(guess)) 
-      p[intersect(dependent, names(guess))] <- guess[intersect(dependent, names(guess))]
-    
     # check for parameters which are not computed by multiroot
     emptypars <- names(p)[!names(p)%in%c(dependent, fixed)]
     
-    # Compute steady state concentrations
-    myroot <- rootSolve::multiroot(ftrafo, positive = FALSE,
-                                   start = p[dependent], 
-                                   parms = p[setdiff(names(p), dependent)])
-    if (any(myroot$root < 0) & positive) {
-      myroot$root[myroot$root < 0] <- 0
-      warning("Found negative steady state. Negative elements have been set to 0.")
+    # Set guess
+    p0 <- p
+    if(!is.null(guess)) 
+      p[intersect(dependent, names(guess))] <- guess[intersect(dependent, names(guess))]
+    
+    
+    getRoot <- function(p) {
+      
+      # Compute steady state concentrations
+      rootSolve::multiroot(ftrafo, positive = FALSE,
+                           start = p[dependent], 
+                           parms = p[setdiff(names(p), dependent)])
     }
     
+    myroot <- getRoot(p)
+    if (any(myroot$root < 0) & positive) {
+      
+      p <- p0
+      
+      # try again with empty guess
+      myroot <- getRoot(p)
+      
+      myroot$root[myroot$root < 0] <- 0
+      warning("Found negative steady state. Negative elements have been set to 0.")
+      
+      out <- c(myroot$root, p[setdiff(names(p), names(myroot$root))])
+      if (keep.root) guess <<- NULL
+      
+    } else {
+      
+      # Output parameters, write in outer environment if doGuess
+      out <- c(myroot$root, p[setdiff(names(p), names(myroot$root))])
+      if (keep.root) guess <<- out
+      
+    }
     
-    # Output parameters, write in outer environment if doGuess
-    out <- c(myroot$root, p[setdiff(names(p), names(myroot$root))])
-    if(keep.root) guess <<- out
     
     # Compute jacobian d(root)/dp
     dfdx <- ftrafo.dfdx(x = myroot$root, parms = p[setdiff(names(p), names(myroot$root))])
