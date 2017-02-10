@@ -343,6 +343,10 @@ prdfn <- function(P2X, parameters = NULL, condition = NULL) {
     times <- arglist[[1]]
     pars <- arglist[[2]]
     
+    # yields derivatives for all parameters in pars but not in fixed
+    pars <- c(as.parvec(pars[setdiff(names(pars), names(fixed))]), 
+              fixed)
+    
     
     overlap <- test_conditions(conditions, condition)
     # NULL if at least one argument is NULL
@@ -356,6 +360,7 @@ prdfn <- function(P2X, parameters = NULL, condition = NULL) {
     
     if (is.null(overlap) | length(overlap) > 0)
       result <- P2X(times = times, pars = pars, deriv = deriv)
+    
     else
       result <- NULL
     
@@ -414,6 +419,9 @@ obsfn <- function(X2Y, parameters = NULL, condition = NULL) {
     out <- arglist[[1]]
     pars <- arglist[[2]]
     
+    # yields derivatives for all parameters in pars but not in fixed
+    pars <- c(as.parvec(pars[setdiff(names(pars), names(fixed))]), 
+              fixed)
      
     overlap <- test_conditions(conditions, condition)
     # NULL if at least one argument is NULL
@@ -789,15 +797,26 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
 #' @example inst/examples/sumdatalist.R
 #' @export
 "+.datalist" <- function(data1, data2) {
+  
+  overlap <- names(data2)[names(data2) %in% names(data1)]
+  if (length(overlap) > 0) {
+    warning(paste("Condition", overlap, "existed and has been overwritten."))
+    data1 <- data1[!names(data1) %in% names(data2)]
+  }
+  
   conditions <- union(names(data1), names(data2))
   data <- lapply(conditions, function(C) rbind(data1[[C]], data2[[C]]))
   names(data) <- conditions
   
   grid1 <- attr(data1, "condition.grid")
   grid2 <- attr(data2, "condition.grid")
+  
   grid <- combine(grid1, grid2)
   
-  if (is.data.frame(grid)) grid <- grid[!duplicated(rownames(grid)),]
+  
+  
+  
+  if (is.data.frame(grid)) grid <- grid[!duplicated(rownames(grid)), , drop = FALSE]
   
   out <- as.datalist(data)
   attr(out, "condition.grid") <- grid
@@ -1303,21 +1322,26 @@ getDerivs.objlist <- function(x, ...) {
 
 #' Extract the parameters of an object
 #' 
-#' @param x object from which the parameters should be extracted
+#' @param ... objects from which the parameters should be extracted
 #' @param conditions character vector specifying the conditions to 
 #' which \code{getParameters} is restricted
-#' @param ... additional arguments (not used right now)
 #' @return The parameters in a format that depends on the class of \code{x}.
 #' @export
-getParameters <- function(x, conditions = NULL, ...) {
-  UseMethod("getParameters", x)
+getParameters <- function(..., conditions = NULL) {
+  
+  
+  Reduce("union", lapply(list(...), function(x) {
+    UseMethod("getParameters", x)  
+  }))
+  
+  
 }
 
 
 
 #' @export
 #' @rdname getParameters
-getParameters.odemodel <- function(x, conditions = NULL, ...) {
+getParameters.odemodel <- function(x, conditions = NULL) {
 
   parameters <- c(
     attr(x$func, "variables"),
@@ -1331,7 +1355,7 @@ getParameters.odemodel <- function(x, conditions = NULL, ...) {
 
 #' @export
 #' @rdname getParameters
-getParameters.fn <- function(x, conditions = NULL, ...) {
+getParameters.fn <- function(x, conditions = NULL) {
   
   if (is.null(conditions)) {
     parameters <- attr(x, "parameters")
@@ -1348,7 +1372,7 @@ getParameters.fn <- function(x, conditions = NULL, ...) {
 }
 #' @export
 #' @rdname getParameters
-getParameters.parvec <- function(x, conditions = NULL, ...) {
+getParameters.parvec <- function(x, conditions = NULL) {
   
   names(x)
   
@@ -1356,7 +1380,7 @@ getParameters.parvec <- function(x, conditions = NULL, ...) {
 
 #' @export
 #' @rdname getParameters
-getParameters.prdframe <- function(x, conditions = NULL, ...) {
+getParameters.prdframe <- function(x, conditions = NULL) {
   
   attr(x, "parameters")
   
@@ -1364,7 +1388,7 @@ getParameters.prdframe <- function(x, conditions = NULL, ...) {
 
 #' @export
 #' @rdname getParameters
-getParameters.prdlist <- function(x, conditions = NULL, ...) {
+getParameters.prdlist <- function(x, conditions = NULL) {
   
   select <- 1:length(x)
   if (!is.null(conditions)) select <- intersect(names(x), conditions)

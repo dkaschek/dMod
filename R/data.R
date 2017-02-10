@@ -113,6 +113,16 @@ res <- function(data, out, err = NULL) {
 }
 
 
+#' Time-course data for the JAK-STAT cell signaling pathway
+#'
+#' Phosphorylated Epo receptor (pEpoR), phosphorylated STAT in the
+#' cytoplasm (tpSTAT) and total STAT (tSTAT) in the cytoplasmhave been 
+#' measured at times 0, ..., 60.
+#'
+#' @name jakstat
+#' @docType data
+#' @keywords data
+NULL
 
 
 

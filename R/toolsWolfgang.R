@@ -271,6 +271,7 @@ plSelectMin <- function(prf, context = FALSE) {
 #' @example inst/examples/test_blocks.R
 #'     
 #' @export
+#' @import parallel
 mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20, cores = 1,
                     samplefun = "rnorm", resultPath = ".", stats = FALSE,
                     ...) {
@@ -639,8 +640,9 @@ load.parlist <- function(folder) {
 #' @export
 as.parvec.parframe <- function(x, index = 1, ...) {
   parframe <- x
-  m_order <- order(parframe$value)
+  m_order <- 1:nrow(x)
   metanames <- attr(parframe, "metanames")
+  if ("value" %in% metanames) m_order <- order(parframe$value)
   best <- as.parvec(unlist(parframe[m_order[index], attr(parframe, "parameters")]))
   if ("converged" %in% metanames && !parframe[m_order[index],]$converged) {
     warning("Parameter vector of an unconverged fit is selected.", call. = FALSE)

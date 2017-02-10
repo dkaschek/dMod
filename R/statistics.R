@@ -3,7 +3,7 @@
 #' @param obj Objective function \code{obj(pars, fixed, ...)} returning a list with "value",
 #' "gradient" and "hessian". If attribute "valueData" and/or "valuePrior are returned they are attached to the return value.
 #' @param pars Parameter vector corresponding to the log-liklihood optimum.
-#' @param whichPar Numeric or character. The parameter for which the profile is computed.
+#' @param whichPar Numeric or character vector. The parameters for which the profile is computed.
 #' @param alpha Numeric, the significance level based on the chisquare distribution with df=1
 #' @param limits Numeric vector of length 2, the lower and upper deviance from the original 
 #' value of \code{pars[whichPar]}
@@ -17,6 +17,8 @@
 #' \code{list(rinit = .1, rmax = 10, iterlim = 10, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))}.
 #' See \link{trust} for more details.
 #' @param verbose Logical, print verbose messages.
+#' @param cores number of cores used by \code{mclapply()} when computing profiles for several
+#' parameters.
 #' @param ... Arguments going to obj()
 #' @details Computation of the profile likelihood is based on the method of Lagrangian multipliers
 #' and Euler integration of the corresponding differential equation of the profile likelihood paths.
@@ -43,7 +45,6 @@
 #' iteration), "valueData" and "valuePrior" (if specified in obj), one column per parameter (the profile paths).
 #' @example inst/examples/profiles.R
 #' @export
-#' @import trust
 profile <- function(obj, pars, whichPar, alpha = 0.05, 
                           limits = c(lower = -Inf, upper = Inf), 
                           method = c("integrate", "optimize"),
@@ -60,7 +61,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   # Initialize control parameters depending on method
   method  <- match.arg(method)
   if (method == "integrate") {
-    sControl <- list(stepsize = 1e-4, min = 1e-4, max = Inf, atol = 1e-2, rtol = 1e-2, limit = 100)
+    sControl <- list(stepsize = 1e-4, min = 1e-4, max = Inf, atol = 1e-2, rtol = 1e-2, limit = 500)
     aControl <- list(gamma = 1, W = "hessian", reoptimize = FALSE, correction = 1, reg = .Machine$double.eps)
     oControl <- list(rinit = .1, rmax = 10, iterlim = 10, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))
   }
@@ -200,7 +201,8 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                      oControl[names(oControl)!="rinit"],
                      list(...)[names(list(...)) != "fixed"])
         
-        myfit <- try(do.call(trust::trust, arglist), silent=FALSE)
+        
+        myfit <- try(do.call(trust, arglist), silent=FALSE)
         if(!inherits(myfit, "try-error")) {
           y.try[names(myfit$argument)] <- as.vector(myfit$argument)  
         } else {
@@ -310,15 +312,21 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       
       ## Iteration step
       sufficient <- FALSE
-      while (!sufficient) {
+      retry <- 0
+      while (!sufficient & retry < 5) {
         dy <- stepsize*lagrange.out$dy
         y.try <- try(doIteration(), silent = TRUE)
         out.try <- try(doAdaption(), silent = TRUE)
-        if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
-        sufficient <- out.try$valid
-        stepsize <- out.try$stepsize
-      }
-      
+        if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) {
+          sufficient <- FALSE
+          stepsize <- stepsize/1.5
+          retry <- retry + 1
+        } else {
+          sufficient <- out.try$valid
+          stepsize <- out.try$stepsize  
+        }
+        
+      }    
       if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
       
       
@@ -364,13 +372,20 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       
       ## Iteration step
       sufficient <- FALSE
-      while (!sufficient) {
+      retry <- 0
+      while (!sufficient & retry < 5) {
         dy <- stepsize*lagrange.out$dy
         y.try <- try(doIteration(), silent = TRUE)
         out.try <- try(doAdaption(), silent = TRUE)
-        if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
-        sufficient <- out.try$valid
-        stepsize <- out.try$stepsize
+        if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) {
+          sufficient <- FALSE
+          stepsize <- stepsize/1.5
+          retry <- retry + 1
+        } else {
+          sufficient <- out.try$valid
+          stepsize <- out.try$stepsize  
+        }
+        
       }
       if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
       
