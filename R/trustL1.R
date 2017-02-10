@@ -28,6 +28,7 @@ norm <- function(x) sqrt(sum(x^2))
 ##### is better than fast.
 #############################
 
+#' @export
 trustL1 <- function(objfun, parinit, mu = 0*parinit, one.sided=FALSE, lambda = 1, rinit, rmax, parscale,
     iterlim = 100, fterm = sqrt(.Machine$double.eps),
     mterm = sqrt(.Machine$double.eps),
