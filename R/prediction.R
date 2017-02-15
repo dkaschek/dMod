@@ -99,8 +99,8 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
   P2X <- function(times, pars, deriv=TRUE){
     
     
-    yini <- pars[variables]
-    mypars <- pars[parameters]
+    yini <- unclass(pars)[variables]
+    mypars <- unclass(pars)[parameters]
     
     events <- controls$events
     forcings <- controls$forcings
@@ -108,11 +108,16 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
     optionsOde <- controls$optionsOde
     optionsSens <- controls$optionsSens
     names <- controls$names
-    
+    events.extended <- rbind(events, myevents.addon)
     
     # Add event time points (required by integrator) 
     event.times <- unique(events$time)
     times <- sort(union(event.times, times))
+    
+    # Sort event time points
+    if (!is.null(events)) events <- events[order(events$time),]
+    if (!is.null(events.extended)) events.extended <- events.extended[order(events.extended$time),]
+    
     
     myderivs <- NULL
     mysensitivities <- NULL
@@ -131,9 +136,10 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
       # Evaluate extended model
       loadDLL(extended)
       if (!is.null(forcings)) forc <- setForcings(extended, forcings) else forc <- NULL
+      
       outSens <- do.call(odeC, c(list(y = c(unclass(yini), yiniSens), times = times, func = extended, parms = mypars, 
                                       forcings = forc, 
-                                      events = list(data = rbind(events, myevents.addon))), optionsSens))
+                                      events = list(data = events.extended)), optionsSens))
       #out <- cbind(outSens[,c("time", variables)], out.inputs)
       out <- submatrix(outSens, cols = c("time", names))
       mysensitivities <- submatrix(outSens, cols = !colnames(outSens) %in% c(variables, forcnames))
