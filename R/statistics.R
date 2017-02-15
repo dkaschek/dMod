@@ -453,15 +453,22 @@ progressBar <- function(percentage, size = 50, number = TRUE) {
 #' Profile uncertainty extraction
 #' 
 #' @description extract parameter uncertainties from profiles
-#' @param profile 
-#' @param maxvalue
-confint.parframe <- function(profile, maxvalue = 3.84) {
+#' @param profile object of class \code{parframe}, returned from \link{profile} function.
+#' @param parm a specification of which parameters are to be given confidence intervals, 
+#' either a vector of numbers or a vector of names. If missing, all parameters are considered.
+#' @param level the confidence level required.
+#' @export
+confint.parframe <- function(profile, parm = NULL, level = 0.95, val.column = "data") {
+  
+  maxvalue <- qchisq(level, df = 1)
   
   proflist <- as.data.frame(profile)
   obj.attributes <- attr(profile, "obj.attributes")
   
   if(is.data.frame(proflist)) {
     whichPars <- unique(proflist$whichPar)
+    if (!is.null(parm)) whichPars <- intersect(whichPars, parm)
+    if (length(whichPars) == 0) stop("profile does not contain the required parameters.")
     proflist <- lapply(whichPars, function(n) {
       with(proflist, proflist[whichPar == n, ])
     })
@@ -477,24 +484,28 @@ confint.parframe <- function(profile, maxvalue = 3.84) {
   subdata <- do.call(rbind, lapply(names(proflist), function(n) {
     #print(n)
     parvalues <- proflist[[n]][, n]
-    values <- proflist[[n]][, "value"]
+    values <- proflist[[n]][, val.column]
     origin <- which.min(abs(proflist[[n]][, "constraint"]))
-    zerovalue <- proflist[[n]][origin, "value"]
+    zerovalue <- proflist[[n]][origin, val.column]
     deltavalues <- values - zerovalue
     deltavalues[deltavalues < 0] <- 0
     deltavalues <- sqrt(deltavalues)
     deltavalues[1:origin] <- - deltavalues[1:origin]
     lpars <- length(parvalues)
     x <- abs(deltavalues - sqrt(maxvalue))
-    position_upper <- which(x %in% sort(x)[1:2])
+    position_upper <- which(x %in% sort(x)[1:2])[1:2]
     x <- abs(deltavalues + sqrt(maxvalue))
-    position_lower <- which(x %in% sort(x)[1:2])
+    position_lower <- which(x %in% sort(x)[1:2])[1:2]
     #cat("deltas:",deltavalues[position_lower],deltavalues[position_upper], "\n")
     #cat("pars:",parvalues[position_lower],parvalues[position_upper], "\n")
-    parlower <- approxExtrap(deltavalues[position_lower], y = parvalues[position_lower], xout = -sqrt(maxvalue))
-    parupper <- approxExtrap(deltavalues[position_upper], y = parvalues[position_upper], xout = sqrt(maxvalue))
+    parlower <- try(approxExtrap(deltavalues[position_lower], y = parvalues[position_lower], xout = -sqrt(maxvalue)), silent = TRUE)
+    parupper <- try(approxExtrap(deltavalues[position_upper], y = parvalues[position_upper], xout = sqrt(maxvalue)), silent = TRUE)
+    
+    if (inherits(parlower, "try-error")) parlower <- list(x = NA, y = NA)
+    if (inherits(parupper, "try-error")) parupper <- list(x = NA, y = NA)
+    
     parmin <- parvalues[origin]
-    data.frame(name = n, par = parmin, lower = parlower$y, upper = parupper$y)
+    data.frame(name = n, value = parmin, lower = parlower$y, upper = parupper$y)
   }))
   return(subdata)
 }
