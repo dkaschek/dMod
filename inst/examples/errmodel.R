@@ -52,3 +52,11 @@ ggplot(out, aes(x = time, y = value, ymin = value-sigma, ymax = value+sigma, col
   geom_point(data = as.data.frame(data)) +
   theme_dMod() + scale_color_dMod() + scale_fill_dMod()
 
+
+## Compute prediction profile
+datapoint <- datapointL2(name = "A", time = 10, value = "d1", sigma = .05, condition = "C1")
+par <- trust(normL2(data, g*x*p, e) + datapoint, c(ptrue, d1 = 0), rinit = 1, rmax = 10)$argument
+
+profile_pred <- profile(normL2(data, g*x*p, e) + datapoint, par, "d1", limits = c(-10, 10), stepControl = list(stop = "data"))
+
+plot(profile_pred$prediction, profile_pred$data, type = "b")
