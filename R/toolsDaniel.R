@@ -229,7 +229,7 @@ mssample <- function(center, samplefun = "rnorm", fits = 20, ...) {
 #' @param expr character of the form \code{"lhs ~ rhs"} where \code{rhs}
 #' reparameterizes \code{lhs}. Both \code{lhs} and \code{rhs}
 #' can contain a number of symbols whose values need to be passed by the \code{...} argument.
-#' @param trafo character or equation vector where the replacement takes place
+#' @param trafo character or equation vector or list thereof. The object where the replacement takes place in
 #' @param ... pass symbols as named arguments
 #' @return an equation vector with the reparameterization.
 #' @details Left and right-hand side of \code{expr} are searched for symbols. If separated by
@@ -243,7 +243,7 @@ mssample <- function(center, samplefun = "rnorm", fits = 20, ...) {
 #' mycondition <- "cond1"
 #' 
 #' trafo <- repar("x ~ x", x = innerpars)
-#' trafo <- repar("x ~ y", trafo, x = names(constraints), y= constraints)
+#' trafo <- repar("x ~ y", trafo, x = names(constraints), y = constraints)
 #' trafo <- repar("x ~ exp(x)", trafo, x = innerpars)
 #' trafo <- repar("x ~ x + Delta_x_condition", trafo, x = innerpars, condition = mycondition)
 repar <- function(expr, trafo = NULL, ...) {
@@ -271,8 +271,13 @@ repar <- function(expr, trafo = NULL, ...) {
     gsub(":", "_", out, fixed = TRUE)
   })
   
-  if (is.null(trafo)) trafo <- structure(lhs, names = lhs)
-  trafo <- replaceSymbols(lhs, rhs, trafo)
+  if (is.null(trafo)) {
+    trafo <- structure(lhs, names = lhs)
+  } else if (is.list(trafo)) {
+    trafo <- lapply(trafo, function(t) replaceSymbols(lhs, rhs, t))
+  } else if (is.character(trafo)) {
+    trafo <- replaceSymbols(lhs, rhs, trafo)
+  }
   
   return(trafo)
   

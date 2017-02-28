@@ -11,7 +11,7 @@ repar(expr, trafo = NULL, ...)
 reparameterizes \code{lhs}. Both \code{lhs} and \code{rhs}
 can contain a number of symbols whose values need to be passed by the \code{...} argument.}
 
-\item{trafo}{character or equation vector where the replacement takes place}
+\item{trafo}{character or equation vector or list thereof. The object where the replacement takes place in}
 
 \item{...}{pass symbols as named arguments}
 }
@@ -33,7 +33,7 @@ constraints <- c(a = "b + c")
 mycondition <- "cond1"
 
 trafo <- repar("x ~ x", x = innerpars)
-trafo <- repar("x ~ y", trafo, x = names(constraints), y= constraints)
+trafo <- repar("x ~ y", trafo, x = names(constraints), y = constraints)
 trafo <- repar("x ~ exp(x)", trafo, x = innerpars)
 trafo <- repar("x ~ x + Delta_x_condition", trafo, x = innerpars, condition = mycondition)
 }
