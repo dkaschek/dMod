@@ -160,8 +160,13 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
       available <- intersect(pars_out, names(mywrss$gradient))
       result <- template
       result$value <- mywrss$value
-      result$gradient[available] <- mywrss$gradient[available]
-      result$hessian[available, available] <- mywrss$hessian[available, available]
+      if (deriv) {
+        result$gradient[available] <- mywrss$gradient[available]
+        result$hessian[available, available] <- mywrss$hessian[available, available]  
+      } else {
+        result$gradient <- result$hessian <- NULL
+      }
+      
       return(result)
     })
     out.data <- Reduce("+", out.data)
@@ -313,27 +318,31 @@ constraintL2 <- function(mu, sigma = 1, attr.name = "prior", condition = NULL) {
         val.sigma.sigma <- t(Jsigma) %*% val.sigma.sigma %*% Jsigma
       }
       
-      # Produce output gradient and hessian
-      gr <- rep(0, length(p)); names(gr) <- names(p)
-      hs <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
       
-      # Set values in gradient and hessian
-      gr[p1] <- val.p[p1]
-      hs[p1, p1] <- val.p.p[p1, p1]
-      if (estimateSigma) {
-        gr[p2] <- val.sigma[p2]
-        hs[p1, p2] <- val.p.sigma[p1, p2]
-        hs[p2, p1] <- t(val.p.sigma)[p2, p1]
-        hs[p2, p2] <- val.sigma.sigma[p2, p2]
+      gr <- hs <- NULL
+      if (deriv) {
+        # Produce output gradient and hessian
+        gr <- rep(0, length(p)); names(gr) <- names(p)
+        hs <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
+        
+        # Set values in gradient and hessian
+        gr[p1] <- val.p[p1]
+        hs[p1, p1] <- val.p.p[p1, p1]
+        if (estimateSigma) {
+          gr[p2] <- val.sigma[p2]
+          hs[p1, p2] <- val.p.sigma[p1, p2]
+          hs[p2, p1] <- t(val.p.sigma)[p2, p1]
+          hs[p2, p2] <- val.sigma.sigma[p2, p2]
+        }
+        
+        # Multiply with derivatives of incoming parameter
+        dP <- attr(p, "deriv")
+        if (!is.null(dP)) {
+          gr <- as.vector(gr %*% dP); names(gr) <- colnames(dP)
+          hs <- t(dP) %*% hs %*% dP; colnames(hs) <- colnames(dP); rownames(hs) <- colnames(dP)
+        }
       }
-      
-      # Multiply with derivatives of incoming parameter
-      dP <- attr(p, "deriv")
-      if (!is.null(dP)) {
-        gr <- as.vector(gr %*% dP); names(gr) <- colnames(dP)
-        hs <- t(dP) %*% hs %*% dP; colnames(hs) <- colnames(dP); rownames(hs) <- colnames(dP)
-      }
-      
+
       objlist(value = val, gradient = gr, hessian = hs)
       
       
@@ -542,24 +551,28 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
       par0 <- setdiff(par, lambda)
       
       val <- sum(exp(c(fixed, p)[lambda]) * (p[par] - mu[par]) ^ 2) + sumOfFixed
-      gr <- rep(0, length(p)); names(gr) <- names(p)
-      gr[par] <- 2*exp(c(fixed, p)[lambda])*(p[par] - mu[par])
-      if (lambda %in% names(p)) {
-        gr[lambda] <- sum(exp(c(fixed, p)[lambda]) * (p[par0] - mu[par0]) ^ 2) + 
-          sum(exp(c(fixed, p)[lambda]) * (fixed[par.fixed] - mu[par.fixed]) ^ 2)
-      }
       
-      hs <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
-      diag(hs)[par] <- 2*exp(c(fixed, p)[lambda])
-      if (lambda %in% names(p)) {
-        hs[lambda, lambda] <- gr[lambda] 
-        hs[lambda, par0] <- hs[par0, lambda] <- gr[par0]
-      }
-      
-      dP <- attr(p, "deriv")
-      if (!is.null(dP)) {
-        gr <- as.vector(gr %*% dP); names(gr) <- colnames(dP)
-        hs <- t(dP) %*% hs %*% dP; colnames(hs) <- colnames(dP); rownames(hs) <- colnames(dP)
+      gr <- hs <- NULL
+      if (deriv) {
+        gr <- rep(0, length(p)); names(gr) <- names(p)
+        gr[par] <- 2*exp(c(fixed, p)[lambda])*(p[par] - mu[par])
+        if (lambda %in% names(p)) {
+          gr[lambda] <- sum(exp(c(fixed, p)[lambda]) * (p[par0] - mu[par0]) ^ 2) + 
+            sum(exp(c(fixed, p)[lambda]) * (fixed[par.fixed] - mu[par.fixed]) ^ 2)
+        }
+        
+        hs <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
+        diag(hs)[par] <- 2*exp(c(fixed, p)[lambda])
+        if (lambda %in% names(p)) {
+          hs[lambda, lambda] <- gr[lambda] 
+          hs[lambda, par0] <- hs[par0, lambda] <- gr[par0]
+        }
+        
+        dP <- attr(p, "deriv")
+        if (!is.null(dP)) {
+          gr <- as.vector(gr %*% dP); names(gr) <- colnames(dP)
+          hs <- t(dP) %*% hs %*% dP; colnames(hs) <- colnames(dP); rownames(hs) <- colnames(dP)
+        }
       }
       
       objlist(value = val, gradient = gr, hessian = hs)
