@@ -75,13 +75,14 @@ theme_dMod <- function(base_size = 11, base_family = "") {
   black <- colors$dark["black"]
   
   theme_bw(base_size = base_size, base_family = base_family) + 
-    theme(line = element_line(colour = gray), 
+    theme(line = element_line(colour = black), 
           rect = element_rect(fill = "white", colour = NA), 
           text = element_text(colour = black), 
-          axis.ticks = element_line(colour = gray), 
+          axis.ticks = element_line(colour = black), 
           legend.key = element_rect(colour = NA), 
-          panel.border = element_rect(colour = gray), 
-          panel.grid = element_line(colour = gray, size = 0.2), 
+          panel.border = element_rect(colour = black), 
+          #panel.grid = element_line(colour = black, size = 0.2), 
+          panel.grid = element_blank(), 
           strip.background = element_rect(fill = "white", colour = NA)) 
 }
 
