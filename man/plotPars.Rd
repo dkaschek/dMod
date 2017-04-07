@@ -4,7 +4,7 @@
 \alias{plotPars}
 \title{Plot parameter values for a fitlist}
 \usage{
-plotPars(x, ...)
+plotPars(x, tol = diff(range(x$value))/10, ...)
 }
 \arguments{
 \item{x}{parameter frame as obtained by as.parframe(mstrust)}

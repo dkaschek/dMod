@@ -79,6 +79,7 @@ theme_dMod <- function(base_size = 11, base_family = "") {
           rect = element_rect(fill = "white", colour = NA), 
           text = element_text(colour = black), 
           axis.ticks = element_line(colour = black), 
+          axis.text = element_text(color = black),
           legend.key = element_rect(colour = NA), 
           panel.border = element_rect(colour = black), 
           #panel.grid = element_line(colour = black, size = 0.2), 
@@ -625,19 +626,27 @@ plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux = "Fluxes:", fi
 #' a \link{parframe}.
 #' @param ... arguments for subsetting of x
 #' @export
-plotValues <- function(x, ...) {
+plotValues <- function(x, tol = diff(range(x$value))/10, ...) {
+  
+  
+  values <- round(x$value/tol)
+  jumps <- which(!duplicated(values))
+  y.jumps <- seq(max(x$value), min(x$value), length.out = length(jumps))
   
   pars <- x
-  values <- "value"
-  mycolnames <- colnames(pars)
-  mycolnames[mycolnames == values] <- "value"
-  colnames(pars) <- mycolnames
- 
   pars <- cbind(index = 1:nrow(pars), pars[order(pars$value),])
   pars <- subset(pars, ...)
-   
-  ggplot2::ggplot(pars, aes(x = index, y = value, pch = converged, color = iterations)) + geom_point() + 
+  
+  P <- ggplot2::ggplot(pars, aes(x = index, y = value, pch = converged, color = iterations)) + 
+    geom_vline(xintercept = jumps, lty = 2) +
+    geom_point() + 
+    annotate("text", x = jumps + 1, y = y.jumps, label = jumps, hjust = 0, color = "red", size = 3) +
     xlab("index") + ylab("value") + theme_dMod()
+  
+  attr(P, "data") <- pars
+  attr(P, "jumps") <- jumps
+  
+  return(P)
   
 }
 
@@ -646,13 +655,23 @@ plotValues <- function(x, ...) {
 #' @param x parameter frame as obtained by as.parframe(mstrust)
 #' @param ... arguments for subsetting of x
 #' @export
-plotPars <- function(x, ...){
+plotPars <- function(x, tol = diff(range(x$value))/10, ...){
+  
+  values <- round(x$value/tol)
+  unique.values <- unique(values)
+  jumps <- which(!duplicated(values))
+  jump.index <- jumps[match(values, unique.values)]
+  x$index <- as.factor(jump.index)
+  
   myparframe <- x
   parNames <- attr(myparframe,"parameters")
-  parOut <- wide2long.data.frame(out = ((myparframe[, c("value",parNames)])) , keep = 1)
-  names(parOut) <- c("value","name","parvalue")
+  parOut <- wide2long.data.frame(out = ((myparframe[, c("index", "value", parNames)])) , keep = 1:2)
+  names(parOut) <- c("index", "value", "name", "parvalue")
   parOut <- subset(parOut, ...)
-  plot <- ggplot2::ggplot(parOut, aes(x = name, y = parvalue, color = value, group = value)) + geom_point() + theme_dMod() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  plot <- ggplot2::ggplot(parOut, aes(x = name, y = parvalue, color = index)) + geom_boxplot(outlier.alpha = 0) + theme_dMod() + scale_color_dMod() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  
+  attr(plot, "data") <- parOut
+  
   return(plot)
+  
 }
-

@@ -4,7 +4,7 @@
 \alias{plotValues}
 \title{Plotting objective values of a collection of fits}
 \usage{
-plotValues(x, ...)
+plotValues(x, tol = diff(range(x$value))/10, ...)
 }
 \arguments{
 \item{x}{data.frame with columns "value", "converged" and "iterations", e.g. 
