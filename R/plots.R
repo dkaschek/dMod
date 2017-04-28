@@ -614,6 +614,8 @@ plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux = "Fluxes:", fi
     facet_wrap(~condition) + scale_fill_manual(values = cbPalette, name = nameFlux) +
     geom_density(stat = "identity", position = "stack", alpha = 0.3, color = "darkgrey", size = 0.4) +
     xlab("time") + ylab("flux contribution")
+   
+  attr(P, "out") <- out
   
   return(P)
   
