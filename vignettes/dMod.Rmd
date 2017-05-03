@@ -8,7 +8,7 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
-
+fr_dk846@bwforcluster.bwservices.uni-heidelberg.de
 # Example 1: The JAK-STAT signaling pathway
 
 The JAK-STAT pathway is a typical intracellular signal transduction pathway. The JAK2 protein located at the Epo receptor gets phosphorylated as soon as Epo binds to the receptor. A cascade via STAT5 phosphorylation, dimerization, internalizaton into the nucleus and export of the unphosphorylated STAT5 begins. The mathematical model and experimental data upon which this vignette is based is published in Swameye et. al, *Identification of nucleocytoplasmic cycling as a remote sensor in cellular signaling by data-based modeling*,  Proc. Natl. Acad. Sci., 2003.
@@ -208,6 +208,11 @@ plot((g*x*p)(times, myfit$argument, fixed = fixed), data)
 Sometimes, the system has many local optima. A single fit converges to a neighboring optimum and we would like to spread the initial positions of optimization throughout the parameter space. This procedure is implemented in the multi-start trust procedure `mstrust()`:
 
 ```{r, fig.width = 5, fig.height = 4}
+
+
+out <- runbg_bwfor({
+  mstrust(obj + constr, center = myfit$argument, fits = 20, cores = 1, sd = 1, samplefun = "rnorm", fixed = fixed, conditions = "Epo")
+}, machine = "fr_dk846@bwforcluster.bwservices.uni-heidelberg.de", filename = "out_dMod", cores = 16, nodes = 1, walltime = "00:00:02:00", compile = FALSE)
 
 set.seed(1)
 fitlist <- mstrust(obj + constr, center = myfit$argument, fits = 20, cores = 1, sd = 1, samplefun = "rnorm", fixed = fixed, conditions = "Epo")

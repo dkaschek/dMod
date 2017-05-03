@@ -640,7 +640,56 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
   
 }
 
-
+#' @export
+"%.*%" <- function(x1, x2) {
+  
+  if (inherits(x2, "objlist")) {
+    
+    out <- lapply(x2, function(x) {
+      x1*x
+    })
+    # Multiply attributes
+    out2.attributes <- attributes(x2)[sapply(attributes(x2), is.numeric)]
+    attr.names <- names(out2.attributes)
+    out.attributes <- lapply(attr.names, function(n) {
+      x1*attr(x2, n)
+    })
+    attributes(out) <- attributes(x2)
+    attributes(out)[attr.names] <- out.attributes
+    
+    return(out)
+  
+    
+  } else if (inherits(x2, "objfn")) {
+    
+    conditions12 <- attr(x2, "conditions")
+    parameters12 <- attr(x2, "parameters")
+    outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = conditions12, env = NULL) {
+      
+      arglist <- list(...)
+      arglist <- arglist[match.fnargs(arglist, c("pars"))]
+      pars <- arglist[[1]]
+      
+      v1 <- x1
+      v2 <- x2(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions, env = attr(v1, "env"))
+      
+      out <- v1 %.*% v2
+      attr(out, "env") <- attr(v2, "env")
+      return(out)
+    }
+    
+    class(outfn) <- c("objfn", "fn")
+    attr(outfn, "conditions") <- conditions12
+    attr(outfn, "parameters") <- parameters12
+    return(outfn)
+    
+  } else {
+    
+    x1*x2
+    
+  }
+  
+}
 
 
 #' Direct sum of functions
