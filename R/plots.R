@@ -82,8 +82,8 @@ theme_dMod <- function(base_size = 11, base_family = "") {
           axis.text = element_text(color = black),
           legend.key = element_rect(colour = NA), 
           panel.border = element_rect(colour = black), 
-          #panel.grid = element_line(colour = black, size = 0.2), 
-          panel.grid = element_blank(), 
+          panel.grid = element_line(colour = black, size = 0.2), 
+          #panel.grid = element_blank(), 
           strip.background = element_rect(fill = "white", colour = NA)) 
 }
 
