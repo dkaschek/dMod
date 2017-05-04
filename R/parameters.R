@@ -98,7 +98,7 @@ Pexpl <- function(trafo, parameters=NULL, attach.input = FALSE, condition = NULL
       
       jac.matrix <- matrix(0, nrow = length(pinner), ncol = length(args), dimnames = list(names(pinner), names(args)))
       jac.matrix[1:length(pinner), match(parameters, names(args))] <- dPEval(p = args)[1,]
-      jac.matrix <- jac.matrix[, names(p)] # delete fixed
+      jac.matrix <- jac.matrix[, names(p), drop = FALSE] # delete fixed
   
       dP <- attr(p, "deriv", exact = TRUE)
       if(!is.null(dP)) jac.matrix <- jac.matrix %*% submatrix(dP, rows = colnames(jac.matrix))
