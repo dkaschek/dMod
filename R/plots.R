@@ -677,3 +677,54 @@ plotPars <- function(x, tol = diff(range(x$value))/10, ...){
   return(plot)
   
 }
+
+#' Plot residuals for a fitlist
+#' 
+#' @param parframe Object of class \code{parframe}, e.g. returned by \link{mstrust}
+#' @param x Prediction function returning named list of data.frames with names as \code{data}.
+#' @param data Named list of data.frames, i.e. with columns \code{name}, \code{time}, 
+#' \code{value} and \code{sigma}.
+#' @param split List of characters specifying how to summarise the residuals by \code{sqrt(res_i^2)}, 
+#' \code{split[1]} used for x-axis, \code{split[2]} for grouping (color), and any additional for \code{facet_wrap()}
+#' @param ... Additional arguments for x
+#' 
+#' @return A plot object of class \code{ggplot} with data.frame as attribute \code{attr(P,"out")}.
+#' @examples
+#' \dontrun{
+#'  # time axis:
+#'  plotResiduals(myfitlist, (g*x*p), data, c("time","index","condition","name"), conditions = myconditions[1:4])
+#'  # condition axis (residuals summed over time for each observable and condition):
+#'  plotResiduals(myfitlist, (g*x*p), data,  c("condition","name","index"))
+#' }
+#' @export
+plotResiduals <- function(parframe, x, data, split = "condition", ...){
+  timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))
+  if(!("index" %in% colnames(parframe)))
+    parframe$index <- 1:nrow(parframe)
+  
+  out <- do.call(rbind,lapply(1:nrow(parframe), function(j){
+    pred <- x(timesD, as.parvec(parframe,j), deriv = FALSE, ...)
+    
+    out_con <- do.call(rbind,lapply(names(pred), function(con){
+      out <- res(data[[con]], pred[[con]])
+      return(cbind(out,condition = con))
+    })
+    )
+    
+    out_par <- cbind(index = as.character(parframe[j,"index"]), out_con)
+    return(out_par)
+  })
+  )
+  
+  out <- plyr::ddply(out, split, summarise, res = sqrt(sum(weighted.residual^2))) 
+  groupvar <- split[1]
+  if(length(split) > 1){
+    groupvar <- split[2]
+  }
+  
+  P <- ggplot2::ggplot(out, aes_string(x = split[1], y = "res", color = groupvar, group = groupvar)) + theme_dMod() + geom_point() + geom_line()
+  if(length(split) > 2)
+    P <- P + facet_wrap(split[3:length(split)]) 
+  attr(P,"out") <- out
+  return(P)
+}
