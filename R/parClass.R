@@ -219,6 +219,18 @@ print.parvec <- function(x, ...) {
 #' transformation.
 #' @rdname parvec
 "[.parvec" <- function(x, ..., drop = FALSE) {
+  
+  # myclass <- class(...)
+  # if (inherits(myclass, "character")) {
+  #   select.name <- Reduce("|", lapply(as.list(...), function(n) grepl(glob2rx(n), names(x))))
+  #   select.row <- Reduce("|", lapply(as.list(...), function(n) grepl(glob2rx(n), rownames(attr(x, "deriv")))))
+  #   out <- unclass(x)[select.name]
+  #   deriv <- submatrix(attr(x, "deriv"), rows = select.row)
+  # } else {
+  #   out <- unclass(x)[...]
+  #   deriv <- submatrix(attr(x, "deriv"), rows = ...)
+  # }
+  # 
   out <- unclass(x)[...]
   deriv <- submatrix(attr(x, "deriv"), rows = ...)
   if (drop) {
