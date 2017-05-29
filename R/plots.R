@@ -622,17 +622,30 @@ plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux = "Fluxes:", fi
 }
 
 
+stepDetect <- function(x, tol) {
+  
+  jumps <- 1
+  while (TRUE) {
+    i <- which(x - x[1] > tol)[1]
+    if (is.na(i)) break
+    jumps <- c(jumps, tail(jumps, 1) - 1 + i)
+    x <- x[-seq(1, i - 1, 1)]
+  }
+  
+  return(jumps)
+  
+  
+}
+
 #' Plotting objective values of a collection of fits
 #' 
 #' @param x data.frame with columns "value", "converged" and "iterations", e.g. 
 #' a \link{parframe}.
 #' @param ... arguments for subsetting of x
 #' @export
-plotValues <- function(x, tol = diff(range(x$value))/10, ...) {
+plotValues <- function(x, tol = 1, ...) {
   
-  
-  values <- round(x$value/tol)
-  jumps <- which(!duplicated(values))
+  jumps <- stepDetect(x$value, tol)
   y.jumps <- seq(max(x$value), min(x$value), length.out = length(jumps))
   
   pars <- x
@@ -657,12 +670,15 @@ plotValues <- function(x, tol = diff(range(x$value))/10, ...) {
 #' @param x parameter frame as obtained by as.parframe(mstrust)
 #' @param ... arguments for subsetting of x
 #' @export
-plotPars <- function(x, tol = diff(range(x$value))/10, ...){
+plotPars <- function(x, tol = 1, ...){
   
-  values <- round(x$value/tol)
-  unique.values <- unique(values)
-  jumps <- which(!duplicated(values))
-  jump.index <- jumps[match(values, unique.values)]
+  jumps <- stepDetect(x$value, tol)
+  jump.index <- approx(jumps, jumps, xout = 1:length(x$value), method = "constant", rule = 2)$y
+  
+  #values <- round(x$value/tol)
+  #unique.values <- unique(values)
+  #jumps <- which(!duplicated(values))
+  #jump.index <- jumps[match(values, unique.values)]
   x$index <- as.factor(jump.index)
   
   myparframe <- x
