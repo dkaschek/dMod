@@ -44,4 +44,3 @@ Compute the L1 norm of residuals
 \seealso{
 \link{wrss}, \link{summation}, \link{constraintL2}, \link{constraintExp2}
 }
-

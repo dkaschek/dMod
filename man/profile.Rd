@@ -129,4 +129,3 @@ plotPaths(list(profiles.approx, profiles.approx.fixed), whichPar = "logc")
 
 }
 }
-

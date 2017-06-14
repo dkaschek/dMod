@@ -19,4 +19,3 @@ Bind named list of data.frames into one data.frame
 Each data.frame ist augented by a "condition" column containing the name attributed of
 the list entry. Subsequently, the augmented data.frames are bound together by \code{rbind}.
 }
-

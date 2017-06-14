@@ -14,4 +14,3 @@ plotPars(x, tol = 1, ...)
 \description{
 Plot parameter values for a fitlist
 }
-

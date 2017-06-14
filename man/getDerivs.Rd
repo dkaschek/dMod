@@ -2,11 +2,11 @@
 % Please edit documentation in R/classes.R
 \name{getDerivs}
 \alias{getDerivs}
-\alias{getDerivs.list}
-\alias{getDerivs.objlist}
 \alias{getDerivs.parvec}
 \alias{getDerivs.prdframe}
 \alias{getDerivs.prdlist}
+\alias{getDerivs.list}
+\alias{getDerivs.objlist}
 \title{Extract the derivatives of an object}
 \usage{
 getDerivs(x, ...)
@@ -37,4 +37,3 @@ This is
 \description{
 Extract the derivatives of an object
 }
-

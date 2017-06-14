@@ -21,4 +21,3 @@ Generate objective list from numeric vector
 p <- c(A = 1, B = 2)
 as.objlist(p)
 }
-

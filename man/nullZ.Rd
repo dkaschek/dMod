@@ -20,4 +20,3 @@ Find integer-null space of matrix A
 \author{
 Malenka Mader, \email{Malenka.Mader@fdm.uni-freiburg.de}
 }
-

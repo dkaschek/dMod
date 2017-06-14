@@ -17,4 +17,3 @@ numeric vector with the coefficients
 \description{
 Get coefficients from a character
 }
-

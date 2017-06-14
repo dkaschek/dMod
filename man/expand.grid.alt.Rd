@@ -17,4 +17,3 @@ Matrix ob combinations of elemens of \code{seq1} and \code{seq2}
 \description{
 Alternative version of expand.grid
 }
-

@@ -59,4 +59,3 @@ myfn(pars = pars)
 \seealso{
 \link{wrss}
 }
-

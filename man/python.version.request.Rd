@@ -18,4 +18,3 @@ rPython is liked against a certain Python version found on the system.
 If Python code called from R requires a specific Python version, the rPython package
 needs to be reinstalled. This functions helps to do this in one line.
 }
-

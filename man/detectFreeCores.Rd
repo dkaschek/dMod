@@ -12,4 +12,3 @@ detectFreeCores(machine = NULL)
 \description{
 Read \code{/proc/loadavg} and subtract from the number of cores
 }
-

@@ -24,4 +24,3 @@ a data frame
 \description{
 Coerce to a Data Frame
 }
-

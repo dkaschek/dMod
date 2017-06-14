@@ -32,4 +32,3 @@ is.eqnvec(v)
 \seealso{
 \link{eqnlist}
 }
-

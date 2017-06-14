@@ -38,4 +38,3 @@ obj(pars = p + rnorm(length(p), 0, .1))
 \seealso{
 \link{wrss}
 }
-

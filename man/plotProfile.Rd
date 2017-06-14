@@ -25,4 +25,3 @@ Profile likelihood plot
 \details{
 See \link{profile} for examples.
 }
-

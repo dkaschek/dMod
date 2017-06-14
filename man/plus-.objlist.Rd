@@ -24,4 +24,3 @@ is inspected. If it has a \code{names} attributed, it is used to do a matching b
 The same holds for the attributed \code{dimnames}. In all other cases, the "+" operator is applied
 the corresponding elements of out1 and out2 as they are.
 }
-

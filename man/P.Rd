@@ -38,4 +38,3 @@ Generate parameter transformation function from a
 named character vector or object of class \link{eqnvec}. This is a wrapper
 function for \link{Pexpl} and \link{Pimpl}. See for more details there.
 }
-

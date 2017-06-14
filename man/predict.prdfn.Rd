@@ -29,4 +29,3 @@ function is a generalization of the standard prediction by a
 prediction function object in that it allows to pass a parameter
 frame instead of a single parameter vector.
 }
-

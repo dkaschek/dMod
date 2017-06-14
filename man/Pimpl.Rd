@@ -86,4 +86,3 @@ pSS(c(k1 = 1, k2 = 2, A = 5, B = 5, total = 3))
 \seealso{
 \link{Pexpl} for explicit parameter transformations
 }
-

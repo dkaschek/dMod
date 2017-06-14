@@ -16,4 +16,3 @@ ggopen(plot = last_plot(), command = "xdg-open", ...)
 \description{
 Convenience function to show last plot in an external viewer.
 }
-

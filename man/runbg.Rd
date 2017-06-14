@@ -64,4 +64,3 @@ print(result)
 out_job1$purge()
 }
 }
-

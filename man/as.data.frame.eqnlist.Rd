@@ -19,4 +19,3 @@ The state columns correspond to the stoichiometric matrix.
 \description{
 Coerce equation list into a data frame
 }
-

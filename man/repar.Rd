@@ -37,4 +37,3 @@ trafo <- repar("x ~ y", trafo, x = names(constraints), y = constraints)
 trafo <- repar("x ~ exp(x)", trafo, x = innerpars)
 trafo <- repar("x ~ x + Delta_x_condition", trafo, x = innerpars, condition = mycondition)
 }
-

@@ -36,4 +36,3 @@ With this command, additional information included in the parameter
 \author{
 Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
 }
-

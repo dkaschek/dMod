@@ -60,4 +60,3 @@ were used in mean and std.
 \author{
 Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
 }
-

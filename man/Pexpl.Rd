@@ -51,4 +51,3 @@ getDerivs(out)
 \seealso{
 \link{Pimpl} for implicit parameter transformations
 }
-

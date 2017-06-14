@@ -30,4 +30,3 @@ All quantities that are not initialised by pars
 in \code{x(..., forcings, events)} are initialized with 0. For more details and
 the return value see \link{Xs}.
 }
-

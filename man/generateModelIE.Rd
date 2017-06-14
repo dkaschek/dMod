@@ -26,4 +26,3 @@ list with \code{func_au} (Combined ODE for states and adjoint sensitivities) and
 \description{
 Generate the model objects for use in Xv (models with input estimation)
 }
-

@@ -38,4 +38,3 @@ prediction <- x(times, pouter)
 plot(prediction)
 
 }
-

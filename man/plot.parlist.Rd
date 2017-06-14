@@ -24,4 +24,3 @@ If path=TRUE:
 \author{
 Malenka Mader, \email{Malenka.Mader@fdm.uni-freiburg.de}
 }
-

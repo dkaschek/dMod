@@ -27,4 +27,3 @@ this function is written along the lines of the rref-matlab function.
 \author{
 Malenka Mader, \email{Malenka.Mader@fdm.uni-freiburg.de}
 }
-

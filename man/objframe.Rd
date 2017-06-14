@@ -20,4 +20,3 @@ An object of class \code{objframe}, i.e. a data frame with attribute "deriv".
 An objective frame is supposed to store the residuals of a model prediction
 with respect to a data frame.
 }
-

@@ -19,4 +19,3 @@ The matrix \code{M[rows, cols]}, keeping/adjusting attributes like ncol nrow and
 \description{
 Submatrix of a matrix returning ALWAYS a matrix
 }
-

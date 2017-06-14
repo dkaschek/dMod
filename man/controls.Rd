@@ -2,11 +2,11 @@
 % Please edit documentation in R/classes.R
 \name{controls}
 \alias{controls}
-\alias{controls.fn}
 \alias{controls.objfn}
+\alias{controls.fn}
 \alias{controls<-}
-\alias{controls<-.fn}
 \alias{controls<-.objfn}
+\alias{controls<-.fn}
 \title{List, get and set controls for different functions}
 \usage{
 controls(x, ...)
@@ -61,4 +61,3 @@ controls(g)
 controls(g, NULL, "attach.input")
 controls(g, NULL, "attach.input") <- FALSE 
 }
-

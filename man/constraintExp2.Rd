@@ -25,4 +25,3 @@ hessian (matrix of type numeric). Object of class \code{objlist}.
 \description{
 Compute a differentiable box prior
 }
-

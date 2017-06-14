@@ -29,4 +29,3 @@ subset(f, "A" \%in\% Educt)
 subset(f, "pA" \%in\% Product)
 subset(f, grepl("act", Rate))
 }
-

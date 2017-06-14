@@ -26,4 +26,3 @@ both are added by the "+" operator, see \link{sumobjlist}.
 Objective lists are returned by objective functions as being generated
 by \link{normL2}, \link{constraintL2}, \link{priorL2} and \link{datapointL2}.
 }
-

@@ -15,4 +15,3 @@ data.frame in wide format
 \description{
 Translate long to wide format (inverse of wide2long.matrix)
 }
-

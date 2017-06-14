@@ -16,4 +16,3 @@ progressBar(percentage, size = 50, number = TRUE)
 \description{
 Progress bar
 }
-

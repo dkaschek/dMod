@@ -18,4 +18,3 @@ either a vector of numbers or a vector of names. If missing, all parameters are 
 \description{
 extract parameter uncertainties from profiles
 }
-

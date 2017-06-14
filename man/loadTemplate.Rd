@@ -16,4 +16,3 @@ Load a template file in the editor
 Possible templates are:
 i = 1: Do parameter estimation in a dynamic model with fixed forcings
 }
-

@@ -27,4 +27,3 @@ Plot a list data points
 The data.frame being plotted has columns \code{time}, \code{value}, \code{sigma},
 \code{name} and \code{condition}.
 }
-

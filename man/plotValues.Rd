@@ -15,4 +15,3 @@ a \link{parframe}.}
 \description{
 Plotting objective values of a collection of fits
 }
-

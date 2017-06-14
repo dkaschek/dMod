@@ -34,4 +34,3 @@ translates this list into the right-hand sides of the ODE.
 If \code{x} is of class \code{eqnlist}, \link{getFluxes} is called and coerced
 into a vector of equations.
 }
-

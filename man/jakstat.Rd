@@ -10,4 +10,3 @@ cytoplasm (tpSTAT) and total STAT (tSTAT) in the cytoplasmhave been
 measured at times 0, ..., 60.
 }
 \keyword{data}
-

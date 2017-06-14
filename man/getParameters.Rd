@@ -2,8 +2,8 @@
 % Please edit documentation in R/classes.R
 \name{getParameters}
 \alias{getParameters}
-\alias{getParameters.fn}
 \alias{getParameters.odemodel}
+\alias{getParameters.fn}
 \alias{getParameters.parvec}
 \alias{getParameters.prdframe}
 \alias{getParameters.prdlist}
@@ -33,4 +33,3 @@ The parameters in a format that depends on the class of \code{x}.
 \description{
 Extract the parameters of an object
 }
-

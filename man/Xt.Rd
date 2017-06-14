@@ -25,4 +25,3 @@ pars <- c(a = .1, b = 1)
 
 plot((g*x)(times, pars))
 }
-

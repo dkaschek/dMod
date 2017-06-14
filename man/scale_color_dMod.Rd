@@ -23,4 +23,3 @@ data <- data.frame(
 qplot(time, value, data = data, color = group, geom = "line") + 
    theme_dMod() + scale_color_dMod()
 }
-

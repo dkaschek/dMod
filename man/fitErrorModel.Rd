@@ -68,4 +68,3 @@ The variance estimator using \eqn{n-1} data points is \eqn{chi^2}
 \author{
 Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
 }
-

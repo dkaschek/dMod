@@ -36,4 +36,3 @@ constraintL1(p, mu, lambda)
 \seealso{
 \link{wrss}, \link{summation}, \link{constraintL2}, \link{constraintExp2}
 }
-

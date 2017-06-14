@@ -10,4 +10,3 @@ approxExtrap(x, y, xout, method = "linear", n = 50, rule = 2, f = 0,
 \description{
 from Hmisc package, built on approx
 }
-

@@ -22,4 +22,3 @@ they are replaced by the character of the top entry. Useful for steady state con
 \examples{
 resolveRecurrence(c(A = "k1*B/k2", C = "A*k3+k4", D="A*C*k5"))
 }
-

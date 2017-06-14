@@ -69,4 +69,3 @@ matrix
 \author{
 Malenke Mader, \email{Malenka.Mader@fdm.uni-freiburg.de}
 }
-

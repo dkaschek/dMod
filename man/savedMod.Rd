@@ -39,4 +39,3 @@ savedMod(pouter, bestfit, fitlist,
 \seealso{
 \link{loaddMod}
 }
-
