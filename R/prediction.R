@@ -382,7 +382,8 @@ Xd <- function(data, condition = NULL) {
 #' and its derivatives based on the output of a model prediction function, see \link{prdfn}, 
 #' as e.g. produced by \link{Xs}.
 #' @param g Named character vector or equation vector defining the observation function
-#' @param f Named character or equation vector or object that can be converted to eqnvec. Represents the underlying ODE.
+#' @param f Named character of equations or object that can be converted to eqnvec or object of class fn.
+#' If f is provided, states and parameters are guessed from f.
 #' @param states character vector, alternative definition of "states", usually the names of \code{f}. If both,
 #' f and states are provided, the states argument overwrites the states derived from f.
 #' @param parameters character vector, alternative definition of the "parameters",
@@ -433,6 +434,9 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
   if (is.null(f)) {
     states <- union(states, "time")
     parameters <- parameters
+  } else if (inherits(f, "fn")) {
+    states <- union(names(attr(attr(f, "mappings")[[1]], "equations")), "time")
+    parameters <- setdiff(union(getParameters(f), getSymbols(unclass(g))), states)
   } else {
     f <- as.eqnvec(f)
     if (is.null(states)) states <- union(names(f), "time")

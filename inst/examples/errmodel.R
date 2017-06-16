@@ -13,9 +13,9 @@ errors <- eqnvec(B_obs = "sqrt((sigma_rel*B_obs)^2 + sigma_abs^2)")
 # Generate dMod objects
 model <- odemodel(f)
 x     <- Xs(model)
-g     <- Y(observables, f, 
+g     <- Y(observables, x, 
            compile = TRUE, modelname = "obsfn")
-e     <- Y(errors, c(observables, as.eqnvec(f)), states = names(observables), attach.input = FALSE,
+e     <- Y(errors, g, states = names(observables), attach.input = FALSE,
            compile = TRUE, modelname = "errfn")
 
 
@@ -38,7 +38,8 @@ datasheet$value <- datasheet$value + rnorm(length(datasheet$value), sd = datashe
 data <- as.datalist(datasheet)
 
 ## Fit data with error model
-myfit <- trust(normL2(data, g*x*p, e), ptrue, rinit = 1, rmax = 10)
+obj <- normL2(data, g*x*p, e)
+myfit <- trust(obj, ptrue, rinit = 1, rmax = 10)
 profiles <- profile(normL2(data, g*x*p, e) + constraintL2(myfit$argument, 10), 
                     myfit$argument, names(myfit$argument), limits = c(-5, 5), cores = 4)
 plotProfile(profiles)

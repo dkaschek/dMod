@@ -11,7 +11,8 @@ Y(g, f = NULL, states = NULL, parameters = NULL, condition = NULL,
 \arguments{
 \item{g}{Named character vector or equation vector defining the observation function}
 
-\item{f}{Named character or equation vector or object that can be converted to eqnvec. Represents the underlying ODE.}
+\item{f}{Named character of equations or object that can be converted to eqnvec or object of class fn.
+If f is provided, states and parameters are guessed from f.}
 
 \item{states}{character vector, alternative definition of "states", usually the names of \code{f}. If both,
 f and states are provided, the states argument overwrites the states derived from f.}
