@@ -17,4 +17,3 @@ hessian (matrix of type numeric).
 \description{
 Compute the negative log-likelihood
 }
-

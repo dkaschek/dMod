@@ -17,4 +17,3 @@ hessian (matrix of type numeric).
 \description{
 Compute the weighted residual sum of squares
 }
-

@@ -45,4 +45,3 @@ vali(pars = c(p0, newpoint = 1), env = .GlobalEnv)
 \seealso{
 \link{wrss}, \link{constraintL2}
 }
-

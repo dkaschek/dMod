@@ -28,4 +28,3 @@ respect to the parameters).
 \description{
 Compare data and model prediction by computing residuals
 }
-

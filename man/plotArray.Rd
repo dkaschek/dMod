@@ -79,4 +79,3 @@ plot((g*x)(times, bestfit), data)
 ## Plot array with all solutions
 plotArray(parframe, g*x, times, data)
 }
-

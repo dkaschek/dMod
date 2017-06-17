@@ -21,4 +21,3 @@ Install your local dMod version to a remote host via ssh.
 \author{
 Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
 }
-

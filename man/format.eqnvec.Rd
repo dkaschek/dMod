@@ -17,4 +17,3 @@ named character
 \description{
 Encode equation vector in format with sufficient spaces
 }
-

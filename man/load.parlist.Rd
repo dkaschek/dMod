@@ -23,10 +23,9 @@ The commands \code{\link{mstrust}} or \code{\link{msnarrow}} save
   be resurected on abortion. This command loads a fitlist from these
   intermediate results.
 }
-\author{
-Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
-}
 \seealso{
 \code{\link{mstrust}}, \code{\link{msnarrow}}
 }
-
+\author{
+Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
+}

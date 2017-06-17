@@ -58,4 +58,3 @@ returning the overarching datalist.
    print(condition.grid)
 
 }
-

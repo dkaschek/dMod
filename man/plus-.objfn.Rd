@@ -58,4 +58,3 @@ in a sum of functions generates a new environment.
 \seealso{
 \link{normL2}, \link{constraintL2}, \link{priorL2}, \link{datapointL2}
 }
-

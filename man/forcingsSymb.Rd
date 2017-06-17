@@ -19,4 +19,3 @@ String with the function
 \description{
 Return some useful forcing functions as strings
 }
-

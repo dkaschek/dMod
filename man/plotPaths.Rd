@@ -30,4 +30,3 @@ Profile likelihood: plot of the parameter paths.
 \details{
 See \link{profile} for examples.
 }
-

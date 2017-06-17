@@ -2,10 +2,10 @@
 % Please edit documentation in R/tools.R
 \name{compare}
 \alias{compare}
-\alias{compare.character}
-\alias{compare.data.frame}
-\alias{compare.eqnvec}
 \alias{compare.list}
+\alias{compare.character}
+\alias{compare.eqnvec}
+\alias{compare.data.frame}
 \title{Compare two objects and return differences}
 \usage{
 compare(vec1, ...)
@@ -67,4 +67,3 @@ attr(fn2, "events") <- d2
 mylist <- list(f1 = fn1, f2 = fn2)
 compare(mylist)
 }
-

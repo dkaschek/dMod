@@ -22,4 +22,3 @@ matrix with the parameter samples
 \description{
 Generate sample for multi-start fit
 }
-

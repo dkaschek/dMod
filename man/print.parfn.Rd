@@ -17,4 +17,3 @@ Pretty printing parameter transformations
 \author{
 Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
 }
-

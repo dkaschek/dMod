@@ -75,4 +75,3 @@ plot(out2)
 \seealso{
 \link{sumfn}, \link{P}
 }
-

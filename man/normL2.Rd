@@ -57,4 +57,3 @@ obj <- normL2(data, x)
 myfit <- trust(obj, pars, rinit = 1, rmax = 10)
 plot(x(times, myfit$argument), data)
 }
-

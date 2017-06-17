@@ -12,4 +12,3 @@ The Python version and additional information
 \description{
 Get the Python version to which rPython is linked
 }
-

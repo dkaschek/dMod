@@ -23,4 +23,3 @@ column of a data frame. Additionally, if a \code{sigma} column is
 present, those values are transformed according to Gaussian error
 propagation.
 }
-

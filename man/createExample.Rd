@@ -17,4 +17,3 @@ Open a unit test template.
 \author{
 Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
 }
-

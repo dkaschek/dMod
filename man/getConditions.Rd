@@ -2,8 +2,8 @@
 % Please edit documentation in R/classes.R
 \name{getConditions}
 \alias{getConditions}
-\alias{getConditions.fn}
 \alias{getConditions.list}
+\alias{getConditions.fn}
 \title{Extract the conditions of an object}
 \usage{
 getConditions(x, ...)
@@ -23,4 +23,3 @@ The conditions in a format that depends on the class of \code{x}.
 \description{
 Extract the conditions of an object
 }
-

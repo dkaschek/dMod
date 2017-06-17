@@ -21,4 +21,3 @@ a \code{data.frame} with columns "name", "time" and "value".
 \description{
 Translate data into time-continuous data representations
 }
-

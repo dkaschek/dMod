@@ -31,11 +31,10 @@ Equation List with reduced model.
 \description{
 Reduce the ODE system by means of a quasi steady-state assumption
 }
-\author{
-Marcus Rosenblatt, \email{marcus.rosenblatt@fdm.uni-freiburg.de}
-}
 \references{
 [1]
 \url{https://bitbucket.org/d2d-development/d2d-software/wiki/Home}
 }
-
+\author{
+Marcus Rosenblatt, \email{marcus.rosenblatt@fdm.uni-freiburg.de}
+}

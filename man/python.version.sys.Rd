@@ -15,4 +15,3 @@ Character vector with the python versions and where they are located.
 \description{
 Check which Python versions are installed on the system
 }
-

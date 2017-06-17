@@ -14,4 +14,3 @@ theme_dMod(base_size = 11, base_family = "")
 \description{
 Standard plotting theme of dMod
 }
-

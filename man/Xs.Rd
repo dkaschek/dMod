@@ -217,4 +217,3 @@ plot((g*pObs*x*p)(times, pouter))
 
 }
 }
-

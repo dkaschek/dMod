@@ -17,4 +17,3 @@ Pretty printing for a parameter vector
 \author{
 Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
 }
-

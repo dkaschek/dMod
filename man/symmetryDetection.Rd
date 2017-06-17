@@ -44,4 +44,3 @@ symmetryDetection(eq, observables)
 
 }
 }
-

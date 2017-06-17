@@ -31,4 +31,3 @@ is returned.
 \author{
 Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
 }
-

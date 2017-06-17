@@ -12,4 +12,3 @@ scale_fill_dMod(...)
 \description{
 Standard dMod color scheme
 }
-

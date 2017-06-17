@@ -26,4 +26,3 @@ From \option{test}, an example is extracted and written to a file of
 \author{
 Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
 }
-

@@ -25,4 +25,3 @@ The function assumes that out[,1] represents a time-like vector
 whereas out[,-1] represents the values. Useful for plotting with ggplot. If 
 a list is supplied, the names of the list are added as extra column names "condition"
 }
-

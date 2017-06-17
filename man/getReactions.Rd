@@ -64,4 +64,3 @@ Generate a table of reactions (data.frame) from an equation list
     
   
 }
-

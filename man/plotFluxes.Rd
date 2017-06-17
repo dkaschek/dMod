@@ -32,4 +32,3 @@ Plot Fluxes given a list of flux Equations
 plotFluxes(bestfit, x, times, attr(subset(f, "B"\%in\%Product), "rates"), nameFlux = "B production")
 }
 }
-

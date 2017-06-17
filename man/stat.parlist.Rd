@@ -12,4 +12,3 @@ stat.parlist(x)
 \description{
 Gather statistics of a fitlist
 }
-

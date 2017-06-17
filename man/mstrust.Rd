@@ -253,11 +253,10 @@ plot((g*pObs*x*p)(times, pouter))
 
 }
 }
-\author{
-Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
-}
 \seealso{
 \code{\link{trust}}, \code{\link{rnorm}}, \code{\link{runif}}, 
   \code{\link{as.parframe}}
 }
-
+\author{
+Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
+}

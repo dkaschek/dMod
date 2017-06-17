@@ -64,4 +64,3 @@ plot(out2)
 \seealso{
 \link{P}, \link{Y}, \link{Xs}
 }
-

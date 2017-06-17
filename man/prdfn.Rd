@@ -67,4 +67,3 @@ plot(out1)
 out2 <- (g*x*p)(times, pars)
 plot(out2)
 }
-

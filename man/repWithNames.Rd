@@ -14,4 +14,3 @@ repWithNames(x, names)
 \description{
 Wrapper on rep() to input names instead of length.
 }
-

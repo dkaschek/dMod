@@ -25,4 +25,3 @@ Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
 Mirjam Fehling-Kaschek, 
   \email{mirjam.fehling@physik.uni-freiburg.de}
 }
-

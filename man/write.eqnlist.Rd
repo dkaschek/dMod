@@ -14,4 +14,3 @@ write.eqnlist(eqnlist, ...)
 \description{
 Write equation list into a csv file
 }
-

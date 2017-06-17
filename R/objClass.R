@@ -730,7 +730,6 @@ nll <- function(nout) {
   return(out12)
 }
 
-
 #' @export
 print.objfn <- function(x, ...) {
  

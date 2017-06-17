@@ -10,6 +10,7 @@
 #' @param fixed Character vector with the names of parameters (initial values and dynamic) for which
 #' no sensitivities are required (will speed up the integration).
 #' @param modelname Character, the name of the C file being generated.
+#' @param solver Solver for which the equations are prepared.
 #' @param gridpoints Integer, the minimum number of time points where the ODE is evaluated internally
 #' @param verbose Print compiler output to R command line.
 #' @param ... Further arguments being passed to funC.
@@ -17,17 +18,25 @@
 #' @export
 #' @example inst/examples/odemodel.R
 #' @import cOde
-odemodel <- function(f, deriv = TRUE, forcings=NULL, fixed=NULL, modelname = "odemodel", gridpoints = NULL, verbose = FALSE, ...) {
+odemodel <- function(f, deriv = TRUE, forcings=NULL, fixed=NULL, modelname = "odemodel", solver = c("deSolve", "Sundials"), gridpoints = NULL, verbose = FALSE, ...) {
   
   
   if (is.null(gridpoints)) gridpoints <- 2
   
   f <- as.eqnvec(f)
   modelname_s <- paste0(modelname, "_s")
+  solver <- match.arg(solver)
   
-  func <- cOde::funC(f, forcings = forcings, modelname = modelname , nGridpoints = gridpoints, ...)
+  func <- cOde::funC(f, forcings = forcings, fixed = fixed, modelname = modelname , solver = solver, nGridpoints = gridpoints, ...)
   extended <- NULL
-  if (deriv) {  
+  if (solver == "Sundials") {
+    # Sundials does not need "extended" by itself, but dMod relies on it.
+    extended <- func
+    attr(extended, "deriv") <- TRUE
+    attr(extended, "variables") <- c(attr(extended, "variables"), attr(extended, "variablesSens"))
+  }
+  
+  if (deriv && solver == "deSolve") {  
     s <- sensitivitiesSymb(f, 
                            states = setdiff(attr(func, "variables"), fixed), 
                            parameters = setdiff(attr(func, "parameters"), fixed), 
@@ -35,7 +44,7 @@ odemodel <- function(f, deriv = TRUE, forcings=NULL, fixed=NULL, modelname = "od
                            reduce = TRUE)
     fs <- c(f, s)
     outputs <- attr(s, "outputs")
-    extended <- cOde::funC(fs, forcings = forcings, outputs = outputs, modelname = modelname_s, ...)
+    extended <- cOde::funC(fs, forcings = forcings, outputs = outputs, modelname = modelname_s, solver = solver, ...)
   }  
   
   out <- list(func = func, extended = extended)
@@ -640,7 +649,56 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
   
 }
 
-
+#' @export
+"%.*%" <- function(x1, x2) {
+  
+  if (inherits(x2, "objlist")) {
+    
+    out <- lapply(x2, function(x) {
+      x1*x
+    })
+    # Multiply attributes
+    out2.attributes <- attributes(x2)[sapply(attributes(x2), is.numeric)]
+    attr.names <- names(out2.attributes)
+    out.attributes <- lapply(attr.names, function(n) {
+      x1*attr(x2, n)
+    })
+    attributes(out) <- attributes(x2)
+    attributes(out)[attr.names] <- out.attributes
+    
+    return(out)
+  
+    
+  } else if (inherits(x2, "objfn")) {
+    
+    conditions12 <- attr(x2, "conditions")
+    parameters12 <- attr(x2, "parameters")
+    outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = conditions12, env = NULL) {
+      
+      arglist <- list(...)
+      arglist <- arglist[match.fnargs(arglist, c("pars"))]
+      pars <- arglist[[1]]
+      
+      v1 <- x1
+      v2 <- x2(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions, env = attr(v1, "env"))
+      
+      out <- v1 %.*% v2
+      attr(out, "env") <- attr(v2, "env")
+      return(out)
+    }
+    
+    class(outfn) <- c("objfn", "fn")
+    attr(outfn, "conditions") <- conditions12
+    attr(outfn, "parameters") <- parameters12
+    return(outfn)
+    
+  } else {
+    
+    x1*x2
+    
+  }
+  
+}
 
 
 #' Direct sum of functions

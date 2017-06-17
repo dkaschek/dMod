@@ -70,4 +70,3 @@ Observables are translated into an ODE
     
   
 }
-

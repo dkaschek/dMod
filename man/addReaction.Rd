@@ -77,4 +77,3 @@ f <- addReaction(f, "C + A", "B + A", "k2*C*A")
     
   
 }
-

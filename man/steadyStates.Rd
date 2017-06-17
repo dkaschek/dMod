@@ -38,11 +38,10 @@ Character vector of steady-state equations.
 \description{
 Calculate analytical steady states
 }
-\author{
-Marcus Rosenblatt, \email{marcus.rosenblatt@fdm.uni-freiburg.de}
-}
 \references{
 [1]
 \url{https://bitbucket.org/d2d-development/d2d-software/wiki/Home}
 }
-
+\author{
+Marcus Rosenblatt, \email{marcus.rosenblatt@fdm.uni-freiburg.de}
+}

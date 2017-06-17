@@ -31,4 +31,3 @@ Prediction frames are usually the constituents of prediction lists (\link{prdlis
 produced by \link{Xs}, \link{Xd} or \link{Xf}. When you define your own prediction functions,
 see \code{P2X} in \link{prdfn}, the result should be returned as a prediction frame.
 }
-

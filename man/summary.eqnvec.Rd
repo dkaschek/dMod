@@ -17,4 +17,3 @@ Summary of an equation vector
 \author{
 Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
 }
-

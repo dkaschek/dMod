@@ -24,4 +24,3 @@ list with prediction (data.frame) and data (data.frame)
 \description{
 Produce data frames for plotting
 }
-
