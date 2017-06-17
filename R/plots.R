@@ -697,7 +697,7 @@ plotPars <- function(x, tol = diff(range(x$value))/10, ...){
 #'  plotResiduals(myfitlist, (g*x*p), data,  c("condition","name","index"))
 #' }
 #' @export
-plotResiduals <- function(parframe, x, data, split = "condition", ...){
+plotResiduals <- function(parframe, x, data, split = "condition", errmodel = NULL, ...){
   timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))
   if(!("index" %in% colnames(parframe)))
     parframe$index <- 1:nrow(parframe)
@@ -706,7 +706,11 @@ plotResiduals <- function(parframe, x, data, split = "condition", ...){
     pred <- x(timesD, as.parvec(parframe,j), deriv = FALSE, ...)
     
     out_con <- do.call(rbind,lapply(names(pred), function(con){
-      out <- res(data[[con]], pred[[con]])
+      err <- NULL
+      if (!is.null(errmodel)) {
+        err <- errmodel(out = pred[[con]], pars = getParameters(pred[[con]]), conditions = con)
+      }
+      out <- res(data[[con]], pred[[con]], err[[con]]) 
       return(cbind(out,condition = con))
     })
     )
@@ -715,8 +719,11 @@ plotResiduals <- function(parframe, x, data, split = "condition", ...){
     return(out_par)
   })
   )
-  
-  out <- plyr::ddply(out, split, summarise, res = sqrt(sum(weighted.residual^2))) 
+  if (!is.null(errmodel)) {
+    out <- plyr::ddply(out, split, summarise, res = sum(weighted.residual^2 + log(sigma^2))) 
+  } else{
+    out <- plyr::ddply(out, split, summarise, res = sum(weighted.residual^2)) 
+  }
   groupvar <- split[1]
   if(length(split) > 1){
     groupvar <- split[2]
