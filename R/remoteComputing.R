@@ -304,7 +304,7 @@ runbg_bwfor <- function(..., machine, filename = NULL, nodes = 1, cores = 1, wal
     result <- structure(vector(mode = "list", length = nodes))
     system(paste0("scp ", machine, ":", filename0, "_folder/*", "_result.RData ./"), ignore.stdout = TRUE, ignore.stderr = TRUE)
     for (m in 1:nodes) {
-      .runbgOuput <- NULL
+      .runbgOutput <- NULL
       check <- try(load(file = paste0(filename[m], "_result.RData")), silent = TRUE) 
       if (!inherits("try-error", check)) result[[m]] <- .runbgOutput
     }
