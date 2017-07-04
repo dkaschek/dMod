@@ -825,8 +825,10 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
     # Put equation into C function
     if (is.null(modelname)) {
       funcname <- paste0("funC0_", paste(sample(c(0:9, letters), 8, replace = TRUE), collapse = ""))
+      filename <- funcname
     } else {
-      funcname <- modelname
+      funcname <- paste0(modelname, "_", paste(sample(c(0:9, letters), 8, replace = TRUE), collapse = ""))
+      filename <- modelname
     }
     body <- paste(
       "#include <R.h>\n", 
@@ -837,16 +839,17 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
       "\n}\n}"
     )
     
-    filename <- paste(funcname, "c", sep = ".")
-    sink(file = filename)
+    sink(file = paste(filename, "c", sep = "."))
     cat(body)
     sink()
-    shlibOut <- system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", filename), intern = TRUE)
+    shlibOut <- system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", paste(filename, "c", sep = ".")), intern = TRUE)
     if (verbose) {
       cat(shlibOut)
     }
     .so <- .Platform$dynlib.ext
-    dyn.load(paste0(funcname, .so))
+    test <- try(dyn.unload(paste0(filename, .so)), silent = TRUE)
+    if (!inherits(test, "try-error")) message(paste("A shared object with name", filename, "was overloaded."))
+    dyn.load(paste0(filename, .so))
     
     # Generate output function for compiled version
     myRfun <- function(M = NULL, p = NULL, attach.input = FALSE) {
@@ -869,7 +872,7 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
       # loadDLL costs time. Probably, the check is not necessary because
       # each time, funC0 is called, the C function being generated has
       # or should have another name.
-      loadDLL(func = funcname, cfunction = funcname)
+      # loadDLL(func = funcname, cfunction = funcname)
       out <- matrix(.C(funcname, x = x, y = y, p = p, n = n, k = k, l = l)$y, nrow = length(outnames), ncol = n)
       rownames(out) <- outnames
       
