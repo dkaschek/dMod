@@ -169,6 +169,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
   attr(P2X, "equations") <- as.eqnvec(attr(func, "equations"))
   attr(P2X, "forcings") <- forcings
   attr(P2X, "events") <- events
+  attr(P2X, "modelname") <- extended[1]
   
   
   prdfn(P2X, c(variables, parameters), condition) 
@@ -240,6 +241,7 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
   attr(P2X, "equations") <- as.eqnvec(attr(func, "equations"))
   attr(P2X, "forcings") <- forcings
   attr(P2X, "events") <- events
+  attr(P2X, "modelname") <- func[1]
   
   
   prdfn(P2X, c(variables, parameters), condition) 
@@ -554,6 +556,7 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
   attr(X2Y, "equations") <- g
   attr(X2Y, "parameters") <- parameters
   attr(X2Y, "states") <- states
+  attr(X2Y, "modelname") <- modelname
   
   obsfn(X2Y, parameters, condition)
   
