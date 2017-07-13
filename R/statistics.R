@@ -17,7 +17,7 @@
 #' \code{list(rinit = .1, rmax = 10, iterlim = 10, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))}.
 #' See \link{trust} for more details.
 #' @param verbose Logical, print verbose messages.
-#' @param cores number of cores used by \code{mclapply()} when computing profiles for several
+#' @param cores number of cores used when computing profiles for several
 #' parameters.
 #' @param ... Arguments going to obj()
 #' @details Computation of the profile likelihood is based on the method of Lagrangian multipliers
@@ -76,7 +76,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   if (!is.null(algoControl)) aControl[match(names(algoControl), names(aControl))] <- algoControl
   if (!is.null(optControl )) oControl[match(names(optControl), names(oControl ))] <- optControl
     
-  do.call(rbind, parallel::mclapply(whichPar, function(whichPar) {
+  do.call(rbind, mymclapply(whichPar, function(whichPar) {
     
     
     if (is.character(whichPar)) whichPar <- which(names(pars) == whichPar)

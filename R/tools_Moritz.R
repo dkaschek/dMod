@@ -34,7 +34,7 @@ parametersToPoints <- function(startpars, n, timepoints, sigma, truepars, par_na
     
     #fit and overwrite parameters
     par_total[[j+1]] <- do.call(rbind,
-                                mclapply(1:n,
+                                mymclapply(1:n,
                                          function(i){
                                            myfit<-trust(obj, parinit = structure(as.numeric(par_total[[j]][i,]), names = par_names), rinit = 1, rmax = 10)
                                            if(myfit$converged && (myfit$value<=1/(10^5*sigma)) ){return(myfit$argument)}
@@ -67,8 +67,8 @@ parametersToPointsVar <- function(startpars, sigma, truepars, par_names, model, 
     derivs <- list()
     times <- seq(from = timeframe[1], to = timeframe[2], by = timeframe[3])
     par              <- par_total_del[[j]]
-    meanvals         <- Reduce("+", mclapply(1:dim(par_total_del[[j]])[1], function(i) (wide2long((model)(times, par[i,]))$value), mc.cores = cores, mc.preschedule = TRUE ))/dim(par_total_del[[j]])[1]
-    derivs[[1]]      <- Reduce("+", mclapply(1:dim(par_total_del[[j]])[1], function(i) (meanvals-wide2long((model)(times, par[i,]))$value)^2, mc.cores = cores, mc.preschedule = TRUE ))/(dim(par_total_del[[j]])[1]-1) #with mean value
+    meanvals         <- Reduce("+", mymclapply(1:dim(par_total_del[[j]])[1], function(i) (wide2long((model)(times, par[i,]))$value), mc.cores = cores, mc.preschedule = TRUE ))/dim(par_total_del[[j]])[1]
+    derivs[[1]]      <- Reduce("+", mymclapply(1:dim(par_total_del[[j]])[1], function(i) (meanvals-wide2long((model)(times, par[i,]))$value)^2, mc.cores = cores, mc.preschedule = TRUE ))/(dim(par_total_del[[j]])[1]-1) #with mean value
     derivs[[2]]      <- rep(times,2)
     
     
@@ -105,7 +105,7 @@ parametersToPointsVar <- function(startpars, sigma, truepars, par_names, model, 
     
     #fit and overwrite parameters
     par_total[[j+1]] <- do.call(rbind,
-                                mclapply(1:dim(par_total[[j]])[1],
+                                mymclapply(1:dim(par_total[[j]])[1],
                                          function(i){
                                            myfit <- trust(obj, parinit = structure(as.numeric(par_total[[j]][i,]), names = par_names), rinit = .1, rmax = 10)
                                            if(myfit$converged && (myfit$value<=tol/(sigma[1])) ){return(myfit$argument)}
@@ -523,7 +523,7 @@ trust_new <- function (parinit, rinit, rmax, parscale, iterlim = 100, fterm = sq
 #######################################################################################################################################################################
 
 perfCheck <- function(parameters, timeframe, n_data, model, sigma, datainit, rinit, rmax, thresh, iterlim){
-  do.call(rbind, mclapply(1:1000, function(i){
+  do.call(rbind, mymclapply(1:1000, function(i){
     off = structure(rnorm(length(parameters),0,1), names = parameters)
     parinit = structure(rnorm(length(parameters),0,1), names = parameters)
     par_data = parinit + off

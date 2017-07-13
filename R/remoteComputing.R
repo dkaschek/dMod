@@ -1,3 +1,99 @@
+##
+## mclapply.hack.R
+##
+## Nathan VanHoudnos
+## nathanvan AT northwestern FULL STOP edu
+## July 14, 2014
+##
+## A script to implement a hackish version of 
+## parallel:mclapply() on Windows machines.
+## On Linux or Mac, the script has no effect
+## beyond loading the parallel library. 
+
+
+## Define the hack
+mclapply.hack <- function(...) {
+  
+  # the function is called from mymclapply with named arguments X, FUN, mc.cores
+  # and other arguments going to FUN
+  
+  args <- list(...)
+  ## Create a cluster
+  mc.cores <- args[["mc.cores"]]
+  cl <- parallel::makeCluster(mc.cores)
+  
+  ## Find out the names of the loaded packages 
+  loaded.package.names <- c(
+    ## Base packages
+    sessionInfo()$basePkgs,
+    ## Additional packages
+    names( sessionInfo()$otherPkgs )
+  )
+  
+  tryCatch( {
+    
+    ## Copy over all of the objects within scope to
+    ## all clusters. 
+    this.env <- environment()
+    while( identical( this.env, globalenv() ) == FALSE ) {
+      parallel::clusterExport(cl,
+                              ls(all.names=TRUE, env=this.env),
+                              envir=this.env)
+      this.env <- parent.env(environment())
+    }
+    parallel::clusterExport(cl,
+                            ls(all.names=TRUE, env=globalenv()),
+                            envir=globalenv())
+    
+    ## Load the libraries on all the clusters
+    ## N.B. length(cl) returns the number of clusters
+    parallel::parLapply( cl, 1:length(cl), function(xx){
+      lapply(loaded.package.names, function(yy) {
+        require(yy , character.only=TRUE)})
+    })
+    
+    # Plug in correact arguments with correct names
+    args[["cl"]] <- cl
+    args <- args[-match("mc.cores", names(args))]
+    names(args)[match("FUN", names(args))] <- "fun"
+    ## Run the lapply in parallel
+    return( do.call(parallel::parLapply, args) )
+  }, finally = {        
+    ## Stop the cluster
+    parallel::stopCluster(cl)
+  })
+}
+
+# Wrapper functionfor mclappy
+# if mc.cores is missing or set to 1, use lapply()
+# if on linux and mc.cores > 1, use mclapply()
+# if on windows and mc.cores > 1, set up cluster and use parLapply
+mymclapply <- function(...) {
+  
+  args <- eval(as.list(match.call(parallel::mclapply))[-1], envir = parent.frame())
+  args.additional <- args[!names(args) %in% names(formals(parallel::mclapply))]
+  
+
+  platform <- Sys.info()[['sysname']]
+  mc.cores <- args[["mc.cores"]]
+  if (is.null(mc.cores) || mc.cores == 1) {
+    print("case 1")
+    args.lapply <- c(args[c("X", "FUN")], args.additional)
+    return(do.call(lapply, args.lapply))
+  }
+  if (platform == "Windows") {
+    print("case 2")
+    args.mclapply.hack <- c(args[c("X", "FUN", "mc.cores")], args.additional)
+    return(do.call(mclapply.hack, args.mclapply.hack))  
+    
+  } else {
+    print("case 3")
+    print(eval(args))
+    return(do.call(parallel::mclapply, args))
+  }
+  
+}
+
 
 #' Detect number of free cores (on UNIX)
 #' 

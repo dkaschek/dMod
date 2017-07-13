@@ -1017,7 +1017,7 @@ mstrustC <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20
     flush(logfile)
   }
   
-  m_parlist <- as.parlist(parallel::mclapply(1:fits, function(i) {
+  m_parlist <- as.parlist(mymclapply(1:fits, function(i) {
     argstrust$parinit <- center + do.call(samplefun, argssample)
     fit <- do.call(trustC, c(argstrust, argsobj))
     

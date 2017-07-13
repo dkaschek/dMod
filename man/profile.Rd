@@ -37,7 +37,7 @@ See \link{trust} for more details.}
 
 \item{verbose}{Logical, print verbose messages.}
 
-\item{cores}{number of cores used by \code{mclapply()} when computing profiles for several
+\item{cores}{number of cores used when computing profiles for several
 parameters.}
 
 \item{...}{Arguments going to obj()}
