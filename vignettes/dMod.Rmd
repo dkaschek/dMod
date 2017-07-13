@@ -209,7 +209,7 @@ Sometimes, the system has many local optima. A single fit converges to a neighbo
 
 ```{r, fig.width = 5, fig.height = 4}
 
-fitlist <- mstrust(obj + constr, center = myfit$argument, fits = 20, cores = 1, sd = 1, samplefun = "rnorm", fixed = fixed, conditions = "Epo")
+fitlist <- mstrust(obj + constr, center = myfit$argument, fits = 20, cores = 4, sd = 1, samplefun = "rnorm", fixed = fixed, conditions = "Epo")
 pars <- as.parframe(fitlist)
 plotValues(subset(pars, converged))
 plotPars(subset(pars, converged))
@@ -234,7 +234,7 @@ i.e. the optimum over all parameters satisfying the constraint $p_i = c$.
 
 ```{r, fig.width = 4, fig.height = 3}
 
-myprofile <- profile(obj + constr, pars = myfit$argument, whichPar = "s_EpoR", fixed = fixed)
+myprofile <- profile(obj + constr, pars = myfit$argument, whichPar = "s_EpoR", fixed = fixed, cores = 1)
 plotProfile(myprofile)
 
 ```

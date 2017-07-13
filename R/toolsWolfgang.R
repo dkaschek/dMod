@@ -271,7 +271,7 @@ plSelectMin <- function(prf, context = FALSE) {
 #' @example inst/examples/test_blocks.R
 #'     
 #' @export
-#' @import parallel
+#' @import doParallel
 mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20, cores = 1,
                     samplefun = "rnorm", resultPath = ".", stats = FALSE,
                     ...) {
@@ -370,7 +370,8 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     flush(logfile)
   }
 
-  m_parlist <- as.parlist(mymclapply(1:fits, function(i) {
+  registerDoParallel(cores)
+  m_parlist <- as.parlist(foreach(i = 1:fits, .options.snow=list(preschedule=FALSE, silent = FALSE)) %dopar% {
     argstrust$parinit <- center + do.call(samplefun, argssample)
     fit <- do.call(trust, c(argstrust, argsobj))
 
@@ -420,7 +421,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     }
 
     return(fit)
-  }, mc.preschedule = FALSE, mc.silent = FALSE, mc.cores = cores))
+  })
   close(logfile)
 
 
