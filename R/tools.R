@@ -551,3 +551,51 @@ loaddMod <- function(filename = stop("'filename' must be specified"), flags = NU
 
 
 
+#' Compile one or more prdfn, obsfn or parfn objects
+#' 
+#' @param ... Objects of class parfn, obsfn or prdfn
+#' @param output Optional character of the file to be produced. If several objects were
+#' passed, the different C files are all compiled into one shared object file.
+#' @param args Additional arguments for the R CMD SHLIB call, e.g. \code{-leinspline}.
+#' @export
+compile <- function(..., output = NULL, args = NULL) {
+  
+  objects <- list(...)
+  files <- unlist(lapply(objects, function(o) {
+    files <- NULL
+    if (inherits(o, "obsfn") | inherits(o, "parfn") | inherits(o, "prdfn")) {
+      filename <- sapply(attr(o, "mappings"), function(x) attr(x, "modelname"))
+      filename <- outer(filename, c("", "_deriv", "_s", "_sdcv"), paste0)
+      files <- c(paste0(filename, ".c"), paste0(filename, ".cpp"))
+      files <- files[file.exists(files)]
+    }
+  }))
+  
+  roots <- sapply(files, function(f) {
+    l <- strsplit(f, split = ".", fixed = TRUE)[[1]]
+    paste(l[1:(length(l)-1)], collapse = ".")
+  })
+  
+  .so <- .Platform$dynlib.ext
+  #print(files)
+  
+  #return(files)
+  if (is.null(output)) {
+    foreach::foreach(i = 1:length(files)) %dopar% {
+      try(dyn.unload(paste0(roots[i], .so)), silent = TRUE)
+      system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", files[i], " ", args))
+      dyn.load(paste0(roots[i], .so))
+    }
+  } else {
+    for (r in roots) try(dyn.unload(paste0(r, .so)), silent = TRUE)
+    try(dyn.unload(output), silent = TRUE)
+    system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", paste(files, collapse = " "), " -o ", output, " ", args))
+    dyn.load(output)
+  }
+  
+  
+}
+
+
+
+

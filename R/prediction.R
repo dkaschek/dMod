@@ -124,7 +124,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
     if (!deriv) {
       
       # Evaluate model without sensitivities
-      loadDLL(func)
+      # loadDLL(func)
       if (!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
       out <- do.call(odeC, c(list(y = unclass(yini), times = times, func = func, parms = mypars, forcings = forc, events = list(data = events)), optionsOde))
       out <- submatrix(out, cols = c("time", names))
@@ -134,7 +134,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
     } else {
       
       # Evaluate extended model
-      loadDLL(extended)
+      # loadDLL(extended)
       if (!is.null(forcings)) forc <- setForcings(extended, forcings) else forc <- NULL
       
       outSens <- do.call(odeC, c(list(y = c(unclass(yini), yiniSens), times = times, func = extended, parms = mypars, 
@@ -169,6 +169,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
   attr(P2X, "equations") <- as.eqnvec(attr(func, "equations"))
   attr(P2X, "forcings") <- forcings
   attr(P2X, "events") <- events
+  attr(P2X, "modelname") <- extended[1]
   
   
   prdfn(P2X, c(variables, parameters), condition) 
@@ -227,7 +228,7 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
     pars <- P[parameters]
     #alltimes <- unique(sort(c(times, forctimes)))
     
-    loadDLL(func)
+    # loadDLL(func)
     if(!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
     out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = events)), optionsOde))
     #out <- cbind(out, out.inputs)      
@@ -240,6 +241,7 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
   attr(P2X, "equations") <- as.eqnvec(attr(func, "equations"))
   attr(P2X, "forcings") <- forcings
   attr(P2X, "events") <- events
+  attr(P2X, "modelname") <- func[1]
   
   
   prdfn(P2X, c(variables, parameters), condition) 
@@ -427,6 +429,10 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
   if (is.null(f) && is.null(states) && is.null(parameters)) 
     stop("Not all three arguments f, states and parameters can be NULL")
   
+  # Modify modelname by condition
+  if (!is.null(modelname) && !is.null(condition)) modelname <- paste(modelname, condition, sep = "_")
+  
+  # Then add suffix(es) for derivative function
   if (!is.null(modelname)) modelname_deriv <- paste(modelname, "deriv", sep = "_")
   
   # Get potential paramters from g, forcings are treated as parameters because
@@ -554,6 +560,7 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
   attr(X2Y, "equations") <- g
   attr(X2Y, "parameters") <- parameters
   attr(X2Y, "states") <- states
+  attr(X2Y, "modelname") <- modelname
   
   obsfn(X2Y, parameters, condition)
   

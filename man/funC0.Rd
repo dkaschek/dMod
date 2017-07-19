@@ -16,8 +16,9 @@ named character vector with the algebraic expressions}
 
 \item{parameters}{character vector, the symbols that should be treated as parameters}
 
-\item{compile}{Logical. The function is either translated into a C file to be compiled or is
-evaluated in raw R.}
+\item{compile}{Logical. Directly compile the file. If \code{FALSE} and modelname is available,
+the C file is written but not compiled. If modelname is not available, an R function is
+generated and returned.}
 
 \item{modelname}{file name of the generated C file.}
 
