@@ -70,6 +70,9 @@ Pexpl <- function(trafo, parameters=NULL, attach.input = FALSE, condition = NULL
     names(identity) <- identity
     trafo <- c(trafo, identity)
   }
+  
+  # Modify modelname by condition
+  if (!is.null(modelname) && !is.null(condition)) modelname <- paste(modelname, condition, sep = "_")
 
   dtrafo <- jacobianSymb(trafo, parameters)
   
@@ -192,7 +195,11 @@ Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, po
   states <- names(trafo)
   nonstates <- getSymbols(trafo, exclude = states)
   dependent <- setdiff(states, parameters)
+
+  # Modify modelname by condition
+  if (!is.null(modelname) && !is.null(condition)) modelname <- paste(modelname, condition, sep = "_")
   
+  # Then add suffix(es) for derivative function
   modelname_dfdx <- NULL
   modelname_dfdp <- NULL
   if (!is.null(modelname)) {

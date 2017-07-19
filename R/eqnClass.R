@@ -743,8 +743,9 @@ c.eqnvec <- function(...) {
 #' named character vector with the algebraic expressions
 #' @param variables character vector, the symbols that should be treated as variables
 #' @param parameters character vector, the symbols that should be treated as parameters
-#' @param compile Logical. The function is either translated into a C file to be compiled or is
-#' evaluated in raw R.
+#' @param compile Logical. Directly compile the file. If \code{FALSE} and modelname is available,
+#' the C file is written but not compiled. If modelname is not available, an R function is
+#' generated and returned.
 #' @param modelname file name of the generated C file.
 #' @param verbose Print compiler output to R command line.
 #' @param convenient logical, if TRUE return a function with argument \code{...} to pass
@@ -770,6 +771,8 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
   # Get symbols to be substituted by x[] and y[]
   outnames <- names(x)
   innames <- variables
+  
+  if (is.null(modelname)) outputC <- FALSE else outputC <- TRUE
   
   # Function to check arguments
   checkArguments <- function(M, p) {
@@ -806,7 +809,7 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
   
   ## Compiled version based on inline package
   ## Non-compiled version based on with() and eval()
-  if (compile) {
+  if (outputC) {
     
     # Do the replacement to obtain C syntax
     x <- replaceOperation("^", "pow", x)
@@ -842,14 +845,21 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
     sink(file = paste(filename, "c", sep = "."))
     cat(body)
     sink()
-    shlibOut <- system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", paste(filename, "c", sep = ".")), intern = TRUE)
-    if (verbose) {
-      cat(shlibOut)
+    
+    
+    # Compile and load if requested
+    if (compile) {
+      
+      shlibOut <- system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", paste(filename, "c", sep = ".")), intern = TRUE)
+      if (verbose) {
+        cat(shlibOut)
+      }
+      
+      .so <- .Platform$dynlib.ext
+      test <- try(dyn.unload(paste0(filename, .so)), silent = TRUE)
+      if (!inherits(test, "try-error")) message(paste("A shared object with name", filename, "was overloaded."))
+      dyn.load(paste0(filename, .so))
     }
-    .so <- .Platform$dynlib.ext
-    test <- try(dyn.unload(paste0(filename, .so)), silent = TRUE)
-    if (!inherits(test, "try-error")) message(paste("A shared object with name", filename, "was overloaded."))
-    dyn.load(paste0(filename, .so))
     
     # Generate output function for compiled version
     myRfun <- function(M = NULL, p = NULL, attach.input = FALSE) {
