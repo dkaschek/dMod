@@ -557,8 +557,10 @@ loaddMod <- function(filename = stop("'filename' must be specified"), flags = NU
 #' @param output Optional character of the file to be produced. If several objects were
 #' passed, the different C files are all compiled into one shared object file.
 #' @param args Additional arguments for the R CMD SHLIB call, e.g. \code{-leinspline}.
+#' @param cores Number of cores used for compilation when several files are compiled.
+#' @import doParallel
 #' @export
-compile <- function(..., output = NULL, args = NULL) {
+compile <- function(..., output = NULL, args = NULL, cores = 1) {
   
   objects <- list(...)
   files <- unlist(lapply(objects, function(o) {
@@ -581,11 +583,12 @@ compile <- function(..., output = NULL, args = NULL) {
   
   #return(files)
   if (is.null(output)) {
-    foreach::foreach(i = 1:length(files)) %dopar% {
+    registerDoParallel(cores)
+    foreach(i = 1:length(files), .options.snow=list(preschedule=FALSE, silent = FALSE)) %dopar% {
       try(dyn.unload(paste0(roots[i], .so)), silent = TRUE)
       system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", files[i], " ", args))
-      dyn.load(paste0(roots[i], .so))
     }
+    for (r in roots) dyn.load(paste0(r, .so))
   } else {
     for (r in roots) try(dyn.unload(paste0(r, .so)), silent = TRUE)
     try(dyn.unload(output), silent = TRUE)

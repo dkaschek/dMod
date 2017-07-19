@@ -11,11 +11,11 @@ observables <- eqnvec(B_obs = "B + off_B")
 errors <- eqnvec(B_obs = "sqrt((sigma_rel*B_obs)^2 + sigma_abs^2)")
 
 # Generate dMod objects
-model <- odemodel(f, modelname = "errtest", solver = "Sundials", compile = TRUE)
+model <- odemodel(f, modelname = "errtest", solver = "Sundials", compile = FALSE)
 x     <- Xs(model, optionsSens = list(method = "bdf"), optionsOde = list(method = "bdf"))
 g     <- Y(observables, x, 
            compile = FALSE, modelname = "obsfn")
-e     <- Y(errors, g, states = names(observables), attach.input = FALSE,
+e     <- Y(errors, g, attach.input = FALSE,
            compile = FALSE, modelname = "errfn")
 
 # Generate parameter transformation
@@ -27,13 +27,14 @@ trafo <- repar("x~exp(x)", x = innerpars, trafo)
 
 p <- P(trafo, condition = "C1", modelname = "parfn", compile = FALSE)
 
-compile(g, e, p, output = "errtest_helpers.so")
+compile(g, x, e, p, output = "errtest_helpers.so")
+compile(g, x, e, p, cores = 4)
 
 
 ## Simulate data
 ptrue <- c(k1 = -2, k2 = -3, off_B = -3, sigma_rel = log(.1), sigma_abs = log(.1))
 times <- seq(0, 50, 1)
-prediction <- (g*x*p)(times, ptrue, deriv = FALSE)
+prediction <- (g*x*p)(times, ptrue, deriv = TRUE)
 datasheet <- subset(as.data.frame(prediction, errfn = e), name == "B_obs")
 datasheet$value <- datasheet$value + rnorm(length(datasheet$value), sd = datasheet$sigma)
 data <- as.datalist(datasheet)

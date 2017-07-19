@@ -4,7 +4,7 @@
 \alias{compile}
 \title{Compile one or more prdfn, obsfn or parfn objects}
 \usage{
-compile(..., output = NULL, args = NULL)
+compile(..., output = NULL, args = NULL, cores = 1)
 }
 \arguments{
 \item{...}{Objects of class parfn, obsfn or prdfn}
@@ -13,6 +13,8 @@ compile(..., output = NULL, args = NULL)
 passed, the different C files are all compiled into one shared object file.}
 
 \item{args}{Additional arguments for the R CMD SHLIB call, e.g. \code{-leinspline}.}
+
+\item{cores}{Number of cores used for compilation when several files are compiled.}
 }
 \description{
 Compile one or more prdfn, obsfn or parfn objects
