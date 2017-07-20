@@ -601,4 +601,16 @@ compile <- function(..., output = NULL, args = NULL, cores = 1) {
 
 
 
+#' Determine loaded DLLs available in working directory
+#' 
+#' @return Character vector with the names of the loaded DLLs available in the working directory
+#' @export
+getLocalDLLs <- function() {
+  
+  all.dlls <- getLoadedDLLs()
+  is.local <- sapply(all.dlls, function(x) grepl(getwd(), unclass(x)$path, fixed = TRUE))
+  names(is.local)[is.local]
+  
+}
+
 

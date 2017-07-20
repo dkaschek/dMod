@@ -11,12 +11,12 @@ observables <- eqnvec(B_obs = "B + off_B")
 errors <- eqnvec(B_obs = "sqrt((sigma_rel*B_obs)^2 + sigma_abs^2)")
 
 # Generate dMod objects
-model <- odemodel(f, modelname = "errtest", solver = "Sundials", compile = FALSE)
+model <- odemodel(f, modelname = "errtest", solver = "Sundials", compile = TRUE)
 x     <- Xs(model, optionsSens = list(method = "bdf"), optionsOde = list(method = "bdf"))
 g     <- Y(observables, x, 
-           compile = FALSE, modelname = "obsfn")
+           compile = TRUE, modelname = "obsfn")
 e     <- Y(errors, g, attach.input = FALSE,
-           compile = FALSE, modelname = "errfn")
+           compile = TRUE, modelname = "errfn")
 
 # Generate parameter transformation
 innerpars <- getParameters(model, g, e)
@@ -25,10 +25,10 @@ trafo <- repar("x~1", x = "A", trafo)
 trafo <- repar("x~0", x = c("B", "C"), trafo)
 trafo <- repar("x~exp(x)", x = innerpars, trafo)
 
-p <- P(trafo, condition = "C1", modelname = "parfn", compile = FALSE)
+p <- P(trafo, condition = "C1", modelname = "parfn", compile = TRUE)
 
-compile(g, x, e, p, output = "errtest_helpers.so")
-compile(g, x, e, p, cores = 4)
+#compile(g, x, e, p, output = "errtest_helpers.so")
+#compile(g, x, e, p, cores = 4)
 
 
 ## Simulate data
