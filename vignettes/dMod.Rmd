@@ -62,7 +62,7 @@ Next, the equation list representing the ODE is translated into the ODE model `m
 
 ```{r}
 # Generate odemodel
-model0 <- odemodel(r, modelname = "jak-stat", compile = TRUE)
+model0 <- odemodel(r, modelname = "jakstat", compile = TRUE)
 ```
 
 ### Prediction and observation functions

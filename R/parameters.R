@@ -73,13 +73,15 @@ Pexpl <- function(trafo, parameters=NULL, attach.input = FALSE, condition = NULL
   
   # Modify modelname by condition
   if (!is.null(modelname) && !is.null(condition)) modelname <- paste(modelname, condition, sep = "_")
+  modelname_deriv <- NULL
+  if (!is.null(modelname)) modelname_deriv <- paste(modelname, "deriv", sep = "_")
 
   dtrafo <- jacobianSymb(trafo, parameters)
   
   PEval <- funC0(trafo, parameters = parameters, compile = compile, modelname = modelname, 
                  verbose = verbose, convenient = FALSE, warnings = FALSE)
   dPEval <- funC0(dtrafo, parameters = parameters, compile = compile, 
-                  modelname = paste(modelname, "deriv", sep = "_"), 
+                  modelname = modelname_deriv, 
                   verbose = verbose, convenient = FALSE, warnings = FALSE)
   
   
