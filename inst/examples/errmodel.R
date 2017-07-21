@@ -1,5 +1,6 @@
 
 library(dMod)
+setwd("/tmp")
 
 # Set up reactions
 f <- NULL
@@ -11,12 +12,12 @@ observables <- eqnvec(B_obs = "B + off_B")
 errors <- eqnvec(B_obs = "sqrt((sigma_rel*B_obs)^2 + sigma_abs^2)")
 
 # Generate dMod objects
-model <- odemodel(f, modelname = "errtest", solver = "Sundials", compile = TRUE)
+model <- odemodel(f, modelname = "errtest", solver = "Sundials", compile = FALSE)
 x     <- Xs(model, optionsSens = list(method = "bdf"), optionsOde = list(method = "bdf"))
 g     <- Y(observables, x, 
-           compile = TRUE, modelname = "obsfn")
+           compile = FALSE, modelname = "obsfn")
 e     <- Y(errors, g, attach.input = FALSE,
-           compile = TRUE, modelname = "errfn")
+           compile = FALSE, modelname = "errfn")
 
 # Generate parameter transformation
 innerpars <- getParameters(model, g, e)
@@ -25,9 +26,9 @@ trafo <- repar("x~1", x = "A", trafo)
 trafo <- repar("x~0", x = c("B", "C"), trafo)
 trafo <- repar("x~exp(x)", x = innerpars, trafo)
 
-p <- P(trafo, condition = "C1", modelname = "parfn", compile = TRUE)
+p <- P(trafo, condition = "C1", modelname = "parfn", compile = FALSE)
 
-#compile(g, x, e, p, output = "errtest_helpers.so")
+compile(g, x, e, p, output = "errtest_total")
 #compile(g, x, e, p, cores = 4)
 
 

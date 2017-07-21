@@ -549,8 +549,6 @@ loaddMod <- function(filename = stop("'filename' must be specified"), flags = NU
 }
 
 
-
-
 #' Compile one or more prdfn, obsfn or parfn objects
 #' 
 #' @param ... Objects of class parfn, obsfn or prdfn
@@ -563,15 +561,21 @@ loaddMod <- function(filename = stop("'filename' must be specified"), flags = NU
 compile <- function(..., output = NULL, args = NULL, cores = 1) {
   
   objects <- list(...)
-  files <- unlist(lapply(objects, function(o) {
-    files <- NULL
-    if (inherits(o, "obsfn") | inherits(o, "parfn") | inherits(o, "prdfn")) {
-      filename <- sapply(attr(o, "mappings"), function(x) attr(x, "modelname"))
+  obj.names <- as.character(substitute(list(...)))[-1]
+  # Get full list of .c and .cpp files for the obsfn, parfn and prdfn objects in ...
+  for (i in 1:length(objects)) {
+    
+    if (inherits(objects[[i]], c("obsfn", "parfn", "prdfn"))) {
+      # Get and reset modelname
+      filename <- modelname(objects[[i]])
+      if (!is.null(output))
+        eval(parse(text = paste0("modelname(", obj.names[i], ") <<- '", output, "'")))
+      # Expand modelname by possible endings and check if file exists
       filename <- outer(filename, c("", "_deriv", "_s", "_sdcv"), paste0)
       files <- c(paste0(filename, ".c"), paste0(filename, ".cpp"))
       files <- files[file.exists(files)]
     }
-  }))
+  }
   
   roots <- sapply(files, function(f) {
     l <- strsplit(f, split = ".", fixed = TRUE)[[1]]
@@ -592,8 +596,8 @@ compile <- function(..., output = NULL, args = NULL, cores = 1) {
   } else {
     for (r in roots) try(dyn.unload(paste0(r, .so)), silent = TRUE)
     try(dyn.unload(output), silent = TRUE)
-    system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", paste(files, collapse = " "), " -o ", output, " ", args))
-    dyn.load(output)
+    system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", paste(files, collapse = " "), " -o ", output, .so, " ", args))
+    dyn.load(paste0(output, .so))
   }
   
   
