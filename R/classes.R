@@ -1485,3 +1485,47 @@ getConditions.fn <- function(x, ...) {
   attr(x, "conditions")
   
 }
+
+#' @export
+modelname <- function(...) {
+  
+  Reduce("union", lapply(list(...), function(x) {
+    UseMethod("modelname", x)  
+  }))
+  
+}
+
+#' @export
+"modelname<-" <- function(x, ..., value) {
+  UseMethod("modelname<-", x)
+}
+
+#' @export
+modelname.fn <- function(x) {
+  
+  mappings <- attr(x, "mappings")
+  modelnames <- Reduce("union",
+                       lapply(mappings, function(m) attr(m, "modelname"))
+  )
+  
+  return(modelnames)  
+  
+}
+
+#' @export
+"modelname<-.fn" <- function(x, ..., value) {
+  
+  mappings <- attr(x, "mappings")
+  if (length(value) > 1 && length(value) != length(mappings))
+    stop("Length of modelname vector should be either 1 or equal to the number of conditions.")
+  if (length(value) == 1)
+      value <- rep(value, length.out = length(mappings))
+  
+  for (i in 1:length(mappings)) {
+    attr(attr(x, "mappings")[[i]], "modelname") <- value[i]
+  }
+    
+  
+  return(x)
+  
+}

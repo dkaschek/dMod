@@ -17,7 +17,7 @@ Depends:
     rootSolve,
     ggplot2,
     stringr,
-    parallel
+    doParallel
 Suggests:
     MASS,
     rPython,
