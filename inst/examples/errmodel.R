@@ -26,10 +26,11 @@ trafo <- repar("x~1", x = "A", trafo)
 trafo <- repar("x~0", x = c("B", "C"), trafo)
 trafo <- repar("x~exp(x)", x = innerpars, trafo)
 
-p <- P(trafo, condition = "C1", modelname = "parfn", compile = FALSE)
+p <- P(trafo, condition = "C1", modelname = "parfn", compile = FALSE) +
+     P(trafo, condition = "C2", modelname = "parfn", compile = FALSE)
 
 compile(g, x, e, p, output = "errtest_total")
-#compile(g, x, e, p, cores = 4)
+compile(g, x, e, p, cores = 4)
 
 
 ## Simulate data

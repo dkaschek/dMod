@@ -167,7 +167,10 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
  
   compile.line <- NULL
   if (compile)
-    compile.line <- "cfiles <- list.files(pattern = '.c$'); for(cf in cfiles) system(paste('R CMD SHLIB', cf))"
+    compile.line <- paste(
+      "cfiles <- list.files(pattern = '.c$'); for(cf in cfiles) system(paste('R CMD SHLIB', cf))",
+      "cppfiles <- list.files(pattern = '.cpp$'); for(cf in cppfiles) system(paste('R CMD SHLIB', cf))",
+      sep = "\n")
    
   # Write program into character
   program <- lapply(1:nmachines, function(m) paste(
@@ -176,8 +179,9 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
     "rm(list = ls())",
     compile.line,
     paste0("load('", filename0, ".RData')"),
-    #"files <- list.files(pattern = '.so')",
-    #"for (f in files) dyn.load(f)",
+    #"do.call(loadDLL, lapply(lsdMod(c('parfn', 'prdfn', 'obsfn', 'objfn')), get))",
+    "files <- list.files(pattern = '.so')",
+    "for (f in files) dyn.load(f)",
     #".oldobjects <- ls()",
     paste0(".node <- ", m),
     paste0(".runbgOutput <- try(", as.character(expr), ")"),
@@ -198,9 +202,18 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
     system(paste0("scp ", getwd(), "/", filename0, ".RData* ", machine[m], ":", filename[m], "_folder/"))
     system(paste0("scp ", getwd(), "/", filename[m], ".R* ", machine[m], ":", filename[m], "_folder/"))
     if (compile) {
-      system(paste0("scp ", getwd(), "/*.c ", machine[m], ":", filename[m], "_folder/"))
+      # Get all my .c and .cpp files
+      modelfiles <- do.call("c", lapply(getLocalDLLs(), function(r) list.files(pattern = r)))
+      cfiles <- paste(getwd(), c(
+        modelfiles[grepl(".c$", modelfiles)],
+        modelfiles[grepl(".cpp$", modelfiles)]
+      ), sep = "/")
+      system(paste0("scp ", paste(cfiles, collapse = " "), " ", machine[m], ":", filename[m], "_folder/"))
     } else {
-      system(paste0("scp ", getwd(), "/*.so ", machine[m], ":", filename[m], "_folder/"))
+      modelfiles <- do.call("c", lapply(getLocalDLLs(), function(r) list.files(pattern = r)))
+      .so <- .Platform$dynlib.ext
+      sofiles <- paste(getwd(), modelfiles[grepl(paste0(.so, "$"), modelfiles)], sep = "/")
+      system(paste0("scp ", paste(sofiles, collapse = " "), " ", machine[m], ":", filename[m], "_folder/"))
     }
     
   }
