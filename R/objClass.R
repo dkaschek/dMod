@@ -123,7 +123,9 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
     stop("The prediction function does not provide predictions for all conditions in the data.")
   
   controls <- list(times = timesD, attr.name = attr.name, conditions = x.conditions)
-  
+
+  # might be necessary to "store" errmodel in the objective function (-> runbg)
+  force(errmodel)  
   
   myfn <- function(..., fixed = NULL, deriv=TRUE, conditions = controls$conditions, env = NULL) {
     
@@ -187,6 +189,7 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
   class(myfn) <- c("objfn", "fn")
   attr(myfn, "conditions") <- data.conditions
   attr(myfn, "parameters") <- attr(x, "parameters")
+  attr(myfn, "modelname") <- modelname(x, errmodel)
   return(myfn)
 
 }

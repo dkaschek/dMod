@@ -621,6 +621,10 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
   parameters.x2 <- attr(x2, "parameters")
   parameters12 <- union(parameters.x1, parameters.x2)
   
+  modelname.x1 <- attr(x1, "modelname")
+  modelname.x2 <- attr(x2, "modelname")
+  modelname12 <- union(modelname.x1, modelname.x2)
+  
   
   # objfn + objfn
   if (inherits(x1, "objfn") & inherits(x2, "objfn")) {
@@ -642,6 +646,7 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
     class(outfn) <- c("objfn", "fn")
     attr(outfn, "conditions") <- conditions12
     attr(outfn, "parameters") <- parameters12
+    attr(outfn, "modelname") <- modelname12
     return(outfn)
     
   }
@@ -673,6 +678,7 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
     
     conditions12 <- attr(x2, "conditions")
     parameters12 <- attr(x2, "parameters")
+    modelname12 <- attr(x2, "modelname")
     outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = conditions12, env = NULL) {
       
       arglist <- list(...)
@@ -690,6 +696,7 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
     class(outfn) <- c("objfn", "fn")
     attr(outfn, "conditions") <- conditions12
     attr(outfn, "parameters") <- parameters12
+    attr(outfn, "modelname") <- modelname12
     return(outfn)
     
   } else {
@@ -939,7 +946,12 @@ test_conditions <- function(c1, c2) {
       mapping <- function(out, pars) {
         outfn(out = out, pars = pars, conditions = conditions.out[i])[[1]]
       }
+      m1 <- modelname(p1, conditions = conditions.p1[i])
+      m2 <- modelname(p2, conditions = conditions.p2[i])
+      attr(mapping, "modelname") <- union(m1, m2)
       attr(mapping, "parameters") <- getParameters(p2, conditions = conditions.out[i])
+      
+      
       
       return(mapping)
     })
@@ -984,6 +996,9 @@ test_conditions <- function(c1, c2) {
       mapping <- function(out, pars) {
         outfn(out = out, pars = pars, conditions = conditions.out[i])[[1]]
       }
+      m1 <- modelname(p1, conditions = conditions.p1[i])
+      m2 <- modelname(p2, conditions = conditions.p2[i])
+      attr(mapping, "modelname") <- union(m1, m2)
       attr(mapping, "parameters") <- getParameters(p2, conditions = conditions.out[i])
       
       return(mapping)
@@ -1029,6 +1044,9 @@ test_conditions <- function(c1, c2) {
       mapping <- function(times, pars, deriv = TRUE) {
         outfn(times = times, pars = pars, deriv = deriv, conditions = conditions.out[i])[[1]]
       }
+      m1 <- modelname(p1, conditions = conditions.p1[i])
+      m2 <- modelname(p2, conditions = conditions.p2[i])
+      attr(mapping, "modelname") <- union(m1, m2)
       attr(mapping, "parameters") <- getParameters(p2, conditions = conditions.out[i])
       
       return(mapping)
@@ -1077,6 +1095,9 @@ test_conditions <- function(c1, c2) {
         outfn(times = times, pars = pars, deriv = deriv, conditions = conditions.out[i])[[1]]
       }
       attr(mapping, "parameters") <- getParameters(p2, conditions = conditions.out[i])
+      m1 <- modelname(p1, conditions = conditions.p1[i])
+      m2 <- modelname(p2, conditions = conditions.p2[i])
+      attr(mapping, "modelname") <- union(m1, m2)
       
       return(mapping)
     })
@@ -1119,6 +1140,9 @@ test_conditions <- function(c1, c2) {
       mapping <- function(pars, fixed = NULL, deriv = TRUE) {
         outfn(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions.out[i])[[1]]
       }
+      m1 <- modelname(p1, conditions = conditions.p1[i])
+      m2 <- modelname(p2, conditions = conditions.p2[i])
+      attr(mapping, "modelname") <- union(m1, m2)
       attr(mapping, "parameters") <- getParameters(p2, conditions = conditions.out[i])
       
       return(mapping)
@@ -1135,46 +1159,6 @@ test_conditions <- function(c1, c2) {
     
   }
   
-  # parfn * parfn -> parfn
-  if (inherits(p1, "parfn") & inherits(p2, "parfn")) {
-    
-    conditions.p1 <- attr(p1, "conditions")
-    conditions.p2 <- attr(p2, "conditions")
-    conditions.out <- out_conditions(conditions.p1, conditions.p2)
-    
-    
-    outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = NULL, env = NULL) {
-      
-      arglist <- list(...)
-      arglist <- arglist[match.fnargs(arglist, c("pars"))]
-      pars <- arglist[[1]]
-      
-      step1 <- p2(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions)
-      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(pars = step1[[i]], deriv = deriv, conditions = names(step1)[i])))
-      return(step2)
-      
-    }
-    
-    # Generate mappings for parameters function
-    l <- max(c(1, length(conditions.out)))
-    mappings <- lapply(1:l, function(i) {
-      mapping <- function(pars, fixed = NULL, deriv = TRUE) {
-        outfn(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions.out[i])[[1]]
-      }
-      attr(mapping, "parameters") <- getParameters(p2, conditions = conditions.out[i])
-      
-      return(mapping)
-    })
-    names(mappings) <- conditions.out
-    attr(outfn, "mappings") <- mappings
-    
-    attr(outfn, "parameters") <- attr(p2, "parameters")
-    attr(outfn, "conditions") <- conditions.out
-    class(outfn) <- c("parfn", "fn", "composed")
-    
-    return(outfn)
-    
-  }
   
   # objfn * parfn -> objfn
   if (inherits(p1, "objfn") & inherits(p2, "parfn")) {
@@ -1486,12 +1470,47 @@ getConditions.fn <- function(x, ...) {
   
 }
 
+
 #' @export
-modelname <- function(...) {
+modelname <- function(..., conditions = NULL) {
   
-  Reduce("union", lapply(list(...), function(x) {
-    UseMethod("modelname", x)  
-  }))
+  Reduce("union", lapply(list(...), mname, conditions = conditions))
+    
+}
+
+#' @export
+mname <- function(x, ...) {
+  UseMethod("mname", x)
+}
+
+#' @export
+mname.NULL <- function(x, conditions = NULL) NULL
+
+#' @export
+mname.character <- function(x, conditions = NULL) {
+  
+  mname(get(x), conditions = conditions)
+  
+}
+
+#' @export
+mname.objfn <- function(x, conditions = NULL) {
+  
+  attr(x, "modelname")
+  
+}
+
+#' @export
+mname.fn <- function(x, conditions = NULL) {
+  
+  mappings <- attr(x, "mappings")
+  select <- 1:length(mappings)
+  if (!is.null(conditions)) select <- intersect(names(mappings), conditions)
+  modelnames <- Reduce("union",
+                       lapply(mappings[select], function(m) attr(m, "modelname"))
+  )
+  
+  return(modelnames)  
   
 }
 
@@ -1501,31 +1520,30 @@ modelname <- function(...) {
 }
 
 #' @export
-modelname.fn <- function(x) {
+"modelname<-.fn" <- function(x, ..., value, conditions = NULL) {
   
   mappings <- attr(x, "mappings")
-  modelnames <- Reduce("union",
-                       lapply(mappings, function(m) attr(m, "modelname"))
-  )
+  select <- 1:length(mappings)
+  if (!is.null(conditions)) select <- intersect(names(mappings), conditions)
+  #if (length(value) > 1 && length(value) != length(mappings[select]))
+  #  stop("Length of modelname vector should be either 1 or equal to the number of conditions.")
+  if (length(value) == 1) {
+    value <- rep(value, length.out = length(mappings[select]))
+    if (!is.null(conditions)) names(value) <- conditions
+  }
+    
   
-  return(modelnames)  
-  
-}
-
-#' @export
-"modelname<-.fn" <- function(x, ..., value) {
-  
-  mappings <- attr(x, "mappings")
-  if (length(value) > 1 && length(value) != length(mappings))
-    stop("Length of modelname vector should be either 1 or equal to the number of conditions.")
-  if (length(value) == 1)
-      value <- rep(value, length.out = length(mappings))
-  
-  for (i in 1:length(mappings)) {
+  for (i in select) {
     attr(attr(x, "mappings")[[i]], "modelname") <- value[i]
   }
     
   
   return(x)
   
+}
+
+#' @export
+"modelname<-.objfn" <- function(x, ..., value, conditions = NULL) {
+  attr(x, "modelname") <- value
+  return(x)
 }

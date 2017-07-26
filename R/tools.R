@@ -563,6 +563,7 @@ compile <- function(..., output = NULL, args = NULL, cores = 1) {
   objects <- list(...)
   obj.names <- as.character(substitute(list(...)))[-1]
   # Get full list of .c and .cpp files for the obsfn, parfn and prdfn objects in ...
+  files <- NULL
   for (i in 1:length(objects)) {
     
     if (inherits(objects[[i]], c("obsfn", "parfn", "prdfn"))) {
@@ -572,10 +573,12 @@ compile <- function(..., output = NULL, args = NULL, cores = 1) {
         eval(parse(text = paste0("modelname(", obj.names[i], ") <<- '", output, "'")))
       # Expand modelname by possible endings and check if file exists
       filename <- outer(filename, c("", "_deriv", "_s", "_sdcv"), paste0)
-      files <- c(paste0(filename, ".c"), paste0(filename, ".cpp"))
-      files <- files[file.exists(files)]
+      files.obj <- c(paste0(filename, ".c"), paste0(filename, ".cpp"))
+      files.obj <- files.obj[file.exists(files.obj)]
+      files <- union(files, files.obj)
     }
   }
+  
   
   roots <- sapply(files, function(f) {
     l <- strsplit(f, split = ".", fixed = TRUE)[[1]]
@@ -617,4 +620,23 @@ getLocalDLLs <- function() {
   
 }
 
+#' @export
+loadDLL <- function(...) {
+  
+  .so <- .Platform$dynlib.ext
+  models <- modelname(...)
+  files <- paste0(outer(models, c("", "_sdcv", "_deriv"), paste0), .so)
+  files <- files[file.exists(files)]
+  
+  for (m in models) {
+    try(dyn.unload(paste0(m, .so)), silent = TRUE)
+    dyn.load(paste0(m, .so))
+  }
+  
+  
+  message("The following local files were dynamically loaded: ", paste(files, collapse = ", "))
+  
+  
+  
+}
 
