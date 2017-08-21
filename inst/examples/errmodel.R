@@ -44,14 +44,15 @@ data <- as.datalist(datasheet)
 ## Fit data with error model
 obj <- normL2(data, g*x*p, e)
 myfit <- trust(obj, ptrue, rinit = 1, rmax = 10)
-profiles <- profile(normL2(data, g*x*p, e) + constraintL2(myfit$argument, 10), 
+fits <- mstrust(obj, center = ptrue, sd = 3, fits = 10)
+profiles <- profile(obj + constraintL2(myfit$argument, 10), 
                     myfit$argument, names(myfit$argument), limits = c(-5, 5), cores = 4)
 plotProfile(profiles)
 
 ## Fit externally
 out <- runbg({
   trust(obj, ptrue, rinit = 1, rmax = 10)
-}, machine = "localhost", filename = "test", input = c("obj", "ptrue"), compile = TRUE)
+}, machine = "localhost", filename = "test", input = c("obj", "ptrue"), compile = FALSE)
 
 
 ## Plotting

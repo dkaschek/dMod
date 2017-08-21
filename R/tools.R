@@ -590,11 +590,10 @@ compile <- function(..., output = NULL, args = NULL, cores = 1) {
   
   #return(files)
   if (is.null(output)) {
-    registerDoParallel(cores)
-    foreach(i = 1:length(files), .options.snow=list(preschedule=FALSE, silent = FALSE)) %dopar% {
+    compilation_out <- mclapply(1:length(files), function(i) {
       try(dyn.unload(paste0(roots[i], .so)), silent = TRUE)
       system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", files[i], " ", args))
-    }
+    }, mc.cores = cores, mc.silent = FALSE)
     for (r in roots) dyn.load(paste0(r, .so))
   } else {
     for (r in roots) try(dyn.unload(paste0(r, .so)), silent = TRUE)

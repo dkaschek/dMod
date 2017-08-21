@@ -76,8 +76,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   if (!is.null(algoControl)) aControl[match(names(algoControl), names(aControl))] <- algoControl
   if (!is.null(optControl )) oControl[match(names(optControl), names(oControl ))] <- optControl
     
-  registerDoParallel(cores)
-  do.call(rbind, foreach(whichPar = whichPar, .options.snow=list(preschedule=FALSE, silent = FALSE)) %dopar% {
+  do.call(rbind, mclapply(whichPar, function(whichPar) {
     
     
     if (is.character(whichPar)) whichPar <- which(names(pars) == whichPar)
@@ -430,7 +429,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       obj.attributes = names(out.attributes)
     )
     
-  })  
+  }, mc.cores = cores, mc.preschedule = FALSE))  
   
 }
 
