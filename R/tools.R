@@ -639,3 +639,10 @@ loadDLL <- function(...) {
   
 }
 
+
+sanitizeCores <- function(cores)  {
+  
+ if (Sys.info()[['sysname']] == "Windows") cores <- 1
+ return(cores)
+  
+}

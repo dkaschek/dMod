@@ -278,6 +278,9 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
 
   narrowing <- NULL
   
+  # Check if on Windows
+  cores <- sanitizeCores(cores)
+  
   # Argument parsing, sorting, and enhancing
   # Gather all function arguments
   varargslist <- list(...)

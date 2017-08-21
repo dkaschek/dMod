@@ -71,6 +71,9 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     oControl <- list(rinit = .1, rmax = 10, iterlim = 100, fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps))
   }
   
+  # Check if on Windows
+  cores <- sanitizeCores(cores)
+  
   # Substitute user-set control parameters
   if (!is.null(stepControl)) sControl[match(names(stepControl), names(sControl))] <- stepControl
   if (!is.null(algoControl)) aControl[match(names(algoControl), names(aControl))] <- algoControl
