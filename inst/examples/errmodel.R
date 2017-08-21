@@ -48,6 +48,11 @@ profiles <- profile(normL2(data, g*x*p, e) + constraintL2(myfit$argument, 10),
                     myfit$argument, names(myfit$argument), limits = c(-5, 5), cores = 4)
 plotProfile(profiles)
 
+## Fit externally
+out <- runbg({
+  trust(obj, ptrue, rinit = 1, rmax = 10)
+}, machine = "localhost", filename = "test", input = c("obj", "ptrue"), compile = TRUE)
+
 
 ## Plotting
 out <- as.data.frame((g*x*p)(times = seq(0, 50, len = 100), pars = myfit$argument), errfn = e)

@@ -91,6 +91,8 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
   
   # Initialize output
   out <- structure(vector("list", 3), names = c("check", "get", "purge"))
+  
+  # Check
   out[[1]] <- function() {
     
     check.out <- sapply(1:nmachines, function(m) length(suppressWarnings(
@@ -112,6 +114,7 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
       
   }
   
+  # Get
   out[[2]] <- function() {
     
     result <- structure(vector(mode = "list", length = nmachines), names = machine)
@@ -126,6 +129,7 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
     
   }
   
+  # Purge
   out[[3]] <- function() {
     
     for (m in 1:nmachines) {
@@ -160,16 +164,15 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
   
   # Define outputs
   output <- ".runbgOutput"
-  # if(is.null(output))
-  #   output <- "setdiff(.newobjects, .oldobjects)"
-  # else
-  #   output <- paste0("c('", paste(output, collapse = "', '"), "')")
- 
+  
   compile.line <- NULL
   if (compile)
     compile.line <- paste(
-      "cfiles <- list.files(pattern = '.c$'); for(cf in cfiles) system(paste('R CMD SHLIB', cf))",
-      "cppfiles <- list.files(pattern = '.cpp$'); for(cf in cppfiles) system(paste('R CMD SHLIB', cf))",
+      "cfiles <- list.files(pattern = '.c$')",
+      "cppfiles <- list.files(pattern = '.cpp$')",
+      "filelist <- paste(paste(cfiles, collapse = ' '), paste(cppfiles, collapse = ' '))",
+      paste0("filename0 <- '", filename0, "'"),
+      "system(paste0('R CMD SHLIB ', filelist, ' -o ', filename0, '.so'))",
       sep = "\n")
    
   # Write program into character
@@ -201,22 +204,16 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
     system(paste0("ssh ", machine[m], " rm ", filename[m], "_folder/*"), ignore.stdout = TRUE, ignore.stderr = TRUE)
     system(paste0("scp ", getwd(), "/", filename0, ".RData* ", machine[m], ":", filename[m], "_folder/"))
     system(paste0("scp ", getwd(), "/", filename[m], ".R* ", machine[m], ":", filename[m], "_folder/"))
+
     if (compile) {
-      # Get all my .c and .cpp files
-      modelfiles <- do.call("c", lapply(getLocalDLLs(), function(r) list.files(pattern = r)))
-      cfiles <- paste(getwd(), c(
-        modelfiles[grepl(".c$", modelfiles)],
-        modelfiles[grepl(".cpp$", modelfiles)]
-      ), sep = "/")
-      system(paste0("scp ", paste(cfiles, collapse = " "), " ", machine[m], ":", filename[m], "_folder/"))
+      system(paste0("scp ", getwd(), "/*.c ", getwd(), "/*.cpp ", machine[m], ":", filename[m], "_folder/"))
     } else {
-      modelfiles <- do.call("c", lapply(getLocalDLLs(), function(r) list.files(pattern = r)))
-      .so <- .Platform$dynlib.ext
-      sofiles <- paste(getwd(), modelfiles[grepl(paste0(.so, "$"), modelfiles)], sep = "/")
-      system(paste0("scp ", paste(sofiles, collapse = " "), " ", machine[m], ":", filename[m], "_folder/"))
+      system(paste0("scp ", getwd(), "/*.so ", machine[m], ":", filename[m], "_folder/"))
     }
     
   }
+  
+
   
   # Run in background
   for (m in 1:nmachines) system(paste0("ssh ", machine[m], " R CMD BATCH --vanilla ", filename[m], "_folder/", filename[m], ".R"), intern = FALSE, wait = wait)
