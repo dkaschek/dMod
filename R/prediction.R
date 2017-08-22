@@ -169,7 +169,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
   attr(P2X, "equations") <- as.eqnvec(attr(func, "equations"))
   attr(P2X, "forcings") <- forcings
   attr(P2X, "events") <- events
-  attr(P2X, "modelname") <- extended[1]
+  attr(P2X, "modelname") <- func[1]
   
   
   prdfn(P2X, c(variables, parameters), condition) 

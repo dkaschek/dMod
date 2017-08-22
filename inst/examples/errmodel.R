@@ -12,7 +12,7 @@ observables <- eqnvec(B_obs = "B + off_B")
 errors <- eqnvec(B_obs = "sqrt((sigma_rel*B_obs)^2 + sigma_abs^2)")
 
 # Generate dMod objects
-model <- odemodel(f, modelname = "errtest", solver = "Sundials", compile = FALSE)
+model <- odemodel(f, modelname = "errtest", compile = FALSE, solver = "Sundials")
 x     <- Xs(model, optionsSens = list(method = "bdf"), optionsOde = list(method = "bdf"))
 g     <- Y(observables, x, 
            compile = FALSE, modelname = "obsfn")

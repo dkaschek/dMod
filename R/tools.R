@@ -556,7 +556,6 @@ loaddMod <- function(filename = stop("'filename' must be specified"), flags = NU
 #' passed, the different C files are all compiled into one shared object file.
 #' @param args Additional arguments for the R CMD SHLIB call, e.g. \code{-leinspline}.
 #' @param cores Number of cores used for compilation when several files are compiled.
-#' @import doParallel
 #' @export
 compile <- function(..., output = NULL, args = NULL, cores = 1) {
   
