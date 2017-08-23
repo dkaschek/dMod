@@ -642,10 +642,12 @@ stepDetect <- function(x, tol) {
 #' @param x data.frame with columns "value", "converged" and "iterations", e.g. 
 #' a \link{parframe}.
 #' @param ... arguments for subsetting of x
+#' @param tol maximal allowed difference between neighboring objective values
+#' to be recognized as one.
 #' @export
 plotValues <- function(x, tol = 1, ...) {
   
-  x <- subset(x, ...)
+  if (length(list(...)) > 0) x <- subset(x, ...)
 
   jumps <- stepDetect(x$value, tol)
   y.jumps <- seq(max(x$value), min(x$value), length.out = length(jumps))
@@ -671,11 +673,13 @@ plotValues <- function(x, tol = 1, ...) {
 #' Plot parameter values for a fitlist
 #' 
 #' @param x parameter frame as obtained by as.parframe(mstrust)
+#' @param tol maximal allowed difference between neighboring objective values
+#' to be recognized as one.
 #' @param ... arguments for subsetting of x
 #' @export
 plotPars <- function(x, tol = 1, ...){
   
-  x <- subset(x, ...)
+  if (length(list(...)) > 0) x <- subset(x, ...)
   
   jumps <- stepDetect(x$value, tol)
   jump.index <- approx(jumps, jumps, xout = 1:length(x$value), method = "constant", rule = 2)$y
