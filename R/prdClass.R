@@ -78,8 +78,9 @@ print.prdlist <- function(x, ...) {
 #' @export
 #' @param data data list oject
 #' @param errfn obsfn object, the error model function to predict sigma
+#' @param ... not used right now
 #' @rdname as.data.frame.dMod
-as.data.frame.prdlist <- function(x, data = NULL, errfn = NULL, ...) {
+as.data.frame.prdlist <- function(x, ..., data = NULL, errfn = NULL) {
   
   prediction <- x
   sigma <- NULL

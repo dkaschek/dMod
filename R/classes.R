@@ -1479,7 +1479,7 @@ modelname <- function(..., conditions = NULL) {
 }
 
 #' @export
-mname <- function(x, ...) {
+mname <- function(x, conditions = NULL) {
   UseMethod("mname", x)
 }
 
@@ -1520,7 +1520,7 @@ mname.fn <- function(x, conditions = NULL) {
 }
 
 #' @export
-"modelname<-.fn" <- function(x, ..., value, conditions = NULL) {
+"modelname<-.fn" <- function(x, conditions = NULL, ..., value) {
   
   mappings <- attr(x, "mappings")
   select <- 1:length(mappings)
@@ -1547,7 +1547,7 @@ mname.fn <- function(x, conditions = NULL) {
 }
 
 #' @export
-"modelname<-.objfn" <- function(x, ..., value, conditions = NULL) {
+"modelname<-.objfn" <- function(x, conditions = NULL, ..., value) {
   attr(x, "modelname") <- value
   return(x)
 }

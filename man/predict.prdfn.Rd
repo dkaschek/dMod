@@ -4,10 +4,12 @@
 \alias{predict.prdfn}
 \title{Model Predictions}
 \usage{
-\method{predict}{prdfn}(x, times, pars, data = NULL, ...)
+\method{predict}{prdfn}(object, ..., times, pars, data = NULL)
 }
 \arguments{
-\item{x}{prediction function}
+\item{object}{prediction function}
+
+\item{...}{Further arguments goint to the prediction function}
 
 \item{times}{numeric vector of time points}
 
@@ -17,8 +19,6 @@
 \item{data}{data list object. If data is passed, its condition.grid
 attribute is used to augment the output dataframe by additional 
 columns. \code{"data"} itself is returned as an attribute.}
-
-\item{...}{Further arguments goint to the prediction function}
 }
 \value{
 A data frame

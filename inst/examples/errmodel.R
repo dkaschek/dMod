@@ -52,7 +52,7 @@ plotProfile(profiles)
 ## Fit externally
 out <- runbg({
   trust(obj, ptrue, rinit = 1, rmax = 10)
-}, machine = "localhost", filename = "test", input = c("obj", "ptrue"), compile = FALSE)
+}, machine = "localhost", filename = "test", input = c("obj", "ptrue"), compile = TRUE)
 
 
 ## Plotting

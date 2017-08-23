@@ -456,12 +456,16 @@ progressBar <- function(percentage, size = 50, number = TRUE) {
 #' Profile uncertainty extraction
 #' 
 #' @description extract parameter uncertainties from profiles
-#' @param profile object of class \code{parframe}, returned from \link{profile} function.
+#' @param object object of class \code{parframe}, returned from \link{profile} function.
 #' @param parm a specification of which parameters are to be given confidence intervals, 
 #' either a vector of numbers or a vector of names. If missing, all parameters are considered.
 #' @param level the confidence level required.
+#' @param ... not used right now.
+#' @param val.column the value column used in the parframe, usually 'data'.
 #' @export
-confint.parframe <- function(profile, parm = NULL, level = 0.95, val.column = "data") {
+confint.parframe <- function(object, parm = NULL, level = 0.95, ..., val.column = "data") {
+  
+  profile <- object
   
   maxvalue <- qchisq(level, df = 1)
   

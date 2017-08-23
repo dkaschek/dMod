@@ -7,7 +7,7 @@
 \usage{
 \method{as.data.frame}{datalist}(x, ...)
 
-\method{as.data.frame}{prdlist}(x, data = NULL, errfn = NULL, ...)
+\method{as.data.frame}{prdlist}(x, ..., data = NULL, errfn = NULL)
 }
 \arguments{
 \item{x}{any R object}
@@ -17,6 +17,8 @@
 \item{data}{data list oject}
 
 \item{errfn}{obsfn object, the error model function to predict sigma}
+
+\item{...}{not used right now}
 }
 \value{
 a data frame

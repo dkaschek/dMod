@@ -191,6 +191,7 @@ Pexpl <- function(trafo, parameters=NULL, attach.input = FALSE, condition = NULL
 #' pSS <- Pimpl(f, "total")
 #' pSS(c(k1 = 1, k2 = 2, A = 5, B = 5, total = 3))
 #' @export
+#' @import rootSolve
 Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, positive = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
   
   
