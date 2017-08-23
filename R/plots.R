@@ -645,12 +645,15 @@ stepDetect <- function(x, tol) {
 #' @export
 plotValues <- function(x, tol = 1, ...) {
   
+  x <- subset(x, ...)
+
   jumps <- stepDetect(x$value, tol)
   y.jumps <- seq(max(x$value), min(x$value), length.out = length(jumps))
   
+    
   pars <- x
   pars <- cbind(index = 1:nrow(pars), pars[order(pars$value),])
-  pars <- subset(pars, ...)
+  
   
   P <- ggplot2::ggplot(pars, aes(x = index, y = value, pch = converged, color = iterations)) + 
     geom_vline(xintercept = jumps, lty = 2) +
@@ -672,6 +675,8 @@ plotValues <- function(x, tol = 1, ...) {
 #' @export
 plotPars <- function(x, tol = 1, ...){
   
+  x <- subset(x, ...)
+  
   jumps <- stepDetect(x$value, tol)
   jump.index <- approx(jumps, jumps, xout = 1:length(x$value), method = "constant", rule = 2)$y
   
@@ -685,7 +690,6 @@ plotPars <- function(x, tol = 1, ...){
   parNames <- attr(myparframe,"parameters")
   parOut <- wide2long.data.frame(out = ((myparframe[, c("index", "value", parNames)])) , keep = 1:2)
   names(parOut) <- c("index", "value", "name", "parvalue")
-  parOut <- subset(parOut, ...)
   plot <- ggplot2::ggplot(parOut, aes(x = name, y = parvalue, color = index)) + geom_boxplot(outlier.alpha = 0) + theme_dMod() + scale_color_dMod() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
   
   attr(plot, "data") <- parOut
