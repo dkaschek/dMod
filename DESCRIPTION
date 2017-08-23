@@ -16,8 +16,9 @@ Depends:
     deSolve,
     rootSolve,
     ggplot2,
+    parallel,
     stringr,
-    parallel
+    plyr
 Suggests:
     MASS,
     rPython,

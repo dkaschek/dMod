@@ -34,5 +34,5 @@ lambda <- c(A = 0.1, B = 1)
 constraintL1(p, mu, lambda)
 }
 \seealso{
-\link{wrss}, \link{summation}, \link{constraintL2}, \link{constraintExp2}
+\link{wrss}, \link{constraintL2}, \link{constraintExp2}
 }

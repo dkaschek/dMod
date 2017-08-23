@@ -9,6 +9,9 @@ plotPars(x, tol = 1, ...)
 \arguments{
 \item{x}{parameter frame as obtained by as.parframe(mstrust)}
 
+\item{tol}{maximal allowed difference between neighboring objective values
+to be recognized as one.}
+
 \item{...}{arguments for subsetting of x}
 }
 \description{

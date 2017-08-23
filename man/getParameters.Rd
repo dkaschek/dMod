@@ -26,6 +26,8 @@ getParameters(..., conditions = NULL)
 
 \item{conditions}{character vector specifying the conditions to 
 which \code{getParameters} is restricted}
+
+\item{x}{object from which the parameters are extracted}
 }
 \value{
 The parameters in a format that depends on the class of \code{x}.

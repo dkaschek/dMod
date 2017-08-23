@@ -10,6 +10,9 @@ plotValues(x, tol = 1, ...)
 \item{x}{data.frame with columns "value", "converged" and "iterations", e.g. 
 a \link{parframe}.}
 
+\item{tol}{maximal allowed difference between neighboring objective values
+to be recognized as one.}
+
 \item{...}{arguments for subsetting of x}
 }
 \description{

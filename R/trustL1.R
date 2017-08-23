@@ -1,34 +1,13 @@
 
 norm <- function(x) sqrt(sum(x^2))
 
-########## REFERENCES ##########
-#####
-##### Fletcher, R. (1987)
-##### Practical Methods of Optimization, second edition.
-##### John Wiley, Chichester.
-#####
-##### Nocedal, J. and Wright, S. J. (1999)
-##### Numerical Optimization.
-##### Springer-Verlag, New York.
-#####
-##### See Section 5.1 of Fletcher
-##### See Section 4.2 of Nocedal and Wright
-#####
-################################
-
-########## COMMENT ##########
-##### Our method using one eigendecomposition per iteration is not fastest.
-##### Both books recommend using multiple Cholesky decompositions instead.
-##### But the eigendecomposition method is simpler to program, easier to
-##### understand (which is why both books use it for their theoretical
-##### explanation), and hopefully more bulletproof.
-#####
-##### Our idea for this comes from the way mvrnorm in the MASS package also
-##### uses eigendecomposition rather than Cholesky -- also because bulletproof
-##### is better than fast.
-#############################
 
 #' @export
+#' @rdname trust
+#' @param blather2 even more information
+#' @param mu named numeric value. The reference value for L1 penalized parameters.
+#' @param one.sided logical. One-sided penalization.
+#' @param lambda strength of the L1 penalty 
 trustL1 <- function(objfun, parinit, mu = 0*parinit, one.sided=FALSE, lambda = 1, rinit, rmax, parscale,
     iterlim = 100, fterm = sqrt(.Machine$double.eps),
     mterm = sqrt(.Machine$double.eps),
@@ -409,12 +388,13 @@ check.objfun.output <- function(obj, minimize, dimen)
 #' @details Computes the constraint value 
 #' \deqn{\lambda\|p-\mu\|}{lambda*abs(p-mu)}
 #' and its derivatives with respect to p.
-#' @seealso \link{wrss}, \link{summation}, \link{constraintL2}, \link{constraintExp2}
+#' @seealso \link{wrss}, \link{constraintL2}, \link{constraintExp2}
 #' @examples
 #' p <- c(A = 1, B = 2, C = 3)
 #' mu <- c(A = 0, B = 0)
 #' lambda <- c(A = 0.1, B = 1)
 #' constraintL1(p, mu, lambda)
+#' @export
 constraintL1 <- function(p, mu, lambda = 1, fixed = NULL) {
    
   ## Augment sigma if length = 1
@@ -457,23 +437,23 @@ constraintL1 <- function(p, mu, lambda = 1, fixed = NULL) {
 
 
 
-#' Soft L1 prior on parameters
-#' 
-#' @param p Namec numeric, the parameter value
-#' @param mu Named numeric, the prior values
-#' @param lambda Named numeric of length of mu or numeric of length one.
-#' @param fixed Named numeric with fixed parameter values (contribute to the prior value
-#' but not to gradient and Hessian)
-#' @return List of class \code{obj}, i.e. objective value, gradient and Hessian as list.
-#' @details Computes the constraint value 
-#' \deqn{\lambda\|p-\mu\|}{lambda*abs(p-mu)}
-#' and its derivatives with respect to p.
-#' @seealso \link{wrss}, \link{summation}, \link{constraintL2}, \link{constraintExp2}
-#' @examples
-#' p <- c(A = 1, B = 2, C = 3)
-#' mu <- c(A = 0, B = 0)
-#' lambda <- c(A = 0.1, B = 1)
-#' constraintL1(p, mu, lambda)
+# Soft L1 prior on parameters
+# 
+# @param p Namec numeric, the parameter value
+# @param mu Named numeric, the prior values
+# @param lambda Named numeric of length of mu or numeric of length one.
+# @param fixed Named numeric with fixed parameter values (contribute to the prior value
+# but not to gradient and Hessian)
+# @return List of class \code{obj}, i.e. objective value, gradient and Hessian as list.
+# @details Computes the constraint value 
+# \deqn{\lambda\|p-\mu\|}{lambda*abs(p-mu)}
+# and its derivatives with respect to p.
+# @seealso \link{wrss}, \link{summation}, \link{constraintL2}, \link{constraintExp2}
+# @examples
+# p <- c(A = 1, B = 2, C = 3)
+# mu <- c(A = 0, B = 0)
+# lambda <- c(A = 0.1, B = 1)
+# constraintL1(p, mu, lambda)
 # priorL1 <- function(p, mu, lambda = "lambda", fixed = NULL) {
 #    
 #   ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
@@ -577,7 +557,99 @@ l1norm <- function(nout) {
   
 }
 
-
+#' Non-Linear Optimization
+#' 
+#' This function carries out a minimization or maximization of a function 
+#' using a trust region algorithm. See the references for details.
+#' 
+#' @param objfun an R function that computes value, gradient, and Hessian of the 
+#' function to be minimized or maximized and returns them as a list with 
+#' components value, gradient, and hessian. Its first argument should be a 
+#' vector of the length of parinit followed by any other arguments specified 
+#' by the \code{...} argument.
+#' 
+#' @param parinit starting parameter values for the optimization. Must be 
+#' feasible (in the domain).
+#' 
+#' @param rinit starting trust region radius. The trust region radius 
+#' (see details below) is adjusted as the algorithm proceeds. A bad initial 
+#' value wastes a few steps while the radius is adjusted, but does not keep 
+#' the algorithm from working properly.
+#' 
+#' @param rmax maximum allowed trust region radius. This may be set very large. 
+#' If set small, the algorithm traces a steepest descent path (steepest ascent, 
+#' when minimize = FALSE).
+#' 
+#' @param parscale an estimate of the size of each parameter at the minimum. 
+#' The algorithm operates as if optimizing function(x, ...) objfun(x / parscale, ...). 
+#' May be missing in which case no rescaling is done. See also the details section below.
+#' 
+#' @param iterlim a positive integer specifying the maximum number of iterations 
+#' to be performed before the program is terminated.
+#' 
+#' @param fterm a positive scalar giving the tolerance at which the difference 
+#' in objective function values in a step is considered close enough to zero to 
+#' terminate the algorithm.
+#' 
+#' @param mterm a positive scalar giving the tolerance at which the two-term 
+#' Taylor-series approximation to the difference in objective function values in 
+#' a step is considered close enough to zero to terminate the algorithm.
+#' 
+#' @param minimize If TRUE minimize. If FALSE maximize.
+#' 
+#' @param blather If TRUE return extra info.
+#' 
+#' @param parupper named numeric vector of upper bounds.
+#' @param parlower named numeric vector of lower bounds.
+#' 
+#' @param ... additional argument to objfun
+#' 
+#' @details See Fletcher (1987, Section 5.1) or Nocedal and Wright (1999, Section 4.2) 
+#' for detailed expositions.
+#' 
+#' @return A list containing the following components:
+#' \itemize{
+#' \item{value: }{the value returned by objfun at the final iterate.}
+#' \item{gradient: }{the gradient returned by objfun at the final iterate.}
+#' \item{hessian: }{the Hessian returned by objfun at the final iterate.}
+#' \item{argument: }{the final iterate}
+#' \item{converged: }{if TRUE the final iterate was deemed optimal by the 
+#' specified termination criteria.}
+#' \item{iterations: }{number of trust region subproblems done (including those 
+#' whose solutions are not accepted).}
+#' \item{argpath: }{(if blather == TRUE) the sequence of iterates, not including 
+#' the final iterate.}
+#' \item{argtry: }{(if blather == TRUE) the sequence of solutions of the trust 
+#' region subproblem.}
+#' \item{steptype: }{(if blather == TRUE) the sequence of cases that arise in 
+#' solutions of the trust region subproblem. "Newton" means the Newton step 
+#' solves the subproblem (lies within the trust region). Other values mean the 
+#' subproblem solution is constrained. "easy-easy" means the eigenvectors 
+#' corresponding to the minimal eigenvalue of the rescaled Hessian are not all 
+#' orthogonal to the gradient. The other cases are rarely seen. "hard-hard" means 
+#' the Lagrange multiplier for the trust region constraint is minus the minimal 
+#' eigenvalue of the rescaled Hessian; "hard-easy" means it isn't.}
+#' \item{accept: }{(if blather == TRUE) indicates which of the sequence of 
+#' solutions of the trust region subproblem were accepted as the next iterate. 
+#' (When not accepted the trust region radius is reduced, and the previous iterate 
+#' is kept.)}
+#' \item{r: }{(if blather == TRUE) the sequence of trust region radii.}
+#' \item{rho: }{(if blather == TRUE) the sequence of ratios of actual over 
+#' predicted decrease in the objective function in the trust region subproblem, 
+#' where predicted means the predicted decrease in the two-term Taylor series model 
+#' used in the subproblem.}
+#' \item{valpath: }{(if blather == TRUE) the sequence of objective function values 
+#' at the iterates.}
+#' \item{valtry: }{(if blather == TRUE) the sequence of objective function values 
+#' at the solutions of the trust region subproblem.}
+#' \item{preddiff: }{(if blather == TRUE) the sequence of predicted differences using 
+#' the two-term Taylor-series model between the function values at the current iterate 
+#' and at the solution of the trust region subproblem.}
+#' \item{stepnorm: }{(if blather == TRUE) the sequence of norms of steps, that is 
+#' distance between current iterate and proposed new iterate found in the trust region 
+#' subproblem.}
+#' }
+#' 
 #' @export
 trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100, 
                    fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps), 
@@ -918,216 +990,4 @@ check.objfun.output <- function(obj, minimize, dimen)
   return(TRUE)
 }
 
-
-mstrustC <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20, cores = 1,
-                     samplefun = "rnorm", resultPath = ".", stats = FALSE,
-                     ...) {
-  
-  narrowing <- NULL
-  
-  # Argument parsing, sorting, and enhancing
-  # Gather all function arguments
-  varargslist <- list(...)
-  
-  argslist <- as.list(formals())
-  argslist <- argslist[names(argslist) != "..."]
-  
-  argsmatch <- as.list(match.call(expand.dots = TRUE))
-  namesinter <- intersect(names(argslist), names(argsmatch))
-  
-  argslist[namesinter] <- argsmatch[namesinter]
-  argslist <- c(argslist, varargslist)
-  
-  # Add extra arguments
-  argslist$n <- length(center) # How many inital values do we need?
-  
-  # Determine target function for each function argument.
-  # First, define argument names used locally in mstrust().
-  # Second, check what trust() and samplefun() accept and check for name clashes.
-  # Third, whatever is unused is passed to the objective function objfun().
-  nameslocal <- c("studyname", "center", "fits", "cores", "samplefun",
-                  "resultPath", "stats", "narrowing")
-  namestrust <- intersect(names(formals(trustC)), names(argslist))
-  namessample <- intersect(names(formals(samplefun)), names(argslist))
-  if (length(intersect(namestrust, namessample) != 0)) {
-    stop("Argument names of trustC() and ", samplefun, "() clash.")
-  }
-  namesobj <- setdiff(names(argslist), c(namestrust, namessample, nameslocal))
-  
-  
-  # Assemble argument lists common to all calls in mclapply
-  # Sample function
-  argssample <- structure(vector("list", length = length(namessample)), names = namessample)
-  for (name in namessample) {
-    argssample[[name]] <- argslist[[name]]
-  }
-  
-  # Objective function
-  argsobj <- structure(vector("list", length = length(namesobj)), names = namesobj)
-  for (name in namesobj) {
-    argsobj[[name]] <- argslist[[name]]
-  }
-  
-  # Trust optimizer, except for initial values
-  argstrust <- structure(vector("list", length = length(namestrust)), names = namestrust)
-  for (name in namestrust) {
-    argstrust[[name]] <- argslist[[name]]
-  }
-  
-  
-  # Assemble and create output filenames, folders and files
-  m_timeStamp <- paste0(format(Sys.time(), "%d-%m-%Y-%H%M%S"))
-  
-  # Folders
-  resultFolderBase <- file.path(argslist$resultPath, argslist$studyname)
-  m_trial <- paste0("trial-", length(dir(resultFolderBase, pattern = "trial*")) + 1)
-  resultFolder <- file.path(resultFolderBase, paste0(m_trial, "-", m_timeStamp))
-  
-  interResultFolder <- file.path(resultFolder, "interRes")
-  dir.create(path = interResultFolder, showWarnings = FALSE, recursive = TRUE)
-  
-  # Files
-  fileNameLog <- paste0("mstrust.log")
-  fileNameParList <- paste0("parameterList.Rda")
-  fileLog <- file.path(resultFolder, fileNameLog)
-  fileParList <- file.path(resultFolder, fileNameParList)
-  
-  
-  
-  # Apply trust optimizer in parallel
-  # The error checking leverages that mclappy runs each job in a try().
-  logfile <- file(fileLog, open = "w")
-  
-  # Parameter assignment information
-  if (is.null(narrowing) || narrowing[1] == 1) {
-    msg <- paste0("Parameter assignment information\n",
-                  strpad("mstrustC", 12),                        ": ", paste0(nameslocal, collapse = ", "), "\n",
-                  strpad("trustC", 12),                          ": ", paste0(namestrust, collapse = ", "), "\n",
-                  strpad(as.character(argslist$samplefun), 12), ": ", paste0(namessample, collapse = ", "), "\n\n")
-    #strpad(as.character(argslist$objfun), 12),    ": ", paste0(namesobj, collapse = ", "), "\n\n")
-    writeLines(msg, logfile)
-    flush(logfile)
-  }
-  
-  # Write narrowing status information to file
-  if (!is.null(narrowing)) {
-    msg <- paste0("--> Narrowing, run ", narrowing[1], " of ", narrowing[2], "\n",
-                  "--> " , fits, " fits to run\n")
-    writeLines(msg, logfile)
-    flush(logfile)
-  }
-  
-  m_parlist <- as.parlist(mclapply(1:fits, function(i) {
-    argstrust$parinit <- center + do.call(samplefun, argssample)
-    fit <- do.call(trustC, c(argstrust, argsobj))
-    
-    # Keep only numeric attributes of object returned by trust()
-    attr.fit <- attributes(fit)
-    keep.attr <- sapply(attr.fit, is.numeric)
-    fit <- fit[1:length(fit)] # deletes attributes
-    if (any(keep.attr)) attributes(fit) <- c(attributes(fit), attr.fit[keep.attr]) # attach numeric attributes
-    
-    
-    # In some crashes a try-error object is returned which is not a list. Since
-    # each element in the parlist is assumed to be a list, we wrap these cases.
-    if (!is.list(fit)) {
-      f <- list()
-      f$error <- fit
-      fit <- f
-    }
-    
-    fit$parinit <- argstrust$parinit
-    
-    # Write current fit to disk
-    saveRDS(fit, file = file.path(interResultFolder, paste0("fit-", i, ".Rda")))
-    
-    # Reporting
-    # With concurent jobs and everyone reporting, this is a classic race
-    # condition. Assembling the message beforhand lowers the risk of interleaved
-    # output to the log.
-    msgSep <- "-------"
-    if (any(names(fit) == "error")) {
-      msg <- paste0(msgSep, "\n",
-                    "Fit ", i, " failed after ", fit$iterations, " iterations with error\n",
-                    "--> ", fit$error,
-                    msgSep, "\n")
-      
-      writeLines(msg, logfile)
-      flush(logfile)
-    } else {
-      msg <- paste0(msgSep, "\n",
-                    "Fit ", i, " completed\n",
-                    "--> iterations : ", fit$iterations, "\n",
-                    "-->  converged : ", fit$converged, "\n",
-                    "--> obj. value : ", round(fit$value, digits = 2), "\n",
-                    msgSep)
-      
-      writeLines(msg, logfile)
-      flush(logfile)
-    }
-    
-    return(fit)
-  }, mc.preschedule = FALSE, mc.silent = FALSE, mc.cores = cores))
-  close(logfile)
-  
-  
-  # Cull failed and completed fits Two kinds of errors occure. The first returns
-  # an object of class "try-error". The reason for these failures are unknown to
-  # me. The second returns a list of results from trust(), where one name of the
-  # list is error holding an object of class "try-error". These abortions are 
-  # due to errors which are captured within trust(). Completed fits return with 
-  # a valid result list from trust(), with "error" not part of its names. These
-  # fits, can still be unconverged, if the maximim number of iterations was the
-  # reason for the return of trust(). Be also aware of fits which converge due
-  # to the trust radius hitting rmin. Such fits are reported as converged but
-  # are not in truth.
-  m_trustFlags.converged = 0
-  m_trustFlags.unconverged = 1
-  m_trustFlags.error = 2
-  m_trustFlags.fatal = 3
-  idxStatus <- sapply(m_parlist, function(fit) {
-    if (inherits(fit, "try-error") || any(names(fit) == "error")) {
-      return(m_trustFlags.error)
-    } else if (!any(names(fit) == "converged")) {
-      return(m_trustFlags.fatal)
-    } else if (fit$converged) {
-      return(m_trustFlags.converged)
-    } else {
-      return(m_trustFlags.unconverged)
-    }
-  })
-  
-  
-  # Wrap up
-  # Write out results
-  saveRDS(m_parlist, file = fileParList)
-  
-  # Remove temporary files
-  unlink(interResultFolder, recursive = TRUE)
-  
-  
-  # Show summary
-  sum.error <- sum(idxStatus == m_trustFlags.error)
-  sum.fatal <- sum(idxStatus == m_trustFlags.fatal)
-  sum.unconverged <- sum(idxStatus == m_trustFlags.unconverged)
-  sum.converged <- sum(idxStatus == m_trustFlags.converged)
-  msg <- paste0("Mutli start trust summary\n",
-                "Outcome     : Occurrence\n",
-                "Error       : ", sum.error, "\n",
-                "Fatal       : ", sum.fatal, " must be 0\n",
-                "Unconverged : ", sum.unconverged, "\n",
-                "Converged   : ", sum.converged, "\n",
-                "           -----------\n",
-                "Total       : ", sum.error + sum.fatal + sum.unconverged + sum.converged, paste0("[", fits, "]"), "\n")
-  logfile <- file(fileLog, open = "a")
-  writeLines(msg, logfile)
-  flush(logfile)
-  close(logfile)
-  
-  if (stats) {
-    cat(msg)
-  }
-  
-  return(m_parlist)
-}
 

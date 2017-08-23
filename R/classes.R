@@ -1383,6 +1383,7 @@ getParameters <- function(..., conditions = NULL) {
 
 #' @export
 #' @rdname getParameters
+#' @param x object from which the parameters are extracted
 getParameters.odemodel <- function(x, conditions = NULL) {
 
   parameters <- c(

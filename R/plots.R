@@ -707,14 +707,17 @@ plotPars <- function(x, tol = 1, ...){
 #' @param split List of characters specifying how to summarise the residuals by \code{sqrt(res_i^2)}, 
 #' \code{split[1]} used for x-axis, \code{split[2]} for grouping (color), and any additional for \code{facet_wrap()}
 #' @param ... Additional arguments for x
+#' @param errmodel object of type prdfn, the error model function.
 #' 
 #' @return A plot object of class \code{ggplot} with data.frame as attribute \code{attr(P,"out")}.
 #' @examples
 #' \dontrun{
 #'  # time axis:
-#'  plotResiduals(myfitlist, (g*x*p), data, c("time","index","condition","name"), conditions = myconditions[1:4])
+#'  plotResiduals(myfitlist, g*x*p, data, 
+#'     c("time","index","condition","name"), 
+#'     conditions = myconditions[1:4])
 #'  # condition axis (residuals summed over time for each observable and condition):
-#'  plotResiduals(myfitlist, (g*x*p), data,  c("condition","name","index"))
+#'  plotResiduals(myfitlist, g*x*p, data,  c("condition","name","index"))
 #' }
 #' @export
 #' @import plyr

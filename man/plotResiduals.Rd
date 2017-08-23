@@ -17,6 +17,8 @@ plotResiduals(parframe, x, data, split = "condition", errmodel = NULL, ...)
 \item{split}{List of characters specifying how to summarise the residuals by \code{sqrt(res_i^2)}, 
 \code{split[1]} used for x-axis, \code{split[2]} for grouping (color), and any additional for \code{facet_wrap()}}
 
+\item{errmodel}{object of type prdfn, the error model function.}
+
 \item{...}{Additional arguments for x}
 }
 \value{
@@ -28,8 +30,10 @@ Plot residuals for a fitlist
 \examples{
 \dontrun{
  # time axis:
- plotResiduals(myfitlist, (g*x*p), data, c("time","index","condition","name"), conditions = myconditions[1:4])
+ plotResiduals(myfitlist, g*x*p, data, 
+    c("time","index","condition","name"), 
+    conditions = myconditions[1:4])
  # condition axis (residuals summed over time for each observable and condition):
- plotResiduals(myfitlist, (g*x*p), data,  c("condition","name","index"))
+ plotResiduals(myfitlist, g*x*p, data,  c("condition","name","index"))
 }
 }
