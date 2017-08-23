@@ -645,3 +645,11 @@ sanitizeCores <- function(cores)  {
  return(cores)
   
 }
+
+sanitizeConditions <- function(conditions) {
+  
+  new <- str_replace_all(conditions, "[[:punct:]]", "_")
+  new <- str_replace_all(new, "\\s+", "_")
+  return(new)
+  
+}

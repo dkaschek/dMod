@@ -72,7 +72,7 @@ Pexpl <- function(trafo, parameters=NULL, attach.input = FALSE, condition = NULL
   }
   
   # Modify modelname by condition
-  if (!is.null(modelname) && !is.null(condition)) modelname <- paste(modelname, condition, sep = "_")
+  if (!is.null(modelname) && !is.null(condition)) modelname <- paste(modelname, sanitizeConditions(condition), sep = "_")
   modelname_deriv <- NULL
   if (!is.null(modelname)) modelname_deriv <- paste(modelname, "deriv", sep = "_")
 
@@ -199,7 +199,7 @@ Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, po
   dependent <- setdiff(states, parameters)
 
   # Modify modelname by condition
-  if (!is.null(modelname) && !is.null(condition)) modelname <- paste(modelname, condition, sep = "_")
+  if (!is.null(modelname) && !is.null(condition)) modelname <- paste(modelname, sanitizeConditions(condition), sep = "_")
   
   # Then add suffix(es) for derivative function
   modelname_dfdx <- NULL

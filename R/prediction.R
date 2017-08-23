@@ -430,7 +430,7 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     stop("Not all three arguments f, states and parameters can be NULL")
   
   # Modify modelname by condition
-  if (!is.null(modelname) && !is.null(condition)) modelname <- paste(modelname, condition, sep = "_")
+  if (!is.null(modelname) && !is.null(condition)) modelname <- paste(modelname, sanitizeConditions(condition), sep = "_")
   
   # Then add suffix(es) for derivative function
   if (!is.null(modelname)) modelname_deriv <- paste(modelname, "deriv", sep = "_")
