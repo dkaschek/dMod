@@ -28,7 +28,7 @@ as.datalist.data.frame <- function(x, split.by = NULL, ...) {
   
  
   conditions <- lapply(split.by, function(n) dataframe[, n])
-  splits <- do.call(interaction, c(conditions, list(sep = "_")))
+  splits <- do.call(paste, c(conditions, list(sep = "_")))
   
   # condition grid
   conditionframe <- dataframe[!duplicated(splits), split.by, drop = FALSE]
@@ -37,7 +37,8 @@ as.datalist.data.frame <- function(x, split.by = NULL, ...) {
   
   # data list output
   dataframe <- cbind(data.frame(condition = splits), dataframe[, standard.names])
-  out <- lapply(unique(splits), function(s) subset(dataframe, dataframe[, 1] == s)[, -1])
+  out <- lapply(unique(splits), function(s) dataframe[dataframe[, 1] == s, -1])
+  
   names(out) <- as.character(unique(splits))
   
   out <- as.datalist(out)
