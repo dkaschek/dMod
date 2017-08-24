@@ -647,7 +647,7 @@ stepDetect <- function(x, tol) {
 #' @export
 plotValues <- function(x, tol = 1, ...) {
   
-  if (length(list(...)) > 0) x <- subset(x, ...)
+  if (!missing(...)) x <- subset(x, ...)
 
   jumps <- stepDetect(x$value, tol)
   y.jumps <- seq(max(x$value), min(x$value), length.out = length(jumps))
@@ -679,7 +679,7 @@ plotValues <- function(x, tol = 1, ...) {
 #' @export
 plotPars <- function(x, tol = 1, ...){
   
-  if (length(list(...)) > 0) x <- subset(x, ...)
+  if (!missing(...)) x <- subset(x, ...)
   
   jumps <- stepDetect(x$value, tol)
   jump.index <- approx(jumps, jumps, xout = 1:length(x$value), method = "constant", rule = 2)$y

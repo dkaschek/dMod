@@ -38,6 +38,8 @@
 #' stepsize is reduced. For small deviations, either compared the abolute tolerance \code{atol} or the
 #' relative tolerance \code{rtol}, the stepsize may be increased. \code{max} and \code{min} are upper and lower
 #' bounds for \code{stepsize}. \code{limit} is the maximum number of steps that are take for the profile computation.
+#' \code{stop} is a character, usually "value" or "data", for which the significance level \code{alpha}
+#' is evaluated.
 #' 
 #' @return Named list of length one. The name is the parameter name. The list enty is a
 #' matrix with columns "value" (the objective value), "constraint" (deviation of the profiled paramter from
