@@ -342,21 +342,19 @@ runbg_bwfor <- function(..., machine, filename = NULL, nodes = 1, cores = 1, wal
   output <- ".runbgOutput"
 
  
-  compile.line <- NULL
-  if (compile)
-    compile.line <- "cfiles <- list.files(pattern = '.c$'); for(cf in cfiles) system(paste('R CMD SHLIB', cf))"
-   
+
   # Write program into character
   program <- lapply(1:nodes, function(m) {
     paste(
       pack,
       paste0("setwd('~/", filename0, "_folder')"),
       "rm(list = ls())",
-      # compile.line,
       "library(doParallel)",
       "procs <- as.numeric(Sys.getenv('MOAB_PROCCOUNT'))",
       "registerDoParallel(cores=procs)",
       paste0("load('", filename0, ".RData')"),
+      "files <- list.files(pattern = '.so')",
+      "for (f in files) dyn.load(f)",
       paste0(".node <- ", m),
       paste0(".runbgOutput <- try(", as.character(expr), ")"),
       
@@ -407,8 +405,8 @@ runbg_bwfor <- function(..., machine, filename = NULL, nodes = 1, cores = 1, wal
   system(paste0("scp ", getwd(), "/", filename0, "*.R* ", machine, ":", filename0, "_folder/"))
   system(paste0("scp ", getwd(), "/", filename0, "*.moab ", machine, ":"))
   if (compile) {
-    system(paste0("scp ", getwd(), "/*.c ", machine, ":", filename0, "_folder/"))
-    system(paste0("ssh ", machine, " 'for f in ", filename0, "_folder/*.c; do module load math/R && R CMD SHLIB $f; done'"))
+    system(paste0("scp ", getwd(), "/*.c ", getwd(), "/*.cpp ", machine, ":", filename0, "_folder/"))
+    system(paste0("ssh ", machine, " 'module load math/R; R CMD SHLIB ", filename0, "_folder/*.c ", filename0,  "_folder/*.cpp -o ", filename0, "_folder/", filename0, ".so'"))
   } else {
     system(paste0("scp ", getwd(), "/*.so ", machine, ":", filename0, "_folder/"))
   }

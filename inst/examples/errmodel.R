@@ -54,6 +54,12 @@ out <- runbg({
   trust(obj, ptrue, rinit = 1, rmax = 10)
 }, machine = "localhost", filename = "test", input = c("obj", "ptrue"), compile = TRUE)
 
+## Fit on grid
+out <- runbg_bwfor({
+  trust(obj, ptrue, rinit = 1, rmax = 10)
+}, machine = "bwfor", filename = "test", input = c("obj", "ptrue"), compile = TRUE, nodes = 2, cores = 1, walltime = "00:01:00")
+
+
 
 ## Plotting
 out <- as.data.frame((g*x*p)(times = seq(0, 50, len = 100), pars = myfit$argument), errfn = e)
