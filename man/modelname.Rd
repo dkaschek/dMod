@@ -20,6 +20,8 @@ modelname(x, ...) <- value
 
 \item{conditions}{character vector of conditions}
 
+\item{x}{dMod object for which the model name should be set}
+
 \item{value}{character, the new modelname (does not change the C file)}
 }
 \value{

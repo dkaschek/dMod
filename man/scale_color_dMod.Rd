@@ -13,6 +13,7 @@ scale_color_dMod(...)
 Standard dMod color palette
 }
 \examples{
+library(ggplot2)
 times <- seq(0, 2*pi, 0.1)
 values <- sin(times)
 data <- data.frame(

@@ -12,13 +12,11 @@
 \arguments{
 \item{x}{any R object}
 
-\item{...}{additional arguments to be passed to or from methods}
+\item{...}{not used right now}
 
 \item{data}{data list oject}
 
 \item{errfn}{obsfn object, the error model function to predict sigma}
-
-\item{...}{not used right now}
 }
 \value{
 a data frame

@@ -13,18 +13,18 @@ load.parlist(folder)
 An object of class parlist.
 }
 \description{
-An aborted \code{\link{mstrust}} or \code{\link{msnarrow}}
+An aborted \code{\link{mstrust}}
   leaves behind results of already completed fits. This command loads these
   fits into a fitlist.
 }
 \details{
-The commands \code{\link{mstrust}} or \code{\link{msnarrow}} save
+The command \code{\link{mstrust}} saves
   each completed fit along the multi-start sequence such that the results can
   be resurected on abortion. This command loads a fitlist from these
   intermediate results.
 }
 \seealso{
-\code{\link{mstrust}}, \code{\link{msnarrow}}
+\code{\link{mstrust}}
 }
 \author{
 Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}

@@ -45,6 +45,7 @@ into one model function \code{x(times, pars, deriv = TRUE)} returning ODE output
 \examples{
 \dontrun{
 
+
 ################################################################  
 ## Walk through the most frequently used functions in
 ## connection with ODE models
