@@ -13,6 +13,7 @@ Description: The framework provides functions to generate ODEs of reaction
 License: GPL (>= 2)
 Depends:
     cOde (>= 0.3),
+Imports:
     deSolve,
     rootSolve,
     ggplot2,
