@@ -287,8 +287,8 @@ parlist <- function(...) {
 #' Parameter vector
 #'
 #' @description A parameter vector is a named numeric vector (the parameter values)
-#' together with a "deriv" attribute (the Jacobian of a parameter transformation by which
-#' the parameter vector was generated).
+#' together with a "deriv" attribute 
+#' (the Jacobian of a parameter transformation by which the parameter vector was generated).
 #' @param ... objects to be concatenated
 #' @param deriv matrix with rownames (according to names of \code{...}) and colnames
 #' according to the names of the parameter by which the parameter vector was generated.
@@ -654,6 +654,16 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
   
 }
 
+
+#' Multiplication of objective functions with scalars
+#' 
+#' @description The \code{\%.*\%} operator allows to multiply objects of class objlist or objfn with
+#' a scalar.
+#' 
+#' @param x1 object of class objfn or objlist.
+#' @param x2 numeric of length one.
+#' @return An objective function or objlist object.
+#' 
 #' @export
 "%.*%" <- function(x1, x2) {
   
@@ -1473,7 +1483,7 @@ getConditions.fn <- function(x, ...) {
 
 #' Get and set modelname
 #' 
-#' The modelname attribute refers to the name of a C file associated with
+#' @description The modelname attribute refers to the name of a C file associated with
 #' a dMod function object like prediction-, parameter transformation- or 
 #' objective functions.
 #' 
@@ -1535,6 +1545,7 @@ mname.fn <- function(x, conditions = NULL) {
 
 #' @export
 #' @rdname modelname
+#' @param x dMod object for which the model name should be set
 #' @param value character, the new modelname (does not change the C file)
 "modelname<-" <- function(x, ..., value) {
   UseMethod("modelname<-", x)
