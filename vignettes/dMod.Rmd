@@ -216,7 +216,7 @@ plotPars(subset(pars, converged))
 
 ```
 
-In our case we find several local optima in the proximity of the original fit. Solutions for a parameter frame can be plotted by the `plotArray()` function. To see both, internal states and observables, the controls of `g` are changed via the `controls()` function.
+In our case we find several local optima in the proximity of the original fit. Solutions for a parameter frame can be simulated by the `predict()` function. To see both, internal states and observables, the controls of `g` are changed via the `controls()` function.
 
 ```{r, fig.width = 10, fig.height = 3.5}
 
@@ -227,6 +227,7 @@ prediction <- predict(g*x*p,
                       data = data, 
                       fixed = c(multiple = 2))
 
+library(ggplot2)
 ggplot(prediction, aes(x = time, y = value, color = .value, group = .value)) +
   facet_grid(condition~name, scales = "free") +
   geom_line() + 
