@@ -438,20 +438,20 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
 
 #' Construct fitlist from temporary files.
 #'
-#' @description An aborted \code{\link{mstrust}} or \code{\link{msnarrow}}
+#' @description An aborted \code{\link{mstrust}}
 #'   leaves behind results of already completed fits. This command loads these
 #'   fits into a fitlist.
 #'
 #' @param folder Path to the folder where the fit has left its results.
 #'
-#' @details The commands \code{\link{mstrust}} or \code{\link{msnarrow}} save
+#' @details The command \code{\link{mstrust}} saves
 #'   each completed fit along the multi-start sequence such that the results can
 #'   be resurected on abortion. This command loads a fitlist from these
 #'   intermediate results.
 #'
 #' @return An object of class parlist.
 #'
-#' @seealso \code{\link{mstrust}}, \code{\link{msnarrow}}
+#' @seealso \code{\link{mstrust}}
 #'
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'

@@ -94,6 +94,7 @@ dMod_colors <- c("#000000", "#C5000B", "#0084D1", "#579D1C", "#FF950E", "#4B1F6F
 #' @param ... arguments goint to code{scale_color_manual()}
 #' @export
 #' @examples
+#' library(ggplot2)
 #' times <- seq(0, 2*pi, 0.1)
 #' values <- sin(times)
 #' data <- data.frame(

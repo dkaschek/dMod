@@ -500,6 +500,17 @@ getLocalDLLs <- function() {
   
 }
 
+
+#' Load shared object for a dMod object
+#' 
+#' Usually when restarting the R session, although all objects are saved in
+#' the workspace, the dynamic libraries are not linked any more. \code{loadDLL}
+#' is a wrapper for \code{dyn.load} that uses the "modelname" attribute of
+#' dMod objects like prediction functions, observation functions, etc. to
+#' load the corresponding shared object.
+#' 
+#' @param ... objects of class prdfn, obsfn, parfn, objfn, ...
+#' 
 #' @export
 loadDLL <- function(...) {
   

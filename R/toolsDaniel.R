@@ -122,6 +122,7 @@ mssample <- function(center, samplefun = "rnorm", fits = 20, ...) {
 #' "Delta" and "x". Each symbol for which values (character or numbers) are passed by the
 #' \code{...} argument is replaced.
 #' @export
+#' @importFrom stats as.formula
 #' @examples
 #' innerpars <- letters[1:3]
 #' constraints <- c(a = "b + c")
@@ -135,7 +136,7 @@ repar <- function(expr, trafo = NULL, ...) {
  
   if (inherits(expr, "formula")) expr <- deparse(expr)
    
-  parsed.expr <- as.character(as.formula(gsub("_", ":", expr, fixed = TRUE)))
+  parsed.expr <- as.character(stats::as.formula(gsub("_", ":", expr, fixed = TRUE)))
   lhs <- parsed.expr[2]
   lhs.symbols <- getSymbols(lhs)
   rhs <- parsed.expr[3]

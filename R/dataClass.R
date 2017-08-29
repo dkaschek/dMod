@@ -136,7 +136,6 @@ plot.datalist <- function(x, ..., scales = "free", facet = "wrap") {
 #' Coerce to a Data Frame
 #' 
 #' @param x any R object
-#' @param ... additional arguments to be passed to or from methods
 #' @return a data frame
 #' @rdname as.data.frame.dMod
 #' @export

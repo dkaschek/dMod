@@ -150,7 +150,7 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, one.sided=FALSE, lambda = 1
                 } else if (fred(beta.dn) >= 0) {
                     uout <- list(root = beta.dn)
                 } else {
-                    uout <- uniroot(fred, c(beta.dn, beta.up))
+                    uout <- stats::uniroot(fred, c(beta.dn, beta.up))
                 }
                 wtry <- gq / (beta + uout$root)
                 ptry <- as.numeric(- eout$vectors %*% wtry)
@@ -377,6 +377,47 @@ check.objfun.output <- function(obj, minimize, dimen)
 }
 
 
+constraintL1 <- function(p, mu, lambda = 1, fixed = NULL) {
+  
+  ## Augment sigma if length = 1
+  if(length(lambda) == 1) 
+    lambda <- structure(rep(lambda, length(mu)), names = names(mu)) 
+  
+  ## Extract contribution of fixed pars and delete names for calculation of gr and hs  
+  par.fixed <- intersect(names(mu), names(fixed))
+  sumOfFixed <- 0
+  if(!is.null(par.fixed)) sumOfFixed <- sum(lambda[par.fixed]*abs(fixed[par.fixed] - mu[par.fixed]))
+  
+  ## Compute constraint value and derivatives
+  parameters <- intersect(names(p), names(mu))
+  
+  value <- sum(lambda[parameters]*abs(p[parameters] - mu[parameters])) + sumOfFixed
+  
+  gradient <- rep(0, length(p)); names(gradient) <- names(p)
+  gradient[parameters][p[parameters] >  mu[parameters]] <-  lambda[parameters][p[parameters] >  mu[parameters]]
+  gradient[parameters][p[parameters] <  mu[parameters]] <- -lambda[parameters][p[parameters] <  mu[parameters]]
+  
+  hessian <- matrix(0, length(p), length(p), dimnames = list(names(p), names(p)))
+  diag(hessian)[parameters] <- 0
+  
+  dP <- attr(p, "deriv") 
+  if(!is.null(dP)) {
+    gradient <- as.vector(gradient %*% dP)
+    names(gradient) <- colnames(dP)
+    hessian <- t(dP) %*% hessian %*% dP
+    colnames(hessian) <- colnames(dP)
+    rownames(hessian) <- colnames(dP)
+  }
+  
+  out <- list(value = value, gradient = gradient, hessian = hessian)
+  class(out) <- c("obj", "list")
+  
+  return(out)
+  
+  
+}
+
+
 
 
 
@@ -474,6 +515,7 @@ check.objfun.output <- function(obj, minimize, dimen)
 #' }
 #' 
 #' @export
+#' @importFrom stats uniroot
 trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100, 
                    fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps), 
                    minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, ...) 
@@ -636,7 +678,7 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
           uout <- list(root = beta.dn)
         }
         else {
-          uout <- uniroot(fred, c(beta.dn, beta.up))
+          uout <- stats::uniroot(fred, c(beta.dn, beta.up))
         }
         wtry <- gq/(beta + uout$root)
         ptry <- as.numeric(-eout$vectors %*% wtry)

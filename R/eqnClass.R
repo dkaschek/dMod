@@ -760,6 +760,7 @@ c.eqnvec <- function(...) {
 #' The argument \code{attach.input} determines whether \code{M} is attached to the output.
 #' The function \code{f} returns a matrix.
 #' @examples 
+#' library(ggplot2)
 #' myfun <- funC0(c(y = "a*x^4 + b*x^2 + c"))
 #' out <- myfun(a = -1, b = 2, c = 3, x = seq(-2, 2, .1), attach.input = TRUE)
 #' qplot(x = x, y = y, data = as.data.frame(out), geom = "line")
