@@ -53,7 +53,8 @@ predict.prdfn <- function(object, ..., times, pars, data = NULL) {
     }
     
     # Augment by condition.grid of data
-    if (!is.null(condition.grid.data)) condition.grid <- cbind(condition.grid.data[conditions,], condition.grid)
+    if (!is.null(condition.grid.data) && ncol(condition.grid.data) > 1) 
+      condition.grid <- cbind(condition.grid.data[conditions,], condition.grid)
     
     # Write condition.grid into data
     attr(data, "condition.grid") <- condition.grid

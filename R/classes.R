@@ -1471,7 +1471,17 @@ getConditions.fn <- function(x, ...) {
   
 }
 
-
+#' Get and set modelname
+#' 
+#' The modelname attribute refers to the name of a C file associated with
+#' a dMod function object like prediction-, parameter transformation- or 
+#' objective functions.
+#' 
+#' @param ... objects of type \code{prdfn}, \code{parfn}, \code{objfn}
+#' @param conditions character vector of conditions
+#' @return character vector of model names, corresponding to C files
+#' in the local directory.
+#' 
 #' @export
 modelname <- function(..., conditions = NULL) {
   
@@ -1479,15 +1489,21 @@ modelname <- function(..., conditions = NULL) {
     
 }
 
+#' Get modelname from single object (used internally)
+#' 
+#' @param x dMod object
+#' @param conditions character vector of conditions
 #' @export
 mname <- function(x, conditions = NULL) {
   UseMethod("mname", x)
 }
 
 #' @export
+#' @rdname mname
 mname.NULL <- function(x, conditions = NULL) NULL
 
 #' @export
+#' @rdname mname
 mname.character <- function(x, conditions = NULL) {
   
   mname(get(x), conditions = conditions)
@@ -1495,6 +1511,7 @@ mname.character <- function(x, conditions = NULL) {
 }
 
 #' @export
+#' @rdname mname
 mname.objfn <- function(x, conditions = NULL) {
   
   attr(x, "modelname")
@@ -1502,6 +1519,7 @@ mname.objfn <- function(x, conditions = NULL) {
 }
 
 #' @export
+#' @rdname mname
 mname.fn <- function(x, conditions = NULL) {
   
   mappings <- attr(x, "mappings")
@@ -1516,11 +1534,14 @@ mname.fn <- function(x, conditions = NULL) {
 }
 
 #' @export
+#' @rdname modelname
+#' @param value character, the new modelname (does not change the C file)
 "modelname<-" <- function(x, ..., value) {
   UseMethod("modelname<-", x)
 }
 
 #' @export
+#' @rdname modelname
 "modelname<-.fn" <- function(x, conditions = NULL, ..., value) {
   
   mappings <- attr(x, "mappings")
@@ -1548,6 +1569,7 @@ mname.fn <- function(x, conditions = NULL) {
 }
 
 #' @export
+#' @rdname modelname
 "modelname<-.objfn" <- function(x, conditions = NULL, ..., value) {
   attr(x, "modelname") <- value
   return(x)
