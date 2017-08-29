@@ -522,9 +522,7 @@ confint.parframe <- function(object, parm = NULL, level = 0.95, ..., val.column 
 #' Extrapolation extension to approx
 #' 
 #' @description from Hmisc package, built on approx
-approxExtrap <- function (x, y, xout, method = "linear", n = 50, rule = 2, f = 0, 
-ties = "ordered", na.rm = FALSE) 
-{
+approxExtrap <- function (x, y, xout, method = "linear", n = 50, rule = 2, f = 0, ties = "ordered", na.rm = FALSE) {
 if (is.list(x)) {
   y <- x[[2]]
   x <- x[[1]]
