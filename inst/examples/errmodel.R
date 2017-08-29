@@ -1,5 +1,8 @@
+\dontrun{
+  
 
 library(dMod)
+library(ggplot2)
 setwd("/tmp")
 
 # Set up reactions
@@ -77,3 +80,5 @@ par <- trust(normL2(data, g*x*p, e) + datapoint, c(ptrue, d1 = 0), rinit = 1, rm
 profile_pred <- profile(normL2(data, g*x*p, e) + datapoint, par, "d1", limits = c(-10, 10), stepControl = list(stop = "data"))
 
 plot(profile_pred$prediction, profile_pred$data, type = "b")
+
+}

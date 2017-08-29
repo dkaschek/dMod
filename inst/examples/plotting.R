@@ -21,7 +21,7 @@ pars <- structure(seq(1, 2, length.out = 3), names = attr(p, "parameters"))
 prediction <- (g*x*p)(times, pars)
 
 ## Plotting prediction
-plot(prediction)
+# plot(prediction)
 plotPrediction(prediction)
 plotPrediction(prediction, scales = "fixed")
 plotPrediction(prediction, facet = "grid")
@@ -37,11 +37,11 @@ dataset$sigma <- 0.1
 data <- as.datalist(dataset, split.by = "condition")
 
 ## Plotting data
-plot(data)
+# plot(data)
 plotData(data)
 
 ## Plotting data and prediction with subsetting
-plot(prediction, data)
+# plot(prediction, data)
 plotCombined(prediction, data)
 plotCombined(prediction, data, 
              time <= 0.5 & condition == "frequency_1")
