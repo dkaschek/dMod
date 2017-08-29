@@ -4,7 +4,7 @@ Title: Dynamic Modeling and Parameter Estimation in ODE Models
 Version: 0.4
 Date: 2017-08-23
 Author: Daniel Kaschek
-Maintainer: Daniel Kaschek <daniel.kaschek@physik.uni-freiburg.de>
+Maintainer: Daniel Kaschek <daniel.kaschek@gmail.com>
 Description: The framework provides functions to generate ODEs of reaction
     networks, parameter transformations, observation functions, residual functions,
     etc. The framework follows the paradigm that derivative information should be
