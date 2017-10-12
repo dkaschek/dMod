@@ -1,0 +1,27 @@
+﻿12. Oct 2017
+
+dMod -Treffen
+
+1. Grenzen in der Profilberechnung
+==> Marcus/Mirjam
+2. Validation/Prediction profiles in den normalen profile command
+==> Daniel K
+3. trustL1 vs. trust, constraintL1
+==> objfn um gradient.L1 erweitern (Charlotte, Mirjam, Marcus)
+4. buggy: parframe/parvec print functions
+
+5. profile auf nodes -> .node (bessere Kommunikation)
+==> schon gelöst (Mail an Marcus)
+6. Sundials systematisch testen. Fixed parameters
+==> Marcus & Mirjam
+7. C und CPP files in eigenes Verzeichnis
+==> schon gelöst (Mail an Daniel)
+8. Import von def files
+==> Daniel Lill
+9. Zeitpunkte nach condition zulassen
+==> Marcus
+
+Vignetten schreiben für Analysen
+Communicaation verbessern
+
+
