@@ -2,7 +2,7 @@ Package: dMod
 Type: Package
 Title: Dynamic Modeling and Parameter Estimation in ODE Models
 Version: 0.4
-Date: 2017-08-23
+Date: 2017-09-05
 Author: Daniel Kaschek
 Maintainer: Daniel Kaschek <daniel.kaschek@gmail.com>
 Description: The framework provides functions to generate ODEs of reaction
