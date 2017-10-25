@@ -347,11 +347,11 @@ plotProfile <- function(profs, ..., maxvalue = 5, parlist = NULL) {
     delta <- 0
     if("value" %in% colnames(parlist)){
       minval <- min(unlist(lapply(1:length(arglist), function(i){ 
-        origin <- which.min(arglist[[i]][[1]][, "constraint"])
-        zerovalue <- arglist[[i]][[1]][origin, 1]  
+        origin <- which.min(arglist[[i]]$constraint)
+        zerovalue <- arglist[[i]][origin, 1]  
       })))
-      values <- parlist[,"value"]
-      parlist <- parlist[,!(colnames(parlist) %in% "value")]
+      values <- parlist[,"value", drop = TRUE]
+      parlist <- parlist[,!(colnames(parlist) %in% c("index","value","converged","iterations"))]
       delta <- as.numeric(values - minval)
     }
     points <- data.frame(par = as.numeric(as.matrix(parlist)), name = rep(colnames(parlist), each = nrow(parlist)), delta = delta)
