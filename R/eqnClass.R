@@ -812,6 +812,7 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
   ## Non-compiled version based on with() and eval()
   if (outputC) {
     
+    
     # Do the replacement to obtain C syntax
     x <- replaceOperation("^", "pow", x)
     x <- replaceOperation("**", "pow", x)
@@ -843,6 +844,12 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
       "\n}\n}"
     )
     
+    # First unload possible loaded DLL before writing C file (otherwise we have problems on Windows)
+    .so <- .Platform$dynlib.ext
+    test <- try(dyn.unload(paste0(filename, .so)), silent = TRUE)
+    if (!inherits(test, "try-error")) message(paste("A shared object with name", filename, "already existed and was overwritten."))
+    
+    # Write C file
     sink(file = paste(filename, "c", sep = "."))
     cat(body)
     sink()
@@ -856,9 +863,6 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
         cat(shlibOut)
       }
       
-      .so <- .Platform$dynlib.ext
-      test <- try(dyn.unload(paste0(filename, .so)), silent = TRUE)
-      if (!inherits(test, "try-error")) message(paste("A shared object with name", filename, "was overloaded."))
       dyn.load(paste0(filename, .so))
     }
     

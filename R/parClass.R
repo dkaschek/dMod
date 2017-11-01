@@ -50,7 +50,7 @@ summary.parlist <- function(object, ...) {
 #' @param x The fitlist
 stat.parlist <- function(x) {
   status <- do.call(rbind, lapply(x, function(fit) {
-    if (inherits(fit, "try-error") || any(names(fit) == "error" || any(is.null(fit)))) {
+    if (inherits(fit, "try-error") || any(names(fit) == "error") || any(is.null(fit))) {
       return("error")
     } else {
       if (fit$converged) {
