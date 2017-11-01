@@ -3,7 +3,7 @@
 
 library(dMod)
 library(ggplot2)
-setwd("/tmp")
+setwd(tempdir())
 
 # Set up reactions
 f <- NULL
@@ -15,8 +15,8 @@ observables <- eqnvec(B_obs = "B + off_B")
 errors <- eqnvec(B_obs = "sqrt((sigma_rel*B_obs)^2 + sigma_abs^2)")
 
 # Generate dMod objects
-model <- odemodel(f, modelname = "errtest", compile = FALSE, solver = "Sundials")
-x     <- Xs(model, optionsSens = list(method = "bdf"), optionsOde = list(method = "bdf"))
+model <- odemodel(f, modelname = "errtest", compile = FALSE, solver = "deSolve")
+x     <- Xs(model, optionsSens = list(method = "lsoda"), optionsOde = list(method = "lsodes"))
 g     <- Y(observables, x, 
            compile = FALSE, modelname = "obsfn")
 e     <- Y(errors, g, attach.input = FALSE,
@@ -49,7 +49,8 @@ obj <- normL2(data, g*x*p, e)
 myfit <- trust(obj, ptrue, rinit = 1, rmax = 10)
 fits <- mstrust(obj, center = ptrue, sd = 3, fits = 10)
 profiles <- profile(obj + constraintL2(myfit$argument, 10), 
-                    myfit$argument, names(myfit$argument), limits = c(-5, 5), cores = 4)
+                    myfit$argument, names(myfit$argument), limits = c(-5, 5), cores = 4, 
+                    fixed = c(k1 = -1))
 plotProfile(profiles)
 
 ## Fit externally

@@ -58,7 +58,10 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                           ...) {
   
   # Guarantee that pars is named numeric without deriv attribute
-  pars <- structure(as.numeric(pars), names = names(pars))
+  sanePars <- sanitizePars(pars, list(...)$fixed)
+  pars <- sanePars$pars
+  fixed <- sanePars$fixed
+  
   
   # Initialize control parameters depending on method
   method  <- match.arg(method)
@@ -87,10 +90,6 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     if (is.character(whichPar)) whichPar <- which(names(pars) == whichPar)
     whichPar.name <- names(pars)[whichPar]
     
-    
-    
-    
-    if (any(names(list(...)) == "fixed")) fixed <- list(...)$fixed else fixed <- NULL
     
     
     ## Functions needed during profile computation -----------------------
