@@ -5,15 +5,31 @@
 #' in \code{parameters}.
 #' @return String with the function
 #' @export
-forcingsSymb <- function(type =c("Gauss", "Fermi", "1-Fermi", "MM", "Signal"), parameters = NULL) {
+forcingsSymb <- function(type =c("Gauss", "Fermi", "1-Fermi", "MM", "Signal", "Dose"), parameters = NULL) {
   
   type <- match.arg(type)
+  
+  # INPUT1 (differentiable box)
+  fn <- "(1/(1+exp(k*(x-T1))))*(exp(k*(x-T2))/(1+exp(k*(x-T2))))" # T1 = start, T2 = end, k/4 = +-steepness in T1 and T2
+  inv.integral <- "(exp(400)-1)/Tduration" # 400 = k*Tduration
+  
+  k <- "(400/Tduration)"
+  T1 <- "(Tlag+Tinit)"
+  T2 <- "(Tlag+Tinit+Tduration)"
+  
+  INPUT <- paste("Dose", fn, inv.integral, sep = "*")
+  INPUT <- replaceSymbols(c("k", "T1", "T2"), c(k, T1, T2), INPUT)
+  INPUT <- paste0("(", INPUT, ")")
+  
+  
+  
   fun <- switch(type,
                 "Gauss"   = "(scale*exp(-(time-mu)^2/(2*tau^2))/(tau*2.506628))",
                 "Fermi"   = "(scale/(exp((time-mu)/tau)+1))",
                 "1-Fermi" = "(scale*exp((time-mu)/tau)/(exp((time-mu)/tau)+1))",
                 "MM"      = "(slope*time/(1 + slope*time/vmax))",
-                "Signal"  = "max1*max2*(1-exp(-time/tau1))*exp(-time*tau2)"
+                "Signal"  = "(max1*max2*(1-exp(-time/tau1))*exp(-time*tau2))",
+                "Dose"   = INPUT
   )
   
   if(!is.null(parameters)) {
