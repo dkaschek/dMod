@@ -405,8 +405,17 @@ runbg_bwfor <- function(..., machine, filename = NULL, nodes = 1, cores = 1, wal
   system(paste0("scp ", getwd(), "/", filename0, "*.R* ", machine, ":", filename0, "_folder/"))
   system(paste0("scp ", getwd(), "/", filename0, "*.moab ", machine, ":"))
   if (compile) {
+    
+    sourcefiles <- paste(
+      paste0(
+        filename0, "_folder/", 
+        c(list.files(pattern = glob2rx("*.c")), list.files(pattern = glob2rx("*.cpp")))
+      ), 
+      collapse = " "
+    )
+    
     system(paste0("scp ", getwd(), "/*.c ", getwd(), "/*.cpp ", machine, ":", filename0, "_folder/"))
-    system(paste0("ssh ", machine, " 'module load math/R; R CMD SHLIB ", filename0, "_folder/*.c ", filename0,  "_folder/*.cpp -o ", filename0, "_folder/", filename0, ".so'"))
+    system(paste0("ssh ", machine, " 'module load math/R; R CMD SHLIB ", sourcefiles, " -o ", filename0, "_folder/", filename0, ".so'"))
   } else {
     system(paste0("scp ", getwd(), "/*.so ", machine, ":", filename0, "_folder/"))
   }
