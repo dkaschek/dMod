@@ -4,7 +4,7 @@
 \alias{forcingsSymb}
 \title{Return some useful forcing functions as strings}
 \usage{
-forcingsSymb(type = c("Gauss", "Fermi", "1-Fermi", "MM", "Signal"),
+forcingsSymb(type = c("Gauss", "Fermi", "1-Fermi", "MM", "Signal", "Dose"),
   parameters = NULL)
 }
 \arguments{

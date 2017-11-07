@@ -892,7 +892,7 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
       rownames(out) <- outnames
       
       # Make sure that output does not containt NaN
-      out[is.nan(out)] <- 0
+      ## out[is.nan(out)] <- 0
       
       if (attach.input)
         out <- rbind(M, out)
@@ -941,7 +941,7 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
         out.matrix <- cbind(t(M), out.matrix)
       
       # Make sure that output does not containt NaN
-      out.matrix[is.nan(out.matrix)] <- 0
+      # out.matrix[is.nan(out.matrix)] <- 0
       
       
       return(out.matrix)

@@ -10,14 +10,17 @@ forcingsSymb <- function(type =c("Gauss", "Fermi", "1-Fermi", "MM", "Signal", "D
   type <- match.arg(type)
   
   # INPUT1 (differentiable box)
-  fn <- "(1/(1+exp(k*(x-T1))))*(exp(k*(x-T2))/(1+exp(k*(x-T2))))" # T1 = start, T2 = end, k/4 = +-steepness in T1 and T2
-  inv.integral <- "(exp(400)-1)/Tduration" # 400 = k*Tduration
+  #fn <- "(1/(1+exp(k*(time-T1))))*(exp(k*(time-T2))/(1+exp(k*(time-T2))))" # T1 = start, T2 = end, k/4 = +-steepness in T1 and T2
+  #fn <- "((exp(-k*(time-T1))/(exp(-k*(time-T1))+1))/(exp(-k*(time-T2))+1))" # T1 = start, T2 = end, k/4 = +-steepness in T1 and T2
+  fn1 <- "(.5*(1.-tanh(.5*k*(time-T1))))" # T1 = start, T2 = end, k/4 = +-steepness in T1 and T2
+  fn2 <- "(.5*(1.+tanh(.5*k*(time-T2))))" # T1 = start, T2 = end, k/4 = +-steepness in T1 and T2
+  integral <- "(Tduration/(exp(20)-1))" # 100 = k*Tduration
   
-  k <- "(400/Tduration)"
+  k <- "(20/Tduration)"
   T1 <- "(Tlag+Tinit)"
   T2 <- "(Tlag+Tinit+Tduration)"
   
-  INPUT <- paste("Dose", fn, inv.integral, sep = "*")
+  INPUT <- paste0("Dose*(", fn1, ")*(", fn2, ")/", integral)
   INPUT <- replaceSymbols(c("k", "T1", "T2"), c(k, T1, T2), INPUT)
   INPUT <- paste0("(", INPUT, ")")
   
