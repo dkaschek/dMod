@@ -13,6 +13,12 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, one.sided=FALSE, lambda = 1
     mterm = sqrt(.Machine$double.eps),
     minimize = TRUE, blather = FALSE, blather2 = FALSE, ...)
 {
+  
+  # Guarantee that pars is named numeric without deriv attribute
+  sanePars <- sanitizePars(parinit, list(...)$fixed)
+  parinit <- sanePars$pars
+  
+  
     if (! is.numeric(parinit))
        stop("parinit not numeric")
     if (! all(is.finite(parinit)))
@@ -520,6 +526,11 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
                    fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps), 
                    minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, ...) 
 {
+  
+  # Guarantee that pars is named numeric without deriv attribute
+  sanePars <- sanitizePars(parinit, list(...)$fixed)
+  parinit <- sanePars$pars
+
   
   u <- structure(rep(Inf, length(parinit)), names = names(parinit))
   l <- structure(rep(-Inf, length(parinit)), names = names(parinit))

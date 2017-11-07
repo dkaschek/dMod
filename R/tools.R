@@ -546,3 +546,20 @@ sanitizeConditions <- function(conditions) {
   return(new)
   
 }
+
+sanitizePars <- function(pars = NULL, fixed = NULL) {
+  
+  # Convert fixed to named numeric
+  if (!is.null(fixed)) fixed <- structure(as.numeric(fixed), names = names(fixed))
+  
+  # Convert pars to named numeric
+  if (!is.null(pars)) {
+    pars <- structure(as.numeric(pars), names = names(pars))
+    # remove fixed from pars
+    pars <- pars[setdiff(names(pars), names(fixed))]
+  }
+    
+  
+  return(list(pars = pars, fixed = fixed))
+  
+}
