@@ -109,6 +109,15 @@ mssample <- function(center, samplefun = "rnorm", fits = 20, ...) {
 
 }
 
+
+#' @export
+reparameterize <- function(trafo, expr, ...) {
+  
+  if (missing(trafo)) trafo <- NULL
+  repar(expr, trafo, ...)
+  
+}
+
 #' Reparameterization
 #' 
 #' @param expr character of the form \code{"lhs ~ rhs"} where \code{rhs}
@@ -169,4 +178,5 @@ repar <- function(expr, trafo = NULL, ...) {
   
   
 }
+
 

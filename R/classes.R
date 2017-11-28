@@ -7,6 +7,12 @@
 #' e.g. a named character vector with the ODE
 #' @param deriv logical, generate sensitivities or not
 #' @param forcings Character vector with the names of the forcings
+#' @param events data.frame of events with columns "var" (character, the name of the state to be
+#' affected), "time" (character or numeric, time point), "value" (character or numeric, value), 
+#' "method" (character, either 
+#' "replace" or "add"). See \link[deSolve]{events}. Events need to be defined here if they contain
+#' parameters, like the event time or value. If both, time and value are purely numeric, they
+#' can be specified in \code{\link{Xs}()}, too.
 #' @param fixed Character vector with the names of parameters (initial values and dynamic) for which
 #' no sensitivities are required (will speed up the integration).
 #' @param modelname Character, the name of the C file being generated.
@@ -18,33 +24,38 @@
 #' @export
 #' @example inst/examples/odemodel.R
 #' @import cOde
-odemodel <- function(f, deriv = TRUE, forcings=NULL, fixed=NULL, modelname = "odemodel", solver = c("deSolve", "Sundials"), gridpoints = NULL, verbose = FALSE, ...) {
+odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, fixed=NULL, modelname = "odemodel", solver = c("deSolve", "Sundials"), gridpoints = NULL, verbose = FALSE, ...) {
   
   
   if (is.null(gridpoints)) gridpoints <- 2
+  
   
   f <- as.eqnvec(f)
   modelname_s <- paste0(modelname, "_s")
   solver <- match.arg(solver)
   
-  func <- cOde::funC(f, forcings = forcings, fixed = fixed, modelname = modelname , solver = solver, nGridpoints = gridpoints, ...)
+  func <- cOde::funC(f, forcings = forcings, events = events, fixed = fixed, modelname = modelname , solver = solver, nGridpoints = gridpoints, ...)
   extended <- NULL
   if (solver == "Sundials") {
     # Sundials does not need "extended" by itself, but dMod relies on it.
     extended <- func
     attr(extended, "deriv") <- TRUE
     attr(extended, "variables") <- c(attr(extended, "variables"), attr(extended, "variablesSens"))
+    attr(extended, "events") <- events
   }
   
   if (deriv && solver == "deSolve") {  
+    
     s <- sensitivitiesSymb(f, 
                            states = setdiff(attr(func, "variables"), fixed), 
                            parameters = setdiff(attr(func, "parameters"), fixed), 
-                           inputs = forcings,
+                           inputs = attr(func, "forcings"),
+                           events = attr(func, "events"),
                            reduce = TRUE)
     fs <- c(f, s)
     outputs <- attr(s, "outputs")
-    extended <- cOde::funC(fs, forcings = forcings, outputs = outputs, modelname = modelname_s, solver = solver, ...)
+    events <- rbind(attr(s, "events"), attr(func, "events"))
+    extended <- cOde::funC(fs, forcings = forcings, events = events, outputs = outputs, modelname = modelname_s, solver = solver, nGridpoints = gridpoints, ...)
   }  
   
   out <- list(func = func, extended = extended)

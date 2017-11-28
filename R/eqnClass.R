@@ -187,6 +187,9 @@ getReactions <- function(eqnlist) {
 #' @rdname addReaction
 addReaction <- function(eqnlist, from, to, rate, description = names(rate)) {
   
+  
+  if (missing(eqnlist)) eqnlist <- eqnlist()
+  
   volumes <- eqnlist$volumes
   
   # Analyze the reaction character expressions

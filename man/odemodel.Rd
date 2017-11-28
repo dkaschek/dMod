@@ -4,7 +4,7 @@
 \alias{odemodel}
 \title{Generate the model objects for use in Xs (models with sensitivities)}
 \usage{
-odemodel(f, deriv = TRUE, forcings = NULL, fixed = NULL,
+odemodel(f, deriv = TRUE, forcings = NULL, events = NULL, fixed = NULL,
   modelname = "odemodel", solver = c("deSolve", "Sundials"),
   gridpoints = NULL, verbose = FALSE, ...)
 }
@@ -15,6 +15,13 @@ e.g. a named character vector with the ODE}
 \item{deriv}{logical, generate sensitivities or not}
 
 \item{forcings}{Character vector with the names of the forcings}
+
+\item{events}{data.frame of events with columns "var" (character, the name of the state to be
+affected), "time" (character or numeric, time point), "value" (character or numeric, value), 
+"method" (character, either 
+"replace" or "add"). See \link[deSolve]{events}. Events need to be defined here if they contain
+parameters, like the event time or value. If both, time and value are purely numeric, they
+can be specified in \code{\link{Xs}()}, too.}
 
 \item{fixed}{Character vector with the names of parameters (initial values and dynamic) for which
 no sensitivities are required (will speed up the integration).}

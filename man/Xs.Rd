@@ -17,10 +17,8 @@ The ODE forcings.}
 \item{events}{data.frame of events with columns "var" (character, the name of the state to be
 affected), "time" (numeric, time point), "value" (numeric, value), "method" (character, either
 "replace", "add" or "multiply"). See \link[deSolve]{events}.
-Within \code{Xs()} a \code{data.frame} of additional events is generated to 
-reset the sensitivities appropriately, depending on the event method. 
-ATTENTION: The addional events are not dynamically recalculated. If you call the prediction
-function with alternative events, the prediction is fine but the sensitivities can be wrong.}
+ATTENTION: Sensitivities for event states will only be correctly computed if defined within
+\code{\link{odemodel}()}. Specify events within \code{Xs()} only for forward simulation.}
 
 \item{names}{character vector with the states to be returned. If NULL, all states are returned.}
 

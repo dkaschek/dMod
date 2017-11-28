@@ -9,10 +9,8 @@
 #' @param events data.frame of events with columns "var" (character, the name of the state to be
 #' affected), "time" (numeric, time point), "value" (numeric, value), "method" (character, either
 #' "replace", "add" or "multiply"). See \link[deSolve]{events}.
-#' Within \code{Xs()} a \code{data.frame} of additional events is generated to 
-#' reset the sensitivities appropriately, depending on the event method. 
-#' ATTENTION: The addional events are not dynamically recalculated. If you call the prediction
-#' function with alternative events, the prediction is fine but the sensitivities can be wrong.
+#' ATTENTION: Sensitivities for event states will only be correctly computed if defined within
+#' \code{\link{odemodel}()}. Specify events within \code{Xs()} only for forward simulation.
 #' @param names character vector with the states to be returned. If NULL, all states are returned.
 #' @param condition either NULL (generic prediction for any condition) or a character, denoting
 #' the condition for which the function makes a prediction.
@@ -34,6 +32,9 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
   
   myforcings <- forcings
   myevents <- events
+  if (!is.null(attr(func, "events")) & !is.null(myevents))
+    warning("Events already defined in odemodel. Additional events in Xs() will be ignored. Events need to be defined in either odemodel() or Xs().")
+  
   
   # Variable and parameter names
   variables <- attr(func, "variables")
@@ -52,28 +53,6 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
   yiniSens <- as.numeric(senssplit.1 == senssplit.2)
   names(yiniSens) <- sensvar
   
-  #Additional events for resetting the sensitivities when events are supplied
-  myevents.addon <- NULL
-  if(!is.null(myevents)) {
-    myevents.addon <- lapply(1:nrow(myevents), function(i) {
-      newevent <- with(myevents[i, ], {
-        newvar <- sensvar[senssplit.1 == var]
-        newtime <- time
-        newvalue <- switch(as.character(method), replace = 0, add = 0, multiply = value)
-        newmethod <- method
-        if(length(newvar) > 0 && method != "add") {
-          data.frame(var = newvar, time = newtime, value = newvalue, method = newmethod)
-        } else {
-          NULL
-        }
-      })
-      
-      return(newevent)
-      
-    })
-    myevents.addon <- do.call(rbind, myevents.addon)
-  }
-  
   # Names for deriv output
   sensGrid <- expand.grid(variables, c(svariables, sparameters), stringsAsFactors=FALSE)
   sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".")  
@@ -86,12 +65,12 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
   sensNames <- paste(sensGrid[,1][select], sensGrid[,2][select], sep = ".")  
   
   
+  
   # Controls to be modified from outside
   controls <- list(
     forcings = myforcings,
     events = myevents,
     names = names,
-    events.addon = myevents.addon,
     optionsOde = optionsOde,
     optionsSens = optionsSens
   )
@@ -108,7 +87,6 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
     optionsOde <- controls$optionsOde
     optionsSens <- controls$optionsSens
     names <- controls$names
-    events.extended <- rbind(events, myevents.addon)
     
     # Add event time points (required by integrator) 
     event.times <- unique(events$time)
@@ -116,8 +94,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
     
     # Sort event time points
     if (!is.null(events)) events <- events[order(events$time),]
-    if (!is.null(events.extended)) events.extended <- events.extended[order(events.extended$time),]
-    
+
     
     myderivs <- NULL
     mysensitivities <- NULL
@@ -126,7 +103,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
       # Evaluate model without sensitivities
       # loadDLL(func)
       if (!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
-      out <- do.call(odeC, c(list(y = unclass(yini), times = times, func = func, parms = mypars, forcings = forc, events = list(data = events)), optionsOde))
+      out <- suppressWarnings(do.call(odeC, c(list(y = unclass(yini), times = times, func = func, parms = mypars, forcings = forc, events = list(data = events)), optionsOde)))
       out <- submatrix(out, cols = c("time", names))
       #out <- cbind(out, out.inputs)
       
@@ -137,9 +114,9 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
       # loadDLL(extended)
       if (!is.null(forcings)) forc <- setForcings(extended, forcings) else forc <- NULL
       
-      outSens <- do.call(odeC, c(list(y = c(unclass(yini), yiniSens), times = times, func = extended, parms = mypars, 
+      outSens <- suppressWarnings(do.call(odeC, c(list(y = c(unclass(yini), yiniSens), times = times, func = extended, parms = mypars, 
                                       forcings = forc, 
-                                      events = list(data = events.extended)), optionsSens))
+                                      events = list(data = events)), optionsSens)))
       #out <- cbind(outSens[,c("time", variables)], out.inputs)
       out <- submatrix(outSens, cols = c("time", names))
       mysensitivities <- submatrix(outSens, cols = !colnames(outSens) %in% c(variables, forcnames))
