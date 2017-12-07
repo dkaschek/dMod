@@ -389,7 +389,7 @@ Xd <- function(data, condition = NULL) {
 #' are multiplied according to the chain rule for differentiation.
 #' @example inst/examples/prediction.R
 #' @export
-Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, attach.input = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
+Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, attach.input = TRUE, deriv = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
  
   
   # Idea: 
@@ -414,21 +414,45 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
   
   # Get potential paramters from g, forcings are treated as parameters because
   # sensitivities dx/dp with respect to forcings are zero.
+  # Distinguish between
+  # symbols = any symbol that occurrs in g
+  # states = states of the underlying prediction function
+  # parameters = parameters of the underlying prediction function
+  # estimate = parameters p for which derivatives should be returned and states x assumed to provide derivatives, dx/dp
+  symbols <- getSymbols(unclass(g))
   if (is.null(f)) {
     states <- union(states, "time")
-    parameters <- parameters
+    estimate <- union(states, parameters)
+    parameters <- union(parameters, setdiff(symbols, c(states, "time")))
   } else if (inherits(f, "fn")) {
-    states <- union(names(attr(attr(f, "mappings")[[1]], "equations")), "time")
-    parameters <- setdiff(union(getParameters(f), getSymbols(unclass(g))), states)
+    mystates <- union(names(attr(attr(f, "mappings")[[1]], "equations")), "time")
+    myparameters <- setdiff(union(getParameters(f), getSymbols(unclass(g))), mystates)
+    estimate <- c(states, parameters)
+    if (is.null(states)) estimate <- c(estimate, mystates)
+    if (is.null(parameters)) estimate <- c(estimate, myparameters)
+    states <- union(mystates, states)
+    parameters <- union(myparameters, parameters)
   } else {
+    # Get all states and parameters from f
     f <- as.eqnvec(f)
-    if (is.null(states)) states <- union(names(f), "time")
-    if (is.null(parameters)) parameters <- getSymbols(c(unclass(g), unclass(f)), exclude = c(states, "time"))
+    mystates <- union(names(f), "time")
+    myparameters <- getSymbols(c(unclass(g), unclass(f)), exclude = mystates)
+    # Set states and parameters to be estimated according to arguments, and
+    # take values from mystates and myparameters, if NULL
+    estimate <- c(states, parameters)
+    if (is.null(states)) estimate <- c(estimate, mystates)
+    if (is.null(parameters)) estimate <- c(estimate, myparameters)
+    # Return states and parameters according to what is found in the equations and what is supplied by the user (probably not needed)
+    states <- union(mystates, states)
+    parameters <- union(myparameters, parameters)
   }
-  variables.deriv <- c(
-    states, 
-    as.vector(outer(states, c(states, parameters), paste, sep = "."))
-  )
+
+  cat("States:\n")
+  print(states)
+  cat("Parameters:\n")
+  print(parameters)
+  cat("Estimate:\n")
+  print(estimate)
   
   # Observables defined by g
   observables <- names(g)
@@ -436,29 +460,40 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
   gEval <- funC0(g, variables = states, parameters = parameters, compile = compile, modelname = modelname, 
                  verbose = verbose, convenient = FALSE, warnings = FALSE)
   
-  # Character matrices of derivatives
-  dxdp <- dgdx <- dgdp <- NULL
-  
-  if (length(states) > 0 & length(parameters) > 0) {
-    dxdp <- apply(expand.grid.alt(states, c(states, parameters)), 1, paste, collapse = ".")
-    dxdp <- matrix(dxdp, nrow = length(states))
-  }
-  if (length(states) > 0)
-    dgdx <- matrix(jacobianSymb(g, states), nrow = length(g))
-  if (length(parameters) > 0) {
-    dgdp <- cbind(
-      matrix("0", nrow = length(g), ncol = length(states)), 
-      matrix(jacobianSymb(g, parameters), nrow = length(g))
+  # Produce everything that is needed for derivatives
+  if (deriv) {
+    # Character matrices of derivatives
+    dxdp <- dgdx <- dgdp <- NULL    
+    states.est <- intersect(states, estimate)
+    pars.est <- intersect(parameters, estimate)
+    
+    variables.deriv <- c(
+      states, 
+      as.vector(outer(states.est, c(states.est, pars.est), paste, sep = "."))
     )
+    
+    if (length(states.est) > 0 & length(pars.est) > 0) {
+      dxdp <- apply(expand.grid.alt(states.est, c(states.est, pars.est)), 1, paste, collapse = ".")
+      dxdp <- matrix(dxdp, nrow = length(states.est))
+    }
+    if (length(states.est) > 0)
+      dgdx <- matrix(jacobianSymb(g, states.est), nrow = length(g))
+    if (length(pars.est) > 0) {
+      dgdp <- cbind(
+        matrix("0", nrow = length(g), ncol = length(states.est)), 
+        matrix(jacobianSymb(g, pars.est), nrow = length(g))
+      )
+    }
+    
+    # Sensitivities of the observables
+    derivs <- as.vector(sumSymb(prodSymb(dgdx, dxdp), dgdp))
+    if (length(derivs) == 0) stop("Neither states nor parameters involved. Use Y() with argument 'deriv = FALSE' instead.")
+    names(derivs) <- apply(expand.grid.alt(observables, c(states.est, pars.est)), 1, paste, collapse = ".")
+    
+    derivsEval <- funC0(derivs, variables = variables.deriv, parameters = parameters, compile = compile, modelname = modelname_deriv,
+                        verbose = verbose, convenient = FALSE, warnings = FALSE)
+    
   }
-  
-  # Sensitivities of the observables
-  derivs <- as.vector(sumSymb(prodSymb(dgdx, dxdp), dgdp))
-  if (length(derivs) == 0) stop("Neither states nor parameters involved")
-  names(derivs) <- apply(expand.grid.alt(observables, c(states, parameters)), 1, paste, collapse = ".")
-
-  derivsEval <- funC0(derivs, variables = variables.deriv, parameters = parameters, compile = compile, modelname = modelname_deriv,
-                      verbose = verbose, convenient = FALSE, warnings = FALSE)
   
   # Vector with zeros for possibly missing derivatives
   # zeros <- rep(0, length(dxdp))
@@ -476,8 +511,10 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     values <- gEval(M = out, p = pars)
     
     sensitivities.export <- NULL
+    myderivs <- NULL
+    
     dout <- attr(out, "sensitivities")
-    if (!is.null(dout)) {
+    if (!is.null(dout) & deriv) {
       dvalues <- derivsEval(M = cbind(out, dout), p = pars)
       sensitivities.export <- cbind(time = out[, 1], dvalues)
     }
@@ -485,9 +522,9 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     
     # Parameter transformation
     dP <- attr(pars, "deriv")
-    if (!is.null(dP) & !is.null(dout)) {
+    if (!is.null(dP) & !is.null(dout) & deriv) {
       
-      parameters.all <- c(states, parameters)
+      parameters.all <- c(states.est, pars.est)
       parameters.missing <- parameters.all[!parameters.all %in% rownames(dP)]
       
       if (length(parameters.missing) > 0 & warnings)
@@ -517,11 +554,11 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     
     
     myderivs <- myparameters <- NULL
-    if (!is.null(dout) && !attach.input) {
+    if (!is.null(dout) & deriv & !attach.input) {
       myderivs <- cbind(time = out[,"time"], dvalues)
       if (is.null(dP)) myparameters <- names(pars) else myparameters <- colnames(dP)
     }
-    if (!is.null(dout) && attach.input) {
+    if (!is.null(dout) & deriv & attach.input) {
       myderivs <- cbind(time = out[,"time"], dvalues, submatrix(attr(out, "deriv"), cols = -1))
       if (is.null(dP)) myparameters <- names(pars) else myparameters <- colnames(dP)
     }
