@@ -81,9 +81,8 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
     yini <- unclass(pars)[variables]
     mypars <- unclass(pars)[parameters]
     
-    events <- controls$events
     forcings <- controls$forcings
-    myevents.addon <- controls$events.addon
+    events <- controls$events
     optionsOde <- controls$optionsOde
     optionsSens <- controls$optionsSens
     names <- controls$names
