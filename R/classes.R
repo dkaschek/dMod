@@ -13,6 +13,7 @@
 #' "replace" or "add"). See \link[deSolve]{events}. Events need to be defined here if they contain
 #' parameters, like the event time or value. If both, time and value are purely numeric, they
 #' can be specified in \code{\link{Xs}()}, too.
+#' @param outputs Named character vector for additional output variables.
 #' @param fixed Character vector with the names of parameters (initial values and dynamic) for which
 #' no sensitivities are required (will speed up the integration).
 #' @param modelname Character, the name of the C file being generated.
@@ -24,7 +25,7 @@
 #' @export
 #' @example inst/examples/odemodel.R
 #' @import cOde
-odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, fixed=NULL, modelname = "odemodel", solver = c("deSolve", "Sundials"), gridpoints = NULL, verbose = FALSE, ...) {
+odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, outputs = NULL, fixed=NULL, modelname = "odemodel", solver = c("deSolve", "Sundials"), gridpoints = NULL, verbose = FALSE, ...) {
   
   
   if (is.null(gridpoints)) gridpoints <- 2
@@ -34,7 +35,7 @@ odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, fixed=NULL, 
   modelname_s <- paste0(modelname, "_s")
   solver <- match.arg(solver)
   
-  func <- cOde::funC(f, forcings = forcings, events = events, fixed = fixed, modelname = modelname , solver = solver, nGridpoints = gridpoints, ...)
+  func <- cOde::funC(f, forcings = forcings, events = events, outputs = outputs, fixed = fixed, modelname = modelname , solver = solver, nGridpoints = gridpoints, ...)
   extended <- NULL
   if (solver == "Sundials") {
     # Sundials does not need "extended" by itself, but dMod relies on it.
@@ -53,9 +54,10 @@ odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, fixed=NULL, 
                            events = attr(func, "events"),
                            reduce = TRUE)
     fs <- c(f, s)
-    outputs <- attr(s, "outputs")
+    outputs <- c(attr(s, "outputs"), attr(func, "outputs"))
     events <- rbind(attr(s, "events"), attr(func, "events"))
-    extended <- cOde::funC(fs, forcings = forcings, events = events, outputs = outputs, modelname = modelname_s, solver = solver, nGridpoints = gridpoints, ...)
+    
+    extended <- cOde::funC(fs, forcings = forcings, modelname = modelname_s, solver = solver, nGridpoints = gridpoints, events = events, outputs = outputs, ...)
   }  
   
   out <- list(func = func, extended = extended)
