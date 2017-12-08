@@ -34,6 +34,9 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
   myevents <- events
   if (!is.null(attr(func, "events")) & !is.null(myevents))
     warning("Events already defined in odemodel. Additional events in Xs() will be ignored. Events need to be defined in either odemodel() or Xs().")
+  if (is.null(attr(func, "events") & !is.null(myevents)))
+    message("Events should be definend in odemodel(). If defined in Xs(), events will be applied, but sensitivities will not be reset accordingly.")
+  
   
   
   # Variable and parameter names
@@ -371,6 +374,7 @@ Xd <- function(data, condition = NULL) {
 #' the condition for which the function makes a prediction.
 #' @param attach.input logical, indiating whether the original input should be
 #' returned with the output.
+#' @param deriv logical, generate function to evaluate derivatives of observables. Necessary for parameter estimation.
 #' @param compile Logical, compile the function (see \link{funC0})
 #' @param modelname Character, used if \code{compile = TRUE}, sets a fixed filename for the
 #' C file.

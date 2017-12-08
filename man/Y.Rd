@@ -5,7 +5,7 @@
 \title{Observation functions.}
 \usage{
 Y(g, f = NULL, states = NULL, parameters = NULL, condition = NULL,
-  attach.input = TRUE, compile = FALSE, modelname = NULL,
+  attach.input = TRUE, deriv = TRUE, compile = FALSE, modelname = NULL,
   verbose = FALSE)
 }
 \arguments{
@@ -26,6 +26,8 @@ the condition for which the function makes a prediction.}
 
 \item{attach.input}{logical, indiating whether the original input should be
 returned with the output.}
+
+\item{deriv}{logical, generate function to evaluate derivatives of observables. Necessary for parameter estimation.}
 
 \item{compile}{Logical, compile the function (see \link{funC0})}
 

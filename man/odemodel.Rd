@@ -4,9 +4,10 @@
 \alias{odemodel}
 \title{Generate the model objects for use in Xs (models with sensitivities)}
 \usage{
-odemodel(f, deriv = TRUE, forcings = NULL, events = NULL, fixed = NULL,
-  modelname = "odemodel", solver = c("deSolve", "Sundials"),
-  gridpoints = NULL, verbose = FALSE, ...)
+odemodel(f, deriv = TRUE, forcings = NULL, events = NULL,
+  outputs = NULL, fixed = NULL, modelname = "odemodel",
+  solver = c("deSolve", "Sundials"), gridpoints = NULL, verbose = FALSE,
+  ...)
 }
 \arguments{
 \item{f}{Something that can be converted to \link{eqnvec}, 
@@ -22,6 +23,8 @@ affected), "time" (character or numeric, time point), "value" (character or nume
 "replace" or "add"). See \link[deSolve]{events}. Events need to be defined here if they contain
 parameters, like the event time or value. If both, time and value are purely numeric, they
 can be specified in \code{\link{Xs}()}, too.}
+
+\item{outputs}{Named character vector for additional output variables.}
 
 \item{fixed}{Character vector with the names of parameters (initial values and dynamic) for which
 no sensitivities are required (will speed up the integration).}
