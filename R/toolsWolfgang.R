@@ -815,7 +815,7 @@ c.parlist <- function(...) {
     m_parlist <- mapply(function(fit, idx) {
       if (is.list(fit)) fit$index <- idx
       return(fit)
-      }, fit = m_fits, idx = seq_along(m_fits))
+      }, fit = m_fits, idx = seq_along(m_fits), SIMPLIFY = FALSE)
     
     return(as.parlist(m_parlist))
   }

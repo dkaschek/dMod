@@ -34,7 +34,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
   myevents <- events
   if (!is.null(attr(func, "events")) & !is.null(myevents))
     warning("Events already defined in odemodel. Additional events in Xs() will be ignored. Events need to be defined in either odemodel() or Xs().")
-  if (is.null(attr(func, "events") & !is.null(myevents)))
+  if (is.null(attr(func, "events")) & !is.null(myevents))
     message("Events should be definend in odemodel(). If defined in Xs(), events will be applied, but sensitivities will not be reset accordingly.")
   
   
