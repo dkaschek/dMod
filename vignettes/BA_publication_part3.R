@@ -80,7 +80,7 @@ for (c in rownames(covtable)) {
   p <-p + transformation %>%
     reparameterize("x~cations", x = "change_cations", cations = covtable[c, "cations"]) %>%
     reparameterize("x~buffer", x = c("change_buffer", "change_drug"), buffer = covtable[c, "tca_time"]) %>%
-    reparameterize("x~amount", x = "Drug", amount = covtable[c, "dose"]) %>%
+    reparameterize("x~amount*exp(drugscale)", x = "Drug", amount = covtable[c, "dose"]) %>%
     reparameterize("x~drug", x = "value_drug", drug = "0") %>%
     reparameterize("x~exp(x)", x = parameters) %>%
     reparameterize("build_x~build_x_compound", x = c("DrugBsep", "DrugMrp3", "DrugNtcp"), compound = covtable[c, "compound"]) %>%
@@ -96,11 +96,10 @@ pars <- structure(rep(0, length(estimate)), names = estimate)
 times <- seq(0, 200, 1)
 (gPD*xPD*p)(times, pars) %>% plot(data = data, time <= 180)
 
-obj <- normL2(data, gPD*xPD*p) + constraintL2(pars, sigma = 10)
-fixed <- pars["drugscale"]
-myfit <- trust(obj, pars[setdiff(names(pars), names(fixed))], rinit = 1, rmax = 10, iterlim = 100, fixed = fixed)
+obj <- normL2(data, gPD*xPD*p) #+ constraintL2(pars, sigma = 10)
+myfit <- trust(obj, pars + rnorm(length(pars), 0, 1), rinit = 1, rmax = 10, iterlim = 20)
 
-(gPD*xPD*p)(times, myfit$argument, fixed = fixed) %>% plot(data = data)
+(gPD*xPD*p)(times, myfit$argument) %>% plot(data = data)
 
 profiles_part2 <- profile(obj, myfit$argument, names(myfit$argument), cores = 4)
 profiles_part2 %>% plotProfile(mode == "data")
