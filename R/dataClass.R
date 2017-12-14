@@ -154,3 +154,37 @@ as.data.frame.datalist <- function(x, ...) {
   return(data)
   
 }
+
+
+#' @export
+covariates <- function(data) {
+  UseMethod("covariates", data)
+}
+
+#' @export
+covariates.datalist <- function(data) {
+  
+  attr(data, "condition.grid")
+  
+}
+
+#' @export
+covariates.data.frame <- function(data) {
+  
+  exclude <- c("name", "time", "value", "sigma")
+  contains.condition <- "condition" %in% colnames(data)
+  out <- unique(data[, setdiff(names(data), exclude)])
+  
+  if (contains.condition) {
+    if (any(duplicated(out[["condition"]]))) {
+      stop("Unique entries of condition column do not correspond to unique covariate combinations.")
+    }
+    rownames(out) <- out[["condition"]]
+    out <- out[ , setdiff(names(out), "condition")]
+  } else {
+    rownames(out) <- do.call(paste_, out)
+  }
+  
+  return(out)
+  
+}
