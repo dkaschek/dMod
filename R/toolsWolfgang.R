@@ -220,7 +220,7 @@ strelide <- function(string, width, where = "right", force = FALSE) {
 #' @export
 #' @import parallel
 mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20, cores = 1,
-                    samplefun = "rnorm", resultPath = ".", stats = FALSE,
+                    samplefun = "rnorm", resultPath = ".", stats = FALSE, output = FALSE,
                     ...) {
 
   narrowing <- NULL
@@ -342,7 +342,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     fit$parinit <- argstrust$parinit
 
     # Write current fit to disk
-    saveRDS(fit, file = file.path(interResultFolder, paste0("fit-", i, ".Rda")))
+    if (output) saveRDS(fit, file = file.path(interResultFolder, paste0("fit-", i, ".Rda")))
 
     # Reporting
     # With concurent jobs and everyone reporting, this is a classic race
@@ -403,7 +403,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   
   # Wrap up
   # Write out results
-  saveRDS(m_parlist, file = fileParList)
+  if (output) saveRDS(m_parlist, file = fileParList)
 
   # Remove temporary files
   unlink(interResultFolder, recursive = TRUE)
