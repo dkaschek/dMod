@@ -1385,6 +1385,15 @@ getDerivs.objlist <- function(x, ...) {
 }
 
 
+
+getEquations <- function(x, ...) {
+  
+  UseMethod("getEquations", x)
+  
+}
+
+
+
 #' Extract the parameters of an object
 #' 
 #' @param ... objects from which the parameters should be extracted
@@ -1598,3 +1607,7 @@ mname.fn <- function(x, conditions = NULL) {
   attr(x, "modelname") <- value
   return(x)
 }
+
+
+
+
