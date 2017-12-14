@@ -167,7 +167,7 @@ repar <- function(expr, trafo = NULL, ...) {
   })
   
   if (is.null(trafo)) {
-    trafo <- structure(lhs, names = lhs)
+    trafo <- as.eqnvec(structure(lhs, names = lhs))
   } else if (is.list(trafo)) {
     trafo <- lapply(trafo, function(t) replaceSymbols(lhs, rhs, t))
   } else if (is.character(trafo)) {
@@ -178,5 +178,7 @@ repar <- function(expr, trafo = NULL, ...) {
   
   
 }
+
+paste_ <- function(...) paste(..., sep = "_")
 
 
