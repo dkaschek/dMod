@@ -144,6 +144,21 @@ subset.parframe <- function(x, ...) {
   
 }
 
+#' Extract those lines of a parameter frame with unique elements in the value column
+#' @param x parameter frame
+#' @param incomparables not used. Argument exists for compatibility with S3 generic.
+#' @param tol tolerance to decide when values are assumed to be equal, see \code{\link{plotValues}()}.
+#' @param ... additional arguments being passed to \code{\link{plotValues}()}, e.g. for subsetting.
+#' @return A subset of the parameter frame \code{x}.
+#' @export
+unique.parframe <- function(x, incomparables = FALSE, tol = 1, ...) {
+  
+  
+  jumps <- attr(plotValues(x = x, tol = tol, ...), "jumps")
+  x[jumps, ]
+  
+  
+}
 
 
 
