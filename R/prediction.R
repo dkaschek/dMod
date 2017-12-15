@@ -450,12 +450,12 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     parameters <- union(myparameters, parameters)
   }
 
-  cat("States:\n")
-  print(states)
-  cat("Parameters:\n")
-  print(parameters)
-  cat("Estimate:\n")
-  print(estimate)
+  # cat("States:\n")
+  # print(states)
+  # cat("Parameters:\n")
+  # print(parameters)
+  # cat("Estimate:\n")
+  # print(estimate)
   
   # Observables defined by g
   observables <- names(g)
