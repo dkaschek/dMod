@@ -24,34 +24,24 @@ plot(data)
 
 ## Add new condition to parameterization --------------------------
 
-
-# Parameterize the model
 parameters <- getParameters(g, x)
-transformation <- eqnvec() %>%
-  reparameterize("x~x", x = parameters) %>%
-  reparameterize("x~0", x = c("Tca_cyto", "Tca_canalicular", "Tca_buffer", "value_cations")) %>%
-  reparameterize("x~1", x = "cations")
-  
+p_add <- getEquations(p, conditions = "exp1_no_no_0") %>%
+  define("t_addTca ~ 60") %>%
+  define("x ~ 1e3", x = c("t_removeTca", "t_removeCa")) %>%
+  P(condition = "exp3_no_no_0")
 
-for (c in rownames(covtable)[3]) {
-  p <-p + transformation %>%
-    reparameterize("x~cations", x = "change_cations", cations = covtable[c, "cations"]) %>%
-    reparameterize("x~buffer", x = "change_buffer", buffer = covtable[c, "tca_time"]) %>%
-    reparameterize("x~exp(x)", x = parameters) %>%
-    P(condition = c)
-}
-
-estimate <- getParameters(p)
+estimate <- getParameters(p, p_add)
 pars <- structure(rep(-1, length(estimate)), names = estimate)
 pars[partable$name] <- partable$value
 
 times <- seq(0, 200, 1)
-(g*x*p)(times, pars) %>% plot(data = data, time <= 180)
+(g*x*(p + p_add))(times, pars) %>% plot(data = data, time <= 180)
 
-obj <- normL2(data, g*x*p) + constraintL2(pars, sigma = 10)
+y <- g * x * (p + p_add)
+obj <- normL2(data, y) + constraintL2(pars, sigma = 10)
 myfit <- trust(obj, pars, rinit = 1, rmax = 10, iterlim = 500)
 
-(g*x*p)(times, myfit$argument) %>% plot(data = data)
+y(times, myfit$argument) %>% plot(data = data)
 
 profiles_part2 <- profile(obj, myfit$argument, names(myfit$argument), cores = 4)
 profiles_part2 %>% plotProfile(mode == "data")
