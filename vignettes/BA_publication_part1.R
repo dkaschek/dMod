@@ -36,8 +36,7 @@ reactions <- eqnlist() %>%
   addReaction("Tca_cyto", "Tca_buffer", "export_Tca_baso*Tca_cyto", "Basolateral efflux") %>%
   addReaction("Tca_cyto", "Tca_canalicular", "export_Tca_cana*Tca_cyto", "Canalicular efflux") %>%
   addReaction("Tca_canalicular", "Tca_buffer", "transport_Tca*Tca_canalicular", "Transport bile") %>%
-  #addReaction("0", "cations", "0", "Cation concentration in buffer") %>% 
-  {.}
+  addReaction("0", "cations", "0", "Cation concentration in buffer") 
 
 odes <- reactions %>% 
   as.eqnvec() %>% 
