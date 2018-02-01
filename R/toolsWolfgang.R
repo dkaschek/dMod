@@ -181,6 +181,7 @@ strelide <- function(string, width, where = "right", force = FALSE) {
 #'   objective function by matching parameter names. All unmatched parameters 
 #'   are handed to the objective function objfun(). The log file starts with a 
 #'   table telling which parameter was assigend to which function.
+#' @param output logical. If true, writes output to the disc.
 #'   
 #' @details By running multiple fits starting at randomly chosen inital 
 #'   parameters, the chisquare landscape can be explored using a deterministic 
@@ -342,33 +343,34 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     fit$parinit <- argstrust$parinit
 
     # Write current fit to disk
-    if (output) saveRDS(fit, file = file.path(interResultFolder, paste0("fit-", i, ".Rda")))
-
-    # Reporting
-    # With concurent jobs and everyone reporting, this is a classic race
-    # condition. Assembling the message beforhand lowers the risk of interleaved
-    # output to the log.
-    msgSep <- "-------"
-    if (any(names(fit) == "error")) {
-      msg <- paste0(msgSep, "\n",
-                    "Fit ", i, " failed after ", fit$iterations, " iterations with error\n",
-                    "--> ", fit$error,
-                    msgSep, "\n")
-
-      writeLines(msg, logfile)
-      flush(logfile)
-    } else {
-      msg <- paste0(msgSep, "\n",
-                    "Fit ", i, " completed\n",
-                    "--> iterations : ", fit$iterations, "\n",
-                    "-->  converged : ", fit$converged, "\n",
-                    "--> obj. value : ", round(fit$value, digits = 2), "\n",
-                    msgSep)
-
-      writeLines(msg, logfile)
-      flush(logfile)
+    if (output) {
+      saveRDS(fit, file = file.path(interResultFolder, paste0("fit-", i, ".Rda")))
+      
+      # Reporting
+      # With concurent jobs and everyone reporting, this is a classic race
+      # condition. Assembling the message beforhand lowers the risk of interleaved
+      # output to the log.
+      msgSep <- "-------"
+      if (any(names(fit) == "error")) {
+        msg <- paste0(msgSep, "\n",
+                      "Fit ", i, " failed after ", fit$iterations, " iterations with error\n",
+                      "--> ", fit$error,
+                      msgSep, "\n")
+        
+        writeLines(msg, logfile)
+        flush(logfile)
+      } else {
+        msg <- paste0(msgSep, "\n",
+                      "Fit ", i, " completed\n",
+                      "--> iterations : ", fit$iterations, "\n",
+                      "-->  converged : ", fit$converged, "\n",
+                      "--> obj. value : ", round(fit$value, digits = 2), "\n",
+                      msgSep)
+        
+        writeLines(msg, logfile)
+        flush(logfile)
+      }
     }
-
     return(fit)
   }, mc.preschedule = FALSE, mc.silent = FALSE, mc.cores = cores))
   close(logfile)
@@ -414,7 +416,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   sum.fatal <- sum(idxStatus == m_trustFlags.fatal)
   sum.unconverged <- sum(idxStatus == m_trustFlags.unconverged)
   sum.converged <- sum(idxStatus == m_trustFlags.converged)
-  msg <- paste0("Mutli start trust summary\n",
+  msg <- paste0("Multi start trust summary\n",
                 "Outcome     : Occurrence\n",
                 "Error       : ", sum.error, "\n",
                 "Fatal       : ", sum.fatal, " must be 0\n",
