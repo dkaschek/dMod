@@ -1611,3 +1611,79 @@ mname.fn <- function(x, conditions = NULL) {
 
 
 
+#' Extract the equations of an object
+#' 
+#' @param x object from which the equations should be extracted
+#' @param conditions character or numeric vector specifying the conditions to 
+#' which \code{getEquations} is restricted. If \code{conditions} has length one,
+#' the result is not returned as a list.
+#' @return The equations as list of \code{eqnvec} objects.
+#' @export
+getEquations <- function(x, conditions = NULL) {
+  
+    UseMethod("getEquations", x)  
+  
+}
+
+
+
+#' @export
+#' @rdname getEquations
+getEquations.odemodel <- function(x, conditions = NULL) {
+  
+  attr(x$func, "equations")
+  
+}
+
+
+
+#' @export
+#' @rdname getEquations
+getEquations.prdfn <- function(x, conditions = NULL) {
+  
+  mappings <- attr(x, "mappings")
+  
+  if (is.null(conditions)) {
+    equations <- lapply(mappings, function(m) attr(m, "equations"))
+    return(equations)
+  }
+  
+  if (!is.null(conditions)) {
+    mappings <- mappings[conditions]
+    equations <- lapply(mappings, function(m) attr(m, "equations"))
+    if (length(equations) == 1) {
+      return(equations[[1]])
+    } else {
+      return(equations)
+    }
+  }
+  
+}
+
+
+#' @export
+#' @rdname getEquations
+getEquations.fn <- function(x, conditions = NULL) {
+  
+  mappings <- attr(x, "mappings")
+  
+  if (is.null(conditions)) {
+    equations <- lapply(mappings, function(m) attr(m, "equations"))
+    return(equations)
+  }
+  
+  if (!is.null(conditions)) {
+    mappings <- mappings[conditions]
+    equations <- lapply(mappings, function(m) attr(m, "equations"))
+    if (length(equations) == 1) {
+      return(equations[[1]])
+    } else {
+      return(equations)
+    }
+  }
+  
+}
+
+
+
+
