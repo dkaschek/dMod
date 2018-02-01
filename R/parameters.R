@@ -2,7 +2,9 @@
 #' @description  Generate parameter transformation function from a
 #' named character vector or object of class \link{eqnvec}. This is a wrapper
 #' function for \link{Pexpl} and \link{Pimpl}. See for more details there.
-#' @param trafo object of class \code{eqnvec} or named character
+#' @param trafo object of class \code{eqnvec} or named character or list thereof. In case,
+#' trafo is a list, \code{P()} is called on each element and conditions are assumed to be
+#' the list names.
 #' @param parameters character vector
 #' @param condition character, the condition for which the transformation is generated
 #' @param attach.input attach those incoming parameters to output which are not overwritten by
@@ -19,11 +21,22 @@
 P <- function(trafo = NULL, parameters=NULL, condition = NULL, attach.input = FALSE,  keep.root = TRUE, compile = FALSE, modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE) {
   
   if (is.null(trafo)) return()
+  if (!is.list(trafo)) {
+    trafo <- list(trafo)
+    names(trafo) <- condition
+  }
   
   method <- match.arg(method)
-  switch(method, 
-         explicit = Pexpl(trafo = as.eqnvec(trafo), parameters = parameters, attach.input = attach.input, condition = condition, compile = compile, modelname = modelname, verbose = verbose),
-         implicit = Pimpl(trafo = as.eqnvec(trafo), parameters = parameters, keep.root = keep.root, condition = condition, compile = compile, modelname = modelname, verbose = verbose))
+  
+  Reduce("+", lapply(1:length(trafo), function(i) {
+  
+      switch(method, 
+           explicit = Pexpl(trafo = as.eqnvec(trafo[[i]]), parameters = parameters, attach.input = attach.input, condition = names(trafo[i]), compile = compile, modelname = modelname, verbose = verbose),
+           implicit = Pimpl(trafo = as.eqnvec(trafo[[i]]), parameters = parameters, keep.root = keep.root, condition = names(trafo[i]), compile = compile, modelname = modelname, verbose = verbose))
+    
+    
+  }))
+  
   
 }
 

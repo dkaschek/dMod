@@ -40,6 +40,8 @@ be stored. Defaults to ".".}
 \item{stats}{If true, the same summary statistic as written to the logfile is
 printed to command line on mstrust completion.}
 
+\item{output}{logical. If true, writes output to the disc.}
+
 \item{...}{Additional parameters handed to trust(), samplefun(), or the 
 objective function by matching parameter names. All unmatched parameters 
 are handed to the objective function objfun(). The log file starts with a 

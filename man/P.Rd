@@ -9,7 +9,9 @@ P(trafo = NULL, parameters = NULL, condition = NULL,
   modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE)
 }
 \arguments{
-\item{trafo}{object of class \code{eqnvec} or named character}
+\item{trafo}{object of class \code{eqnvec} or named character or list thereof. In case,
+trafo is a list, \code{P()} is called on each element and conditions are assumed to be
+the list names.}
 
 \item{parameters}{character vector}
 

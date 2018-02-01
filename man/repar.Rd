@@ -4,7 +4,7 @@
 \alias{repar}
 \title{Reparameterization}
 \usage{
-repar(expr, trafo = NULL, ...)
+repar(expr, trafo = NULL, ..., reset = FALSE)
 }
 \arguments{
 \item{expr}{character of the form \code{"lhs ~ rhs"} where \code{rhs}
@@ -14,6 +14,9 @@ can contain a number of symbols whose values need to be passed by the \code{...}
 \item{trafo}{character or equation vector or list thereof. The object where the replacement takes place in}
 
 \item{...}{pass symbols as named arguments}
+
+\item{reset}{logical. If true, the trafo element corresponding to lhs is reset according to rhs. 
+If false, lhs wherever it occurs in the rhs of trafo is replaced by rhs of the formula.}
 }
 \value{
 an equation vector with the reparameterization.
