@@ -1,8 +1,9 @@
 #' @export
-modelNLME <- function(prdfn, cores = 1) {
+modelNLME <- function(prdfn, covtable = NULL, cores = 1) {
   
   
   parnames <- getParameters(prdfn)
+  covnames <- names(covtable)
   
   
   model <- function(time, name, ...) {
@@ -16,7 +17,9 @@ modelNLME <- function(prdfn, cores = 1) {
     output <- parallel::mclapply(pars, function(sub) {
       timesD <- unique(sub$time)
       parsD <- unlist(sub[1, parnames])
-      prediction <- prdfn(timesD, parsD)[[1]]
+      condition <- paste(unlist(sub[1, covnames]), collapse = "_")
+      
+      prediction <- prdfn(timesD, parsD, conditions = condition)[[1]]
       template <- data.frame(name = sub$name, time = sub$time, value = 0, sigma = 1)
       
       myres <- res(template, prediction)

@@ -1,6 +1,7 @@
 library(dMod)
 library(nlme)
 library(dplyr)
+library(ggplot2)
 
 x <- eqnlist() %>% 
   addReaction("A", "B", "kA*A", "Decay of A") %>%
