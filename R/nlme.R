@@ -2,14 +2,15 @@
 modelNLME <- function(prdfn, covtable = NULL, cores = 1) {
   
   
-  parnames <- getParameters(prdfn)
   covnames <- names(covtable)
+  parnames <- getParameters(prdfn)
   
   
   model <- function(time, name, ...) {
     
     pars <- as.data.frame(c(list(time, name), list(...)))
-    names(pars) <- c("time", "name", parnames)
+    
+    names(pars) <- c("time", "name", parnames, covnames)
     
     id <- cumsum(Reduce("|", lapply(pars[-(1:2)], function(x) !duplicated(x))))
     pars <- split(pars, id)
