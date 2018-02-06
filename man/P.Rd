@@ -24,9 +24,9 @@ the parameter transformation.}
 evaluation of the parameter transformation function is saved as guess for the next 
 evaluation.}
 
-\item{compile}{logical}
+\item{compile}{logical, compile the function (see \link{funC0})}
 
-\item{modelname}{character}
+\item{modelname}{character, see \link{funC0}}
 
 \item{method}{character, either \code{"explicit"} or \code{"implicit"}}
 

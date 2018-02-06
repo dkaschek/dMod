@@ -12,8 +12,8 @@
 #' @param keep.root logical, applies for \code{method = "implicit"}. The root of the last
 #' evaluation of the parameter transformation function is saved as guess for the next 
 #' evaluation.
-#' @param compile logical
-#' @param modelname character
+#' @param compile logical, compile the function (see \link{funC0})
+#' @param modelname character, see \link{funC0}
 #' @param method character, either \code{"explicit"} or \code{"implicit"}
 #' @param verbose Print out information during compilation
 #' @return An object of class \link{parfn}.
