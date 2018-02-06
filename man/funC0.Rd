@@ -17,10 +17,11 @@ named character vector with the algebraic expressions}
 \item{parameters}{character vector, the symbols that should be treated as parameters}
 
 \item{compile}{Logical. Directly compile the file. If \code{FALSE} and modelname is available,
-the C file is written but not compiled. If modelname is not available, an R function is
-generated and returned.}
+the C file is written but not compiled. In this case, \link{compile} has to be called separately
+to compile one or more .c-files into one .so-file. 
+If modelname is not available, an R function is generated and returned.}
 
-\item{modelname}{file name of the generated C file.}
+\item{modelname}{file name of the generated C file. See description of parameter \code{compile}.}
 
 \item{verbose}{Print compiler output to R command line.}
 

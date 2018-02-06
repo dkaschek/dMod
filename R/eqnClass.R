@@ -747,9 +747,10 @@ c.eqnvec <- function(...) {
 #' @param variables character vector, the symbols that should be treated as variables
 #' @param parameters character vector, the symbols that should be treated as parameters
 #' @param compile Logical. Directly compile the file. If \code{FALSE} and modelname is available,
-#' the C file is written but not compiled. If modelname is not available, an R function is
-#' generated and returned.
-#' @param modelname file name of the generated C file.
+#' the C file is written but not compiled. In this case, \link{compile} has to be called separately
+#' to compile one or more .c-files into one .so-file. 
+#' If modelname is not available, an R function is generated and returned.
+#' @param modelname file name of the generated C file. See description of parameter \code{compile}.
 #' @param verbose Print compiler output to R command line.
 #' @param convenient logical, if TRUE return a function with argument \code{...} to pass
 #' all variables/parameters as named arguments
