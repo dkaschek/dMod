@@ -453,7 +453,7 @@ compile <- function(..., output = NULL, args = NULL, cores = 1) {
       if (!is.null(output))
         eval(parse(text = paste0("modelname(", obj.names[i], ") <<- '", output, "'")))
       # Expand modelname by possible endings and check if file exists
-      filename <- outer(filename, c("", "_deriv", "_s", "_sdcv"), paste0)
+      filename <- outer(filename, c("", "_deriv", "_s", "_sdcv", "_dfdx", "_dfdp"), paste0)
       files.obj <- c(paste0(filename, ".c"), paste0(filename, ".cpp"))
       files.obj <- files.obj[file.exists(files.obj)]
       files <- union(files, files.obj)
