@@ -15,8 +15,9 @@ as.datalist <- function(x, ...) {
 #' @param split.by vector of columns names which yield a unique identifier (conditions). If NULL, all
 #' columns except for the expected standard columns "name", "time", "value" and "sigma" will be
 #' selected.
+#' @param keep.covariates vector of additional column names which should be kept in the condition.grid.
 #' @rdname datalist
-as.datalist.data.frame <- function(x, split.by = NULL, ...) {
+as.datalist.data.frame <- function(x, split.by = NULL, keep.covariates = NULL, ...) {
   
   dataframe <- x
   
@@ -26,12 +27,12 @@ as.datalist.data.frame <- function(x, split.by = NULL, ...) {
   if (is.null(split.by)) split.by <- setdiff(all.names, standard.names)
   
   
- 
   conditions <- lapply(split.by, function(n) dataframe[, n])
   splits <- do.call(paste, c(conditions, list(sep = "_")))
   
+  
   # condition grid
-  conditionframe <- dataframe[!duplicated(splits), split.by, drop = FALSE]
+  conditionframe <- dataframe[!duplicated(splits), c(split.by, keep.covariates), drop = FALSE]
   rownames(conditionframe) <- splits[!duplicated(splits)]
   
   

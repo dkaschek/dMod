@@ -20,9 +20,10 @@ mydata <- data.frame(name = "A",
                      value = c(sin(times), 1.5 * sin(times)), 
                      sigma = .1, 
                      stage = rep(c("upper", "lower"), each = 10),
-                     phase = rep(c("first", "second"), each = 20))
+                     phase = rep(c("first", "second"), each = 20),
+                     amplitude = rep(c(1,1.5), each = 20))
 
-data <- as.datalist(mydata, split.by = c("stage", "phase"))
+data <- as.datalist(mydata, split.by = c("stage", "phase"), keep.covariates = "amplitude")
 print(data)
 plot(data)
 
