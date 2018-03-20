@@ -1,4 +1,5 @@
 # example script to produce a project folder for the shiny app - the app looks for all subfolders within the app-folder
+# see CCD4 example folder
 
 saveShiny <- function(x = y, parameters= myparameters, fixed = NULL, data = mydatalist, reactions = myeqnlist, profiles = myprofiles, pubref="none", errmodel = NULL){
   
