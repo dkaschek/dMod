@@ -648,8 +648,21 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
       arglist <- arglist[match.fnargs(arglist, c("pars"))]
       pars <- arglist[[1]]
       
-      v1 <- x1(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions[conditions %in% conditions.x1], env = env)
-      v2 <- x2(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions[conditions %in% conditions.x2], env = attr(v1, "env"))
+      # 1. If conditions.xi is null, always evaluate xi, but only once
+      # 2. If not null, evaluate at intersection with conditions
+      # 3. If not null & intersection is empty, don't evaluate xi at all
+      v1 <- v2 <- NULL
+      if (is.null(conditions.x1)) {
+        v1 <- x1(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions.x1, env = env)
+      } else if (any(conditions %in% conditions.x1)) {
+        v1 <- x1(pars = pars, fixed = fixed, deriv = deriv, conditions = intersect(conditions, conditions.x1), env = env)
+      } 
+      
+      if (is.null(conditions.x2)) {
+        v2 <- x2(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions.x2, env = env)
+      } else if (any(conditions %in% conditions.x2)) {
+        v2 <- x2(pars = pars, fixed = fixed, deriv = deriv, conditions = intersect(conditions, conditions.x2), env = attr(v1, "env"))
+      } 
       
       out <- v1 + v2
       attr(out, "env") <- attr(v1, "env")
