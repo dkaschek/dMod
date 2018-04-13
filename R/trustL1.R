@@ -242,7 +242,7 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, one.sided=FALSE, lambda = 1
         #           
         #         }
         upper <- which(!(theta.try < parupper))
-        lower <- which(!(theta.try < parlower))
+        lower <- which(!(theta.try > parlower))
         theta.try[upper] <- parupper[upper]
         theta.try[lower] <- parlower[lower]
         
