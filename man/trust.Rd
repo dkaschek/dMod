@@ -7,8 +7,8 @@
 \usage{
 trustL1(objfun, parinit, mu = 0 * parinit, one.sided = FALSE, lambda = 1,
   rinit, rmax, parscale, iterlim = 100, fterm = sqrt(.Machine$double.eps),
-  mterm = sqrt(.Machine$double.eps), minimize = TRUE, blather = FALSE,
-  blather2 = FALSE, ...)
+  mterm = sqrt(.Machine$double.eps), minimize = TRUE, blather = FALSE, 
+  blather2 = FALSE, parupper = Inf, parlower = -Inf, ...)
 
 trust(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
   fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps),
