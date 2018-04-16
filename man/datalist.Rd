@@ -11,7 +11,8 @@ datalist(...)
 
 as.datalist(x, ...)
 
-\method{as.datalist}{data.frame}(x, split.by = NULL, ...)
+\method{as.datalist}{data.frame}(x, split.by = NULL, keep.covariates = NULL,
+  ...)
 
 \method{as.datalist}{list}(x, names = NULL, ...)
 }
@@ -23,6 +24,8 @@ as.datalist(x, ...)
 \item{split.by}{vector of columns names which yield a unique identifier (conditions). If NULL, all
 columns except for the expected standard columns "name", "time", "value" and "sigma" will be
 selected.}
+
+\item{keep.covariates}{vector of additional column names which should be kept in the condition.grid.}
 
 \item{names}{optional names vector, otherwise names are taken from \code{mylist}}
 }
@@ -63,9 +66,10 @@ mydata <- data.frame(name = "A",
                      value = c(sin(times), 1.5 * sin(times)), 
                      sigma = .1, 
                      stage = rep(c("upper", "lower"), each = 10),
-                     phase = rep(c("first", "second"), each = 20))
+                     phase = rep(c("first", "second"), each = 20),
+                     amplitude = rep(c(1,1.5), each = 20))
 
-data <- as.datalist(mydata, split.by = c("stage", "phase"))
+data <- as.datalist(mydata, split.by = c("stage", "phase"), keep.covariates = "amplitude")
 print(data)
 plot(data)
 

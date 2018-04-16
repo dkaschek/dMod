@@ -7,7 +7,7 @@
 \usage{
 trustL1(objfun, parinit, mu = 0 * parinit, one.sided = FALSE, lambda = 1,
   rinit, rmax, parscale, iterlim = 100, fterm = sqrt(.Machine$double.eps),
-  mterm = sqrt(.Machine$double.eps), minimize = TRUE, blather = FALSE, 
+  mterm = sqrt(.Machine$double.eps), minimize = TRUE, blather = FALSE,
   blather2 = FALSE, parupper = Inf, parlower = -Inf, ...)
 
 trust(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
@@ -61,11 +61,11 @@ a step is considered close enough to zero to terminate the algorithm.}
 
 \item{blather2}{even more information}
 
-\item{...}{additional argument to objfun}
-
 \item{parupper}{named numeric vector of upper bounds.}
 
 \item{parlower}{named numeric vector of lower bounds.}
+
+\item{...}{additional argument to objfun}
 }
 \value{
 A list containing the following components:

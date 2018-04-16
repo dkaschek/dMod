@@ -129,5 +129,8 @@ plotPaths(profiles.approx, sort = TRUE)
 plotPaths(profiles.approx, whichPar = "logc")
 plotPaths(list(profiles.approx, profiles.approx.fixed), whichPar = "logc")
 
+## Confidence Intervals
+confint(profiles.approx)
+
 }
 }
