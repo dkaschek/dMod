@@ -5,7 +5,7 @@
 \title{Generate the model objects for use in Xs (models with sensitivities)}
 \usage{
 odemodel(f, deriv = TRUE, forcings = NULL, events = NULL,
-  outputs = NULL, fixed = NULL, modelname = "odemodel",
+  outputs = NULL, fixed = NULL, estimate = NULL, modelname = "odemodel",
   solver = c("deSolve", "Sundials"), gridpoints = NULL, verbose = FALSE,
   ...)
 }
@@ -28,6 +28,9 @@ can be specified in \code{\link{Xs}()}, too.}
 
 \item{fixed}{Character vector with the names of parameters (initial values and dynamic) for which
 no sensitivities are required (will speed up the integration).}
+
+\item{estimate}{Character vector specifying parameters (initial values and dynamic) for which
+sensitivities are returned. If estimate is specified, it overwrites `fixed`.}
 
 \item{modelname}{Character, the name of the C file being generated.}
 
