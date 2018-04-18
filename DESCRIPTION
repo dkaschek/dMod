@@ -19,7 +19,8 @@ Imports:
     ggplot2,
     parallel,
     stringr,
-    plyr
+    plyr,
+    digest
 Suggests:
     MASS,
     rPython,

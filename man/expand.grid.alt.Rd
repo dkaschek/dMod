@@ -4,7 +4,7 @@
 \alias{expand.grid.alt}
 \title{Alternative version of expand.grid}
 \usage{
-expand.grid.alt(seq1, seq2)
+\method{expand}{grid.alt}(seq1, seq2)
 }
 \arguments{
 \item{seq1}{Vector, numeric or character}
