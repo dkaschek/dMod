@@ -16,6 +16,8 @@
 #' @param outputs Named character vector for additional output variables.
 #' @param fixed Character vector with the names of parameters (initial values and dynamic) for which
 #' no sensitivities are required (will speed up the integration).
+#' @param estimate Character vector specifying parameters (initial values and dynamic) for which
+#' sensitivities are returned. If estimate is specified, it overwrites `fixed`.
 #' @param modelname Character, the name of the C file being generated.
 #' @param solver Solver for which the equations are prepared.
 #' @param gridpoints Integer, the minimum number of time points where the ODE is evaluated internally
@@ -25,11 +27,10 @@
 #' @export
 #' @example inst/examples/odemodel.R
 #' @import cOde
-odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, outputs = NULL, fixed=NULL, modelname = "odemodel", solver = c("deSolve", "Sundials"), gridpoints = NULL, verbose = FALSE, ...) {
+odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, outputs = NULL, fixed = NULL, estimate = NULL, modelname = "odemodel", solver = c("deSolve", "Sundials"), gridpoints = NULL, verbose = FALSE, ...) {
   
   
   if (is.null(gridpoints)) gridpoints <- 2
-  
   
   f <- as.eqnvec(f)
   modelname_s <- paste0(modelname, "_s")
@@ -47,9 +48,22 @@ odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, outputs = NU
   
   if (deriv && solver == "deSolve") {  
     
+    mystates <- attr(func, "variables")
+    myparameters <- attr(func, "parameters")
+    
+    if (is.null(estimate) & !is.null(fixed)) {
+      mystates <- setdiff(mystates, fixed)
+      myparameters <- setdiff(myparameters, fixed)
+    }
+    
+    if (!is.null(estimate)) {
+      mystates <- intersect(mystates, estimate)
+      myparameters <- intersect(myparameters, estimate)
+    }
+    
     s <- sensitivitiesSymb(f, 
-                           states = setdiff(attr(func, "variables"), fixed), 
-                           parameters = setdiff(attr(func, "parameters"), fixed), 
+                           states = mystates, 
+                           parameters = myparameters, 
                            inputs = attr(func, "forcings"),
                            events = attr(func, "events"),
                            reduce = TRUE)
