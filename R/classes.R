@@ -243,7 +243,7 @@ parfn <- function(p2p, parameters = NULL, condition = NULL) {
   
 }
 
-#' Generate a paramter frame
+#' Generate a parameter frame
 #'
 #' @description A parameter frame is a data.frame where the rows correspond to different
 #' parameter specifications. The columns are divided into three parts. (1) the meta-information

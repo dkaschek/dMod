@@ -84,6 +84,11 @@ as.datalist.list <- function(x, names = NULL, ...) {
 ## Methods for class datalist ---------------------------------------
 
 #' @export
+is.datalist <- function(x) {
+  inherits(x, "datalist")
+}
+
+#' @export
 print.datalist <- function(x, ...) {
   datalist <- x
   for(n in names(datalist)) {
