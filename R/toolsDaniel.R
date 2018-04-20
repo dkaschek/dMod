@@ -122,7 +122,7 @@ mssample <- function(center, samplefun = "rnorm", fits = 20, ...) {
 #' used.
 #' @export
 #' @example inst/examples/define.R
-define <- function(trafo, expr, conditionMatch = NULL, ...) {
+define <- function(trafo, expr, ..., conditionMatch = NULL) {
   
   if (missing(trafo)) trafo <- NULL
   lookuptable <- attr(trafo, "tree")
@@ -171,7 +171,7 @@ define <- function(trafo, expr, conditionMatch = NULL, ...) {
 
 #' @export
 #' @rdname define
-insert <- function(trafo, expr, conditionMatch = NULL, ...) {
+insert <- function(trafo, expr, ..., conditionMatch = NULL) {
   
   
   if (missing(trafo)) trafo <- NULL
