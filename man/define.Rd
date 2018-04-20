@@ -8,7 +8,7 @@
 \usage{
 define(trafo, expr, conditionMatch = NULL, ...)
 
-insert(trafo, expr, conditionMatch = NULL, ...)
+insert(trafo, expr, ..., conditionMatch = NULL)
 
 branch(trafo, table = NULL, conditions = rownames(table))
 }

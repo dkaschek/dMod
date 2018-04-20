@@ -4,7 +4,7 @@
 \alias{parframe}
 \alias{[.parframe}
 \alias{subset.parframe}
-\title{Generate a paramter frame}
+\title{Generate a parameter frame}
 \usage{
 parframe(x = NULL, parameters = colnames(x), metanames = NULL,
   obj.attributes = NULL)
