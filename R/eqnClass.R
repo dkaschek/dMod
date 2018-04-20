@@ -839,7 +839,7 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
       filename <- funcname
     } else {
       funcname <- paste0(modelname, "_", substr(digest(expr),1,8))
-      filename <- modelname
+      filename <- funcname
     }
     body <- paste(
       "#include <R.h>\n", 
