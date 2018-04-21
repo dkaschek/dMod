@@ -27,12 +27,15 @@
 #' @export
 #' @example inst/examples/odemodel.R
 #' @import cOde
+#' @importFrom digest digest
 odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, outputs = NULL, fixed = NULL, estimate = NULL, modelname = "odemodel", solver = c("deSolve", "Sundials"), gridpoints = NULL, verbose = FALSE, ...) {
   
   
   if (is.null(gridpoints)) gridpoints <- 2
   
   f <- as.eqnvec(f)
+  # Add hash to prevent overwriting existing models
+  modelname <- paste0(modelname, "_", substr(digest(list(f,forcings,events,outputs,fixed,estimate,solver,gridpoints)),1,8))
   modelname_s <- paste0(modelname, "_s")
   solver <- match.arg(solver)
   
