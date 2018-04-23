@@ -411,13 +411,10 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     stop("Not all three arguments f, states and parameters can be NULL")
   
   # Modify modelname by condition
-  if (!is.null(modelname) && !is.null(condition)) {
-    modelname <- paste(modelname, sanitizeConditions(condition), sep = "_")
-    # Add hash to modelname to prevent overwriting .c-files with different content
-    modelname <- paste0(modelname, "_", substr(digest(list(g,f,states,parameters,condition,attach.input,deriv)),1,8))
-    }
+  if (!is.null(modelname) && !is.null(condition)) modelname <- paste(modelname, sanitizeConditions(condition), sep = "_")
   
-  
+  # Add hash to modelname to prevent overwriting .c-files with different content
+  if (!is.null(modelname)) modelname <- paste0(modelname, "_", substr(digest(list(g,f,states,parameters,condition,attach.input,deriv)),1,8))
   
   # Then add suffix(es) for derivative function
   if (!is.null(modelname)) modelname_deriv <- paste(modelname, "deriv", sep = "_")

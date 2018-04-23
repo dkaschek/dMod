@@ -451,8 +451,6 @@ compile <- function(..., output = NULL, args = NULL, cores = 1) {
     if (inherits(objects[[i]], c("obsfn", "parfn", "prdfn"))) {
       # Get and reset modelname
       filename <- modelname(objects[[i]])
-      if (!is.null(output))
-        eval(parse(text = paste0("modelname(", obj.names[i], ") <<- '", output, "'")))
       # Expand modelname by possible endings and check if file exists
       filename <- outer(filename, c("", "_deriv", "_s", "_sdcv", "_dfdx", "_dfdp"), paste0)
       files.obj <- c(paste0(filename, ".c"), paste0(filename, ".cpp"))
@@ -478,7 +476,11 @@ compile <- function(..., output = NULL, args = NULL, cores = 1) {
     }, mc.cores = cores, mc.silent = FALSE)
     for (r in roots) dyn.load(paste0(r, .so))
   } else {
+    # Append short hash of all .c-files which go into the compiled dll
     output <- paste0(output, "_", substr(digest(list(roots)),1,8))
+    for (i in 1:length(objects)) {
+      eval(parse(text = paste0("modelname(", obj.names[i], ") <<- '", output, "'")))
+    }
     for (r in roots) try(dyn.unload(paste0(r, .so)), silent = TRUE)
     try(dyn.unload(output), silent = TRUE)
     system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", paste(files, collapse = " "), " -o ", output, .so, " ", args))
