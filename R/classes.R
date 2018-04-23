@@ -1059,7 +1059,7 @@ test_conditions <- function(c1, c2) {
     names(mappings) <- conditions.out
     attr(outfn, "mappings") <- mappings
     
-    attr(outfn, "parameters") <- attr(p2, "parameters")
+    attr(outfn, "parameters") <- union(attr(p1,"parameters"),attr(p2, "parameters"))
     attr(outfn, "conditions") <- conditions.out
     class(outfn) <- c("obsfn", "fn", "composed")
     
@@ -1107,7 +1107,7 @@ test_conditions <- function(c1, c2) {
     names(mappings) <- conditions.out
     attr(outfn, "mappings") <- mappings
  
-    attr(outfn, "parameters") <- attr(p2, "parameters")
+    attr(outfn, "parameters") <- union(attr(p1,"parameters"),attr(p2, "parameters"))
     attr(outfn, "conditions") <- conditions.out
     class(outfn) <- c("prdfn", "fn", "composed")
     
@@ -1159,7 +1159,7 @@ test_conditions <- function(c1, c2) {
     
     
     attr(outfn, "conditions") <- conditions.out
-    attr(outfn, "parameters") <- attr(p2, "parameters")
+    attr(outfn, "parameters") <- union(attr(p1,"parameters"),attr(p2, "parameters"))
     class(outfn) <- c("prdfn", "fn", "composed")
     
     return(outfn)
@@ -1204,7 +1204,7 @@ test_conditions <- function(c1, c2) {
     attr(outfn, "mappings") <- mappings
     
     
-    attr(outfn, "parameters") <- attr(p2, "parameters")
+    attr(outfn, "parameters") <- union(attr(p1,"parameters"),attr(p2, "parameters"))
     attr(outfn, "conditions") <- conditions.out
     class(outfn) <- c("parfn", "fn", "composed")
     
