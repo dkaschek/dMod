@@ -1,18 +1,19 @@
-# dMod.frame constructor and functions----------------------------------------------------------------
+# dMod.frame constructor ----------------------------------------------------------------
 
 
 #' Generate a dMod.frame
 #'
 #' @description Basically, a dMod.frame is a \link{tibble}, which is grouped \link{rowwise}.
 #' 
+#' Since the dMod.frame is also designed for interactive use, the class will not be called
+#' "dMod.frame" as I initially planned, but will be c("tbl_df").
+#' This way, I don't have to overwrite all the dplyr-verbs.
+#' 
 #' The dMod.frame object stores all objects that are needed to reproducibly
 #' produce a result, such as a plot or profiles, in one row of a \link{tibble}.
 #' Each row corresponds to a distinct hypothesis, e.g. one would have two distinct rows
 #' for fitting with and without a prior.
 #'
-#' Since the dMod.frame is also designed for interactive use, the class will not be called
-#' "dMod.frame" as I initially planned, but will be c("tbl_df", "tbl", "data.frame").
-#' This way, I don't have to overwrite all the dplyr-verbs.
 #'
 #'
 #' @param hypothesis Character. Description of the hypothesis
@@ -155,3 +156,117 @@ appendParframes <- function(dMod.frame,
 
 }
 
+
+
+# Plotting ---------------------------------
+
+#' @rdname plotCombined.prdlist
+#' 
+#' PlotCombined method for dMod.frame
+#'
+#' @param dMod.frame A dMod.frame
+#' @param hypothesis index specifying the row (hypothesis)
+#' @param index index specifying the index of the fit going to \code{parframes %>% as.parvec(index)}
+#' @param ... Arguments going to subset
+#'
+#' @export
+plotCombined.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
+  
+  dots <- substitute(alist(...))
+  
+  message("If you want to subset() the plot, specify hypothesis and index")
+  
+  
+  
+  if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
+  # i <- hypothesis #so i can copy other code
+  
+  times <- NULL
+  if (!is.null(dMod.frame[["times"]]))
+    times <- dMod.frame[["times"]][[hypothesis]]
+  else {
+    times <- as.data.frame(dMod.frame[["data"]][[hypothesis]])[["time"]]
+    times <- seq(min(times), max(times)*1.1, length.out = 100)
+  }
+  
+  if (is.null(dMod.frame[["parframes"]]))
+    return(
+      plotCombined.prdlist(
+        dMod.frame[["prd"]][[hypothesis]](times, dMod.frame[["pars"]][[hypothesis]], deriv = F),
+        dMod.frame[["data"]][[hypothesis]],
+        ...) +
+        ggtitle(paste(dMod.frame[["hypothesis"]][[hypothesis]], "initiated with predefined (probably random) parameters"))
+    )
+  
+  
+  
+  myparvec <- as.parvec(dMod.frame[["parframes"]][[hypothesis]], index = index)
+  
+  myprediction <- dMod.frame[["prd"]][[hypothesis]](times,
+                                                    pars = myparvec,
+                                                    deriv = F)
+  
+  myvalue <- dMod.frame[["parframes"]][[hypothesis]][index, "value"]
+  
+  plotCombined.prdlist(myprediction,  dMod.frame[["data"]][[hypothesis]], ...) +
+    ggtitle(label = paste0(dMod.frame[["hypothesis"]][[hypothesis]], "\n",
+                           "value = ", round(dMod.frame[["parframes"]][[hypothesis]][index,"value", drop = T],1), "\n",
+                           paste0(paste(names(dots), "=", dots )[-1], collapse = "\n")) )
+}
+
+
+
+
+
+#' @export
+#' @rdname plotData
+plotData.tbl_df <- function(dMod.frame, hypothesis = 1, ... ) {
+  
+  dots <- substitute(alist(...))
+  
+  if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
+  # i <- hypothesis #so i can copy other code
+  
+  # myparvec <- as.parvec(dMod.frame[["parframes"]][[hypothesis]], index = index)
+  
+  # myprediction <- dMod.frame[["prd"]][[hypothesis]](times = seq(0, max(as.data.frame(dMod.frame[["data"]][[hypothesis]])$time),length.out = 100),
+  #                                                   pars = myparvec,
+  #                                                   deriv = F)
+  
+  # myvalue <- dMod.frame[["parframes"]][[hypothesis]][1, "value"]
+  
+  plotData.datalist(dMod.frame[["data"]][[hypothesis]], ...) +
+    ggtitle(label = paste0(dMod.frame[["hypothesis"]][[hypothesis]], "\n",
+                           "best value = ", round(dMod.frame[["parframes"]][[hypothesis]][1,"value", drop = T],1), "\n",
+                           paste0(paste(names(dots), "=", dots )[-1], collapse = "\n")) )
+}
+
+
+
+#' @export
+#' @rdname plotPars
+plotPars.tbl_df <- function(dMod.frame, hypothesis = 1, ... ) {
+  
+  dots <- substitute(alist(...))
+  
+  if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
+  
+  plotPars.parframe(dMod.frame[["parframes"]][[hypothesis]], ...) +
+    ggtitle(label = paste0(dMod.frame[["hypothesis"]][[hypothesis]], "\n",
+                           "best value = ", round(dMod.frame[["parframes"]][[hypothesis]][1,"value", drop = T],1), "\n",
+                           paste0(paste(names(dots), "=", dots )[-1], collapse = "\n")) )
+}
+
+
+#' @export
+#' @rdname plotProfile
+plotProfile.tbl_df <- function(dMod.frame, hypothesis = 1, ...) {
+  dots <- substitute(alist(...))
+  
+  if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
+  
+  plotProfile.list(dMod.frame[["profiles"]][[hypothesis]], ...) +
+    ggtitle(label = paste0(dMod.frame[["hypothesis"]][[hypothesis]], "\n",
+                           "best value = ", round(dMod.frame[["parframes"]][[hypothesis]][1,"value", drop = T],1), "\n",
+                           paste0(paste(names(dots), "=", dots )[-1], collapse = "\n")) )
+}

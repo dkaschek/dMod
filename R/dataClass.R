@@ -139,6 +139,30 @@ plot.datalist <- function(x, ..., scales = "free", facet = "wrap") {
   
 }
 
+#' @export
+#' @rdname plotData
+plotData.datalist <- function(data, ..., scales = "free", facet = "wrap", transform = NULL) {
+  
+  data <- subset(lbind(data), ...)
+  
+  if (!is.null(transform)) data <- coordTransform(data, transform)
+  
+  if (facet == "wrap")
+    p <-  ggplot(data, aes(x = time, y = value, ymin = value - sigma, 
+                           ymax = value + sigma, group = condition, color = condition)) + facet_wrap(~name, scales = scales)
+  if (facet == "grid")
+    p <- ggplot(data, aes(x = time, y = value, ymin = value - sigma, 
+                          ymax = value + sigma)) +  facet_grid(name ~ condition, scales = scales)
+  
+  p <- p + geom_point() + geom_errorbar(width = 0)
+  
+  
+  attr(p, "data") <- data
+  return(p)
+  
+}
+
+
 #' Coerce to a Data Frame
 #' 
 #' @param x any R object

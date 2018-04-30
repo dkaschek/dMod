@@ -47,19 +47,11 @@ c.prdlist <- function(...) {
   return(out)
 }
 
-#' @export
-#' @param x prediction
-#' @rdname plotCombined
-plot.prdlist <- function(x, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
-  
-  prediction <- x
-  
-  if (is.null(names(prediction))) names(prediction) <- paste0("C", 1:length(prediction))
-  if (!is.null(data) && is.null(names(data))) names(data) <- paste0("C", 1:length(data))
-  
-  plotCombined(prediction = prediction, data = data, ..., scales = scales, facet = facet, transform = transform)
-  
-}
+
+
+
+
+
 
 #' @export
 print.prdlist <- function(x, ...) {
@@ -117,6 +109,91 @@ as.data.frame.prdlist <- function(x, ..., data = NULL, errfn = NULL) {
   
   
 } 
+
+#' @export
+#' @param x prediction
+#' @rdname plotCombined
+plot.prdlist <- function(x, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
+  
+  prediction <- x
+  
+  if (is.null(names(prediction))) names(prediction) <- paste0("C", 1:length(prediction))
+  if (!is.null(data) && is.null(names(data))) names(data) <- paste0("C", 1:length(data))
+  
+  plotCombined(prediction = prediction, data = data, ..., scales = scales, facet = facet, transform = transform)
+  
+}
+
+
+
+#' @export
+#' @rdname plotCombined
+plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
+  
+  mynames <- c("time", "name", "value", "sigma", "condition")
+  
+  if (!is.null(prediction)) {
+    prediction <- cbind(wide2long(prediction), sigma = NA)
+    prediction <- subset(prediction, ...)
+    
+    if (!is.null(transform)) prediction <- coordTransform(prediction, transform)
+    
+  }
+  
+  if (!is.null(data)) {
+    data <- lbind(data)
+    data <- subset(data, ...)
+    
+    if (!is.null(transform)) data <- coordTransform(data, transform)
+    
+  }
+  
+  total <- rbind(prediction[, mynames], data[, mynames])
+  
+  if (facet == "wrap")
+    p <- ggplot(total, aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma, 
+                           group = condition, color = condition)) + facet_wrap(~name, scales = scales)
+  if (facet == "grid")
+    p <- ggplot(total, aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma)) + facet_grid(name ~ condition, scales = scales)
+  
+  if (!is.null(prediction))
+    p <- p +  geom_line(data = prediction)
+  
+  if (!is.null(data))
+    p <- p + geom_point(data = data) + geom_errorbar(data = data, width = 0)
+  
+  attr(p, "data") <- list(data = data, prediction = prediction)
+  return(p)
+  
+  attr(p, "data") <- list(data = data, prediction = prediction)
+  return(p)
+  
+}
+
+
+
+
+#' @export
+#' @rdname plotPrediction
+plotPrediction.prdlist <- function(prediction, ..., scales = "free", facet = "wrap", transform = NULL) {
+  
+  prediction <- subset(wide2long.list(prediction), ...)
+  
+  if (!is.null(transform)) prediction <- coordTransform(prediction, transform)
+  
+  if (facet == "wrap")
+    p <- ggplot(prediction, aes(x = time, y = value, group = condition, color = condition)) + facet_wrap(~name, scales = scales)
+  if (facet == "grid")
+    p <- ggplot(prediction, aes(x = time, y = value)) + facet_grid(name ~ condition, scales = scales)
+  
+  p <- p + geom_line() 
+  
+  attr(p, "data") <- prediction
+  return(p)
+  
+}
+
+
 
 ## Methods for class prdframe ----------------------------
 #' @export
