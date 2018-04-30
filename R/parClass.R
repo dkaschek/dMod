@@ -134,6 +134,33 @@ plotPars.parframe <- function(x, tol = 1, ...){
 
 
 #' @export
+#' @rdname plotValues
+plotValues.parframe <- function(x, tol = 1, ...) {
+  
+  if (!missing(...)) x <- subset(x, ...)
+  
+  jumps <- stepDetect(x$value, tol)
+  y.jumps <- seq(max(x$value), min(x$value), length.out = length(jumps))
+  
+  
+  pars <- x
+  pars <- cbind(index = 1:nrow(pars), pars[order(pars$value),])
+  
+  
+  P <- ggplot2::ggplot(pars, aes(x = index, y = value, pch = converged, color = iterations)) + 
+    geom_vline(xintercept = jumps, lty = 2) +
+    geom_point() + 
+    annotate("text", x = jumps + 1, y = y.jumps, label = jumps, hjust = 0, color = "red", size = 3) +
+    xlab("index") + ylab("value") + theme_dMod()
+  
+  attr(P, "data") <- pars
+  attr(P, "jumps") <- jumps
+  
+  return(P)
+  
+}
+
+#' @export
 #' @rdname plotProfile
 plotProfile.list <- plotProfile.parframe
 
