@@ -20,7 +20,9 @@ Imports:
     parallel,
     stringr,
     plyr,
-    digest
+    digest,
+    dplyr,
+    rlang
 Suggests:
     MASS,
     rPython,
