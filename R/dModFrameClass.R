@@ -29,7 +29,7 @@
 #' @param p fn
 #' @param data data.frame or datalist, will be coerced to datalist
 #' @param e fn
-#' @param ... other columns, have to be named. They will be placed in a list.
+#' @param ... other columns, have to be named. They will be placed in a list. 
 #'
 #' @return Object of class \code{tbl_df}, which is grouped rowwise.
 #'
@@ -38,12 +38,18 @@
 #' @export
 #'
 #' @example inst/examples/dMod.frame.R
+# \dontrun{
+hypothesis <- g <- x <- p <- e <- 1
+data <- data.frame(name = "A", time = 1, value = 1, sigma = 1, stringsAsFactors = F)
+# }
 dMod.frame <- function(hypothesis, g, x, p, data, e = NULL,...) {
 
   enlist <- function(x) {
     if (is.list(x) & (!(is.data.frame(x)|is.datalist(x))) ) return(x)
     else return(list(x))
   }
+
+  # To do: enlist the content of ...
 
   out <- tibble(hypothesis = hypothesis,
          g = enlist(g),
@@ -56,7 +62,6 @@ dMod.frame <- function(hypothesis, g, x, p, data, e = NULL,...) {
 
   return(out)
 }
-
 
 #' A version of dplyr::mutate
 #'
