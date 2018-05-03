@@ -135,7 +135,7 @@ plot.datalist <- function(x, ..., scales = "free", facet = "wrap") {
   
   data <- x
   if (is.null(names(data))) names(data) <- paste0("C", 1:length(data))
-  plotCombined(prediction = NULL, data = data, ..., scales = scales, facet = facet)
+  plotCombined.prdlist(prediction = NULL, data = data, ..., scales = scales, facet = facet)
   
 }
 

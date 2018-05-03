@@ -115,8 +115,9 @@ myframe7$profile_vali %>% plotProfile()
 
 
 # stage for commit
+system("git status")
 git_add_dMod.frame(myframe7)
-
+system("git status")
 
 
 }

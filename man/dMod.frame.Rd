@@ -19,7 +19,7 @@ dMod.frame(hypothesis, g, x, p, data, e = NULL, ...)
 
 \item{e}{fn}
 
-\item{...}{}
+\item{...}{other columns, have to be named. They will be placed in a list.}
 }
 \value{
 Object of class \code{tbl_df}, which is grouped rowwise.

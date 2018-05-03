@@ -20,6 +20,10 @@ appendObj(dMod.frame, prd = list(g * x * p), obj_data = list(normL2(data,
 
 \item{obj}{This object is taken by the standard fitting functions. At typical expression would be \code{list(obj_data +  constr)}. Has to wrapped in list()}
 
+\item{pars}{A named vector of parameters to run e.g. test simulations of the model. Defaults to random parameters}
+
+\item{times}{A vector of times to run e.g. test simulations of the model. Defaults to \code{seq(0, 1*t_max(data), length.out = 200)}}
+
 \item{...}{Other columns which are mutations of existing ones or new columns.}
 
 \item{keepCalls}{Store a record of the calls in a new colun? See \link{mutatedMod.frame}.}

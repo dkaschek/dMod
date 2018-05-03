@@ -120,7 +120,7 @@ plot.prdlist <- function(x, data = NULL, ..., scales = "free", facet = "wrap", t
   if (is.null(names(prediction))) names(prediction) <- paste0("C", 1:length(prediction))
   if (!is.null(data) && is.null(names(data))) names(data) <- paste0("C", 1:length(data))
   
-  plotCombined(prediction = prediction, data = data, ..., scales = scales, facet = facet, transform = transform)
+  plotCombined.prdlist(prediction = prediction, data = data, ..., scales = scales, facet = facet, transform = transform)
   
 }
 
@@ -207,7 +207,7 @@ plot.prdframe <- function(x, data = NULL, ..., scales = "free", facet = "wrap", 
     data <- list("C1" = data)
   
   
-  plotCombined(prediction = prediction, data = data, ..., scales = scales, facet = facet, transform = transform)
+  plotCombined.prdlist(prediction = prediction, data = data, ..., scales = scales, facet = facet, transform = transform)
   
 }
 
