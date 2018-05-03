@@ -2,7 +2,7 @@
 
 # ---- Example
 library(dMod)
-library(conveniencefunctions)
+library(conveniencefunctions) # devtools::install_github("dlill/conveniencefunctions")
 
 ## Model definition (text-based, scripting part)
 f <- NULL %>%
@@ -114,10 +114,55 @@ myframe7 <- myframe6 %>%
 myframe7$profile_vali %>% plotProfile()
 
 
-# stage for commit
+# Save dMod.frame as rds, stage the rds and .so's it depends on for commit
 system("git status")
 git_add_dMod.frame(myframe7)
 system("git status")
+
+
+# # Short version of above
+# 
+# myframe <- dMod.frame("no steady states", g, x, p, data) %>% 
+#   appendObj() %>% 
+#   mutate(constr = list(constraintL2(mu = 0*pars, sigma = 5)),
+#          obj = list(obj_data + constr),
+#          fits = list(mstrust(obj, pars, studyname = "Fits", fits = 20, cores = 4, blather = T))) %>% 
+#   appendParframes() %>% 
+#   mutate(profiles = list(profile(obj, as.parvec(parframes), whichPar = "k1"))) %>% 
+#   mutate(vali = list(datapointL2("A", 2, "mypoint", .1, condition = "a")),
+#          obj_vali = list(obj_data + constr + vali),
+#          par_vali = list(c(dMod:::sanitizePars(as.parvec(parframes))$pars, "mypoint" = 0.1 )),
+#          fits_vali = list(mstrust(obj_vali, par_vali)),
+#          profile_vali = list(profile(obj_vali, fits_vali %>% as.parframe %>% as.parvec, "mypoint")))
+
+
+# Easily test several hypotheses ----
+
+# Fit with various prior strengths 
+multiframe <- dMod.frame("no steady states", g, x, p, data) %>% 
+  appendObj() %>% 
+  rbind(.,.,.,.) %>% # replicate four times
+  ungroup() %>% # If you don't ungroup and run a mutate with an "lapply(1:nrow(), function(i) ...", the index i always gets restored to 1, as it does this independently for each group.
+  mutate(constr = map(seq_along(x), function(i) constraintL2(mu = 0*pars[[i]], sigma = 10^(i-3))),
+         hypothesis = map_chr(seq_along(x), function(i) paste0(hypothesis[[i]], ", prior sigma = ", 10^(i-3)))) %>% 
+  rowwise() %>% #regroup by row for conventient interface to mutate()
+  mutate(obj = list(obj_data + constr),
+         fits = list(mstrust(obj, pars, studyname = "Fits", fits = 10, cores = 4, blather = T))) %>% 
+  appendParframes()
+  
+
+## Plot
+map(1:4, function(i) multiframe %>% plotValues(hypothesis = i))
+
+map(1:4, function(i) multiframe %>% plotCombined(hypothesis = i))
+
+## Profiles
+multiframe <- multiframe %>% 
+  mutate(profiles = list(profile(obj, parframes %>% as.parvec, names(pars), cores = 4)))
+
+## Plot profiles: The "profiles"-column is already a proflist :)
+multiframe$profiles %>% plotProfile() +
+  coord_cartesian(ylim = c(-0.5, 4), xlim = c(-2,2))
 
 
 }
