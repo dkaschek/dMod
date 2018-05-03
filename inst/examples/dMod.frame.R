@@ -114,13 +114,18 @@ myframe7 <- myframe6 %>%
 myframe7$profile_vali %>% plotProfile()
 
 
-# Save dMod.frame as rds, stage the rds and .so's it depends on for commit
+# Saving ----
+
+# Save dMod.frame as rds, stage the rds and the .so's it depends on for commit
 system("git status")
 git_add_dMod.frame(myframe7)
 system("git status")
 
+# Alternatetively:
+zip_dMod.frame(myframe7)
+# Look into you current wd to find the dMod.frame and the .so's zipped into a file.
 
-# # Short version of above
+# # Short version of above ----
 # 
 # myframe <- dMod.frame("no steady states", g, x, p, data) %>% 
 #   appendObj() %>% 
@@ -166,7 +171,7 @@ multiframe$profiles %>% plotProfile() +
 
 
 
-# Quick and dirty analysis of one single hypothesis
+# Quick and dirty analysis of one single hypothesis ----
 checkout_hypothesis(multiframe, 4, suffix = "_weak_prior")
 parframes_weakprior
 
