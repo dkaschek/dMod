@@ -1,3 +1,10 @@
+# Remarks --------------
+# Even though this file is called dModframe"class", dMod.frame doesn't have its own class.
+# The class of dMod.frames are tbl_df (read ?tibble if you want to find out more)
+# I chose to call the file like this nevertheless, because I put the dMod.frame-methods, such as plotting methods in this file.
+
+
+
 # dMod.frame constructor ----------------------------------------------------------------
 
 
@@ -289,3 +296,154 @@ plotProfile.tbl_df <- function(dMod.frame, hypothesis = 1, ...) {
                            "best value = ", round(dMod.frame[["parframes"]][[hypothesis]][1,"value", drop = T],1), "\n",
                            paste0(paste(names(dots), "=", dots )[-1], collapse = "\n")) )
 }
+
+
+
+
+
+# Interaction with .GlobalEnv ----
+
+#' Load one row of a dMod.frame into the .GlobalEnv
+#'
+#' @param dMod.frame A dMod.frame
+#' @param hypothesis character or numeric. specifying the name  or the index of the hypothesis
+#' @param prefix Prefix appended to the object names in .GlobalEnv
+#' @param suffix Suffix appended to the object names in .GlobalEnv
+#'
+#' @export
+#'
+#' @examples
+#' testframe <- dplyr::tibble(hypothesis = c("linear", "quadratic"),
+#'                     plots = list(plot(1:10,1:10), plot(1:10,(1:10)^2)),
+#'                     myfun = list(function(x,a) {a * x}, function(x,a) {a * x^2}),
+#'                     a = c(1:2))
+#'
+#' 
+#' checkout_hypothesis(testframe, "quadratic", prefix = "quad")
+#' quadplots
+#' quadmyfun(1:10, quada)
+checkout_hypothesis <- function(dMod.frame, hypothesis, prefix = "", suffix = "") {
+  
+  if(is.numeric(hypothesis)) {
+    mydMod.frame <- dMod.frame[hypothesis,]
+  } else {
+    mydMod.frame <- dMod.frame[dMod.frame[["hypothesis"]]==hypothesis,]
+  }
+  lapply(seq_along(mydMod.frame), function(i)  {
+    value <- mydMod.frame[[i]]
+    if(is.list(value)&length(value)==1) value = value[[1]]
+    try(assign(x = paste0(prefix,names(mydMod.frame)[i],suffix),
+               value = value,
+               pos = .GlobalEnv),
+        silent = T)
+  })
+  
+  message("Objects in .GlobalEnv are updated")
+  
+}
+
+
+
+
+
+# Saving/commiting ----
+
+#' Stage a dMod.frame and all of its DLLs
+#'
+#' @param dMod.frame the dMod.frame or a character vector specifying a RDS-file
+#'
+#' @return This function is called for its side-effects.
+#' @export
+#'
+#' @importFrom git2r add repository workdir
+git_add_dMod.frame <- function(dMod.frame) {
+  frame_quo <- enquo(dMod.frame)
+  
+  if(is_tibble(dMod.frame)) {
+    rds_file <- tpaste0(quo_name(frame_quo), ".rds")
+    saveRDS(dMod.frame, rds_file)
+  } else if(is.character(dMod.frame)) {
+    rds_file <- dMod.frame
+    dMod.frame <- readRDS(rds_file)
+  } else stop("dMod.frame is neither a file nor a tibble")
+  
+  # if (is.null(dMod.frame[["eqnlists"]])) {
+  #   print("If called from RMarkdown document, have a look at your console (ctrl+2)")
+  #   yn <- readline("Would you like to add a column 'eqnlists'? (y = abort / anything else = continue this function to save without eqnlists)")
+  #   if(yn == "y") stop("Commitment has been aborted")
+  # }
+  
+  
+  models <- do.call(c, dMod.frame) %>%
+    map(function(i) {
+      mymodelname <- try(modelname(i), silent = T)
+      if (!inherits(mymodelname, "try-error")) return(mymodelname)
+      else return(NULL)
+    }) %>%
+    do.call(c,.) %>%
+    unique()
+  .so <- .Platform$dynlib.ext
+  files <- paste0(outer(models, c("", "_s", "_sdcv", "_deriv"), paste0), .so)
+  files <- files[file.exists(files)]
+  
+  # for compatibility with Rmd which sets its own workdir
+  mywd <- getwd()
+  mygitrep <- git2r::repository() %>% git2r::workdir()
+  subfolder <- str_replace(mywd, mygitrep, "")
+  
+  allfiles <- paste0(subfolder, "/", c(files, rds_file))
+  
+  walk(allfiles , function(i) git2r::add(git2r::repository(), i))
+  
+  NULL
+}
+
+
+#' Zip a dMod.frame and its DLLs
+#'
+#' This might be useful for collaboration
+#'
+#' @param dMod.frame The dMod.frame you want to zip
+#' @param zipfile If you want to add the files to an existing zipfile, specify the filepath here, else a new file with a timestamp is generated
+#'
+#' @export
+zip_dMod.frame <- function(dMod.frame, zipfile = NULL) {
+  frame_quo <- enquo(dMod.frame)
+  
+  if(is_tibble(dMod.frame)) {
+    rds_file <- tpaste0(quo_name(frame_quo), ".rds")
+    saveRDS(dMod.frame, rds_file)
+  } else if(is.character(dMod.frame)) {
+    rds_file <- dMod.frame
+    dMod.frame <- readRDS(rds_file)
+  } else stop("dMod.frame is neither a file nor a tibble")
+  
+  # if (is.null(dMod.frame[["eqnlists"]])) {
+  #   yn <- readline("Would you like to add a column 'eqnlists'? (y = stop this function / anything else = continue this function to save without eqnlists)")
+  #   if(yn == "y") stop("Zipping has been aborted")
+  # }
+  
+  models <- unlist(dMod.frame) %>%
+    map(function(i) {
+      mymodelname <- try(modelname(i), silent = T)
+      if (!inherits(mymodelname, "try-error")) return(mymodelname)
+      else return(NULL)
+    }) %>%
+    do.call(c,.) %>%
+    unique()
+  .so <- .Platform$dynlib.ext
+  files <- paste0(outer(models, c("", "_s", "_sdcv", "_deriv"), paste0), .so)
+  files <- files[file.exists(files)]
+  
+  if (is.null(zipfile)) {zipfile <- str_replace(rds_file, "rds", "zip")}
+  
+  zip(zipfile, c(rds_file, files))
+}
+
+
+
+
+
+
+
+

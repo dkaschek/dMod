@@ -2,7 +2,7 @@
 
 # ---- Example
 library(dMod)
-library(conveniencefunctions) # devtools::install_github("dlill/conveniencefunctions")
+library(dplyr) # devtools::install_github("dlill/conveniencefunctions")
 
 ## Model definition (text-based, scripting part)
 f <- NULL %>%
@@ -163,6 +163,12 @@ multiframe <- multiframe %>%
 ## Plot profiles: The "profiles"-column is already a proflist :)
 multiframe$profiles %>% plotProfile() +
   coord_cartesian(ylim = c(-0.5, 4), xlim = c(-2,2))
+
+
+
+# Quick and dirty analysis of one single hypothesis
+checkout_hypothesis(multiframe, 4, suffix = "_weak_prior")
+parframes_weakprior
 
 
 }
