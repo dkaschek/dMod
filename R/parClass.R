@@ -105,6 +105,268 @@ as.parframe.parlist <- function(x, sort.by = "value", ...) {
   
 }
 
+#' @export
+#' @rdname plotPars
+plotPars.parframe <- function(x, tol = 1, ...){
+  
+  if (!missing(...)) x <- subset(x, ...)
+  
+  jumps <- stepDetect(x$value, tol)
+  jump.index <- approx(jumps, jumps, xout = 1:length(x$value), method = "constant", rule = 2)$y
+  
+  #values <- round(x$value/tol)
+  #unique.values <- unique(values)
+  #jumps <- which(!duplicated(values))
+  #jump.index <- jumps[match(values, unique.values)]
+  x$index <- as.factor(jump.index)
+  
+  myparframe <- x
+  parNames <- attr(myparframe,"parameters")
+  parOut <- wide2long.data.frame(out = ((myparframe[, c("index", "value", parNames)])) , keep = 1:2)
+  names(parOut) <- c("index", "value", "name", "parvalue")
+  plot <- ggplot2::ggplot(parOut, aes(x = name, y = parvalue, color = index)) + geom_boxplot(outlier.alpha = 0) + theme_dMod() + scale_color_dMod() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+  
+  attr(plot, "data") <- parOut
+  
+  return(plot)
+  
+}
+
+
+#' @export
+#' @rdname plotValues
+plotValues.parframe <- function(x, tol = 1, ...) {
+  
+  if (!missing(...)) x <- subset(x, ...)
+  
+  jumps <- stepDetect(x$value, tol)
+  y.jumps <- seq(max(x$value), min(x$value), length.out = length(jumps))
+  
+  
+  pars <- x
+  pars <- cbind(index = 1:nrow(pars), pars[order(pars$value),])
+  
+  
+  P <- ggplot2::ggplot(pars, aes(x = index, y = value, pch = converged, color = iterations)) + 
+    geom_vline(xintercept = jumps, lty = 2) +
+    geom_point() + 
+    annotate("text", x = jumps + 1, y = y.jumps, label = jumps, hjust = 0, color = "red", size = 3) +
+    xlab("index") + ylab("value") + theme_dMod()
+  
+  attr(P, "data") <- pars
+  attr(P, "jumps") <- jumps
+  
+  return(P)
+  
+}
+
+
+
+#' @export
+#' @rdname plotProfile
+plotProfile.parframe <- function(profs, ..., maxvalue = 5, parlist = NULL) {
+  
+  if("parframe" %in% class(profs)) 
+    arglist <- list(profs)
+  else
+    arglist <- as.list(profs)
+  
+  
+  if (is.null(names(arglist))) {
+    profnames <- 1:length(arglist)
+  } else {
+    profnames <- names(arglist)
+  }
+  
+  data <- do.call(rbind, lapply(1:length(arglist), function(i) {
+    proflist <- as.data.frame(arglist[[i]])
+    obj.attributes <- attr(arglist[[i]], "obj.attributes")
+    
+    if(is.data.frame(proflist)) {
+      whichPars <- unique(proflist$whichPar)
+      proflist <- lapply(whichPars, function(n) {
+        with(proflist, proflist[whichPar == n, ])
+      })
+      names(proflist) <- whichPars
+    }
+    
+    do.valueData <- "valueData" %in% colnames(proflist[[1]])
+    do.valuePrior <- "valuePrior" %in% colnames(proflist[[1]])
+    
+    
+    # Discard faulty profiles
+    proflistidx <- sapply(proflist, function(prf) any(class(prf) == "data.frame"))
+    proflist <- proflist[proflistidx]
+    if (sum(!proflistidx) > 0) {
+      warning(sum(!proflistidx), " profiles discarded.", call. = FALSE)
+    }
+    
+    subdata <- do.call(rbind, lapply(names(proflist), function(n) {
+      
+      values <- proflist[[n]][, "value"]
+      origin <- which.min(abs(proflist[[n]][, "constraint"]))
+      zerovalue <- proflist[[n]][origin, "value"]
+      parvalues <- proflist[[n]][, n]
+      deltavalues <- values - zerovalue
+      
+      sub <- subset(data.frame(name = n, delta = deltavalues, par = parvalues, proflist = profnames[i], mode="total", is.zero = 1:nrow(proflist[[n]]) == origin), delta <= maxvalue)
+      
+      if(!is.null(obj.attributes)) {
+        for(mode in obj.attributes) {
+          valuesO <- proflist[[n]][, mode]
+          originO <- which.min(abs(proflist[[n]][, "constraint"]))
+          zerovalueO <- proflist[[n]][originO, mode]
+          deltavaluesO <- valuesO - zerovalueO
+          sub <- rbind(sub,subset(data.frame(name = n, delta = deltavaluesO, par = parvalues, proflist = profnames[i], mode=mode, is.zero = 1:nrow(proflist[[n]]) == originO), delta <= maxvalue))
+        }
+      }
+      
+      return(sub)
+    }))
+    return(subdata)
+  }))
+  
+  data$proflist <- as.factor(data$proflist)
+  data <- droplevels(subset(data, ...))
+  
+  data.zero <- subset(data, is.zero)
+  
+  threshold <- c(1, 2.7, 3.84)
+  
+  data <- droplevels.data.frame(subset(data, ...))
+  
+  p <- ggplot(data, aes(x=par, y=delta, group=interaction(proflist,mode), color=proflist, linetype=mode)) + facet_wrap(~name, scales="free_x") + 
+    geom_hline(yintercept=threshold, lty=2, color="gray") + 
+    geom_line() + #geom_point(aes=aes(size=1), alpha=1/3) +
+    geom_point(data = data.zero) +
+    ylab(expression(paste("CL /", Delta*chi^2))) +
+    scale_y_continuous(breaks=c(1, 2.7, 3.84), labels = c("68% / 1   ", "90% / 2.71", "95% / 3.84"), limits = c(NA, maxvalue)) +
+    xlab("parameter value")
+  
+  if(!is.null(parlist)){
+    delta <- 0
+    if("value" %in% colnames(parlist)){
+      minval <- min(unlist(lapply(1:length(arglist), function(i){ 
+        origin <- which.min(arglist[[i]][["constraint"]])
+        zerovalue <- arglist[[i]][origin, 1]  
+      })))
+      values <- parlist[, "value", drop = TRUE]
+      parlist <- parlist[,!(colnames(parlist) %in% c("index", "value", "converged", "iterations"))]
+      delta <- as.numeric(values - minval)
+    }
+    points <- data.frame(par = as.numeric(as.matrix(parlist)), name = rep(colnames(parlist), each = nrow(parlist)), delta = delta)
+    
+    #points <- data.frame(name = colnames(parlist), par = as.numeric(parlist), delta=0)
+    p <- p + geom_point(data=points, aes(x=par, y=delta), color = "black", inherit.aes = FALSE)
+  }
+  attr(p, "data") <- data
+  return(p)
+  
+}
+
+
+#' @export
+#' @rdname plotProfile
+plotProfile.list <- function(profs, ..., maxvalue = 5, parlist = NULL) {
+  
+  if("parframe" %in% class(profs)) 
+    arglist <- list(profs)
+  else
+    arglist <- as.list(profs)
+  
+  
+  if (is.null(names(arglist))) {
+    profnames <- 1:length(arglist)
+  } else {
+    profnames <- names(arglist)
+  }
+  
+  data <- do.call(rbind, lapply(1:length(arglist), function(i) {
+    proflist <- as.data.frame(arglist[[i]])
+    obj.attributes <- attr(arglist[[i]], "obj.attributes")
+    
+    if(is.data.frame(proflist)) {
+      whichPars <- unique(proflist$whichPar)
+      proflist <- lapply(whichPars, function(n) {
+        with(proflist, proflist[whichPar == n, ])
+      })
+      names(proflist) <- whichPars
+    }
+    
+    do.valueData <- "valueData" %in% colnames(proflist[[1]])
+    do.valuePrior <- "valuePrior" %in% colnames(proflist[[1]])
+    
+    
+    # Discard faulty profiles
+    proflistidx <- sapply(proflist, function(prf) any(class(prf) == "data.frame"))
+    proflist <- proflist[proflistidx]
+    if (sum(!proflistidx) > 0) {
+      warning(sum(!proflistidx), " profiles discarded.", call. = FALSE)
+    }
+    
+    subdata <- do.call(rbind, lapply(names(proflist), function(n) {
+      
+      values <- proflist[[n]][, "value"]
+      origin <- which.min(abs(proflist[[n]][, "constraint"]))
+      zerovalue <- proflist[[n]][origin, "value"]
+      parvalues <- proflist[[n]][, n]
+      deltavalues <- values - zerovalue
+      
+      sub <- subset(data.frame(name = n, delta = deltavalues, par = parvalues, proflist = profnames[i], mode="total", is.zero = 1:nrow(proflist[[n]]) == origin), delta <= maxvalue)
+      
+      if(!is.null(obj.attributes)) {
+        for(mode in obj.attributes) {
+          valuesO <- proflist[[n]][, mode]
+          originO <- which.min(abs(proflist[[n]][, "constraint"]))
+          zerovalueO <- proflist[[n]][originO, mode]
+          deltavaluesO <- valuesO - zerovalueO
+          sub <- rbind(sub,subset(data.frame(name = n, delta = deltavaluesO, par = parvalues, proflist = profnames[i], mode=mode, is.zero = 1:nrow(proflist[[n]]) == originO), delta <= maxvalue))
+        }
+      }
+      
+      return(sub)
+    }))
+    return(subdata)
+  }))
+  
+  data$proflist <- as.factor(data$proflist)
+  data <- droplevels(subset(data, ...))
+  
+  data.zero <- subset(data, is.zero)
+  
+  threshold <- c(1, 2.7, 3.84)
+  
+  data <- droplevels.data.frame(subset(data, ...))
+  
+  p <- ggplot(data, aes(x=par, y=delta, group=interaction(proflist,mode), color=proflist, linetype=mode)) + facet_wrap(~name, scales="free_x") + 
+    geom_hline(yintercept=threshold, lty=2, color="gray") + 
+    geom_line() + #geom_point(aes=aes(size=1), alpha=1/3) +
+    geom_point(data = data.zero) +
+    ylab(expression(paste("CL /", Delta*chi^2))) +
+    scale_y_continuous(breaks=c(1, 2.7, 3.84), labels = c("68% / 1   ", "90% / 2.71", "95% / 3.84"), limits = c(NA, maxvalue)) +
+    xlab("parameter value")
+  
+  if(!is.null(parlist)){
+    delta <- 0
+    if("value" %in% colnames(parlist)){
+      minval <- min(unlist(lapply(1:length(arglist), function(i){ 
+        origin <- which.min(arglist[[i]][["constraint"]])
+        zerovalue <- arglist[[i]][origin, 1]  
+      })))
+      values <- parlist[, "value", drop = TRUE]
+      parlist <- parlist[,!(colnames(parlist) %in% c("index", "value", "converged", "iterations"))]
+      delta <- as.numeric(values - minval)
+    }
+    points <- data.frame(par = as.numeric(as.matrix(parlist)), name = rep(colnames(parlist), each = nrow(parlist)), delta = delta)
+    
+    #points <- data.frame(name = colnames(parlist), par = as.numeric(parlist), delta=0)
+    p <- p + geom_point(data=points, aes(x=par, y=delta), color = "black", inherit.aes = FALSE)
+  }
+  attr(p, "data") <- data
+  return(p)
+  
+}
+
 
 ## Methods for the class parframe -----------------------------------------------
 
