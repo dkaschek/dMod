@@ -16,6 +16,10 @@ saveShiny_dMod.frame <- function(dMod.frame, hypothesis = 1,
 ) {
   
   # TODO: Detect which names are present in dMod.frame. This way, stuff like "reactions" could be passed with the dMod.frame as well.
+  # TODO: Find a way to compare multiple hypotheses. 
+      # Maybe allow for the option to pass dMod.frame$profile as complete list
+      # But this doesn't solve the issue of comparing different steps -> Problem of dModtoShiny?
+  
   
   saveShiny(x = dMod.frame$prd[[hypothesis]], 
             errmodel = dMod.frame$e[[hypothesis]],
