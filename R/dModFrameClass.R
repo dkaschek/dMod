@@ -38,10 +38,6 @@
 #' @export
 #'
 #' @example inst/examples/dMod.frame.R
-#' \dontrun{
-#' hypothesis <- g <- x <- p <- e <- 1
-#' data <- data.frame(name = "A", time = 1, value = 1, sigma = 1, stringsAsFactors = F)
-#' }
 dMod.frame <- function(hypothesis, g, x, p, data, e = NULL,...) {
 
   enlist <- function(x) {

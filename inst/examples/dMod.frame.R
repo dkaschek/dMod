@@ -4,6 +4,8 @@
 library(dMod)
 library(dplyr) # devtools::install_github("dlill/conveniencefunctions")
 
+setwd(tempdir())  
+  
 ## Model definition (text-based, scripting part)
 f <- NULL %>%
   addReaction("A", "B", "k1*A", "translation") %>%
@@ -147,10 +149,10 @@ zip_dMod.frame(myframe7)
 multiframe <- dMod.frame("no steady states", g, x, p, data) %>% 
   appendObj() %>% 
   rbind(.,.,.,.) %>% # replicate four times
-  ungroup() %>% # If you don't ungroup and run a mutate with an "lapply(1:nrow(), function(i) ...", the index i always gets restored to 1, as it does this independently for each group.
+  ungroup() %>% # If you don't ungroup and run a mutate with an "lapply(1:nrow(), function(i) ...", the index i always gets restored to 1, as mutate() runs the expressions (...) independently for each group.
   mutate(constr = map(seq_along(x), function(i) constraintL2(mu = 0*pars[[i]], sigma = 10^(i-3))),
          hypothesis = map_chr(seq_along(x), function(i) paste0(hypothesis[[i]], ", prior sigma = ", 10^(i-3)))) %>% 
-  rowwise() %>% #regroup by row for conventient interface to mutate()
+  rowwise() %>% #regroup by row for convenient interface to mutate()
   mutate(obj = list(obj_data + constr),
          fits = list(mstrust(obj, pars, studyname = "Fits", fits = 10, cores = 4, blather = T))) %>% 
   appendParframes()
@@ -173,7 +175,7 @@ multiframe$profiles %>% plotProfile() +
 
 # Quick and dirty analysis of one single hypothesis ----
 checkout_hypothesis(multiframe, 4, suffix = "_weak_prior")
-parframes_weakprior
+parframes_weak_prior
 
 
 }
