@@ -12,7 +12,7 @@
 #' @example inst/examples/saveShiny_dMod.frame.R
 saveShiny_dMod.frame <- function(dMod.frame, hypothesis = 1, 
                                  reactions = dMod.frame$reactions[[hypothesis]], pubref = "none", fixed = dMod.frame$fixed[[hypothesis]],
-                                 projectname
+                                 projectname, appfolder = "/home/mfehling/ShinyApps/dModtoShiny/"
 ) {
   
   # TODO: Detect which names are present in dMod.frame. This way, stuff like "reactions" could be passed with the dMod.frame as well.
@@ -34,15 +34,15 @@ saveShiny_dMod.frame <- function(dMod.frame, hypothesis = 1,
   
   
   # make a subfolder on the server (dModtoShiny should contain app.R)
-  system(paste0("ssh fermi mkdir /home/mfehling/ShinyApps/dModtoShiny/", projectname))
+  system(paste0("ssh fermi mkdir ", appfolder, projectname))
   
   # copy the .RData file to the subfolder and also all needed .so files
-  folder <- paste0("fermi:/home/mfehling/ShinyApps/dModtoShiny/", projectname, "/")
+  folder <- paste0("fermi:", appfolder, projectname, "/")
   
   system(paste0("scp input_shiny.RData ", folder, "."))
   
   models <- do.call(c, dMod.frame[hypothesis, drop = F]) %>%
-    map(function(i) {
+    lapply(function(i) {
       mymodelname <- try(modelname(i), silent = T)
       if (!inherits(mymodelname, "try-error")) return(mymodelname)
       else return(NULL)
