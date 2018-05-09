@@ -84,6 +84,11 @@ as.datalist.list <- function(x, names = NULL, ...) {
 ## Methods for class datalist ---------------------------------------
 
 #' @export
+is.datalist <- function(x) {
+  inherits(x, "datalist")
+}
+
+#' @export
 print.datalist <- function(x, ...) {
   datalist <- x
   for(n in names(datalist)) {
@@ -130,9 +135,33 @@ plot.datalist <- function(x, ..., scales = "free", facet = "wrap") {
   
   data <- x
   if (is.null(names(data))) names(data) <- paste0("C", 1:length(data))
-  plotCombined(prediction = NULL, data = data, ..., scales = scales, facet = facet)
+  plotCombined.prdlist(prediction = NULL, data = data, ..., scales = scales, facet = facet)
   
 }
+
+#' @export
+#' @rdname plotData
+plotData.datalist <- function(data, ..., scales = "free", facet = "wrap", transform = NULL) {
+  
+  data <- subset(lbind(data), ...)
+  
+  if (!is.null(transform)) data <- coordTransform(data, transform)
+  
+  if (facet == "wrap")
+    p <-  ggplot(data, aes(x = time, y = value, ymin = value - sigma, 
+                           ymax = value + sigma, group = condition, color = condition)) + facet_wrap(~name, scales = scales)
+  if (facet == "grid")
+    p <- ggplot(data, aes(x = time, y = value, ymin = value - sigma, 
+                          ymax = value + sigma)) +  facet_grid(name ~ condition, scales = scales)
+  
+  p <- p + geom_point() + geom_errorbar(width = 0)
+  
+  
+  attr(p, "data") <- data
+  return(p)
+  
+}
+
 
 #' Coerce to a Data Frame
 #' 

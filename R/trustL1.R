@@ -11,18 +11,43 @@ norm <- function(x) sqrt(sum(x^2))
 trustL1 <- function(objfun, parinit, mu = 0*parinit, one.sided=FALSE, lambda = 1, rinit, rmax, parscale,
     iterlim = 100, fterm = sqrt(.Machine$double.eps),
     mterm = sqrt(.Machine$double.eps),
-    minimize = TRUE, blather = FALSE, blather2 = FALSE, ...)
+    minimize = TRUE, blather = FALSE, blather2 = FALSE, parupper = Inf, parlower = -Inf, ...)
 {
   
   # Guarantee that pars is named numeric without deriv attribute
   sanePars <- sanitizePars(parinit, list(...)$fixed)
   parinit <- sanePars$pars
   
+    u <- structure(rep(Inf, length(parinit)), names = names(parinit))
+    l <- structure(rep(-Inf, length(parinit)), names = names(parinit))
+    
+    if (is.null(names(parupper)))
+      u[1:length(u)] <- parupper
+    if (is.null(names(parlower)))
+      l[1:length(l)] <- parlower
+    if (!is.null(names(parupper)) & !is.null(names(parinit)))
+      u[names(parupper)] <- parupper
+    if (!is.null(names(parlower)) & !is.null(names(parinit)))
+      l[names(parlower)] <- parlower
+    
+    parupper <- u
+    parlower <- l
   
     if (! is.numeric(parinit))
        stop("parinit not numeric")
     if (! all(is.finite(parinit)))
        stop("parinit not all finite")
+  
+    upper <- which(parinit > parupper)
+    lower <- which(parinit < parlower)
+    if(length(upper > 0)){
+      warning("init above range")
+      parinit[upper] <- parupper[upper]
+    }
+    if(length(lower > 0)){
+      warning("init below range")
+      parinit[lower] <- parlower[lower]
+    }
     d <- length(parinit)
     if (missing(parscale)) {
         rescale <- FALSE
@@ -216,7 +241,10 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, one.sided=FALSE, lambda = 1
         #           preddiff <- sum(ptry.red * (g + as.numeric(B %*% ptry.red) / 2))
         #           
         #         }
-                
+        upper <- which(!(theta.try < parupper))
+        lower <- which(!(theta.try > parlower))
+        theta.try[upper] <- parupper[upper]
+        theta.try[lower] <- parlower[lower]
         
         out <- try(objfun(theta.try, ...))
         outL1 <- try(constraintL1(theta.try, mu, lambda))

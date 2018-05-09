@@ -1,3 +1,5 @@
+# Custom interface to ggplot2 ---
+
 #' Open last plot in external pdf viewer
 #' 
 #' @description Convenience function to show last plot in an external viewer.
@@ -11,52 +13,6 @@ ggopen <- function(plot = last_plot(), command = "xdg-open", ...) {
   system(command = paste(command, filename))
 }
 
-#' Coordinate transformation for data frames
-#' 
-#' Applies a symbolically defined transformation to the \code{value}
-#' column of a data frame. Additionally, if a \code{sigma} column is
-#' present, those values are transformed according to Gaussian error
-#' propagation.
-#' @param data data frame with at least columns "name" (character) and
-#' "value" (numeric). Can optionally contain a column "sigma" (numeric).
-#' @param transformations character (the transformation) or named list of
-#' characters. In this case, the list names must be a subset of those 
-#' contained in the "name" column.
-#' @return The data frame with the transformed values and sigma uncertainties.
-#' @export
-coordTransform <- function(data, transformations) {
-  
-  mynames <- unique(as.character(data$name))
-  
-  # Replicate transformation if not a list
-  if (!is.list(transformations))
-    transformations <- as.list(structure(rep(transformations, length(mynames)), names = mynames))
-  
-  out <- do.call(rbind, lapply(mynames, function(n) {
-    
-    subdata <- subset(data, name == n)
-    
-    if (n %in% names(transformations)) {
-      
-      mysymbol <- getSymbols(transformations[[n]])[1]
-      mytrafo <- replaceSymbols(mysymbol, "value", transformations[[n]])
-      mytrafo <- parse(text = mytrafo)
-      
-      if ("sigma" %in% colnames(subdata))
-        subdata$sigma <- abs(with(subdata, eval(D(mytrafo, "value")))) * subdata$sigma
-      subdata$value <- with(subdata, eval(mytrafo))
-      
-    }
-    
-    return(subdata)
-    
-  }))
-  
-
-  return(out)
-  
-  
-}
 
 
 
@@ -121,6 +77,62 @@ scale_fill_dMod <- function(...) {
 ggplot <- function(...) ggplot2::ggplot(...) + scale_color_dMod() + theme_dMod()
 
 
+
+
+# Other ---------------------------------------------
+
+#' Coordinate transformation for data frames
+#' 
+#' Applies a symbolically defined transformation to the \code{value}
+#' column of a data frame. Additionally, if a \code{sigma} column is
+#' present, those values are transformed according to Gaussian error
+#' propagation.
+#' @param data data frame with at least columns "name" (character) and
+#' "value" (numeric). Can optionally contain a column "sigma" (numeric).
+#' @param transformations character (the transformation) or named list of
+#' characters. In this case, the list names must be a subset of those 
+#' contained in the "name" column.
+#' @return The data frame with the transformed values and sigma uncertainties.
+#' @export
+coordTransform <- function(data, transformations) {
+  
+  mynames <- unique(as.character(data$name))
+  
+  # Replicate transformation if not a list
+  if (!is.list(transformations))
+    transformations <- as.list(structure(rep(transformations, length(mynames)), names = mynames))
+  
+  out <- do.call(rbind, lapply(mynames, function(n) {
+    
+    subdata <- subset(data, name == n)
+    
+    if (n %in% names(transformations)) {
+      
+      mysymbol <- getSymbols(transformations[[n]])[1]
+      mytrafo <- replaceSymbols(mysymbol, "value", transformations[[n]])
+      mytrafo <- parse(text = mytrafo)
+      
+      if ("sigma" %in% colnames(subdata))
+        subdata$sigma <- abs(with(subdata, eval(D(mytrafo, "value")))) * subdata$sigma
+      subdata$value <- with(subdata, eval(mytrafo))
+      
+    }
+    
+    return(subdata)
+    
+  }))
+  
+  
+  return(out)
+  
+  
+}
+
+
+# Method dispatch for plotX functions -------------
+
+
+
 #' Plot a list of model predictions
 #' 
 #' @param prediction Named list of matrices or data.frames, usually the output of a prediction function
@@ -137,23 +149,11 @@ ggplot <- function(...) ggplot2::ggplot(...) + scale_color_dMod() + theme_dMod()
 #' @import ggplot2
 #' @example inst/examples/plotting.R
 #' @export
-plotPrediction <- function(prediction, ..., scales = "free", facet = "wrap", transform = NULL) {
-  
-  prediction <- subset(wide2long.list(prediction), ...)
-  
-  if (!is.null(transform)) prediction <- coordTransform(prediction, transform)
-  
-  if (facet == "wrap")
-    p <- ggplot(prediction, aes(x = time, y = value, group = condition, color = condition)) + facet_wrap(~name, scales = scales)
-  if (facet == "grid")
-    p <- ggplot(prediction, aes(x = time, y = value)) + facet_grid(name ~ condition, scales = scales)
- 
-  p <- p + geom_line() 
-  
-  attr(p, "data") <- prediction
-  return(p)
-   
+plotPrediction <- function(x,...) {
+  UseMethod("plotPrediction", x)
 }
+
+
 
 
 #' Plot a list of model predictions and a list of data points in a combined plot
@@ -175,47 +175,10 @@ plotPrediction <- function(prediction, ..., scales = "free", facet = "wrap", tra
 #' @example inst/examples/plotting.R
 #' @importFrom graphics par
 #' @export
-plotCombined <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
-  
-  mynames <- c("time", "name", "value", "sigma", "condition")
-  
-  if (!is.null(prediction)) {
-    prediction <- cbind(wide2long(prediction), sigma = NA)
-    prediction <- subset(prediction, ...)
-    
-    if (!is.null(transform)) prediction <- coordTransform(prediction, transform)
-    
-  }
-  
-  if (!is.null(data)) {
-    data <- lbind(data)
-    data <- subset(data, ...)
-    
-    if (!is.null(transform)) data <- coordTransform(data, transform)
-    
-  }
-  
-  total <- rbind(prediction[, mynames], data[, mynames])
-  
-  if (facet == "wrap")
-    p <- ggplot(total, aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma, 
-                           group = condition, color = condition)) + facet_wrap(~name, scales = scales)
-  if (facet == "grid")
-    p <- ggplot(total, aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma)) + facet_grid(name ~ condition, scales = scales)
-  
-  if (!is.null(prediction))
-    p <- p +  geom_line(data = prediction)
-  
-  if (!is.null(data))
-    p <- p + geom_point(data = data) + geom_errorbar(data = data, width = 0)
-  
-  attr(p, "data") <- list(data = data, prediction = prediction)
-  return(p)
-  
-  attr(p, "data") <- list(data = data, prediction = prediction)
-  return(p)
-  
+plotCombined <- function(x,...) {
+  UseMethod("plotCombined", x)
 }
+
 
 #' Plot a list data points
 #' 
@@ -233,25 +196,14 @@ plotCombined <- function(prediction, data = NULL, ..., scales = "free", facet = 
 #' @return A plot object of class \code{ggplot}.
 #' @example inst/examples/plotting.R
 #' @export
-plotData <- function(data, ..., scales = "free", facet = "wrap", transform = NULL) {
-  
-  data <- subset(lbind(data), ...)
-  
-  if (!is.null(transform)) data <- coordTransform(data, transform)
+plotData  <- function(x,...) {
+  UseMethod("plotData", x)
+}
 
-  if (facet == "wrap")
-    p <-  ggplot(data, aes(x = time, y = value, ymin = value - sigma, 
-                           ymax = value + sigma, group = condition, color = condition)) + facet_wrap(~name, scales = scales)
-  if (facet == "grid")
-    p <- ggplot(data, aes(x = time, y = value, ymin = value - sigma, 
-                          ymax = value + sigma)) +  facet_grid(name ~ condition, scales = scales)
-  
-  p <- p + geom_point() + geom_errorbar(width = 0)
-  
-  
-  attr(p, "data") <- data
-  return(p)
-  
+#' @export
+#' @rdname plotData
+plotData.data.frame <- function(data, ...) {
+  plotData.datalist(as.datalist(data), ...)
 }
 
 #' Profile likelihood plot
@@ -264,105 +216,10 @@ plotData <- function(data, ..., scales = "free", facet = "wrap", transform = NUL
 #' @return A plot object of class \code{ggplot}.
 #' @details See \link{profile} for examples.
 #' @export
-plotProfile <- function(profs, ..., maxvalue = 5, parlist = NULL) {
-  
-  if("parframe" %in% class(profs)) 
-     arglist <- list(profs)
-  else
-    arglist <- as.list(profs)
-  
-  
-  if (is.null(names(arglist))) {
-    profnames <- 1:length(arglist)
-  } else {
-    profnames <- names(arglist)
-  }
-  
-  data <- do.call(rbind, lapply(1:length(arglist), function(i) {
-    proflist <- as.data.frame(arglist[[i]])
-    obj.attributes <- attr(arglist[[i]], "obj.attributes")
-    
-    if(is.data.frame(proflist)) {
-      whichPars <- unique(proflist$whichPar)
-      proflist <- lapply(whichPars, function(n) {
-        with(proflist, proflist[whichPar == n, ])
-      })
-      names(proflist) <- whichPars
-    }
-    
-    do.valueData <- "valueData" %in% colnames(proflist[[1]])
-    do.valuePrior <- "valuePrior" %in% colnames(proflist[[1]])
-    
-    
-    # Discard faulty profiles
-    proflistidx <- sapply(proflist, function(prf) any(class(prf) == "data.frame"))
-    proflist <- proflist[proflistidx]
-    if (sum(!proflistidx) > 0) {
-      warning(sum(!proflistidx), " profiles discarded.", call. = FALSE)
-    }
-    
-    subdata <- do.call(rbind, lapply(names(proflist), function(n) {
-      
-      values <- proflist[[n]][, "value"]
-      origin <- which.min(abs(proflist[[n]][, "constraint"]))
-      zerovalue <- proflist[[n]][origin, "value"]
-      parvalues <- proflist[[n]][, n]
-      deltavalues <- values - zerovalue
-
-      sub <- subset(data.frame(name = n, delta = deltavalues, par = parvalues, proflist = profnames[i], mode="total", is.zero = 1:nrow(proflist[[n]]) == origin), delta <= maxvalue)
-      
-      if(!is.null(obj.attributes)) {
-        for(mode in obj.attributes) {
-          valuesO <- proflist[[n]][, mode]
-          originO <- which.min(abs(proflist[[n]][, "constraint"]))
-          zerovalueO <- proflist[[n]][originO, mode]
-          deltavaluesO <- valuesO - zerovalueO
-          sub <- rbind(sub,subset(data.frame(name = n, delta = deltavaluesO, par = parvalues, proflist = profnames[i], mode=mode, is.zero = 1:nrow(proflist[[n]]) == originO), delta <= maxvalue))
-        }
-      }
-      
-      return(sub)
-    }))
-    return(subdata)
-  }))
-  
-  data$proflist <- as.factor(data$proflist)
-  data <- droplevels(subset(data, ...))
-  
-  data.zero <- subset(data, is.zero)
-
-  threshold <- c(1, 2.7, 3.84)
-  
-  data <- droplevels.data.frame(subset(data, ...))
-  
-  p <- ggplot(data, aes(x=par, y=delta, group=interaction(proflist,mode), color=proflist, linetype=mode)) + facet_wrap(~name, scales="free_x") + 
-    geom_hline(yintercept=threshold, lty=2, color="gray") + 
-    geom_line() + #geom_point(aes=aes(size=1), alpha=1/3) +
-    geom_point(data = data.zero) +
-    ylab(expression(paste("CL /", Delta*chi^2))) +
-    scale_y_continuous(breaks=c(1, 2.7, 3.84), labels = c("68% / 1   ", "90% / 2.71", "95% / 3.84"), limits = c(NA, maxvalue)) +
-    xlab("parameter value")
-  
-  if(!is.null(parlist)){
-    delta <- 0
-    if("value" %in% colnames(parlist)){
-      minval <- min(unlist(lapply(1:length(arglist), function(i){ 
-        origin <- which.min(arglist[[i]][["constraint"]])
-        zerovalue <- arglist[[i]][origin, 1]  
-      })))
-      values <- parlist[, "value", drop = TRUE]
-      parlist <- parlist[,!(colnames(parlist) %in% c("index", "value", "converged", "iterations"))]
-      delta <- as.numeric(values - minval)
-    }
-    points <- data.frame(par = as.numeric(as.matrix(parlist)), name = rep(colnames(parlist), each = nrow(parlist)), delta = delta)
-
-    #points <- data.frame(name = colnames(parlist), par = as.numeric(parlist), delta=0)
-    p <- p + geom_point(data=points, aes(x=par, y=delta), color = "black", inherit.aes = FALSE)
-  }
-  attr(p, "data") <- data
-  return(p)
-  
+plotProfile <- function(x,...) {
+  UseMethod("plotProfile", x)
 }
+
 
 #' Profile likelihood: plot of the parameter paths.
 #' 
@@ -543,30 +400,11 @@ stepDetect <- function(x, tol) {
 #' @param tol maximal allowed difference between neighboring objective values
 #' to be recognized as one.
 #' @export
-plotValues <- function(x, tol = 1, ...) {
-  
-  if (!missing(...)) x <- subset(x, ...)
-
-  jumps <- stepDetect(x$value, tol)
-  y.jumps <- seq(max(x$value), min(x$value), length.out = length(jumps))
-  
-    
-  pars <- x
-  pars <- cbind(index = 1:nrow(pars), pars[order(pars$value),])
-  
-  
-  P <- ggplot2::ggplot(pars, aes(x = index, y = value, pch = converged, color = iterations)) + 
-    geom_vline(xintercept = jumps, lty = 2) +
-    geom_point() + 
-    annotate("text", x = jumps + 1, y = y.jumps, label = jumps, hjust = 0, color = "red", size = 3) +
-    xlab("index") + ylab("value") + theme_dMod()
-  
-  attr(P, "data") <- pars
-  attr(P, "jumps") <- jumps
-  
-  return(P)
-  
+plotValues <- function(x,...) {
+  UseMethod("plotValues", x)
 }
+
+
 
 #' Plot parameter values for a fitlist
 #' 
@@ -575,30 +413,11 @@ plotValues <- function(x, tol = 1, ...) {
 #' to be recognized as one.
 #' @param ... arguments for subsetting of x
 #' @export
-plotPars <- function(x, tol = 1, ...){
-  
-  if (!missing(...)) x <- subset(x, ...)
-  
-  jumps <- stepDetect(x$value, tol)
-  jump.index <- approx(jumps, jumps, xout = 1:length(x$value), method = "constant", rule = 2)$y
-  
-  #values <- round(x$value/tol)
-  #unique.values <- unique(values)
-  #jumps <- which(!duplicated(values))
-  #jump.index <- jumps[match(values, unique.values)]
-  x$index <- as.factor(jump.index)
-  
-  myparframe <- x
-  parNames <- attr(myparframe,"parameters")
-  parOut <- wide2long.data.frame(out = ((myparframe[, c("index", "value", parNames)])) , keep = 1:2)
-  names(parOut) <- c("index", "value", "name", "parvalue")
-  plot <- ggplot2::ggplot(parOut, aes(x = name, y = parvalue, color = index)) + geom_boxplot(outlier.alpha = 0) + theme_dMod() + scale_color_dMod() + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
-  
-  attr(plot, "data") <- parOut
-  
-  return(plot)
-  
+plotPars <- function(x,...) {
+  UseMethod("plotPars", x)
 }
+
+
 
 #' Plot residuals for a fitlist
 #' 
@@ -622,7 +441,7 @@ plotPars <- function(x, tol = 1, ...){
 #'  plotResiduals(myfitlist, g*x*p, data,  c("condition","name","index"))
 #' }
 #' @export
-#' @import plyr
+#' @importFrom plyr ddply
 plotResiduals <- function(parframe, x, data, split = "condition", errmodel = NULL, ...){
   timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))
   if(!("index" %in% colnames(parframe)))

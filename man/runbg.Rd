@@ -5,7 +5,7 @@
 \title{Run an R expression in the background (only on UNIX)}
 \usage{
 runbg(..., machine = "localhost", filename = NULL, input = ls(.GlobalEnv),
-  compile = FALSE, wait = FALSE)
+  compile = FALSE, wait = FALSE, recover = F)
 }
 \arguments{
 \item{...}{Some R code}
@@ -27,6 +27,10 @@ is already present in which case it is loaded. If not present, \code{runbg()} st
 the result and loads it as \code{.runbgOutput} directly into the workspace. If \code{wait = FALSE},
 \code{runbg()} starts in the background and the result is only loaded into the workspace
 when the \code{get()} function is called, see Value section.}
+
+\item{recover}{Logical. This option is useful to recover the three functions check(), get() and purge(), 
+e.g. when a session has crashed. Then, the three functions are recreated without restarting the job.
+They can then be used to get the results of a job wihtout having to do it manually.}
 }
 \value{
 List of functions \code{check}, \code{get()} and \code{purge()}. 
@@ -58,6 +62,24 @@ out_job1 <- runbg({
          solve(M)
          }, machine = c("localhost", "localhost"), filename = "job1")
 out_job1$check()          
+out_job1$get()
+result <- .runbgOutput
+print(result)
+out_job1$purge()
+}
+\dontrun{
+#' Recover a runbg job with the option "recover"
+out_job1 <- runbg({
+         M <- matrix(rnorm(1e2), 10, 10)
+         solve(M)
+         }, machine = c("localhost", "localhost"), filename = "job1")
+remove(out_job1)
+try(out_job1$check())
+out_job1 <- runbg({
+  # Not necessary to uncomment, but just for clarity that out_job1 hasnt been run anew.
+  # M <- matrix(rnorm(1e2), 10, 10)
+  # solve(M)
+}, machine = c("localhost", "localhost"), filename = "job1", recover = T)
 out_job1$get()
 result <- .runbgOutput
 print(result)

@@ -16,6 +16,8 @@
 #' @param outputs Named character vector for additional output variables.
 #' @param fixed Character vector with the names of parameters (initial values and dynamic) for which
 #' no sensitivities are required (will speed up the integration).
+#' @param estimate Character vector specifying parameters (initial values and dynamic) for which
+#' sensitivities are returned. If estimate is specified, it overwrites `fixed`.
 #' @param modelname Character, the name of the C file being generated.
 #' @param solver Solver for which the equations are prepared.
 #' @param gridpoints Integer, the minimum number of time points where the ODE is evaluated internally
@@ -25,13 +27,15 @@
 #' @export
 #' @example inst/examples/odemodel.R
 #' @import cOde
-odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, outputs = NULL, fixed=NULL, modelname = "odemodel", solver = c("deSolve", "Sundials"), gridpoints = NULL, verbose = FALSE, ...) {
+#' @importFrom digest digest
+odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, outputs = NULL, fixed = NULL, estimate = NULL, modelname = "odemodel", solver = c("deSolve", "Sundials"), gridpoints = NULL, verbose = FALSE, ...) {
   
   
   if (is.null(gridpoints)) gridpoints <- 2
   
-  
   f <- as.eqnvec(f)
+  # Add hash to prevent overwriting existing models
+  modelname <- paste0(modelname, "_", substr(digest(list(f,forcings,events,outputs,fixed,estimate,solver,gridpoints)),1,8))
   modelname_s <- paste0(modelname, "_s")
   solver <- match.arg(solver)
   
@@ -47,9 +51,22 @@ odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, outputs = NU
   
   if (deriv && solver == "deSolve") {  
     
+    mystates <- attr(func, "variables")
+    myparameters <- attr(func, "parameters")
+    
+    if (is.null(estimate) & !is.null(fixed)) {
+      mystates <- setdiff(mystates, fixed)
+      myparameters <- setdiff(myparameters, fixed)
+    }
+    
+    if (!is.null(estimate)) {
+      mystates <- intersect(mystates, estimate)
+      myparameters <- intersect(myparameters, estimate)
+    }
+    
     s <- sensitivitiesSymb(f, 
-                           states = setdiff(attr(func, "variables"), fixed), 
-                           parameters = setdiff(attr(func, "parameters"), fixed), 
+                           states = mystates, 
+                           parameters = myparameters, 
                            inputs = attr(func, "forcings"),
                            events = attr(func, "events"),
                            reduce = TRUE)
@@ -243,7 +260,7 @@ parfn <- function(p2p, parameters = NULL, condition = NULL) {
   
 }
 
-#' Generate a paramter frame
+#' Generate a parameter frame
 #'
 #' @description A parameter frame is a data.frame where the rows correspond to different
 #' parameter specifications. The columns are divided into three parts. (1) the meta-information
@@ -648,8 +665,21 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
       arglist <- arglist[match.fnargs(arglist, c("pars"))]
       pars <- arglist[[1]]
       
-      v1 <- x1(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions[conditions %in% conditions.x1], env = env)
-      v2 <- x2(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions[conditions %in% conditions.x2], env = attr(v1, "env"))
+      # 1. If conditions.xi is null, always evaluate xi, but only once
+      # 2. If not null, evaluate at intersection with conditions
+      # 3. If not null & intersection is empty, don't evaluate xi at all
+      v1 <- v2 <- NULL
+      if (is.null(conditions.x1)) {
+        v1 <- x1(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions.x1, env = env)
+      } else if (any(conditions %in% conditions.x1)) {
+        v1 <- x1(pars = pars, fixed = fixed, deriv = deriv, conditions = intersect(conditions, conditions.x1), env = env)
+      } 
+      
+      if (is.null(conditions.x2)) {
+        v2 <- x2(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions.x2, env = env)
+      } else if (any(conditions %in% conditions.x2)) {
+        v2 <- x2(pars = pars, fixed = fixed, deriv = deriv, conditions = intersect(conditions, conditions.x2), env = attr(v1, "env"))
+      } 
       
       out <- v1 + v2
       attr(out, "env") <- attr(v1, "env")

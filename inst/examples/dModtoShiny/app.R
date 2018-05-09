@@ -23,7 +23,7 @@ models <- system("ls -d */",intern = TRUE)
 
 #list.dirs(recursive = FALSE)
 
-# Define UI for application that draws a histogram
+# Define UI for application that draws a histogram ----
 ui <- dashboardPage(
   dashboardHeader(title = "dMod"),
   dashboardSidebar(
@@ -225,8 +225,13 @@ ui <- dashboardPage(
     
   ))
 
+<<<<<<< HEAD
 ####################################################################################################
 # Define server logic
+=======
+
+# Define server logic ----
+>>>>>>> d8c4055feae261f53309087410cc936387eaedc8
 server <- shinyServer(function(input, output, session) {
   
   # variables where input choices are defined in model setup
@@ -235,7 +240,7 @@ server <- shinyServer(function(input, output, session) {
   vmodelold <- reactiveValues(name = NULL, myso = NULL) # needed to reset plot, path
   vplots <- reactiveValues(profsplot = NULL, plotdata = NULL, pf = NULL) 
   
-  # loading of a model
+  # loading of a model ----
   model <- eventReactive(input$model,{
     vplots$plotdata = NULL
     vplots$profsplot = NULL
@@ -305,7 +310,7 @@ server <- shinyServer(function(input, output, session) {
     list(x = x, data = data, reactions = reactions, fixed = fixed, parameters = parameters, profiles = profiles, err = errmodel, timesData = times, ref = file.path(pubref))
   })
   
-  # update of input choices
+  # update of input choices ----
   observe({
     vmodel$vstates <- input$states
   })
@@ -326,7 +331,7 @@ server <- shinyServer(function(input, output, session) {
   })
   
   
-  # more inputs for subsetting coming from condition.grid in data
+  # more inputs for subsetting coming from condition.grid in data ----
   output$morecons <- renderUI({
     mycons <- vmodel$vgridconditions
     vextra$ngrid <- length(mycons)

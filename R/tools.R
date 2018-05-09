@@ -437,9 +437,12 @@ expand.grid.alt <- function(seq1, seq2) {
 #' @param output Optional character of the file to be produced. If several objects were
 #' passed, the different C files are all compiled into one shared object file.
 #' @param args Additional arguments for the R CMD SHLIB call, e.g. \code{-leinspline}.
+#' @param verbose Print compiler output to R command line.
 #' @param cores Number of cores used for compilation when several files are compiled.
+#'
+#' @importFrom digest digest
 #' @export
-compile <- function(..., output = NULL, args = NULL, cores = 1) {
+compile <- function(..., output = NULL, args = NULL, cores = 1, verbose = F) {
   
   objects <- list(...)
   obj.names <- as.character(substitute(list(...)))[-1]
@@ -450,8 +453,6 @@ compile <- function(..., output = NULL, args = NULL, cores = 1) {
     if (inherits(objects[[i]], c("obsfn", "parfn", "prdfn"))) {
       # Get and reset modelname
       filename <- modelname(objects[[i]])
-      if (!is.null(output))
-        eval(parse(text = paste0("modelname(", obj.names[i], ") <<- '", output, "'")))
       # Expand modelname by possible endings and check if file exists
       filename <- outer(filename, c("", "_deriv", "_s", "_sdcv", "_dfdx", "_dfdp"), paste0)
       files.obj <- c(paste0(filename, ".c"), paste0(filename, ".cpp"))
@@ -473,13 +474,18 @@ compile <- function(..., output = NULL, args = NULL, cores = 1) {
   if (is.null(output)) {
     compilation_out <- mclapply(1:length(files), function(i) {
       try(dyn.unload(paste0(roots[i], .so)), silent = TRUE)
-      system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", files[i], " ", args))
+      system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", files[i], " ", args), intern = !verbose)
     }, mc.cores = cores, mc.silent = FALSE)
     for (r in roots) dyn.load(paste0(r, .so))
   } else {
+    # Append short hash of all .c-files which go into the compiled dll
+    output <- paste0(output, "_", substr(digest(list(roots)),1,8))
+    for (i in 1:length(objects)) {
+      eval(parse(text = paste0("modelname(", obj.names[i], ") <<- '", output, "'")))
+    }
     for (r in roots) try(dyn.unload(paste0(r, .so)), silent = TRUE)
     try(dyn.unload(output), silent = TRUE)
-    system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", paste(files, collapse = " "), " -o ", output, .so, " ", args))
+    system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", paste(files, collapse = " "), " -o ", output, .so, " ", args), intern = !verbose)
     dyn.load(paste0(output, .so))
   }
   

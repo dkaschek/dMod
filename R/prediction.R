@@ -390,6 +390,7 @@ Xd <- function(data, condition = NULL) {
 #' the Jacobian 
 #' of the parameter transformation and the sensitivities of the observation function
 #' are multiplied according to the chain rule for differentiation.
+#' @importFrom digest digest
 #' @example inst/examples/prediction.R
 #' @export
 Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, attach.input = TRUE, deriv = TRUE, compile = FALSE, modelname = NULL, verbose = FALSE) {
@@ -411,6 +412,9 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
   
   # Modify modelname by condition
   if (!is.null(modelname) && !is.null(condition)) modelname <- paste(modelname, sanitizeConditions(condition), sep = "_")
+  
+  # Add hash to modelname to prevent overwriting .c-files with different content
+  if (!is.null(modelname)) modelname <- paste0(modelname, "_", substr(digest(list(g,f,states,parameters,condition,attach.input,deriv)),1,8))
   
   # Then add suffix(es) for derivative function
   if (!is.null(modelname)) modelname_deriv <- paste(modelname, "deriv", sep = "_")

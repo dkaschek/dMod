@@ -19,7 +19,11 @@ Imports:
     ggplot2,
     parallel,
     stringr,
-    plyr
+    plyr,
+    digest,
+    dplyr,
+    rlang,
+    git2r
 Suggests:
     MASS,
     rPython,

@@ -17,6 +17,7 @@
 #' @param method character, either \code{"explicit"} or \code{"implicit"}
 #' @param verbose Print out information during compilation
 #' @return An object of class \link{parfn}.
+#' @importFrom digest digest
 #' @export
 P <- function(trafo = NULL, parameters=NULL, condition = NULL, attach.input = FALSE,  keep.root = TRUE, compile = FALSE, modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE) {
   
@@ -28,6 +29,9 @@ P <- function(trafo = NULL, parameters=NULL, condition = NULL, attach.input = FA
   
   method <- match.arg(method)
   
+  # Add hash to prevent overwriting of .c-files with different content
+  if (!is.null(modelname)) modelname <- paste0(modelname, "_", substr(digest(list(trafo, parameters)),1,8))
+
   Reduce("+", lapply(1:length(trafo), function(i) {
   
       switch(method, 

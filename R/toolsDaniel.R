@@ -116,12 +116,13 @@ mssample <- function(center, samplefun = "rnorm", fits = 20, ...) {
 #' @param expr character of the form \code{"lhs ~ rhs"} where both \code{lhs}
 #' and \code{rhs} can contain a number of symbols for which vaues are passed
 #' by the \code{...} argument
+#' @param  conditionMatch optional character, Use as regular expression to apply the reparameterization only to conditions containing conditionMatch
 #' @param ... used to pass values for symbols as named arguments
 #' @return object of the same class as trafo or list thereof, if \code{branch()} has been
 #' used.
 #' @export
 #' @example inst/examples/define.R
-define <- function(trafo, expr, ...) {
+define <- function(trafo, expr, ..., conditionMatch = NULL) {
   
   if (missing(trafo)) trafo <- NULL
   lookuptable <- attr(trafo, "tree")
@@ -147,6 +148,10 @@ define <- function(trafo, expr, ...) {
     } else {
       mytable <- lookuptable[1, , drop = FALSE]
     }
+    
+    if ((!is.null(conditionMatch)))
+      if((!str_detect(rownames(mytable), conditionMatch))) 
+        return(mytrafo[[i]])
     
     with(mytable, {
       args <- c(list(expr = expr, trafo = mytrafo[[i]], reset = TRUE), eval(dots))
@@ -166,7 +171,7 @@ define <- function(trafo, expr, ...) {
 
 #' @export
 #' @rdname define
-insert <- function(trafo, expr, ...) {
+insert <- function(trafo, expr, ..., conditionMatch = NULL) {
   
   
   if (missing(trafo)) trafo <- NULL
@@ -193,6 +198,10 @@ insert <- function(trafo, expr, ...) {
     } else {
       mytable <- lookuptable[1, , drop = FALSE]
     }
+    
+    if ((!is.null(conditionMatch)))
+      if((!str_detect(rownames(mytable), conditionMatch))) 
+        return(mytrafo[[i]])
     
     with(mytable, {
       args <- c(list(expr = expr, trafo = mytrafo[[i]]), eval(dots))
