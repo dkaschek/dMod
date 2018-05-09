@@ -54,6 +54,10 @@ detectFreeCores <- function(machine = NULL) {
 #' the result and loads it as \code{.runbgOutput} directly into the workspace. If \code{wait = FALSE},
 #' \code{runbg()} starts in the background and the result is only loaded into the workspace
 #' when the \code{get()} function is called, see Value section. 
+#' @param recover Logical. This option is useful to recover the three functions check(), get() and purge(), 
+#' e.g. when a session has crashed. Then, the three functions are recreated without restarting the job.
+#' They can then be used to get the results of a job wihtout having to do it manually.
+#' 
 #' @return List of functions \code{check}, \code{get()} and \code{purge()}. 
 #' \code{check()} checks, if the result is ready.
 #' \code{get()} copies the result file
@@ -75,7 +79,25 @@ detectFreeCores <- function(machine = NULL) {
 #' print(result)
 #' out_job1$purge()
 #' }
-runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.GlobalEnv), compile = FALSE, wait = FALSE) {
+#' \dontrun{
+#' #' Recover a runbg job with the option "recover"
+#' out_job1 <- runbg({
+#'          M <- matrix(rnorm(1e2), 10, 10)
+#'          solve(M)
+#'          }, machine = c("localhost", "localhost"), filename = "job1")
+#' remove(out_job1)
+#' try(out_job1$check())
+#' out_job1 <- runbg({
+#'   # Not necessary to uncomment, but just for clarity that out_job1 hasnt been run anew.
+#'   # M <- matrix(rnorm(1e2), 10, 10)
+#'   # solve(M)
+#' }, machine = c("localhost", "localhost"), filename = "job1", recover = T)
+#' out_job1$get()
+#' result <- .runbgOutput
+#' print(result)
+#' out_job1$purge()
+#' }
+runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.GlobalEnv), compile = FALSE, wait = FALSE, recover = F) {
   
   
   expr <- as.expression(substitute(...))
@@ -136,6 +158,11 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
     }
     system(paste0("rm ", filename0, "*"))
   }
+  
+  
+  # Recover the three functions check, get, purge without letting the job being evaluated again.
+  if (recover) return(out)
+  
   
   
   # Check if filenames exist and load last result (only if wait == TRUE)
