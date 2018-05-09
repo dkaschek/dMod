@@ -481,7 +481,7 @@ plotPaths <- function(profs, ..., whichPar = NULL, sort = FALSE, relative = TRUE
 #' @return A plot object of class \code{ggplot}.
 #' @examples 
 #' \dontrun{
-#' plotFluxes(bestfit, x, times, attr(subset(f, "B"%in%Product), "rates"), nameFlux = "B production")
+#' plotFluxes(bestfit, x, times, subset(f, "B"%in%Product)$rates, nameFlux = "B production")
 #' }
 #' @export
 plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux = "Fluxes:", fixed = NULL){

@@ -31,7 +31,8 @@ ui <- dashboardPage(
       id = "tabs",
       selectInput(inputId = "model", label = "Model:", choices = models, selected = models[1], multiple = FALSE),
       menuItem("Plot Prediction", tabName = "model", icon = icon("line-chart")),
-      menuItem("Optima Selection", tabName = "parameters", icon = icon("shower")),
+      menuItem("Optima Selection", tabName = "parameters", icon = icon("list-ol")),
+      menuItem("Parameter Tuning", tabName = "parvalue", icon = icon("sliders")),
       menuItem("Run on Profiles", tabName = "profiles", icon = icon("hand-pointer-o")),
       menuItem("More Plots", tabName = "addplots", icon = icon("area-chart"),
                menuSubItem("Fluxes", tabName = "addplotsflux"),
@@ -92,11 +93,41 @@ ui <- dashboardPage(
                     selectInput("jump", "Steps:", list(1), selected = c(1), multiple = TRUE),
                     #p(strong("Parameter values:")),
                     radioButtons("allstepsval","Parameter values:", c("All fits" = "all", "Selected steps"= "sel"), selected = "sel"),
-                    actionButton("plotvals", "plot values")
+                    actionButton("plotvals", "plot values"),
+                    actionButton("exportsteppars","export Parameters")
                 ),
                 box(width = 9,
                     plotOutput("stepplot"),
                     withSpinner(plotOutput("parvalplot"))
+                )
+              )
+      ),
+      tabItem(tabName = "parvalue", # set individual parameter values
+              fluidRow(
+                column(width = 3,
+                       box(width = 12,
+                           actionButton("plotind","Reset Parameters"),
+                           uiOutput("parssel"),
+                           sliderInput('plotHeightind', 'Height of plot (in pixels)', min = 100, max = 2000, value = 600)
+                       ),
+                       box(width = 12,
+                           title = "Hint:",
+                           "for fast processing select few conditions to be shown",br(),
+                           actionButton("select2","select"),
+                           actionButton("selectflux","fluxes")
+                       )
+                ),
+                column(width = 9,
+                       tabBox(id = "indparplots", width = 12, height = 600,
+                              
+                              tabPanel(value = "indparpredTab","Prediction",
+                                       uiOutput("indparpredplotui")
+                              ),
+                              tabPanel(value = "indparfluxTab","Fluxes",
+                                       uiOutput("plotfluxind")
+                              )
+                       )
+                       
                 )
               )
       ),
@@ -116,7 +147,8 @@ ui <- dashboardPage(
                            withSpinner(plotOutput("singleprof")),
                            sliderInput("profval","", min = NA, max = NA, value = NA, ticks = FALSE),
                            actionButton("plotprof","Plot prediction"),
-                           sliderInput('plotHeightprof', 'Height of plot (in pixels)', min = 100, max = 2000, value = 600)
+                           sliderInput('plotHeightprof', 'Height of plot (in pixels)', min = 100, max = 2000, value = 600),
+                           actionButton("exportprofpars","export Parameters")
                        )
                 ),
                 column(width = 9,
@@ -193,12 +225,12 @@ ui <- dashboardPage(
     
   ))
 
-
+####################################################################################################
 # Define server logic
 server <- shinyServer(function(input, output, session) {
   
   # variables where input choices are defined in model setup
-  vmodel <- reactiveValues(vstates = NULL, vconditions = NULL, vgridconditions = character(0), vtimes = NULL, vwhichprof = NULL, vprofssel = 1, vfacetsetup = "wrap", vmodeprof = NULL)
+  vmodel <- reactiveValues(vstates = NULL, vconditions = NULL, vgridconditions = character(0), vtimes = NULL, vwhichprof = NULL, vprofssel = 1, vfacetsetup = "wrap", vmodeprof = NULL, vparameters = NULL, vparametersInd = NULL)
   vextra <- reactiveValues(ngrid = 0)
   vmodelold <- reactiveValues(name = NULL, myso = NULL) # needed to reset plot, path
   vplots <- reactiveValues(profsplot = NULL, plotdata = NULL, pf = NULL) 
@@ -257,6 +289,8 @@ server <- shinyServer(function(input, output, session) {
       profs <- profs[[1]]
       vmodel$vprofssel <- 1
     }
+    vmodel$vparameters <- as.parvec(parameters)
+    vmodel$vparametersInd <- as.parvec(parameters)
     profnames <- unique(profs$whichPar)
     updateSelectInput(session=session, "whichprof", choices = profnames, selected = profnames[1])
     vmodel$vwhichprof <- profnames[1]
@@ -314,6 +348,16 @@ server <- shinyServer(function(input, output, session) {
     checkboxInput("errors","errormodel", value = FALSE)
   })
   
+  output$parssel <- renderUI({
+    pars <- vmodel$vparameters
+    myinputs <- lapply(1:length(pars), function(pp){
+      pari <- pars[pp]
+      sliderInput(inputId = names(pari), label = names(pari), min = round(pari-3,digits = 2), max = round(pari+3),value = pari,step = 0.01, round = FALSE)
+    })
+    vmodel$vparametersInd <- pars
+    return(myinputs)
+  })
+  
   output$profssel <- renderUI({
     profs <- model()$profiles
     if(is.list(profs) & !("parframe" %in% class(profs))){
@@ -337,6 +381,18 @@ server <- shinyServer(function(input, output, session) {
       myconditions <- rownames(congrid)
       updateSelectInput(session, "conditions", selected = myconditions)
       vmodel$vconditions <- myconditions
+    }
+  })
+  
+  observe({
+    pars <- isolate(vmodel$vparametersInd)
+    if(!is.null(pars)){
+    for(i in 1:length(pars)){
+      change <- input[[names(pars[i])]]
+      change <- change[1:length(change)]
+      if(!is.null(change)) pars[i] <- change
+    }
+    vmodel$vparametersInd <- pars
     }
   })
   
@@ -495,6 +551,15 @@ server <- shinyServer(function(input, output, session) {
     updateTabItems(session = session, inputId = "tabs", selected = "model")
     updateTabsetPanel(session = session, "plotselector", "subsetting")
   })
+   
+  switchTab <- observeEvent(input$select2, { #did not find how to use the same button on to menu items -> duplicated
+     updateTabItems(session = session, inputId = "tabs", selected = "model")
+     updateTabsetPanel(session = session, "plotselector", "subsetting")
+   })
+  
+  switchTab <- observeEvent(input$selectflux, { # choose fluxes
+    updateTabItems(session = session, inputId = "tabs", selected = "addplotsflux")
+  })
   
   profilesSelect <- reactive({
     profs <- model()$profiles
@@ -537,7 +602,7 @@ server <- shinyServer(function(input, output, session) {
   
   parametersProf <- reactive({
     profs <- singleprofvalues()
-    pos <-which(profs$counter==as.character(vprofs$profval)) 
+    pos <- which(profs$counter==as.character(vprofs$profval)) 
     as.parvec(profs[pos, ])
   })
   
@@ -587,6 +652,81 @@ server <- shinyServer(function(input, output, session) {
     pred <- fun(seq(from = vmodel$vtimes[1], to = vmodel$vtimes[2], length.out = 250), pars, fixed= model()$fixed, conditions = vmodel$vconditions, deriv = FALSE)
     pred <- as.data.frame(pred, data = model()$data)
     subset(pred, name %in% vmodel$vstates)
+  })
+
+  observeEvent(vmodel$vparameters,{ # reset slider values to changed vparameters
+    pars <- vmodel$vparameters
+    for(pp in 1:length(pars)){
+      pari <- pars[pp]
+      vali <- as.numeric(pari)
+     updateSliderInput(session = session, as.character(names(pari)), value = vali, min = round(vali-3, digits = 2),max = round(vali+3, digits = 2))
+    }
+    vmodel$vparametersInd <- pars
+  })
+  
+  observeEvent(input$plotind,{ # reset slider values to values stored in vparameters
+    pars <- vmodel$vparameters
+    for(pp in 1:length(pars)){
+      pari <- pars[pp]
+      updateSliderInput(session = session, as.character(names(pari)), value = as.numeric(pari))
+    }
+    vmodel$vparametersInd <- pars
+  })
+  
+  predictionIndPlot <- reactive({
+    # null prediction to compare with
+    fun <- model()$x
+    pars <- vmodel$vparameters
+    pred <- fun(seq(from = vmodel$vtimes[1], to = vmodel$vtimes[2], length.out = 250), pars, fixed= model()$fixed, conditions = vmodel$vconditions, deriv = FALSE)
+    pred <- as.data.frame(pred, data = model()$data)
+    pred <- subset(pred, name %in% vmodel$vstates)
+    
+    colorP <- vpred$color
+    dataP <- dataSubset()
+    facetsP <- setdiff(vpred$facet,"step")
+    facetsetupP <- vmodel$vfacetsetup
+    if(colorP == "step"){
+      colorP <- facetsP[1]
+    }
+    
+    P <- ggplot(pred, aes_string(x = "time", y = "value", color = colorP, ymin = "value-sigma", ymax = "value+sigma")) + 
+      theme_dMod() + scale_color_dMod() +
+      geom_line(lty = 2) + 
+      geom_point(data = dataP) 
+    #xlab("time") + ylab("value")
+    scalesP <- "fixed"
+    if(input$yfree)
+      scalesP <- "free_y"
+    if(!is.null(facetsP)){
+      if(facetsetupP=="wrap")
+        P <- P + facet_wrap(facetsP, scales = scalesP)
+      else{
+        P <- P + facet_grid(paste0(facetsP[1], "~" , paste0(facetsP[2:length(facetsP)], collapse = "*")), scales = scalesP)
+      }
+    }
+    if(input$errdata)
+      P  <- P + geom_errorbar(data = dataP, width = 0)
+    if(input$log)
+      P <- P + scale_y_log10()
+    return(P)
+  })
+  
+  predictionInd <- reactive({
+    fun <- model()$x
+    pars <- vmodel$vparametersInd
+    pred <- fun(seq(from = vmodel$vtimes[1], to = vmodel$vtimes[2], length.out = 250), pars, fixed= model()$fixed, conditions = vmodel$vconditions, deriv = FALSE)
+    pred <- as.data.frame(pred, data = model()$data)
+    subset(pred, name %in% vmodel$vstates)
+  })
+  
+  observeEvent(input$exportprofpars,{ 
+    vmodel$vparameters <- parametersProf()
+    updateTabItems(session = session, inputId = "tabs", selected = "parvalue")
+  })
+
+  observeEvent(input$exportsteppars,{
+    vmodel$vparameters <- as.parvec(model()$parameters,as.numeric(vpred$jump)[1])
+    updateTabItems(session = session, inputId = "tabs", selected = "parvalue")
   })
   
   output$singleprof <- renderPlot({
@@ -645,15 +785,23 @@ server <- shinyServer(function(input, output, session) {
     withSpinner(plotOutput("profpath",height = input$plotHeightprof))
   })
   
+  output$indparpred <- renderPlot({
+    predictionIndPlot()  + geom_line(data = predictionInd())
+  })
+  
   output$profpred <- renderPlot({
     predictionProfPlot()  + geom_line(data = predictionProf())
+  })
+  
+  output$indparpredplotui <- renderUI({
+    plotOutput("indparpred",height = input$plotHeightind)
   })
   
   output$profpredui <- renderUI({
     #if(input$plotlyflux)
     # withSpinner(plotlyOutput("plotfluxesly"))
     #else
-    withSpinner(plotOutput("profpred",height = input$plotHeightprof))
+    plotOutput("profpred",height = input$plotHeightprof)
   })
   ################ Fluxes #################
   
@@ -693,6 +841,30 @@ server <- shinyServer(function(input, output, session) {
       withSpinner(plotlyOutput("plotfluxesly"))
     else
       withSpinner(plotOutput("plotfluxesgg",height = input$plotHeightFlux))
+  })
+  
+  ### for individual parameters tab:
+  plotFluxInd <- reactive({
+    pars <- vmodel$vparametersInd
+    fluxes <- input$whichflux
+    if(!(input$customflux=="")){
+      fluxcustom <- input$customflux
+      if(grepl(",",fluxcustom))
+        fluxcustom <- unlist(strsplit(gsub(" ","", fluxcustom),","))
+      fluxes <- c(fluxes, fluxcustom)
+    }
+    
+    fun <- function(...) (model()$x)(..., conditions = vmodel$vconditions)
+    P <- plotFluxes(pouter = pars, x = fun, times = seq(from = vmodel$vtimes[1], to = vmodel$vtimes[2], length.out = 500), fixed = model()$fixed, fluxEquations = fluxes)
+    return(P)
+  })
+  
+  output$plotFluxIndplot <- renderPlot({
+    plotFluxInd()
+  })
+  
+  output$plotfluxind <- renderUI({
+    plotOutput("plotFluxIndplot",height = input$plotHeightind)
   })
   
   ################ reactions #############################
