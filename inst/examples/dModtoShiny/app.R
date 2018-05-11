@@ -225,13 +225,10 @@ ui <- dashboardPage(
     
   ))
 
-<<<<<<< HEAD
 ####################################################################################################
 # Define server logic
-=======
 
 # Define server logic ----
->>>>>>> d8c4055feae261f53309087410cc936387eaedc8
 server <- shinyServer(function(input, output, session) {
   
   # variables where input choices are defined in model setup
