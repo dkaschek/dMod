@@ -257,13 +257,16 @@ plotData.tbl_df <- function(dMod.frame, hypothesis = 1, ... ) {
 
 #' @export
 #' @rdname plotPars
-plotPars.tbl_df <- function(dMod.frame, hypothesis = 1, ... ) {
+plotPars.tbl_df <- function(dMod.frame, hypothesis = 1,  ..., nsteps = 1000, tol = 1 ) {
 
   dots <- substitute(alist(...))
 
   if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
 
-  plotPars.parframe(dMod.frame[["parframes"]][[hypothesis]], ...) +
+  myparframe <- dMod.frame[["parframes"]][[hypothesis]]
+  myparframe <- getSteps(myparframe, nsteps = nsteps, tol = tol)
+  
+  plotPars.parframe(myparframe, ..., tol = tol) +
     ggtitle(label = paste0(dMod.frame[["hypothesis"]][[hypothesis]], "\n",
                            "best value = ", round(dMod.frame[["parframes"]][[hypothesis]][1,"value", drop = T],1), "\n",
                            paste0(paste(names(dots), "=", dots )[-1], collapse = "\n")) )

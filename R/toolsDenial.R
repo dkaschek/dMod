@@ -59,3 +59,71 @@ saveShiny_dMod.frame <- function(dMod.frame, hypothesis = 1,
   
   
 }
+
+
+
+
+
+#' Get the indices of the n largest (not necessarily best) steps of a parframe
+#'
+#' @param myparframe parframe, result from mstrust
+#' @param nsteps number of steps
+#' @param tol tolerance for stepdetection
+#'
+#' @return indices of the largest steps
+#' @export
+#' 
+#' @seealso \link{parframe}
+#' 
+#' @example inst/examples/getSteps.R
+getStepIndices <- function(myparframe, nsteps = 5, tol = 1) {
+  steps <- steps0 <- dMod:::stepDetect(myparframe$value, tol)
+  steps <- steps[order(c(diff(steps), nrow(myparframe)-max(steps)), decreasing = T)][1:nsteps]
+  steps <- unique(sort(c(1, steps))) #include the first step no matter what
+  setNames(steps, paste0("index", steps))
+}
+
+
+#' Get the rows of the n largest steps of a parframe
+#'
+#' @param myparframe parframe, result from mstrust
+#' @param nsteps number of steps
+#' @param tol tolerance for stepdetection
+#'
+#' @return parframe subsetted to the n largest steps
+#' @export
+#' 
+#' @seealso \link{parframe}
+#' 
+#' @example inst/examples/getSteps.R
+getSteps <- function(myparframe, nsteps = 5, tol = 1) {
+  steps <- steps0 <- dMod:::stepDetect(myparframe$value, tol)
+  steps <- steps[order(c(diff(steps), nrow(myparframe)-max(steps)), decreasing = T)][1:nsteps]
+  steps <- unique(sort(c(1, steps))) #include the first step no matter what
+  
+  if(length(steps0) <= nsteps) {
+    nsteps <- length(steps0)
+  }
+  steps0 <- c(steps0, nrow(myparframe))
+  steps <- c(steps, nrow(myparframe))
+  steps_indices <- which(steps0%in%steps)
+  
+  step_members <- lapply(1:nsteps, function(i) {
+    steps0[steps_indices[i]]:(steps0[steps_indices[i]+1]-1)
+  }) 
+  step_members <- do.call(c,step_members)
+  
+  myparframe[step_members]
+}
+
+
+
+
+
+
+
+
+
+
+
+

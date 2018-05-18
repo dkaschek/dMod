@@ -41,6 +41,8 @@ A plot object of class \code{ggplot}.
 }
 \description{
 Plot a list of model predictions and a list of data points in a combined plot
+
+Plotcombined for prdlist
 }
 \details{
 The data.frame being plotted has columns \code{time}, \code{value}, \code{sigma},

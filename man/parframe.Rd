@@ -82,6 +82,8 @@ plotValues(parframe)
 ## Reduce parframe to best fit
 bestfit <- as.parvec(parframe)
 plot((g*x)(times, bestfit), data)
+
+
 }
 \seealso{
 \link{profile}, \link{mstrust}
