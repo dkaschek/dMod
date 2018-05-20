@@ -14,7 +14,9 @@ mstrust(objfun, center, studyname, rinit = 0.1, rmax = 10, fits = 20,
 \item{center}{Parameter values around which the initial values for each fit 
 are randomly sampled. The initial values handed to \link{trust} are the sum
 of center and the output of \option{samplefun}, center + 
-\option{samplefun}. See \code{\link{trust}}, parinit.}
+\option{samplefun}. See \code{\link{trust}}, parinit.
+\code{center} Can also be a parframe, then the parameter values are taken 
+from the parframe. In this case, the \code{fits} argument is overwritten.}
 
 \item{studyname}{The names of the study or fit. This name is used to 
 determine filenames for interim and final results. See Details.}

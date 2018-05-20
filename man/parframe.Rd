@@ -2,12 +2,15 @@
 % Please edit documentation in R/classes.R, R/parClass.R
 \name{parframe}
 \alias{parframe}
+\alias{is.parframe}
 \alias{[.parframe}
 \alias{subset.parframe}
 \title{Generate a parameter frame}
 \usage{
 parframe(x = NULL, parameters = colnames(x), metanames = NULL,
   obj.attributes = NULL)
+
+is.parframe(x)
 
 \method{[}{parframe}(x, i = NULL, j = NULL, drop = FALSE)
 

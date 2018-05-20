@@ -370,6 +370,13 @@ plotProfile.list <- function(profs, ..., maxvalue = 5, parlist = NULL) {
 
 ## Methods for the class parframe -----------------------------------------------
 
+
+#' @export
+#' @rdname parframe
+is.parframe <- function(x) {
+  "parframe" %in% class(x)
+}
+
 #' @export
 #' @param i row index in any format
 #' @param j column index in any format
