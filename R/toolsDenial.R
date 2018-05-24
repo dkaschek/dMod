@@ -113,7 +113,7 @@ getSteps <- function(myparframe, nsteps = 5, tol = 1) {
   }) 
   step_members <- do.call(c,step_members)
   
-  myparframe[step_members]
+  myparframe[step_members,]
 }
 
 

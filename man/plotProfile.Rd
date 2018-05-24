@@ -16,6 +16,8 @@
 plotProfile(x, ...)
 }
 \arguments{
+\item{hypothesis}{numeric, can be longer than 1}
+
 \item{...}{logical going to subset before plotting.}
 
 \item{profs}{Lists of profiles as being returned by \link{profile}.}

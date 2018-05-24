@@ -125,7 +125,6 @@ plot.prdlist <- function(x, data = NULL, ..., scales = "free", facet = "wrap", t
 }
 
 
-#' Plotcombined for prdlist
 #' @export
 #' @rdname plotCombined
 plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {

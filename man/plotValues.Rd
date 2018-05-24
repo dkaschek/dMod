@@ -6,7 +6,7 @@
 \alias{plotValues}
 \title{Plotting objective values of a collection of fits}
 \usage{
-\method{plotValues}{tbl_df}(dMod.frame, hypothesis = 1, ...)
+\method{plotValues}{tbl_df}(dMod.frame, hypothesis = 1, ..., tol = 1)
 
 \method{plotValues}{parframe}(x, tol = 1, ...)
 
@@ -15,11 +15,11 @@ plotValues(x, ...)
 \arguments{
 \item{...}{arguments for subsetting of x}
 
-\item{x}{data.frame with columns "value", "converged" and "iterations", e.g. 
-a \link{parframe}.}
-
 \item{tol}{maximal allowed difference between neighboring objective values
 to be recognized as one.}
+
+\item{x}{data.frame with columns "value", "converged" and "iterations", e.g. 
+a \link{parframe}.}
 }
 \description{
 Plotting objective values of a collection of fits
