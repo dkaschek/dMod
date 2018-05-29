@@ -165,7 +165,7 @@ plotPrediction <- function(x,...) {
 #' @param ... Further arguments going to \code{subset}. 
 #' @param scales The scales argument of \code{facet_wrap} or \code{facet_grid}, i.e. \code{"free"}, \code{"fixed"}, 
 #' \code{"free_x"} or \code{"free_y"}
-#' @param facet Either \code{"wrap"} or \code{"grid"}
+#' @param facet \code{"wrap"} or \code{"grid"}. Try \code{"wrap_plain"} for high amounts of conditions and low amounts of observables.
 #' @param transform list of transformation for the states, see \link{coordTransform}.
 #' @details The data.frame being plotted has columns \code{time}, \code{value}, \code{sigma},
 #' \code{name} and \code{condition}.
@@ -187,7 +187,7 @@ plotCombined <- function(x,...) {
 #' @param ... Further arguments going to \code{subset}. 
 #' @param scales The scales argument of \code{facet_wrap} or \code{facet_grid}, i.e. \code{"free"}, \code{"fixed"}, 
 #' \code{"free_x"} or \code{"free_y"}
-#' @param facet \code{"wrap"} or \code{"grid"}. Try \code{"wrap_plain"} for high amounts of conditions and low amounts of observables.
+#' @param facet Either \code{"wrap"} or \code{"grid"}
 #' @param transform list of transformation for the states, see \link{coordTransform}.
 #' @details The data.frame being plotted has columns \code{time}, \code{value}, \code{sigma},
 #' \code{name} and \code{condition}.
