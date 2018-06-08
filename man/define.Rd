@@ -6,7 +6,7 @@
 \alias{branch}
 \title{Define parameter transformations by \code{define()}, \code{branch()} and \code{insert()}}
 \usage{
-define(trafo, expr, conditionMatch = NULL, ...)
+define(trafo, expr, ..., conditionMatch = NULL)
 
 insert(trafo, expr, ..., conditionMatch = NULL)
 
@@ -20,9 +20,9 @@ of class \code{eqnvec}}
 and \code{rhs} can contain a number of symbols for which vaues are passed
 by the \code{...} argument}
 
-\item{conditionMatch}{optional character, Use as regular expression to apply the reparameterization only to conditions containing conditionMatch}
-
 \item{...}{used to pass values for symbols as named arguments}
+
+\item{conditionMatch}{optional character, Use as regular expression to apply the reparameterization only to conditions containing conditionMatch}
 
 \item{table}{table of covariates as data frame. Rownames are used as unique identifier,
 usually called "conditions", and columns represent covariates associated with these conditions.}

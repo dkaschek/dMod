@@ -605,7 +605,7 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
   # Check column names
   mydata <- as.data.frame(mydata)
   correct.names <- c("time", "name", "value", "prediction",
-                     "sigma", "residual", "weighted.residual")
+                     "sigma", "residual", "weighted.residual", "bloq")
 
   ok <- all(correct.names %in% names(mydata))
   if (!ok) stop("mydata does not have required names")
