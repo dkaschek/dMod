@@ -93,7 +93,7 @@ mydataframe <- data.frame(
   par1 = rep(0:1, each = 3),
   par2 = rep(9:10, each = 3),
   par3 = rep(1:3, each = 2),
-  stringsAsFactors = F
+  stringsAsFactors = FALSE
 )
 
 parameters <- c("a", "b", "par1", "par2", "par3")

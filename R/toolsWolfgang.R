@@ -161,6 +161,8 @@ strelide <- function(string, width, where = "right", force = FALSE) {
 #'   are randomly sampled. The initial values handed to \link{trust} are the sum
 #'   of center and the output of \option{samplefun}, center + 
 #'   \option{samplefun}. See \code{\link{trust}}, parinit.
+#'   \code{center} Can also be a parframe, then the parameter values are taken 
+#'   from the parframe. In this case, the \code{fits} argument is overwritten.
 #' @param studyname The names of the study or fit. This name is used to 
 #'   determine filenames for interim and final results. See Details.
 #' @param rinit Starting trust region radius, see \code{\link{trust}}.
@@ -324,8 +326,18 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     flush(logfile)
   }
 
+  if(is.parframe(center)) {
+    fits <- nrow(center)
+  }
+  
   m_parlist <- as.parlist(mclapply(1:fits, function(i) {
-    argstrust$parinit <- center + do.call(samplefun, argssample)
+    
+    if(is.parframe(center)) {
+      argstrust$parinit <- as.parvec(center, i)
+    } else {
+      argstrust$parinit <- center + do.call(samplefun, argssample)
+    }
+    
     fit <- do.call(trust, c(argstrust, argsobj))
 
     # Keep only numeric attributes of object returned by trust()
