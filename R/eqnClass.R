@@ -822,10 +822,17 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
     x <- replaceNumbers(x)
     x <- replaceOperation("^", "pow", x)
     x <- replaceOperation("**", "pow", x)
-    if (!is.null(innames))
-      x <- replaceSymbols(innames, paste0("x[", (1:length(innames)) - 1, "+i**k]"), x)
-    if (!is.null(parameters))
-      x <- replaceSymbols(parameters, paste0("p[", (1:length(parameters)) - 1, "]"), x)
+    what <- NULL
+    by <- NULL
+    if (!is.null(innames)) {
+      what <- c(what, innames)
+      by <- c(by, paste0("x[", (1:length(innames)) - 1, "+i**k]"))
+    }
+    if (!is.null(parameters)) {
+      what <- c(what, parameters)
+      by <- c(by, paste0("p[", (1:length(parameters)) - 1, "]"))
+    }
+    x <- replaceSymbols(what, by, x)
     names(x) <- paste0("y[", (1:length(outnames)) - 1, "+i**l]")
     
     
