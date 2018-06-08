@@ -5,7 +5,7 @@ setwd(tempdir())
 
 # Define Model and error model
 x <- eqnvec(A = "k*A - exp(-time)") %>% odemodel(modelname = "testBLOQ") %>% Xs()
-e <- eqnvec(A = "sigma_rel * A") %>% Y(x, attach.input = FALSE, compile = TRUE)
+e <- eqnvec(A = "sigma_rel * A") %>% Y(x, attach.input = FALSE, modelname = "errmodel", compile = TRUE)
 
 innerpars <- getParameters(x, e)
 times <- seq(0, 15, .1)
