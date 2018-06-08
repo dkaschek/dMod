@@ -659,7 +659,7 @@ wrss <- function(nout) {
       
       X1 <- sens.bloq*(G/(Phi*sigma))^2
       X2 <- sens.bloq*(res*G/(Phi*sigma^3))
-      hessian.bloq <- 2 * (t(X1) %*% sens.bloq - t(X2) %*% sens.bloq)
+      hessian.bloq <- 2 * t(X1) %*% sens.bloq - 2 * t(X2) %*% sens.bloq
       
       if (is.null(grad) & is.null(hessian)) {
         grad <- grad.bloq
@@ -733,7 +733,7 @@ nll <- function(nout) {
       X2 <- (res/sigma^2)*sens.err
       X3 <- (1/sigma)*sens.err
       
-      hessian <- 2 * t(X1) %*% X1 + 4 * t(X2) %*% X2 - 2 * t(X3) %*% X3
+      hessian <- 2 * t(X1) %*% X1 #+ 4 * t(X2) %*% X2 - 2 * t(X3) %*% X3
       
     }
     
@@ -758,7 +758,7 @@ nll <- function(nout) {
       X1 <- (2*G^2/Phi^2)*X
       X2 <- (2*G*res/(Phi*sigma))*X
       
-      hessian.bloq <- t(X1) %*% X - t(X2) %*% X
+      hessian.bloq <- t(X1) %*% X  - t(X2) %*% X
       
       if (is.null(grad) & is.null(hessian)) {
         grad <- grad.bloq
