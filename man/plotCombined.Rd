@@ -29,7 +29,7 @@ plotCombined(x, ...)
 \item{scales}{The scales argument of \code{facet_wrap} or \code{facet_grid}, i.e. \code{"free"}, \code{"fixed"}, 
 \code{"free_x"} or \code{"free_y"}}
 
-\item{facet}{Either \code{"wrap"} or \code{"grid"}}
+\item{facet}{\code{"wrap"} or \code{"grid"}. Try \code{"wrap_plain"} for high amounts of conditions and low amounts of observables.}
 
 \item{transform}{list of transformation for the states, see \link{coordTransform}.}
 
