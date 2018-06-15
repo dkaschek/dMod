@@ -960,8 +960,8 @@ test_conditions <- function(c1, c2) {
 #' 
 #' Used to concatenate observation functions, prediction functions and parameter transformation functions.
 #' 
-#' @param p1 function of class \code{obsfn}, \code{prdfn} or \code{parfn}
-#' @param p2 function of class \code{obsfn}, \code{prdfn} or \code{parfn}
+#' @param p1 function of class \code{obsfn}, \code{prdfn}, \code{parfn} or \code{idfn}
+#' @param p2 function of class \code{obsfn}, \code{prdfn}, \code{parfn} or \code{idfn}
 #' @return Object of the same class as \code{x1} and \code{x2}.
 #' @aliases prodfn
 #' @example inst/examples/prediction.R
@@ -1240,7 +1240,17 @@ test_conditions <- function(c1, c2) {
     
     
   }
+  
+  # idfn * fn -> fn
+  if (inherits(p1, "idfn")) {
+    return(p2)
+  }
 
+  # fn * idfn -> fn
+  if (inherits(p2, "idfn")) {
+    return(p1)
+  }
+  
 }
 
 ## General purpose functions for different dMod classes ------------------------------

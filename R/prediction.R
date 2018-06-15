@@ -633,3 +633,22 @@ Xt <- function(condition = NULL) {
 }
 
 
+
+#' An identity function which vanishes upon concatenation of fns
+#'
+#' @return fn of class idfn
+#' @export
+#'
+#' @examples
+#' x <- Xt()
+#' id <- Id()
+#'
+#' (id*x)(1:10, pars = c(a = 1))
+#' (x*id)(1:10, pars = c(a = 1))
+#' str(id*x)
+#' str(x*id)
+Id <- function() {
+  outfn <- function() return(NULL)
+  class(outfn) <- c("idfn", "fn")
+  return(outfn)
+}
