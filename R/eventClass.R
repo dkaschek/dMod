@@ -1,5 +1,23 @@
-
+#' Eventlist
+#' 
+#' An eventlist is a data.frame with the necessary parameters to define an event as columns and specific events as rows.
+#' Event time and value can be passed as parameters, which can also be estimated.
+#' 
+#' The function \code{addEvent} is pipe-friendly
+#'  
+#' @param var Character, the state to which the event is applied
+#' @param time Character or Numeric, the time at which the event happens
+#' @param value Character or Numeric, the value of the event
+#' @param method Character, options are "replace", "add" or "multiply"
+#'
+#' @return data.frame with class eventlist
 #' @export
+#'
+#' @examples
+#' eventlist(var = "A", time = "5", value = 1, method = "add")
+#' 
+#' events <- addEvent(NULL, var = "A", time = "5", value = 1, method = "add")
+#' events <- addEvent(events, var = "A", time = "10", value = 1, method = "add")
 eventlist <- function(var = NULL, time = NULL, value = NULL, method = NULL) {
   
   out <- data.frame(var = var,
@@ -45,6 +63,7 @@ as.eventlist.data.frame <- function(x) {
     
 }
 
+#' @rdname eventlist
 #' @export
 addEvent <- function(event, ...) {
   
@@ -54,6 +73,14 @@ addEvent <- function(event, ...) {
 
 #' @export
 addEvent.eventlist <- function(event, var, time = 0, value = 0, method = "replace") {
+  
+  event.new <- data.frame(var = var, time = time, value = value, method = method, stringsAsFactors = FALSE)
+  as.eventlist(rbind(event, event.new))
+  
+}
+
+#' @export
+addEvent.NULL <- function(event, var, time = 0, value = 0, method = "replace") {
   
   event.new <- data.frame(var = var, time = time, value = value, method = method, stringsAsFactors = FALSE)
   as.eventlist(rbind(event, event.new))
