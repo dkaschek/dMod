@@ -95,7 +95,7 @@ ggplot <- function(...) ggplot2::ggplot(...) + scale_color_dMod() + theme_dMod()
 #' @return The data frame with the transformed values and sigma uncertainties.
 #' @export
 #' 
-#' @example
+#' @examples
 #' mydata1 <- data.frame(name = c("A", "B"), time = 0:5, value = 0:5, sigma = .1)
 #' coordTransform(mydata1, "log(value)")
 #' coordTransform(mydata1, list(A = "exp(value)", B = "sqrt(value)"))
