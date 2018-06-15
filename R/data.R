@@ -7,6 +7,7 @@
 #' contained in the sensitivity equations). If "deriv" is given, also "parameters"
 #' needs to be given.
 #' @param err output of the error model function
+#' @param loq single numeric or named numeric, limit of quantification
 #' @return data.frame with the original data augmented by columns "prediction" (
 #' numeric, the model prediction), "residual" (numeric, difference between
 #' prediction and data value), "weighted.residual" (numeric, residual devided
@@ -15,7 +16,7 @@
 #' respect to the parameters).
 #' @export
 #' @import cOde
-res <- function(data, out, err = NULL) {
+res <- function(data, out, err = NULL, loq = -Inf) {
   
   # Unique times, names and parameter names
   times <- sort(unique(data$time))
@@ -42,6 +43,20 @@ res <- function(data, out, err = NULL) {
   # Propagate derivatives of err model if available
   deriv.err <- attr(err, "deriv")
   deriv.err.data <- NULL
+  
+  # Deal with limit of quantification
+  observables <- unique(data$name)
+  if (length(loq) == 1) {
+    myloq <- setNames(rep(loq, length(observables)), observables)
+  } else {
+    myloq <- setNames(rep(-Inf, length(observables)), observables)
+    myloq[names(loq)] <- loq
+  }
+  # Set value to loq if below loq
+  data$value <- pmax(data$value, myloq[data$name])
+  is.bloq <- data$value <= myloq[data$name]
+  
+  
   
   if (!is.null(deriv)) {
   
@@ -100,13 +115,10 @@ res <- function(data, out, err = NULL) {
   residuals <- prediction - data$value 
   weighted.residuals <- (prediction - data$value)/data$sigma
   
-  
-
-  data <- cbind(data, prediction = prediction, residual = residuals, 
-                weighted.residual = weighted.residuals)
-  data <- data[c("time", "name", "value", "prediction", "sigma", 
-                 "residual", "weighted.residual")]
-  #attr(data, "deriv") <- deriv.data
+  data[["prediction"]] <- prediction
+  data[["residual"]] <- residuals
+  data[["weighted.residual"]] <- weighted.residuals
+  data[["bloq"]] <- is.bloq
   
   objframe(data, deriv = deriv.data, deriv.err = deriv.err.data)
   
