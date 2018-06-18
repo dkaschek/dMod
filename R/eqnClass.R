@@ -824,11 +824,11 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
     x <- replaceOperation("**", "pow", x)
     what <- NULL
     by <- NULL
-    if (!is.null(innames)) {
+    if ( (!is.null(innames)) & length(innames) != 0) {
       what <- c(what, innames)
       by <- c(by, paste0("x[", seq_along(innames) - 1, "+i**k]"))
     }
-    if (!is.null(parameters)) {
+    if ( (!is.null(parameters)) & length(parameters) != 0) {
       what <- c(what, parameters)
       by <- c(by, paste0("p[", seq_along(parameters) - 1, "]"))
     }
