@@ -144,8 +144,8 @@ plotValues.parframe <- function(x, tol = 1, ...) {
   
   
   pars <- x
-  pars <- cbind(index = 1:nrow(pars), pars[order(pars$value),])
-  
+  pars <- pars[order(pars$value),]
+  pars[["index"]] <-  1:nrow(pars)
   
   P <- ggplot2::ggplot(pars, aes(x = index, y = value, pch = converged, color = iterations)) + 
     geom_vline(xintercept = jumps, lty = 2) +
