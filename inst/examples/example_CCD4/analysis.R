@@ -20,10 +20,10 @@ times <- sort(union(timesD,seq(min(timesD), max(timesD), len=101)))
 
 # Fitting
 ini <- pouter # random start
-cat("test obj with random ini:",obj(ini)$value)
+cat("test obj with random ini:",obj(ini)$value, "\n")
 
-ini <- as.parvec.parframe(readRDS("inst/examples/example_CCD4/mstrust_CCD4.Rds")) 
-cat("test obj with publised values:",obj(ini)$value)
+ini <- as.parvec(readRDS("inst/examples/example_CCD4/mstrust_CCD4.Rds")) 
+cat("test obj with published values:",obj(ini)$value, "\n")
 
 center <- ini
 print("start fit")
