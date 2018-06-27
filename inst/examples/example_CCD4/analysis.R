@@ -53,8 +53,10 @@ print(P)
 if(do.profs){
   cat("now do profs \n")
   #profiles.exact  <- do.call(rbind,mclapply(names(myfit$argument), function(n) profile(obj, myfit$argument, n, method = "integrate", limits = c(-5, 5), alpha = 1e-6, stepControl = list(min = .1), conditions = conditions),mc.cores=3))
+  profiles.exact <- readRDS("inst/examples/example_CCD4/profiles.Rds")
+  # plot of all profiles on log-scale
+  print(plotProfile(profiles.exact))
   
-  profiles.exact_normal <- profiles.exact # normal logarithmic scale
   # want to plot the profiles on the non-log scale
   npp <- attr(profiles.exact, "parameters")
   snpp <- substr(npp, 4, nchar(npp))
@@ -62,5 +64,7 @@ if(do.profs){
   colnames(profiles.exact) <- c(colnames(profiles.exact)[1:6],snpp)
   attr(profiles.exact, "parameters") <- snpp
   profiles.exact$whichPar <- substr(profiles.exact$whichPar, 4, nchar(profiles.exact$whichPar))
+  
+  # plot the rate constants on non-log scale
   print(plotProfile(profiles.exact, maxvalue = 5, grepl("k", name) & !(grepl("k_zea", name))  & mode == "data") + facet_wrap(~name, ncol=1))
 }
