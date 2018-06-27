@@ -18,9 +18,11 @@
 #' @import cOde
 res <- function(data, out, err = NULL, loq = -Inf) {
   
+  data$name <- as.character(data$name)
+  
   # Unique times, names and parameter names
   times <- sort(unique(data$time))
-  names <- as.character(unique(data$name))
+  names <- unique(data$name)
   
   # Match data times/names in unique times/names
   data.time <- match(data$time, times)
