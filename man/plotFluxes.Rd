@@ -4,8 +4,7 @@
 \alias{plotFluxes}
 \title{Plot Fluxes given a list of flux Equations}
 \usage{
-plotFluxes(pouter, x, times, fluxEquations, nameFlux = "Fluxes:",
-  fixed = NULL)
+plotFluxes(pouter, x, times, fluxEquations, nameFlux = "Fluxes:", ...)
 }
 \arguments{
 \item{pouter}{parameters}
@@ -19,7 +18,7 @@ if names are given, they are shown in the legend. Easy to obtain via \link{subse
 
 \item{nameFlux}{character, name of the legend.}
 
-\item{fixed}{Named numeric vector with fixed parameters}
+\item{...}{Further arguments going to x, such as \code{fixed} or \code{conditions}}
 }
 \value{
 A plot object of class \code{ggplot}.
@@ -29,6 +28,7 @@ Plot Fluxes given a list of flux Equations
 }
 \examples{
 \dontrun{
-plotFluxes(bestfit, x, times, attr(subset(f, "B"\%in\%Product), "rates"), nameFlux = "B production")
+
+plotFluxes(bestfit, x, times, subset(f, "B"\%in\%Product)$rates, nameFlux = "B production")
 }
 }

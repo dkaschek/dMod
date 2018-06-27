@@ -30,7 +30,9 @@ when the \code{get()} function is called, see Value section.}
 
 \item{recover}{Logical. This option is useful to recover the three functions check(), get() and purge(), 
 e.g. when a session has crashed. Then, the three functions are recreated without restarting the job.
-They can then be used to get the results of a job wihtout having to do it manually.}
+They can then be used to get the results of a job wihtout having to do it manually. 
+Requires the correct filename, so if the previous runbg was run with filename = NULL, you have to 
+specify the tmp_filename manually.}
 }
 \value{
 List of functions \code{check}, \code{get()} and \code{purge()}. 
@@ -73,12 +75,11 @@ out_job1 <- runbg({
          M <- matrix(rnorm(1e2), 10, 10)
          solve(M)
          }, machine = c("localhost", "localhost"), filename = "job1")
+Sys.sleep(1)
 remove(out_job1)
 try(out_job1$check())
 out_job1 <- runbg({
-  # Not necessary to uncomment, but just for clarity that out_job1 hasnt been run anew.
-  # M <- matrix(rnorm(1e2), 10, 10)
-  # solve(M)
+  "This code is not run"
 }, machine = c("localhost", "localhost"), filename = "job1", recover = T)
 out_job1$get()
 result <- .runbgOutput

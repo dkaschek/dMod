@@ -4,7 +4,8 @@
 \alias{normL2}
 \title{L2 norm between data and model prediction}
 \usage{
-normL2(data, x, errmodel = NULL, times = NULL, attr.name = "data")
+normL2(data, x, errmodel = NULL, times = NULL, attr.name = "data",
+  loq = -Inf)
 }
 \arguments{
 \item{data}{object of class \link{datalist}}
@@ -19,6 +20,8 @@ function makes use of events, hand over event \code{times} here.}
 
 \item{attr.name}{character. The constraint value is additionally returned in an 
 attributed with this name}
+
+\item{loq}{named numeric or single valued numeric. Limit of quantification.}
 }
 \value{
 Object of class \code{obsfn}, i.e. a function 

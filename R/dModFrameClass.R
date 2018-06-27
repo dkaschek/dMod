@@ -170,8 +170,8 @@ appendParframes <- function(dMod.frame,
 
 # Plotting ---------------------------------
 
-#' @rdname plotCombined.prdlist
 #' @export
+#' @rdname plotCombined
 plotCombined.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
 
 #
@@ -186,7 +186,7 @@ plotCombined.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
 
   dots <- substitute(alist(...))
 
-  message("If you want to subset() the plot, specify hypothesis and index")
+  message("If you want to subset() the plot, specify hypothesis AND index")
 
 
 
@@ -226,7 +226,58 @@ plotCombined.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
                            paste0(paste(names(dots), "=", dots )[-1], collapse = "\n")) )
 }
 
-
+#' @export
+#' @rdname plotPrediction
+plotPrediction.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
+  
+  #
+  # PlotCombined method for dMod.frame
+  #
+  #  @param dMod.frame A dMod.frame
+  #  @param hypothesis index specifying the row (hypothesis)
+  #  @param index index specifying the index of the fit going to \code{parframes %>% as.parvec(index)}
+  #  @param ... Arguments going to subset
+  
+  
+  
+  dots <- substitute(alist(...))
+  
+  message("If you want to subset() the plot, specify hypothesis AND index")
+  
+  
+  
+  if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
+  # i <- hypothesis #so i can copy other code
+  
+  times <- NULL
+  if (!is.null(dMod.frame[["times"]]))
+    times <- dMod.frame[["times"]][[hypothesis]]
+  else {
+    times <- as.data.frame(dMod.frame[["data"]][[hypothesis]])[["time"]]
+    times <- seq(min(times), max(times)*1.1, length.out = 100)
+  }
+  
+  if (is.null(dMod.frame[["parframes"]]))
+    return(
+      plotPrediction.prdlist(dMod.frame[["prd"]][[hypothesis]](times, dMod.frame[["pars"]][[hypothesis]], deriv = F), ...) +
+        ggtitle(paste(dMod.frame[["hypothesis"]][[hypothesis]], "initiated with predefined (probably random) parameters"))
+    )
+  
+  
+  
+  myparvec <- as.parvec(dMod.frame[["parframes"]][[hypothesis]], index = index)
+  
+  myprediction <- dMod.frame[["prd"]][[hypothesis]](times,
+                                                    pars = myparvec,
+                                                    deriv = F)
+  
+  myvalue <- dMod.frame[["parframes"]][[hypothesis]][index, "value"]
+  
+  plotPrediction.prdlist(myprediction, ...) +
+    ggtitle(label = paste0(dMod.frame[["hypothesis"]][[hypothesis]], "\n",
+                           "value = ", round(dMod.frame[["parframes"]][[hypothesis]][index,"value", drop = T],1), "\n",
+                           paste0(paste(names(dots), "=", dots )[-1], collapse = "\n")) )
+}
 
 
 
@@ -257,44 +308,97 @@ plotData.tbl_df <- function(dMod.frame, hypothesis = 1, ... ) {
 
 #' @export
 #' @rdname plotPars
-plotPars.tbl_df <- function(dMod.frame, hypothesis = 1, ... ) {
-
-  dots <- substitute(alist(...))
-
+#' @param nsteps number of steps from the waterfall plot
+plotPars.tbl_df <- function(dMod.frame, hypothesis = 1,  ..., nsteps = 3, tol = 1 ) {
+  
+  if (!missing(...)) {dots <- substitute(...)
+  } else {
+    dots <- T
+  }
+  
   if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
-
-  plotPars.parframe(dMod.frame[["parframes"]][[hypothesis]], ...) +
-    ggtitle(label = paste0(dMod.frame[["hypothesis"]][[hypothesis]], "\n",
-                           "best value = ", round(dMod.frame[["parframes"]][[hypothesis]][1,"value", drop = T],1), "\n",
-                           paste0(paste(names(dots), "=", dots )[-1], collapse = "\n")) )
+  
+  if(length(hypothesis)==1) {
+    myparframe <- dMod.frame[["parframes"]][[hypothesis]]
+    myparframe <- getSteps(myparframe, nsteps = nsteps, tol = tol)
+    
+    plotPars.parframe(myparframe, ..., tol = tol) +
+      ggtitle(label = paste0(dMod.frame[["hypothesis"]][[hypothesis]], "\n",
+                             "best value = ", round(dMod.frame[["parframes"]][[hypothesis]][1,"value", drop = T],1), "\n",
+                             paste0(paste(names(dots), "=", dots )[-1], collapse = "\n")) )
+  } else {
+    mydata <- do.call(rbind,lapply(hypothesis, function(hyp) {
+      pars <- dMod.frame[["parframes"]][[hyp]]
+      pars <- cbind(index = 1:nrow(pars), pars[order(pars$value),!(names(pars) == "index")])
+      steps <- getStepIndices(pars, nsteps, tol)
+      pars <- getSteps(pars, nsteps = nsteps, tol = tol)
+      cbind(hypothesis = hyp,step = factor(findInterval(pars$index, steps), labels = steps), pars)
+    }))
+    mydata$hypothesis <- as.factor(mydata$hypothesis)
+    
+    myindices <- with(mydata, eval(dots))
+    mydata <- mydata[myindices,]
+    
+    mydata2 <- wide2long.data.frame(mydata[-c(4,5,6)], keep = 1:3)
+    mydata2$hyp_step <- paste(mydata2$hypothesis, mydata2$step, sep = "_")
+    
+    ggplot2::ggplot(mydata2, aes(x = name, y = value, color = hyp_step)) + 
+      geom_boxplot(outlier.alpha = 0) +     # annotate("text", x = jumps + 1, y = y.jumps, label = jumps, hjust = 0, color = "red", size = 3) +
+      xlab("parameter") + ylab("value") + theme_dMod() + 
+      theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+    
+  }
+  
 }
-
 #' @export
 #' @rdname plotValues
-plotValues.tbl_df <- function(dMod.frame, hypothesis = 1, ... ) {
-
-  dots <- substitute(alist(...))
-
+plotValues.tbl_df <- function(dMod.frame, hypothesis = 1, ..., tol = 1 ) {
+  
+  dots <- substitute(...)
+  
   if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
-
-  plotValues.parframe(dMod.frame[["parframes"]][[hypothesis]], ...) +
-    ggtitle(label = paste0(dMod.frame[["hypothesis"]][[hypothesis]], "\n",
-                           "best value = ", round(dMod.frame[["parframes"]][[hypothesis]][1,"value", drop = T],1), "\n",
-                           paste0(paste(names(dots), "=", dots )[-1], collapse = "\n")) )
+  
+  if(length(hypothesis)==1) {
+    plotValues.parframe(dMod.frame[["parframes"]][[hypothesis]], tol = tol, ...) +
+      ggtitle(label = paste0(dMod.frame[["hypothesis"]][[hypothesis]], "\n",
+                             "best value = ", round(dMod.frame[["parframes"]][[hypothesis]][1,"value", drop = T],1), "\n",
+                             paste0(paste(names(dots), "=", dots )[-1], collapse = "\n")) )
+  } else {
+    mydata <- do.call(rbind,lapply(hypothesis, function(hyp) {
+      pars <- dMod.frame[["parframes"]][[hyp]]
+      pars <- cbind(index = 1:nrow(pars), pars[order(pars$value),])
+      
+      cbind(hypothesis = hyp, pars)
+    }))
+    mydata$hypothesis <- as.factor(mydata$hypothesis)
+    
+    myindices <- with(mydata, eval(dots))
+    mydata <- mydata[myindices,]
+    
+    ggplot2::ggplot(mydata, aes(x = index, y = value, pch = converged, color = hypothesis)) + 
+      # geom_vline(xintercept = jumps, lty = 2) +
+      geom_point() + 
+      # annotate("text", x = jumps + 1, y = y.jumps, label = jumps, hjust = 0, color = "red", size = 3) +
+      xlab("index") + ylab("value") + theme_dMod()
+    
+  }
 }
 
 
 
 #' @export
 #' @rdname plotProfile
+#' @param hypothesis numeric, can be longer than 1
 plotProfile.tbl_df <- function(dMod.frame, hypothesis = 1, ...) {
   dots <- substitute(alist(...))
 
   if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
+  
+  myprofs <- dMod.frame[["profiles"]][hypothesis] %>% setNames(dMod.frame[["hypothesis"]][hypothesis])
 
-  plotProfile.list(dMod.frame[["profiles"]][[hypothesis]], ...) +
-    ggtitle(label = paste0(dMod.frame[["hypothesis"]][[hypothesis]], "\n",
-                           "best value = ", round(dMod.frame[["parframes"]][[hypothesis]][1,"value", drop = T],1), "\n",
+  plotProfile.list(myprofs, ...) +
+    ggtitle(label = paste0("hypotheses: ", paste0(hypothesis, collapse = ", "), "\n",
+                           "best values = ", paste0(lapply(hypothesis, function(hyp) round(dMod.frame[["parframes"]][[hyp]][1,"value", drop = T],1)), collapse = ", "), "\n",
                            paste0(paste(names(dots), "=", dots )[-1], collapse = "\n")) )
 }
 

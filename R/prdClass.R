@@ -125,7 +125,6 @@ plot.prdlist <- function(x, data = NULL, ..., scales = "free", facet = "wrap", t
 }
 
 
-#' Plotcombined for prdlist
 #' @export
 #' @rdname plotCombined
 plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
@@ -155,6 +154,9 @@ plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", 
                            group = condition, color = condition)) + facet_wrap(~name, scales = scales)
   if (facet == "grid")
     p <- ggplot(total, aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma)) + facet_grid(name ~ condition, scales = scales)
+  
+  if (facet == "wrap_plain")
+    p <- ggplot(total, aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma)) + facet_wrap(~name*condition, scales = scales)
   
   if (!is.null(prediction))
     p <- p +  geom_line(data = prediction)

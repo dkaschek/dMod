@@ -1,7 +1,8 @@
 \dontrun{
 library(dMod)
-library(dplyr) # devtools::install_github("dlill/conveniencefunctions")
-
+# library(dplyr) # devtools::install_github("dlill/conveniencefunctions")
+library(conveniencefunctions)
+  
 setwd(tempdir())  
 
 ## Model definition (text-based, scripting part)
@@ -65,14 +66,15 @@ myframe <- dMod.frame("no steady states", g, x, p, data) %>%
          fits = list(mstrust(obj, pars, studyname = "Fits", fits = 20, cores = 4, blather = T))) %>%
   appendParframes() %>%
   mutate(profiles = list(profile(obj, as.parvec(parframes), whichPar = "k1"))) %>%
-  # mutate(vali = list(datapointL2("A", 2, "mypoint", .1, condition = "a")),
-  #        obj_vali = list(obj_data + constr + vali),
-  #        par_vali = list(c(dMod:::sanitizePars(as.parvec(parframes))$pars, "mypoint" = 0.1 )),
-  #        fits_vali = list(mstrust(obj_vali, par_vali)),
-  #        profile_vali = list(profile(obj_vali, fits_vali %>% as.parframe %>% as.parvec, "mypoint")))
+  mutate(vali = list(datapointL2("A", 2, "mypoint", .1, condition = "a")),
+         obj_vali = list(obj_data + constr + vali),
+         par_vali = list(c(dMod:::sanitizePars(as.parvec(parframes))$pars, "mypoint" = 0.1 )),
+         fits_vali = list(mstrust(obj_vali, par_vali)),
+         profile_vali = list(profile(obj_vali, fits_vali %>% as.parframe %>% as.parvec, "mypoint"))) %>% 
   {.}
 
 myframe <- myframe %>% tibble::add_column(reactions = list(reactions), fixed = list(NULL))
+
 
 saveShiny_dMod.frame(myframe, projectname = "dModFrameTest")
 

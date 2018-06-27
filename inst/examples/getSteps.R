@@ -18,21 +18,18 @@ data <- datalist(
 pars <- c(a = 1)
 times <- seq(0, 5, .1)
 
-plot((g*x)(times, pars), data)
-
 ## Do many fits from random positions and store them into parlist
 out <- as.parlist(lapply(1:50, function(i) {
   trust(normL2(data, g*x), pars + rnorm(length(pars), 0, 1), rinit = 1, rmax = 10)
 }))
 
-summary(out)
-
 ## Reduce parlist to parframe
 parframe <- as.parframe(out)
 plotValues(parframe)
 
-## Reduce parframe to best fit
-bestfit <- as.parvec(parframe)
-plot((g*x)(times, bestfit), data)
+## Get steps
+getStepIndices(parframe, nsteps = 2, tol = 1)
 
+getSteps(parframe, nsteps = 2)
 
+plotValues(getSteps(parframe, nsteps = 2))
