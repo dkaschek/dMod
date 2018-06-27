@@ -94,6 +94,11 @@ ggplot <- function(...) ggplot2::ggplot(...) + scale_color_dMod() + theme_dMod()
 #' contained in the "name" column.
 #' @return The data frame with the transformed values and sigma uncertainties.
 #' @export
+#' 
+#' @examples
+#' mydata1 <- data.frame(name = c("A", "B"), time = 0:5, value = 0:5, sigma = .1)
+#' coordTransform(mydata1, "log(value)")
+#' coordTransform(mydata1, list(A = "exp(value)", B = "sqrt(value)"))
 coordTransform <- function(data, transformations) {
   
   mynames <- unique(as.character(data$name))
@@ -332,21 +337,22 @@ plotPaths <- function(profs, ..., whichPar = NULL, sort = FALSE, relative = TRUE
 #' if names are given, they are shown in the legend. Easy to obtain via \link{subset.eqnlist}, see Examples.
 #' @param nameFlux character, name of the legend.
 #' @param times Numeric vector of time points for the model prediction
-#' @param fixed Named numeric vector with fixed parameters
+#' @param ... Further arguments going to x, such as \code{fixed} or \code{conditions}
 #'  
 #' 
 #' @return A plot object of class \code{ggplot}.
 #' @examples 
 #' \dontrun{
+#' 
 #' plotFluxes(bestfit, x, times, subset(f, "B"%in%Product)$rates, nameFlux = "B production")
 #' }
 #' @export
-plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux = "Fluxes:", fixed = NULL){
+plotFluxes <- function(pouter, x, times, fluxEquations, nameFlux = "Fluxes:", ...){
   
   if (is.null(names(fluxEquations))) names(fluxEquations) <- fluxEquations
   
   flux <- funC0(fluxEquations, convenient = FALSE)
-  prediction.all <- x(times, pouter, fixed = fixed, deriv = FALSE)
+  prediction.all <- x(times, pouter, deriv = FALSE, ...)
   names.prediction.all <- names(prediction.all)
   if (is.null(names.prediction.all)) names.prediction.all <- paste0("C", 1:length(prediction.all))
   

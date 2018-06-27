@@ -8,9 +8,9 @@
 \method{*}{fn}(p1, p2)
 }
 \arguments{
-\item{p1}{function of class \code{obsfn}, \code{prdfn} or \code{parfn}}
+\item{p1}{function of class \code{obsfn}, \code{prdfn}, \code{parfn} or \code{idfn}}
 
-\item{p2}{function of class \code{obsfn}, \code{prdfn} or \code{parfn}}
+\item{p2}{function of class \code{obsfn}, \code{prdfn}, \code{parfn} or \code{idfn}}
 }
 \value{
 Object of the same class as \code{x1} and \code{x2}.

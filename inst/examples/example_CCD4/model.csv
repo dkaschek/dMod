@@ -1,0 +1,7 @@
+Description,Rate,bcar,bcry,b10,bio,ohb10,ohbio,zea
+,kb1*bcar,-1,,1,1,,,
+,kb2*b10,,,-1,1,,,
+,kc1*bcry,,-1,1,,,1,
+,kc2*bcry,,-1,,1,1,,
+,kc4*ohb10,,,,,-1,1,
+,k5*zea,,,,,1,1,-1
