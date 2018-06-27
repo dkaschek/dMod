@@ -1,3 +1,10 @@
+conditions <-c(
+  #"pfl_parB", # mutant B: would need specific parameters
+  "standard_par",
+  #"standard_parB", # mutant B: would need specific parameters
+  "standard_parh",
+  "pfl_par"
+)
 
 ## Model Definition ------------------------------------------------------
 

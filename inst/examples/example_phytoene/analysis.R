@@ -21,14 +21,6 @@ do.compile <- TRUE
 
 do.startbest <- TRUE #use bestfit parameters
 
-conditions <-c(
- #"pfl_parB", # mutant B: would need specific parameters
- "standard_par",
- #"standard_parB", # mutant B: would need specific parameters
- "standard_parh",
- "pfl_par"
-)
-
 source("inst/examples/example_phytoene/setup.R")
 
 
