@@ -225,13 +225,9 @@ ui <- dashboardPage(
     
   ))
 
-<<<<<<< HEAD
 ####################################################################################################
 # Define server logic
-=======
 
-# Define server logic ----
->>>>>>> d8c4055feae261f53309087410cc936387eaedc8
 server <- shinyServer(function(input, output, session) {
   
   # variables where input choices are defined in model setup
@@ -390,7 +386,8 @@ server <- shinyServer(function(input, output, session) {
   })
   
   observe({
-    pars <- isolate(vmodel$vparametersInd)
+    pars <- vmodel$vparameters
+    #pars <- isolate(vmodel$vparametersInd)
     if(!is.null(pars)){
     for(i in 1:length(pars)){
       change <- input[[names(pars[i])]]
