@@ -1,0 +1,9 @@
+Description,Rate,p,pf,z,Fad,Fadr,pfc
+,redpFad*p*Fad,-1,,,-1,1,1
+,oxpfFadr*pfc*Fadr,1,,,1,-1,-1
+,redpfFad*pf*Fad,,-1,1,-1,1,
+,oxzFadr*z*Fadr,,1,-1,1,-1,
+,fadox1*Fadr*DPQ,,,,1,-1,
+,fadred1*Fad*DPQH2,,,,-1,1,
+,kooperpFad*pfc*Fad,,,1,-1,1,-1
+,intpf*pfc,,1,,,,-1
