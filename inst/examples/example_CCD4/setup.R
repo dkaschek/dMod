@@ -1,4 +1,5 @@
 # publised in https://www.ncbi.nlm.nih.gov/pubmed/27811075
+# D2D: transferred to D2D exmple models, named bruno
 # simple model, sort of A -> B -> C
 # no error model fitting
 
