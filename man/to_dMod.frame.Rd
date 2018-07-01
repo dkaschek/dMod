@@ -19,7 +19,7 @@ to_dMod.frame(hypothesis = date(), data, model, errmodel = NULL,
 \item{transform}{vector with transformations ("L" (log), "N" (normal) or "G" (log-it))}
 }
 \value{
-A \linke{dMod.frame} object
+A \link{dMod.frame} object
 }
 \description{
 Export to IQRtools imports to dMod.frame format
