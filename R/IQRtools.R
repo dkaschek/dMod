@@ -9,7 +9,6 @@
 #' @param ndoses the maximal number of administrations to prepare for.
 #' @param ... arguments going to \code{\link{odemodel}()}.
 #' @return list
-#' @import IQRtools
 #' @export
 read.IQRmodel <- function(input, regression = NULL, fix = NULL, estimate = NULL, ndoses = 1,  ...) {
   
@@ -30,7 +29,7 @@ read.IQRmodel <- function(input, regression = NULL, fix = NULL, estimate = NULL,
   if (!file.exists(input)) stop("Provided input argument does not point to a file on the filesystem.")
   
   # Attempt import of model file
-  if (aux_fileparts(input)$fileext==".xml") {
+  if (IQRtools:::aux_fileparts(input)$fileext==".xml") {
     model__ <- IQRtools:::importSBML_IQRmodel(input)
   } else {
     model__ <- IQRtools:::import_IQRmodel(input,FLAGtextIQRmodel=FALSE)
@@ -237,7 +236,7 @@ read.IQRdata <- function(data, regression = NULL) {
 
   # Read Data
   if (is.character(data))
-    mydata0 <- IQRloadCSVdata(data)
+    mydata0 <- IQRtools::IQRloadCSVdata(data)
   else
     mydata0 <- data
   
@@ -340,7 +339,7 @@ read.IQRdata <- function(data, regression = NULL) {
 #' @param model result from \link{read.IQRmodel()}
 #' @param errmodel an error model
 #' @param transform vector with transformations ("L" (log), "N" (normal) or "G" (log-it))
-#' @return A \linke{dMod.frame} object
+#' @return A \link{dMod.frame} object
 #' @export
 to_dMod.frame <- function(hypothesis = date(), data, model, errmodel = NULL, transform = NULL) {
   
