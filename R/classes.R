@@ -1125,7 +1125,7 @@ test_conditions <- function(c1, c2) {
     conditions.out <- out_conditions(conditions.p1, conditions.p2)
     
     
-    outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = NULL, env = NULL) {
+    outfn <- function(..., fixed = NULL, deriv = TRUE, conditions = NULL, env = NULL, doSaveIntegrations = !inherits(p1, "composed")) {
       
       arglist <- list(...)
       arglist <- arglist[match.fnargs(arglist, c("times", "pars"))]
@@ -1133,7 +1133,12 @@ test_conditions <- function(c1, c2) {
       pars <- arglist[[2]]
       
       step1 <- p2(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions)
-      step2 <- do.call(c, lapply(1:length(step1), function(i) p1(times = times, pars = step1[[i]], deriv = deriv, conditions = names(step1)[i])))
+      
+      if (doSaveIntegrations) {
+        step2 <- saveIntegrations(step1, p1, times, deriv)
+      } else {
+        step2 <- do.call(c, lapply(1:length(step1), function(i) p1(times = times, pars = step1[[i]], deriv = deriv, conditions = names(step1)[i])))
+      }
       
       out <- as.prdlist(step2)
       
@@ -1724,6 +1729,66 @@ getEquations.fn <- function(x, conditions = NULL) {
   
 }
 
+# Save Integrations when concatenating prdfn*parfn ----
 
+saveIntegrations <- function(step1, p1, times, deriv) {
+  extract_conditions_with_same_odepars <- function(step1, p1)  {
+    odepars <- getParameters(p1)
+    odepars <- sapply(step1, `[`, odepars)
+    
+    uniques <- odepars %>% unique(MARGIN = 2)
+    
+    same_cond <- unlist(apply(uniques, 2, function(u) {
+      myconds <- which(apply(odepars, 2, function(j) {
+        identical(j,u)
+      }))
+      names(myconds) <- names(step1)[myconds]
+      list(myconds)
+    }), recursive = F)
+    return(same_cond)
+  }
+  
+  unique_condlist <- extract_conditions_with_same_odepars(step1, p1)
+  unique_conds <- sapply(unique_condlist, `[`, 1)
+  
+  if(length(step1) != length(unique_condlist)) cat("ODE integrations saved: ", length(step1) - length(unique_condlist), "\n")
+  
+  step2 <- lapply(unique_conds, function(i) p1(times = times, pars = step1[[i]], deriv = deriv, conditions = names(step1)[i]))
+  
+  chainrule <- function(sens2, deriv1) {
+    time <- sens2[,1, drop = F]
+    sens2 <- sens2[,-1]
+    if("time" %in% colnames(deriv1))
+      stop("pars time dependent")
+    
+    sens2Names <- do.call(rbind, strsplit(colnames(sens2), "\\."))
+    myorder <- order(sens2Names[,2],sens2Names[,1])
+    
+    sensLong <- matrix(sens2[,myorder], ncol = length(unique(sens2Names[,2])))
+    
+    outDeriv <-  sensLong %*% deriv1[unique(sens2Names[myorder,2]),]
+    outDerivGrid <- expand.grid(unique(sens2Names[myorder,1]), colnames(deriv1))
+    outDerivNames <- paste(outDerivGrid[,1], outDerivGrid[,2], sep=".") 
+    outDeriv <- matrix(outDeriv, ncol = length(outDerivNames), dimnames = list(NULL, outDerivNames))
+    cbind(time, outDeriv)
+  }
+  
+  replenish_conds <- function(step1, step2, unique_condlist) {
+    out <- unlist(lapply(1:length(unique_condlist), function(i) {
+      lapply(unique_condlist[[i]], function(j) {
+        mystep <- step2[[i]]
+        # browser()
+        # deal with derivatives
+        attr(mystep[[1]], "parameters") <- step1[[j]]
+        attr(mystep[[1]], "deriv") <- chainrule(attr(mystep[[1]], "sens"), attr(attr(mystep[[1]], "parameters"), "deriv"))
+        names(mystep) <- names(i)
+        return(mystep)
+      })
+    }), recursive = F)
+    out <- do.call(c, out)
+    out[names(step1)]
+  }
+  mystep2 <- replenish_conds(step1, step2, unique_condlist)
+}
 
 
