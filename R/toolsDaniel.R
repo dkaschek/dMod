@@ -192,6 +192,9 @@ insert <- function(trafo, expr, ..., conditionMatch = NULL) {
     
   dots <- substitute(alist(...))
   out <- lapply(1:length(mytrafo), function(i) {
+    
+    .currentTrafo <- mytrafo[[i]]
+    .currentSymbols <- getSymbols(.currentTrafo)
 
     if (is.list(trafo)) {
       mytable <- lookuptable[names(mytrafo)[i], , drop = FALSE]
@@ -201,11 +204,26 @@ insert <- function(trafo, expr, ..., conditionMatch = NULL) {
     
     if ((!is.null(conditionMatch)))
       if((!str_detect(rownames(mytable), conditionMatch))) 
-        return(mytrafo[[i]])
+        return(.currentTrafo)
+    
+    
     
     with(mytable, {
-      args <- c(list(expr = expr, trafo = mytrafo[[i]]), eval(dots))
-      do.call(repar, args)
+      .fun <- function() {
+      # subset conditions by logicals expressions supplied by the dots
+      dots_eval <- eval(dots)                                            # convert from substitute to language
+      dots_eval_eval <- lapply(dots_eval, function(i) eval.parent(i, 3))           # evaluate the language in the "mytable" frame
+      which_logical <- sapply(dots_eval_eval, function(i) is_logical(i)) # which of the dots are logical
+      logical_dots <- dots_eval[which_logical]                           # subset to matching conditions
+      matching <- do.call(c, logical_dots)
+      if(!is.null(matching)) {
+        if (any(!matching)) {
+          return(.currentTrafo) }}
+      
+      args <- c(list(expr = expr, trafo = .currentTrafo), dots_eval_eval[!which_logical]) # feed the rest of the eval'd dots into repar
+      return(do.call(repar, args))
+      }
+      .fun()
     })
     
     
