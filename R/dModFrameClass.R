@@ -120,7 +120,7 @@ mutatedMod.frame <- function(dMod.frame,
 #' @return The dMod.frame augmented by standardized columns
 #' @export
 appendObj <- function(dMod.frame,
-                      prd = list(g*x*p),
+                      prd = list(g*(x*p)),
                       obj_data = list(normL2(data, prd, e)),
                       obj = list(obj_data),
                       pars = list(structure(rnorm(length(getParameters(obj))), names = getParameters(obj))),
