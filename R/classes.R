@@ -1511,8 +1511,11 @@ getParameters.prdlist <- function(x, conditions = NULL) {
   
 }
 
-
-
+#' @export
+#' @rdname getParameters
+getParameters.eqnlist <- function(x) {
+  unique(c(getSymbols(x$states), getSymbols(x$rates), getSymbols(x$volumes)))
+}
 
 
 #' Extract the conditions of an object
