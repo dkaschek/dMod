@@ -50,13 +50,11 @@ as.datalist.data.frame <- function(x, split.by = NULL, keep.covariates = NULL, .
 
 #' @export
 #' @param names optional names vector, otherwise names are taken from \code{mylist}
+#' @param condition.grid Optionally, to manually specify a condition.grid
 #' @rdname datalist
-as.datalist.list <- function(x, names = NULL, ...) {
-  
-  if (is.datalist(x)) return(x)
+as.datalist.list <- function(x, names = NULL, ..., condition.grid = attr(x, "condition.grid")) {
   
   mylist <- x
-  condition.grid <- attr(x, "condition.grid")
   
   
   ## Check properties
@@ -79,10 +77,11 @@ as.datalist.list <- function(x, names = NULL, ...) {
   names(mylist) <- mynames
   class(mylist) <- c("datalist", "list")
   
-  if (is.null(condition.grid))
+
+  if (is.null(condition.grid)) {
     condition.grid <- data.frame(condition = mynames, row.names = mynames)
+  }
   attr(mylist, "condition.grid") <- condition.grid
-  
 
   return(mylist)
 
@@ -90,6 +89,16 @@ as.datalist.list <- function(x, names = NULL, ...) {
 
 
 ## Methods for class datalist ---------------------------------------
+
+#' @export
+#' @rdname datalist
+"names<-.datalist" <- function(x, value) {
+  x <- unclass(x)
+  base::`names<-`(x, value)
+  base::`rownames<-`(attr(x, "condition.grid"), value)
+  return(as.datalist(x))
+}
+
 
 #' @export
 is.datalist <- function(x) {
