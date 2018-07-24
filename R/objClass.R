@@ -319,9 +319,9 @@ constraintL2 <- function(mu, sigma = 1, attr.name = "prior", condition = NULL) {
       
       # Multiply with Jacobian of sigma vector if estimate sigma
       if (estimateSigma) {
+        val.sigma.sigma <- t(Jsigma) %*% val.sigma.sigma %*% Jsigma + diag((t(val.sigma) %*% Jsigma)[1,], ncol(Jsigma), ncol(Jsigma))
         val.sigma <- (val.sigma %*% Jsigma)[1,]
         val.p.sigma <- (val.p.sigma %*% Jsigma)
-        val.sigma.sigma <- t(Jsigma) %*% val.sigma.sigma %*% Jsigma
       }
       
       
