@@ -7,6 +7,7 @@
 \alias{getParameters.parvec}
 \alias{getParameters.prdframe}
 \alias{getParameters.prdlist}
+\alias{getParameters.eqnlist}
 \title{Extract the parameters of an object}
 \usage{
 getParameters(..., conditions = NULL)
@@ -20,6 +21,8 @@ getParameters(..., conditions = NULL)
 \method{getParameters}{prdframe}(x, conditions = NULL)
 
 \method{getParameters}{prdlist}(x, conditions = NULL)
+
+\method{getParameters}{eqnlist}(x)
 }
 \arguments{
 \item{...}{objects from which the parameters should be extracted}

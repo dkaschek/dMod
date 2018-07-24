@@ -14,7 +14,8 @@ as.datalist(x, ...)
 \method{as.datalist}{data.frame}(x, split.by = NULL, keep.covariates = NULL,
   ...)
 
-\method{as.datalist}{list}(x, names = NULL, ...)
+\method{as.datalist}{list}(x, names = NULL, condition.grid = attr(x,
+  "condition.grid"), ...)
 }
 \arguments{
 \item{...}{data.frame objects to be coerced into a list and additional arguments}
@@ -28,6 +29,8 @@ selected.}
 \item{keep.covariates}{vector of additional column names which should be kept in the condition.grid.}
 
 \item{names}{optional names vector, otherwise names are taken from \code{mylist}}
+
+\item{condition.grid}{Optionally, to manually specify a condition.grid}
 }
 \value{
 Object of class \code{datalist}.

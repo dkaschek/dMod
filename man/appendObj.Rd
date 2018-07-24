@@ -4,7 +4,7 @@
 \alias{appendObj}
 \title{Append an objective function to a basic dMod.frame}
 \usage{
-appendObj(dMod.frame, prd = list(g * x * p), obj_data = list(normL2(data,
+appendObj(dMod.frame, prd = list(g * (x * p)), obj_data = list(normL2(data,
   prd, e)), obj = list(obj_data),
   pars = list(structure(rnorm(length(getParameters(obj))), names =
   getParameters(obj))), times = list(seq(min(as.data.frame(data)[["time"]]),

@@ -100,27 +100,28 @@ parameters <- c("a", "b", "par1", "par2", "par3")
 pars_to_insert <- c("par1", "par2")
 # pars_to_insert <- intersect(getParameters(g*x), names(data)) # this would be the usual way when setting up a model
 
-trafo <- define(NULL, "x~x", x = parameters) 
-trafo <- branch(trafo, covariates(as.datalist(mydataframe)))
+trafo <- define(NULL, "x~x", x = parameters) \%>\% 
+  branch(covariates(as.datalist(mydataframe)))
 
 # Trick 1: Access values from covariates()-Table with get/mget. 
     # The names of the parameters which are supplied in the covariates()-table have to be supplied manually.
 trafo <- insert(trafo, "name ~ value", value = unlist(mget(pars_to_insert)), name = pars_to_insert)
 
-# Apply reparametrization only for specific conditions using Regular Expressions for the conditionMatch argument
-trafo <- insert(trafo, "x~x_par3", x = "a", conditionMatch = "^0_9", par3 = par3)  # Conditions starting with 0_9
-trafo <- insert(trafo, "x~0", x = "a", conditionMatch = "^(?!0_9)")                # Conditions NOT starting with 0_9
-
-# Trick 2: Access symbols from current condition-specific trafo
+# Trick 2: Access symbols from current condition-specific trafo with .currentSymbols, access current condition-specific trafo by .currentTrafo
     # The input passed by the dots is "quoted" (substituted) and eval()'ed in the environment of the lapply(1:length(conditions), function(i) {})
-    # mytrafo[[i]] is just the condition specific trafo
-trafo <- insert(trafo, "x~exp(X)", x = getSymbols(mytrafo[[i]]), X = toupper(getSymbols(mytrafo[[i]])))
+trafo <- insert(trafo, "x~exp(X)", x = .currentSymbols, X = toupper(.currentSymbols))
 
+# Trick 3: Condition specificity. There are two ways to do this
+  # 1. Apply reparametrization only for specific conditions using Regular Expressions for the conditionMatch argument. This matches the condition name agains a regex
+trafo <- define(NULL, "x~x", x = parameters) \%>\% 
+  branch(covariates(as.datalist(mydataframe)))
 
-
-
-
-
+insert(trafo, "x~x_par3", x = "a", conditionMatch = "^0_9", par3 = par3)  # Conditions starting with 0_9
+insert(trafo, "x~0", x = "a", conditionMatch = "^(?!0_9)")                # Conditions NOT starting with 0_9
+  # 2. Specify conditions by boolean arguments
+insert(trafo, "x~x_par2", par1 == 0, x = parameters, par2 = par2)       # Conditions which satisfy par1 == 0
+  # Special case: Pass two arguments with the same name. This is only possible if one of them is logical and the other is not.
+insert(trafo, "x~x_par2", par2 == 9, x = .currentSymbols, par2 = par2)       # Conditions which satisfy par2 == 9
 
 
 
