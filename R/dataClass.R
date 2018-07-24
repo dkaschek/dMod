@@ -54,6 +54,8 @@ as.datalist.data.frame <- function(x, split.by = NULL, keep.covariates = NULL, .
 as.datalist.list <- function(x, names = NULL, ...) {
   
   mylist <- x
+  condition.grid <- attr(x, "condition.grid")
+  
   
   ## Check properties
   if (is.null(names)) mynames <- names(mylist) else mynames <- names
@@ -74,7 +76,11 @@ as.datalist.list <- function(x, names = NULL, ...) {
   ## Prepare output
   names(mylist) <- mynames
   class(mylist) <- c("datalist", "list")
-  attr(mylist, "condition.grid") <- data.frame(condition = mynames, row.names = mynames)
+  
+  if (is.null(condition.grid))
+    condition.grid <- data.frame(condition = mynames, row.names = mynames)
+  attr(mylist, "condition.grid") <- condition.grid
+  
 
   return(mylist)
 
