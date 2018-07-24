@@ -382,7 +382,7 @@ define.IQRpars <- function(guess, estimate = NULL, transform = NULL, iiv = NULL)
 }
 
 
-#' Export to IQRtools imports to dMod.frame format
+#' Create dMod.frame from IQRtools imports
 #' 
 #' @param hypothesis hypothesis name
 #' @param model result from \link{read.IQRmodel()}
@@ -390,7 +390,7 @@ define.IQRpars <- function(guess, estimate = NULL, transform = NULL, iiv = NULL)
 #' @param parameters result from \link{define.IQRpars()}
 #' @return A \link{dMod.frame} object
 #' @export
-to_dMod.frame <- function(hypothesis = date(), model, data, parameters) {
+IQRdMod.frame <- function(hypothesis = date(), model, data, parameters) {
   
   conditions <- names(data)
   keep <- attr(data, "keep")
