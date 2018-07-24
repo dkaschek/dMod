@@ -304,7 +304,7 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
 #' }
 #' 
 #' @export
-runbg_bwfor <- function(..., machine, filename = NULL, nodes = 1, cores = 1, walltime = "01:00:00", input = ls(.GlobalEnv), compile = TRUE) {
+runbg_bwfor <- function(..., machine, filename = NULL, nodes = 1, cores = 1, walltime = "01:00:00", input = ls(.GlobalEnv), compile = TRUE, recover = F) {
   
   
   expr <- as.expression(substitute(...))
@@ -356,7 +356,7 @@ runbg_bwfor <- function(..., machine, filename = NULL, nodes = 1, cores = 1, wal
     system(paste0("ssh ", machine, " rm -r ", filename0, "*"), wait = TRUE)
     
   }
-  
+  if(recover) return(out)
   
   # Save current workspace
   save(list = input, file = paste0(filename0, ".RData"), envir = .GlobalEnv)

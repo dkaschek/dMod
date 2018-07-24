@@ -53,6 +53,8 @@ as.datalist.data.frame <- function(x, split.by = NULL, keep.covariates = NULL, .
 #' @rdname datalist
 as.datalist.list <- function(x, names = NULL, ...) {
   
+  if (is.datalist(x)) return(x)
+  
   mylist <- x
   condition.grid <- attr(x, "condition.grid")
   
