@@ -4,11 +4,14 @@
 \alias{read.IQRmodel}
 \title{IQR QSP Model}
 \usage{
-read.IQRmodel(input, regression = NULL, fix = NULL, estimate = NULL,
-  ndoses = 1, ...)
+read.IQRmodel(input, errmodel = NULL, regression = NULL, fix = NULL,
+  estimate = NULL, ndoses = 1, ...)
 }
 \arguments{
 \item{input}{character pointing to the model, see \code{\link[IQRtools]{IQRmodel}} for details.}
+
+\item{errmodel}{eqnvec to define the error model, 
+e.g. \code{eqnvec(OUTPUT1 = "sigma_abs_1 * OUTPUT1 + sigma_rel_1")}. If NULL, no error model is returned.}
 
 \item{regression}{character vector containing names of regression parameters.}
 

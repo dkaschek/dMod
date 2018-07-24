@@ -1,6 +1,8 @@
 #' IQR QSP Model
 #'
 #' @param input character pointing to the model, see \code{\link[IQRtools]{IQRmodel}} for details.
+#' @param errmodel eqnvec to define the error model, 
+#' e.g. \code{eqnvec(OUTPUT1 = "sigma_abs_1 * OUTPUT1 + sigma_rel_1")}. If NULL, no error model is returned.
 #' @param regression character vector containing names of regression parameters.
 #' @param fix character vector denoting which parameters and initial
 #' values to fix during parameter estimation.
@@ -10,7 +12,9 @@
 #' @param ... arguments going to \code{\link{odemodel}()}.
 #' @return list
 #' @export
-read.IQRmodel <- function(input, regression = NULL, fix = NULL, estimate = NULL, ndoses = 1,  ...) {
+read.IQRmodel <- function(input, errmodel = NULL, regression = NULL, fix = NULL, estimate = NULL, ndoses = 1, ...) {
+  
+  
   
   # Set solver
   solver <- list(...)$solver
@@ -156,6 +160,12 @@ read.IQRmodel <- function(input, regression = NULL, fix = NULL, estimate = NULL,
   g_aux__ <- Y(variables.equations__,
                states = states__,
                attach.input = FALSE, deriv = FALSE, compile = FALSE, modelname = paste0("obsaux_", model__$name))
+  # Set up error model function
+  e__ <- Y(errmodel, f = g__, modelname = paste0("err_", model__$name), attach.input = FALSE)
+  errmodel.parameters__ <- getSymbols(errmodel, exclude = observables__)
+  parameters__ <- union(parameters__, errmodel.parameters__)
+  
+  
   # Set up parameter transformation function
   transformation__ <- repar("x~x", x = parameters__)
   transformation__ <- repar("x~y", x = names(parameters.equations__), y = parameters.equations__, transformation__)
@@ -193,13 +203,14 @@ read.IQRmodel <- function(input, regression = NULL, fix = NULL, estimate = NULL,
     list.files(pattern = glob2rx(paste0(model__$name, "*.c*"))),
     list.files(pattern = glob2rx(paste0("obs_", model__$name, "*.c*"))),
     list.files(pattern = glob2rx(paste0("obsaux_", model__$name, "*.c*"))),
+    list.files(pattern = glob2rx(paste0("err_", model__$name, "*.c*"))),
     list.files(pattern = glob2rx(paste0("par_", model__$name, "*.c*")))
   )
   output__ <- model__$name
   .so <- .Platform$dynlib.ext
   system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", paste(files__, collapse = " "), " -o ", output__, .so), intern = TRUE)
   dyn.load(paste0(output__, .so))
-  modelname(p__) <- modelname(x__) <- modelname(g__) <- modelname(g_aux__) <- output__
+  modelname(p__) <- modelname(x__) <- modelname(g__) <- modelname(g_aux__) <- modelname(e__)  <- output__
   # Remove source files
   unlink(paste0("*", model__$name, "*.c"))
   unlink(paste0("*", model__$name, "*.o"))
@@ -217,7 +228,7 @@ read.IQRmodel <- function(input, regression = NULL, fix = NULL, estimate = NULL,
   
   
   # Return
-  list(g = g__,  g_aux = g_aux__, x =  x__, p = p__, pars = pars__, fixed = fixed__, model = myodemodel__)
+  list(g = g__,  g_aux = g_aux__, e = e__, x =  x__, p = p__, pars = pars__, fixed = fixed__, model = myodemodel__)
   
   
   
@@ -227,12 +238,13 @@ read.IQRmodel <- function(input, regression = NULL, fix = NULL, estimate = NULL,
 #' Read IQRsysData file
 #' 
 #' @param data character pointing to the CSV data file
-#' @param regression names of the regression parameters to be imported
-#' 
-#' @return A datalist object with additional attributes \code{regression} and
+#' @param keep names of the elements to keep, e.g. regression parameters to be imported
+#' @param split.by column by which to split into conditions. If other than "CONDITION" must be contained in `keep`.
+#' @param loq limit of quantification, single numeric or named numerig, e.g. `c(OUTPUT1 = -3, OUTPUT2 = -5)`.
+#' @return A datalist object with additional attributes \code{keep} and
 #' \code{dosing} (dosing parameter transformations).
 #' @export
-read.IQRdata <- function(data, regression = NULL) {
+read.IQRdata <- function(data, keep = NULL, split.by = "CONDITION", loq = -Inf) {
 
   # Read Data
   if (is.character(data))
@@ -242,7 +254,7 @@ read.IQRdata <- function(data, regression = NULL) {
   
   required <- c("NAME", "TIME", "DV", "CONDITION")
   conditions <- unique(mydata0[["CONDITION"]])
-  mydosing <- mydata0[mydata0[["YTYPE"]] == 0, c("TIME", "CONDITION", "ID", "AMT", "ADM", "TINF")]
+  mydosing <- mydata0[mydata0[["YTYPE"]] == 0, c("TIME", "CONDITION", "ID", "AMT", "ADM", "TINF", keep)]
   mydata <- mydata0[mydata0[["YTYPE"]] != 0, ]
   
   # Generate datalist
@@ -252,12 +264,12 @@ read.IQRdata <- function(data, regression = NULL) {
       time = TIME,
       value = DV,
       sigma = NA,
-      condition = CONDITION
+      CONDITION = CONDITION
     )
-    if (!is.null(regression)) {
-      out1 <- cbind(out1, mydata[, regression, drop = FALSE])
+    if (!is.null(keep)) {
+      out1 <- cbind(out1, mydata[, keep, drop = FALSE])
     }
-    out1 <- as.datalist(out1, split.by = "condition", keep.covariates = regression)
+    out1 <- as.datalist(out1, split.by = split.by, keep.covariates = keep)
     return(out1)
   })
   
@@ -288,7 +300,7 @@ read.IQRdata <- function(data, regression = NULL) {
     })))
     
     # Determine dosing parameters
-    dosing <- lapply(split(mydosing, mydosing[["CONDITION"]]), function(mydosing) {
+    dosing <- lapply(split(mydosing, mydosing[split.by]), function(mydosing) {
       
       mydosing <- mydosing[mydosing$ID == mydosing$ID[1], c("TIME", "AMT", "ADM", "TINF")]
       if (nrow(mydosing) > 0) {
@@ -327,36 +339,72 @@ read.IQRdata <- function(data, regression = NULL) {
   
   output <- data
   attr(output, "dosing") <- dosing
-  attr(output, "regression") <- regression
+  attr(output, "keep") <- keep
+  attr(output, "loq") <- loq
   return(output)
     
 }
 
+
+
+#' Define parameterization of IQR model
+#' 
+#' @param guess initial guesses for parameters, named numeric.
+#' @param estimate estimate paramter (1, default) or not (0), named numeric/logical.
+#' @param transform parameter transformation, no ("N"), log ("L", default), or logit ("G").
+#' @param iiv parameters to be estimated per individuum, subset of the parameter names. By default none.
+#' @return List with guess, estimate, transform and iiv, filled up to the correct lengths. 
+#' @export
+define.IQRpars <- function(guess, estimate = NULL, transform = NULL, iiv = NULL) {
+  
+  myguess <- guess
+  n <- names(myguess)
+  
+  myestimate <- setNames(rep(1, length(n)), n)
+  mytransform <- setNames(rep("L", length(n)), n)
+  myiiv <- character(0)
+  
+  if (!is.null(estimate)) {
+    myestimate[intersect(names(estimate), n)] <- estimate[intersect(names(estimate), n)]
+  }
+  
+  if (!is.null(transform)) {
+    mytransform[intersect(names(transform), n)] <- transform[intersect(names(transform), n)]
+  }
+  
+  if (!is.null(iiv)) {
+    myiiv <- intersect(iiv, n)
+  }
+  
+  
+  list(guess = myguess, estimate = myestimate, transform = mytransform, iiv = myiiv)
+  
+}
+
+
 #' Export to IQRtools imports to dMod.frame format
 #' 
 #' @param hypothesis hypothesis name
-#' @param data result from \link{read.IQRdata()}
 #' @param model result from \link{read.IQRmodel()}
-#' @param errmodel an error model
-#' @param transform vector with transformations ("L" (log), "N" (normal) or "G" (log-it))
+#' @param data result from \link{read.IQRdata()}
+#' @param parameters result from \link{define.IQRpars()}
 #' @return A \link{dMod.frame} object
 #' @export
-to_dMod.frame <- function(hypothesis = date(), data, model, errmodel = NULL, transform = NULL) {
+to_dMod.frame <- function(hypothesis = date(), model, data, parameters) {
   
   conditions <- names(data)
-  regression <- attr(data, "regression")
+  keep <- attr(data, "keep")
   dosing <- attr(data, "dosing")
+  loq <- attr(data, "loq")
+  
+  covtable <- covariates(data)
   
   p <- Reduce("+", lapply(conditions, function(C) {
     
     trafo <- getEquations(model[["p"]])[[1]]
-    # Add missing error model parameters
-    errpars <- getParameters(errmodel)
-    trafo[errpars[!errpars %in% names(trafo)]] <- errpars[!errpars %in% names(trafo)]
     
-    covtable <- covariates(data)
-    # Plug in regression parameters
-    for (r in regression) {
+    # Plug in keep parameters
+    for (r in keep) {
       trafo <- replaceSymbols(r, covtable[C, r], trafo)
     }
     # Plug in dosing parameters
@@ -364,22 +412,82 @@ to_dMod.frame <- function(hypothesis = date(), data, model, errmodel = NULL, tra
     trafo[names(mydosing)] <- mydosing
     
     # Replace fixed parameters in what is left
-    trafo <- replaceSymbols(names(mymodel$fixed), mymodel$fixed, trafo)
+    trafo <- replaceSymbols(names(model$fixed), 
+                            model$fixed, 
+                            trafo)
+    trafo <- replaceSymbols(names(parameters$guess)[parameters$estimate == 0], 
+                            parameters$guess[parameters$estimate == 0],
+                            trafo)
     
     # Perform parameter transformations
     symbols <- getSymbols(trafo)
-    tG <- names(transform)[transform == "G"]
-    tN <- names(transform)[transform == "N"]
+    tG <- names(parameters$transform)[parameters$transform == "G"]
+    tN <- names(parameters$transform)[parameters$transform == "N"]
     tL <- setdiff(symbols, c(tG, tN))
     
     trafo <- repar("x ~ exp(x)", x = tL, trafo)
     trafo <- repar("x ~ exp(x)/(1+exp(x))", x = tG, trafo)
     
+    # Insert individualized parameters
+    trafo <- repar("x ~ (x + eta_x_condition)", x = parameters$iiv, condition = C, trafo)
+    
     P(trafo, condition = C)
     
   }))
   
-  dMod.frame(hypothesis, model[["g"]], model[["x"]], p, data, errmodel)
+  
+  outerpars <- getParameters(p)
+  
+  etapars <- lapply(parameters$iiv, function(myiiv) paste("eta", myiiv, conditions, sep = "_"))
+  names(etapars) <- parameters$iiv
+  
+  omegapars <- lapply(parameters$iiv, function(myiiv) {
+    setNames(rep(paste0("omega_", myiiv), length(etapars[[myiiv]])), etapars[[myiiv]])
+  })
+  
+  
+  etanames <- unlist(etapars, use.names = FALSE)
+  omeganames <- unique(unlist(omegapars, use.names = FALSE))
+  
+  eta <- setNames(rep(0, length(etanames)), etanames)
+  omega <- setNames(rep(log(0.2), length(omeganames)), omeganames)
+
+  
+  # Objective functions
+  prd <- 
+    model$g*model$x*p
+  
+  nlme <- 
+    constraintL2(mu = eta, sigma = unlist(omegapars, use.names = FALSE)) + 
+    constraintL2(mu = omega, sigma = .2)
+  
+  
+  obj_data <- 
+    normL2(data, prd, model$e, loq = loq)
+  
+  # Get data times
+  timerange <- range(as.data.frame(data)$time)
+  times <- seq(min(0, timerange[1]), timerange[2], length.out = 200)
+  
+  # Output dmod frame
+  myframe <- dMod.frame(hypothesis = hypothesis, 
+                        g = model[["g"]], 
+                        x = model[["x"]], 
+                        p = p, 
+                        data = data, 
+                        e = model[["e"]])
+  
+  # Append objective function
+  myframe <- appendObj(myframe, 
+                       prd = list(prd),
+                       obj_data = list(obj_data),
+                       obj = list(obj_data + nlme),
+                       pars = list(c(omega, c(parameters$guess, eta)[outerpars])),
+                       times = list(times),
+                       eta = list(etapars),
+                       omega = list(omegapars))
+  
+  return(myframe)
   
   
 }

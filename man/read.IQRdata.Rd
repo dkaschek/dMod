@@ -4,15 +4,19 @@
 \alias{read.IQRdata}
 \title{Read IQRsysData file}
 \usage{
-read.IQRdata(data, regression = NULL)
+read.IQRdata(data, keep = NULL, split.by = "CONDITION", loq = -Inf)
 }
 \arguments{
 \item{data}{character pointing to the CSV data file}
 
-\item{regression}{names of the regression parameters to be imported}
+\item{keep}{names of the elements to keep, e.g. regression parameters to be imported}
+
+\item{split.by}{column by which to split into conditions. If other than "CONDITION" must be contained in `keep`.}
+
+\item{loq}{limit of quantification, single numeric or named numerig, e.g. `c(OUTPUT1 = -3, OUTPUT2 = -5)`.}
 }
 \value{
-A datalist object with additional attributes \code{regression} and
+A datalist object with additional attributes \code{keep} and
 \code{dosing} (dosing parameter transformations).
 }
 \description{
