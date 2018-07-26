@@ -429,7 +429,9 @@ IQRdMod.frame <- function(hypothesis = date(), model, data, parameters) {
     trafo <- repar("x ~ exp(x)/(1+exp(x))", x = tG, trafo)
     
     # Insert individualized parameters
-    trafo <- repar("x ~ (x + eta_x_condition)", x = parameters$iiv, condition = C, trafo)
+    if (length(parameters$iiv) > 0) {
+      trafo <- repar("x ~ (x + eta_x_condition)", x = parameters$iiv, condition = C, trafo)
+    }
     
     P(trafo, condition = C)
     
@@ -462,8 +464,12 @@ IQRdMod.frame <- function(hypothesis = date(), model, data, parameters) {
     constraintL2(mu = omega, sigma = .2)
   
   
-  obj_data <- 
+  obj <- obj_data <- 
     normL2(data, prd, model$e, loq = loq)
+  
+  if (length(parameters$iiv) > 0) {
+    obj <- obj_data + nlme
+  }
   
   # Get data times
   timerange <- range(as.data.frame(data)$time)
@@ -481,7 +487,7 @@ IQRdMod.frame <- function(hypothesis = date(), model, data, parameters) {
   myframe <- appendObj(myframe, 
                        prd = list(prd),
                        obj_data = list(obj_data),
-                       obj = list(obj_data + nlme),
+                       obj = list(obj),
                        pars = list(c(omega, c(parameters$guess, eta)[outerpars])),
                        times = list(times),
                        eta = list(etapars),
