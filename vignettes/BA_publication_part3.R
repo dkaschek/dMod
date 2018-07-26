@@ -13,10 +13,13 @@ load("part2.RData")
 
 data(BAdata)
 data <- BAdata %>% 
-  filter(experiment %in% c("exp2", "exp4") & compound == "Csa") %>%
+  filter(experiment %in% c("exp2", "exp4") & compound %in% c("Csa", "Cpz")) %>%
   as.datalist()
 covtable <- covariates(data)
 print(covtable)
+
+conditions_Csa <- rownames(covtable)[grepl("Csa", rownames(covtable))]
+conditions_Cpz <- rownames(covtable)[grepl("Cpz", rownames(covtable))]
 
 plot(data)
 
@@ -52,7 +55,7 @@ eventsPD <- events %>%
   addEvent("Drug", "t_removeDrug", "0")
 
 # Make ODE model available as prediction function
-noSens <- c("t_removeCa", "t_addTca", "t_removeTca", "t_addDrug", "t_removeDrug", "cations")
+noSens <- parameters
 xPD <- odemodel(odesPD, events = eventsPD, fixed = noSens, modelname = "BA_PDmodel") %>%
   Xs()
 
@@ -124,10 +127,12 @@ pars <- structure(rep(-10, length(estimate)), names = estimate)
 
 obj <- normL2(data, gPD*xPD*pPD) + constraintL2(pars, sigma = 10)
 pars <- structure(rep(-1, length(estimate)), names = estimate)
-fits <- mstrust(obj, pars, fits = 30, rinit = 1, rmax = 10, samplefun = "runif", min = -2, max = 2, cores = 4) %>% as.parframe()
+fits <- mstrust(obj, pars, fits = 50, rinit = 1, rmax = 10, 
+                samplefun = "runif", min = -2, max = 2, cores = 4,
+                conditions = conditions_Cpz) %>% as.parframe()
 myfit <- trust(obj, pars, rinit = 1, rmax = 10)
 (gPD*xPD*pPD)(times, myfit$argument) %>% plot(data = data, facet = "grid", time > 30)
-
+(gPD*xPD*pPD)(times, as.parvec(fits)) %>% plot(data = data, facet = "grid")
 
 plotValues(fits, .1, value < 1000)
 plotPars(fits, .1, value < 1000)
@@ -143,6 +148,16 @@ pred <- predict(xPD*pPD, times = times, pars = subframe, data = data)
 ggplot(pred, aes(x = time, y = value, color = as.factor(.value))) + 
   facet_wrap( ~ condition*name, scales = "free") + geom_line()
 
-bestfit <- as.parvec(subframe)
-profiles_part3 <- profile(obj, bestfit, names(bestfit), cores = 4, limits = c(-10, 10), stepControl = list(stop = "data"))
+bestfit <- as.parvec(fits)
+profiles_part3 <- profile(obj, bestfit, names(bestfit), cores = 4, limits = c(-10, 10), 
+                          stepControl = list(stop = "data"),
+                          conditions = conditions_Cpz)
+profiles_part3 %>% plotProfile(mode == "data")
+
+mypars <- bestfit[setdiff(names(bestfit), "DRUGSCALE"), drop = TRUE]
+myfixed <- bestfit["DRUGSCALE", drop = TRUE]
+profiles_part3 <- profile(obj, mypars, names(mypars), cores = 4, limits = c(-10, 10), 
+                          stepControl = list(stop = "data"),
+                          conditions = conditions_Cpz,
+                          fixed = myfixed)
 profiles_part3 %>% plotProfile(mode == "data")

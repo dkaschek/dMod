@@ -102,6 +102,8 @@ times <- seq(0, 200, 1)
 obj <- normL2(data, g*x*p) + constraintL2(0*pars, sigma = 10)
 myfit <- trust(obj, pars, rinit = 1, rmax = 10, iterlim = 500)
 
+out <- mstrust(obj, pars, rinit = 1, rmax = 10, cores = 4) %>% as.parframe()
+
 (g*x*p)(times, myfit$argument) %>% plot(data = data, time <= 180)
 ### Identifiability
 profiles <- profile(obj, myfit$argument, names(myfit$argument), cores = 4)
@@ -126,9 +128,9 @@ profiles %>% plotProfile(mode == "data")
 # Explore parameter space
 fits <- mstrust(obj, pars, fits = 30, rinit = 1, rmax = 10, samplefun = "runif", min = -5, max = 5, cores = 4)
 parframe <- as.parframe(fits)
-plotValues(parframe[1:28,])
-plotPars(parframe[1:28,])
-subframe <- unique(parframe[1:28,])
+plotValues(parframe[1:28,], , value < 100)
+plotPars(parframe[1:28,], , value < 100)
+subframe <- unique(parframe[1:20,])
 
 prediction <- predict(g*x*p, times = times, pars = subframe, data = data)
 
