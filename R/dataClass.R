@@ -203,6 +203,11 @@ as.data.frame.datalist <- function(x, ...) {
 }
 
 
+#' Access the covariates in the data
+#'
+#' @param data Either a \link{datalist} or a \code{data.frame} with mandatory columns \code{c("name", "time", "value", "sigma")}
+#'
+#' @return The \code{condition.grid}
 #' @export
 covariates <- function(data) {
   UseMethod("covariates", data)

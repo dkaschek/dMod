@@ -554,6 +554,10 @@ prdlist <- function(...) {
 #' @details Datalists can be plotted, see \link{plotData} and merged, see \link{sumdatalist}.
 #' They are the basic structure when combining model prediction and data via the \link{normL2}
 #' objective function.
+#' 
+#' Datalists carry the attribute \code{condition.grid} which contains additional information about different 
+#' conditions, such as dosing information for the experiment. It can be conveniently accessed by the \link{covariates}-function. 
+#' Reassigning names to a datalist also renames the rows of the \code{condition.grid}.
 #' @param ... data.frame objects to be coerced into a list and additional arguments
 #' @return Object of class \code{datalist}.
 #' @export
