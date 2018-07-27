@@ -143,6 +143,9 @@ define <- function(trafo, expr, ..., conditionMatch = NULL) {
   dots <- substitute(alist(...))
   out <- lapply(1:length(mytrafo), function(i) {
     
+    .currentTrafo <- mytrafo[[i]]
+    .currentSymbols <- getSymbols(.currentTrafo)
+    
     if (is.list(trafo)) {
       mytable <- lookuptable[names(mytrafo)[i], , drop = FALSE]
     } else {
