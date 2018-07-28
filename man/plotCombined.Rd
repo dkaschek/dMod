@@ -22,7 +22,7 @@ plotCombined(x, ...)
   facet = "wrap", transform = NULL)
 }
 \arguments{
-\item{...}{Further arguments going to \code{subset}.}
+\item{...}{Further arguments going to \code{dplyr::filter}.}
 
 \item{x}{prediction}
 

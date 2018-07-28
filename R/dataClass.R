@@ -138,7 +138,7 @@ subset.datalist <- function(x, ...){
 #' 
 #' @param x Named list of data.frames as being used in \link{res}, i.e. with columns \code{name}, \code{time}, 
 #' \code{value} and \code{sigma}.
-#' @param ... Further arguments going to \code{subset}. 
+#' @param ... Further arguments going to \code{dplyr::filter}. 
 #' @param scales The scales argument of \code{facet_wrap} or \code{facet_grid}, i.e. \code{"free"}, \code{"fixed"}, 
 #' \code{"free_x"} or \code{"free_y"}
 #' @param facet Either \code{"wrap"} or \code{"grid"}
@@ -158,9 +158,17 @@ plot.datalist <- function(x, ..., scales = "free", facet = "wrap") {
 
 #' @export
 #' @rdname plotData
+#' @importFrom dplyr filter left_join
+#' @importFrom rlang enquos UQS
 plotData.datalist <- function(data, ..., scales = "free", facet = "wrap", transform = NULL) {
   
-  data <- subset(lbind(data), ...)
+  dots <- rlang::enquos(...)
+  
+  add_condition_column <- function(covtable) cbind(covtable, condition = rownames(covtable), stringsAsFactors = F)
+  covtable <- add_condition_column(covariates(data))
+  data <- lbind(data)
+  data <- dplyr::left_join(data, covtable)
+  data <- as.data.frame(dplyr::filter(data, rlang::UQS(dots)), stringsAsFactors = F)
   
   if (!is.null(transform)) data <- coordTransform(data, transform)
   

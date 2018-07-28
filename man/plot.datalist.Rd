@@ -10,7 +10,7 @@
 \item{x}{Named list of data.frames as being used in \link{res}, i.e. with columns \code{name}, \code{time}, 
 \code{value} and \code{sigma}.}
 
-\item{...}{Further arguments going to \code{subset}.}
+\item{...}{Further arguments going to \code{dplyr::filter}.}
 
 \item{scales}{The scales argument of \code{facet_wrap} or \code{facet_grid}, i.e. \code{"free"}, \code{"fixed"}, 
 \code{"free_x"} or \code{"free_y"}}
