@@ -127,24 +127,30 @@ plot.prdlist <- function(x, data = NULL, ..., scales = "free", facet = "wrap", t
 
 #' @export
 #' @rdname plotCombined
+#' @importFrom rlang enquos UQS
+#' @importFrom dplyr filter left_join
 plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
   
+  dots <- rlang::enquos(...)
   mynames <- c("time", "name", "value", "sigma", "condition")
+  
+  if (!is.null(data)) {
+    add_condition_column <- function(covtable) cbind(covtable, condition = rownames(covtable), stringsAsFactors = F)
+    covtable <- add_condition_column(covariates(data))
+    data <- lbind(data)
+    data <- dplyr::left_join(data, covtable)
+    data <- as.data.frame(dplyr::filter(data, rlang::UQS(dots)), stringsAsFactors = F)
+    
+    if (!is.null(transform)) data <- coordTransform(data, transform)
+  }
   
   if (!is.null(prediction)) {
     prediction <- cbind(wide2long(prediction), sigma = NA)
-    prediction <- subset(prediction, ...)
+    if (!is.null(data))
+      prediction <- dplyr::left_join(prediction, covtable)
+    prediction <- as.data.frame(dplyr::filter(prediction, rlang::UQS(dots)), stringsAsFactors = F)
     
     if (!is.null(transform)) prediction <- coordTransform(prediction, transform)
-    
-  }
-  
-  if (!is.null(data)) {
-    data <- lbind(data)
-    data <- subset(data, ...)
-    
-    if (!is.null(transform)) data <- coordTransform(data, transform)
-    
   }
   
   total <- rbind(prediction[, mynames], data[, mynames])
@@ -177,9 +183,12 @@ plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", 
 
 #' @export
 #' @rdname plotPrediction
+#' @importFrom dplyr filter
+#' @importFrom rlang enquos UQS
 plotPrediction.prdlist <- function(prediction, ..., scales = "free", facet = "wrap", transform = NULL) {
   
-  prediction <- subset(wide2long.list(prediction), ...)
+  dots <- rlang::enquos(...)
+  prediction <- as.data.frame(dplyr::filter(wide2long.list(prediction), rlang::UQS(dots)), stringsAsFactors = F)
   
   if (!is.null(transform)) prediction <- coordTransform(prediction, transform)
   
