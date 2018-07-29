@@ -165,8 +165,8 @@ appendParframes <- function(dMod.frame,
   args <- c(list(parframes = enquo(parframes)), quos(...))
 
   out <- mutatedMod.frame(dMod.frame, UQS(args), keepCalls = keepCalls)
-  if(!keepFits)
-    out <- select(dMod.frame, -fits)
+  if(!keepFits){
+    out <- out[-names(out)=="fits"]}
   return(out)
 }
 
