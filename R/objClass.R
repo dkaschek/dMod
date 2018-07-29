@@ -100,7 +100,7 @@ constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, fixed=NULL) {
 #' optimization with the trust optimizer, see \link{mstrust}.
 #' @param data object of class \link{datalist}
 #' @param x object of class \link{prdfn}
-#' @param errmodel object of class \link{obsfn}
+#' @param errmodel object of class \link{obsfn}. \code{errmodel} does not need to be defined for all conditions.
 #' @param times numeric vector, additional time points where the prediction function is 
 #' evaluated. If NULL, time points are extacted from the datalist solely. If the prediction
 #' function makes use of events, hand over event \code{times} here.
@@ -122,7 +122,7 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data", l
   data.conditions <- names(data)
   if (!all(data.conditions %in% x.conditions)) 
     stop("The prediction function does not provide predictions for all conditions in the data.")
-  
+  e.conditions <- names(attr(errmodel, "mappings"))
   
   controls <- list(times = timesD, attr.name = attr.name, conditions = x.conditions, loq = loq)
 
@@ -156,7 +156,7 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data", l
     # Apply res() and wrss() to compute residuals and the weighted residual sum of squares
     out.data <- lapply(conditions, function(cn) {
       err <- NULL
-      if (!is.null(errmodel)) {
+      if (!is.null(e.conditions) && (cn %in% e.conditions)) {
         err <- errmodel(out = prediction[[cn]], pars = getParameters(prediction[[cn]]), conditions = cn)
         mywrss <- nll(res(data[[cn]], prediction[[cn]], err[[cn]], loq))
       } else {

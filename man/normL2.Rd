@@ -12,7 +12,7 @@ normL2(data, x, errmodel = NULL, times = NULL, attr.name = "data",
 
 \item{x}{object of class \link{prdfn}}
 
-\item{errmodel}{object of class \link{obsfn}}
+\item{errmodel}{object of class \link{obsfn}. \code{errmodel} does not need to be defined for all conditions.}
 
 \item{times}{numeric vector, additional time points where the prediction function is 
 evaluated. If NULL, time points are extacted from the datalist solely. If the prediction
