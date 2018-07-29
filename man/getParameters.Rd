@@ -27,7 +27,7 @@ getParameters(..., conditions = NULL)
 \arguments{
 \item{...}{objects from which the parameters should be extracted}
 
-\item{conditions}{character vector specifying the conditions to 
+\item{conditions}{character vector specifying the conditions to
 which \code{getParameters} is restricted}
 
 \item{x}{object from which the parameters are extracted}

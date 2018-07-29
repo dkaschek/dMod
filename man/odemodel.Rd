@@ -5,12 +5,12 @@
 \title{Generate the model objects for use in Xs (models with sensitivities)}
 \usage{
 odemodel(f, deriv = TRUE, forcings = NULL, events = NULL,
-  outputs = NULL, fixed = NULL, estimate = NULL, modelname = "odemodel",
-  solver = c("deSolve", "Sundials"), gridpoints = NULL, verbose = FALSE,
-  ...)
+  outputs = NULL, fixed = NULL, estimate = NULL,
+  modelname = "odemodel", solver = c("deSolve", "Sundials"),
+  gridpoints = NULL, verbose = FALSE, ...)
 }
 \arguments{
-\item{f}{Something that can be converted to \link{eqnvec}, 
+\item{f}{Something that can be converted to \link{eqnvec},
 e.g. a named character vector with the ODE}
 
 \item{deriv}{logical, generate sensitivities or not}
@@ -18,8 +18,8 @@ e.g. a named character vector with the ODE}
 \item{forcings}{Character vector with the names of the forcings}
 
 \item{events}{data.frame of events with columns "var" (character, the name of the state to be
-affected), "time" (character or numeric, time point), "value" (character or numeric, value), 
-"method" (character, either 
+affected), "time" (character or numeric, time point), "value" (character or numeric, value),
+"method" (character, either
 "replace" or "add"). See \link[deSolve]{events}. Events need to be defined here if they contain
 parameters, like the event time or value. If both, time and value are purely numeric, they
 can be specified in \code{\link{Xs}()}, too.}

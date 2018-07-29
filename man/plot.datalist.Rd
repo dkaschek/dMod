@@ -7,12 +7,12 @@
 \method{plot}{datalist}(x, ..., scales = "free", facet = "wrap")
 }
 \arguments{
-\item{x}{Named list of data.frames as being used in \link{res}, i.e. with columns \code{name}, \code{time}, 
+\item{x}{Named list of data.frames as being used in \link{res}, i.e. with columns \code{name}, \code{time},
 \code{value} and \code{sigma}.}
 
 \item{...}{Further arguments going to \code{dplyr::filter}.}
 
-\item{scales}{The scales argument of \code{facet_wrap} or \code{facet_grid}, i.e. \code{"free"}, \code{"fixed"}, 
+\item{scales}{The scales argument of \code{facet_wrap} or \code{facet_grid}, i.e. \code{"free"}, \code{"fixed"},
 \code{"free_x"} or \code{"free_y"}}
 
 \item{facet}{Either \code{"wrap"} or \code{"grid"}}

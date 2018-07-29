@@ -18,7 +18,7 @@ getEquations(x, conditions = NULL)
 \arguments{
 \item{x}{object from which the equations should be extracted}
 
-\item{conditions}{character or numeric vector specifying the conditions to 
+\item{conditions}{character or numeric vector specifying the conditions to
 which \code{getEquations} is restricted. If \code{conditions} has length one,
 the result is not returned as a list.}
 }

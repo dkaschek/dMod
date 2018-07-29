@@ -12,11 +12,11 @@ datalist(...)
 
 as.datalist(x, ...)
 
-\method{as.datalist}{data.frame}(x, split.by = NULL, keep.covariates = NULL,
-  ...)
+\method{as.datalist}{data.frame}(x, split.by = NULL,
+  keep.covariates = NULL, ...)
 
-\method{as.datalist}{list}(x, names = NULL, ..., condition.grid = attr(x,
-  "condition.grid"))
+\method{as.datalist}{list}(x, names = NULL, ...,
+  condition.grid = attr(x, "condition.grid"))
 
 \method{names}{datalist}(x) <- value
 }
@@ -49,8 +49,8 @@ Datalists can be plotted, see \link{plotData} and merged, see \link{sumdatalist}
 They are the basic structure when combining model prediction and data via the \link{normL2}
 objective function.
 
-Datalists carry the attribute \code{condition.grid} which contains additional information about different 
-conditions, such as dosing information for the experiment. It can be conveniently accessed by the \link{covariates}-function. 
+Datalists carry the attribute \code{condition.grid} which contains additional information about different
+conditions, such as dosing information for the experiment. It can be conveniently accessed by the \link{covariates}-function.
 Reassigning names to a datalist also renames the rows of the \code{condition.grid}.
 }
 \examples{

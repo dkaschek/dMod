@@ -29,9 +29,9 @@ getDerivs(x, ...)
 \value{
 The derivatives in a format that depends on the class of \code{x}.
 This is
-\code{parvec -> matrix}, 
-\code{prdframe -> prdframe}, 
-\code{prdlist -> prdlist}, 
+\code{parvec -> matrix},
+\code{prdframe -> prdframe},
+\code{prdlist -> prdlist},
 \code{objlist -> named numeric}.
 }
 \description{

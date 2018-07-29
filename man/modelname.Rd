@@ -30,6 +30,6 @@ in the local directory.
 }
 \description{
 The modelname attribute refers to the name of a C file associated with
-a dMod function object like prediction-, parameter transformation- or 
+a dMod function object like prediction-, parameter transformation- or
 objective functions.
 }

@@ -15,7 +15,7 @@ prdfn(P2X, parameters = NULL, condition = NULL)
 }
 \value{
 Object of class \code{prdfn}, i.e. a function \code{x(..., fixed, deriv, conditions, env)}
-which returns a \link{prdlist}. The arguments \code{times} and 
+which returns a \link{prdlist}. The arguments \code{times} and
 \code{pars} (parameter values) should be passed via the \code{...} argument, in this order.
 }
 \description{
@@ -26,7 +26,7 @@ see the last one.
 \details{
 Prediction functions can be "added" by the "+" operator, see \link{sumfn}. Thereby,
 predictions for different conditions are merged or overwritten. Prediction functions can
-also be concatenated with other functions, e.g. observation functions (\link{obsfn}) or 
+also be concatenated with other functions, e.g. observation functions (\link{obsfn}) or
 parameter transformation functions (\link{parfn}) by the "*" operator, see \link{prodfn}.
 }
 \examples{

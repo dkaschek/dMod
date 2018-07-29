@@ -27,7 +27,7 @@ of the conditions is then organized by the \code{obsfn} object.
 \details{
 Observation functions can be "added" by the "+" operator, see \link{sumfn}. Thereby,
 observations for different conditions are merged or, overwritten. Observation functions can
-also be concatenated with other functions, e.g. observation functions (\link{obsfn}) or 
+also be concatenated with other functions, e.g. observation functions (\link{obsfn}) or
 prediction functions (\link{prdfn}) by the "*" operator, see \link{prodfn}.
 }
 \examples{

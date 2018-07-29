@@ -4,7 +4,8 @@
 \alias{strpad}
 \title{Pad string to desired width}
 \usage{
-strpad(string, width, where = "right", padding = " ", autoelide = FALSE)
+strpad(string, width, where = "right", padding = " ",
+  autoelide = FALSE)
 }
 \arguments{
 \item{string}{String to pad}

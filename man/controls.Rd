@@ -38,14 +38,14 @@ Either a print-out or the values of the control.
 \description{
 Applies to objects of class \code{objfn},
 \code{parfn}, \code{prdfn} and \code{obsfn}. Allows to manipulate
-different arguments that have been set when creating the 
+different arguments that have been set when creating the
 objects.
 }
 \details{
 If called without further arguments, \code{controls(x)} lists the
 available controls within an object. Calling \code{controls()} with \code{name}
 and \code{condition} returns the control value. The value can be overwritten. If
-a list or data.frame ist returned, elements of those can be manipulated by the 
+a list or data.frame ist returned, elements of those can be manipulated by the
 \code{$}- or \code{[]}-operator.
 }
 \examples{
@@ -59,5 +59,5 @@ controls(p, "C1", "keep.root") <- FALSE
 g <- Y(g = eqnvec(y = "s*x"), f = NULL, states = "x", parameters = "s")
 controls(g)
 controls(g, NULL, "attach.input")
-controls(g, NULL, "attach.input") <- FALSE 
+controls(g, NULL, "attach.input") <- FALSE
 }

@@ -20,7 +20,7 @@ union of conditions.
 Used to merge datasets with overlapping conditions.
 }
 \details{
-Each data list contains data frames for a number of conditions. 
+Each data list contains data frames for a number of conditions.
 The direct sum of datalist is meant as merging the two data lists and
 returning the overarching datalist.
 }
