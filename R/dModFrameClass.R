@@ -29,7 +29,7 @@
 #' @param p fn
 #' @param data data.frame or datalist, will be coerced to datalist
 #' @param e fn
-#' @param ... other columns, have to be named. They will be placed in a list. 
+#' @param ... other columns, have to be named. They will be placed in a list.
 #'
 #' @return Object of class \code{tbl_df}, which is grouped rowwise.
 #'
@@ -182,13 +182,13 @@ plotCombined.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
     return(
       plotCombined.prdlist(
         dMod.frame[["prd"]][[hypothesis]](dMod.frame[["times"]][[hypothesis]], dMod.frame[["pars"]][[hypothesis]], deriv = F),
-        dMod.frame[["data"]][[hypothesis]], 
+        dMod.frame[["data"]][[hypothesis]],
         ...) +
         ggtitle(paste(dMod.frame[["hypothesis"]][[hypothesis]], "initiated with predefined (probably random) parameters"))
     )
 
 
-  
+
   myparvec <- as.parvec(dMod.frame[["parframes"]][[hypothesis]], index = index)
   myprediction <- dMod.frame[["prd"]][[hypothesis]](dMod.frame[["times"]][[hypothesis]],
                                                     pars = myparvec,
@@ -204,27 +204,27 @@ plotCombined.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
 #' @export
 #' @rdname plotPrediction
 plotPrediction.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
-  
+
   dots <- substitute(alist(...))
   message("If you want to subset() the plot, specify hypothesis AND index")
-  
+
   if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
 
   if (is.null(dMod.frame[["parframes"]]))
     return(
-      plotPrediction.prdlist(dMod.frame[["prd"]][[hypothesis]](dMod.frame[["times"]][[hypothesis]], 
-                                                               dMod.frame[["pars"]][[hypothesis]], 
+      plotPrediction.prdlist(dMod.frame[["prd"]][[hypothesis]](dMod.frame[["times"]][[hypothesis]],
+                                                               dMod.frame[["pars"]][[hypothesis]],
                                                                deriv = F), ...) +
         ggtitle(paste(dMod.frame[["hypothesis"]][[hypothesis]], "initiated with predefined (probably random) parameters"))
     )
-  
-  
+
+
   myparvec <- as.parvec(dMod.frame[["parframes"]][[hypothesis]], index = index)
   myprediction <- dMod.frame[["prd"]][[hypothesis]](dMod.frame[["times"]][[hypothesis]],
                                                     pars = myparvec,
                                                     deriv = F)
   myvalue <- dMod.frame[["parframes"]][[hypothesis]][index, "value"]
-  
+
   plotPrediction.prdlist(myprediction, ...) +
     ggtitle(label = paste0(dMod.frame[["hypothesis"]][[hypothesis]], "\n",
                            "value = ", round(dMod.frame[["parframes"]][[hypothesis]][index,"value", drop = T],1), "\n",
@@ -251,18 +251,18 @@ plotData.tbl_df <- function(dMod.frame, hypothesis = 1, ... ) {
 #' @rdname plotPars
 #' @param nsteps number of steps from the waterfall plot
 plotPars.tbl_df <- function(dMod.frame, hypothesis = 1,  ..., nsteps = 3, tol = 1 ) {
-  
+
   if (!missing(...)) {dots <- substitute(...)
   } else {
     dots <- T
   }
-  
+
   if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
-  
+
   if(length(hypothesis)==1) {
     myparframe <- dMod.frame[["parframes"]][[hypothesis]]
     myparframe <- getSteps(myparframe, nsteps = nsteps, tol = tol)
-    
+
     plotPars.parframe(myparframe, ..., tol = tol) +
       ggtitle(label = paste0(dMod.frame[["hypothesis"]][[hypothesis]], "\n",
                              "best value = ", round(dMod.frame[["parframes"]][[hypothesis]][1,"value", drop = T],1), "\n",
@@ -276,30 +276,30 @@ plotPars.tbl_df <- function(dMod.frame, hypothesis = 1,  ..., nsteps = 3, tol = 
       cbind(hypothesis = hyp,step = factor(findInterval(pars$index, steps), labels = steps), pars)
     }))
     mydata$hypothesis <- as.factor(mydata$hypothesis)
-    
+
     myindices <- with(mydata, eval(dots))
     mydata <- mydata[myindices,]
-    
+
     mydata2 <- wide2long.data.frame(mydata[-c(4,5,6)], keep = 1:3)
     mydata2$hyp_step <- paste(mydata2$hypothesis, mydata2$step, sep = "_")
-    
-    ggplot2::ggplot(mydata2, aes(x = name, y = value, color = hyp_step)) + 
+
+    ggplot2::ggplot(mydata2, aes(x = name, y = value, color = hyp_step)) +
       geom_boxplot(outlier.alpha = 0) +     # annotate("text", x = jumps + 1, y = y.jumps, label = jumps, hjust = 0, color = "red", size = 3) +
-      xlab("parameter") + ylab("value") + theme_dMod() + 
+      xlab("parameter") + ylab("value") + theme_dMod() +
       theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
-    
+
   }
-  
+
 }
 
 #' @export
 #' @rdname plotValues
 plotValues.tbl_df <- function(dMod.frame, hypothesis = 1, ..., tol = 1 ) {
-  
+
   dots <- substitute(...)
-  
+
   if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
-  
+
   if(length(hypothesis)==1) {
     plotValues.parframe(dMod.frame[["parframes"]][[hypothesis]], tol = tol, ...) +
       ggtitle(label = paste0(dMod.frame[["hypothesis"]][[hypothesis]], "\n",
@@ -309,20 +309,20 @@ plotValues.tbl_df <- function(dMod.frame, hypothesis = 1, ..., tol = 1 ) {
     mydata <- do.call(rbind,lapply(hypothesis, function(hyp) {
       pars <- dMod.frame[["parframes"]][[hyp]]
       pars <- cbind(index = 1:nrow(pars), pars[order(pars$value),])
-      
+
       cbind(hypothesis = hyp, pars)
     }))
     mydata$hypothesis <- as.factor(mydata$hypothesis)
-    
+
     myindices <- with(mydata, eval(dots))
     mydata <- mydata[myindices,]
-    
-    ggplot2::ggplot(mydata, aes(x = index, y = value, pch = converged, color = hypothesis)) + 
+
+    ggplot2::ggplot(mydata, aes(x = index, y = value, pch = converged, color = hypothesis)) +
       # geom_vline(xintercept = jumps, lty = 2) +
-      geom_point() + 
+      geom_point() +
       # annotate("text", x = jumps + 1, y = y.jumps, label = jumps, hjust = 0, color = "red", size = 3) +
       xlab("index") + ylab("value") + theme_dMod()
-    
+
   }
 }
 
@@ -335,7 +335,7 @@ plotProfile.tbl_df <- function(dMod.frame, hypothesis = 1, ...) {
   dots <- substitute(alist(...))
 
   if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
-  
+
   myprofs <- dMod.frame[["profiles"]][hypothesis] %>% setNames(dMod.frame[["hypothesis"]][hypothesis])
 
   plotProfile.list(myprofs, ...) +
@@ -345,7 +345,13 @@ plotProfile.tbl_df <- function(dMod.frame, hypothesis = 1, ...) {
 }
 
 
+# Other methods
 
+#' @export
+#' @rdname covariates
+covariates.tbl_df <- function(x, hypothesis = 1) {
+  covariates.datalist(x[["data"]][[hypothesis]])
+}
 
 
 # Interaction with .GlobalEnv ----
@@ -365,12 +371,12 @@ plotProfile.tbl_df <- function(dMod.frame, hypothesis = 1, ...) {
 #'                     myfun = list(function(x,a) {a * x}, function(x,a) {a * x^2}),
 #'                     a = c(1:2))
 #'
-#' 
+#'
 #' checkout_hypothesis(testframe, "quadratic", prefix = "quad")
 #' quadplots
 #' quadmyfun(1:10, quada)
 checkout_hypothesis <- function(dMod.frame, hypothesis, prefix = "", suffix = "") {
-  
+
   if(is.numeric(hypothesis)) {
     mydMod.frame <- dMod.frame[hypothesis,]
   } else {
@@ -384,9 +390,9 @@ checkout_hypothesis <- function(dMod.frame, hypothesis, prefix = "", suffix = ""
                pos = .GlobalEnv),
         silent = T)
   })
-  
+
   message("Objects in .GlobalEnv are updated")
-  
+
 }
 
 
@@ -405,7 +411,7 @@ checkout_hypothesis <- function(dMod.frame, hypothesis, prefix = "", suffix = ""
 #' @importFrom git2r add repository workdir
 git_add_dMod.frame <- function(dMod.frame) {
   frame_quo <- enquo(dMod.frame)
-  
+
   if(is_tibble(dMod.frame)) {
     rds_file <- tpaste0(quo_name(frame_quo), ".rds")
     saveRDS(dMod.frame, rds_file)
@@ -413,14 +419,14 @@ git_add_dMod.frame <- function(dMod.frame) {
     rds_file <- dMod.frame
     dMod.frame <- readRDS(rds_file)
   } else stop("dMod.frame is neither a file nor a tibble")
-  
+
   # if (is.null(dMod.frame[["eqnlists"]])) {
   #   print("If called from RMarkdown document, have a look at your console (ctrl+2)")
   #   yn <- readline("Would you like to add a column 'eqnlists'? (y = abort / anything else = continue this function to save without eqnlists)")
   #   if(yn == "y") stop("Commitment has been aborted")
   # }
-  
-  
+
+
   models <- do.call(c, dMod.frame) %>%
     map(function(i) {
       mymodelname <- try(modelname(i), silent = T)
@@ -432,16 +438,16 @@ git_add_dMod.frame <- function(dMod.frame) {
   .so <- .Platform$dynlib.ext
   files <- paste0(outer(models, c("", "_s", "_sdcv", "_deriv"), paste0), .so)
   files <- files[file.exists(files)]
-  
+
   # for compatibility with Rmd which sets its own workdir
   mywd <- getwd()
   mygitrep <- git2r::repository() %>% git2r::workdir()
   subfolder <- str_replace(mywd, mygitrep, "")
-  
+
   allfiles <- paste0(subfolder, "/", c(files, rds_file))
-  
+
   walk(allfiles , function(i) git2r::add(git2r::repository(), i))
-  
+
   NULL
 }
 
@@ -456,7 +462,7 @@ git_add_dMod.frame <- function(dMod.frame) {
 #' @export
 zip_dMod.frame <- function(dMod.frame, zipfile = NULL) {
   frame_quo <- enquo(dMod.frame)
-  
+
   if(is_tibble(dMod.frame)) {
     rds_file <- tpaste0(quo_name(frame_quo), ".rds")
     saveRDS(dMod.frame, rds_file)
@@ -464,12 +470,12 @@ zip_dMod.frame <- function(dMod.frame, zipfile = NULL) {
     rds_file <- dMod.frame
     dMod.frame <- readRDS(rds_file)
   } else stop("dMod.frame is neither a file nor a tibble")
-  
+
   # if (is.null(dMod.frame[["eqnlists"]])) {
   #   yn <- readline("Would you like to add a column 'eqnlists'? (y = stop this function / anything else = continue this function to save without eqnlists)")
   #   if(yn == "y") stop("Zipping has been aborted")
   # }
-  
+
   models <- unlist(dMod.frame) %>%
     map(function(i) {
       mymodelname <- try(modelname(i), silent = T)
@@ -481,9 +487,9 @@ zip_dMod.frame <- function(dMod.frame, zipfile = NULL) {
   .so <- .Platform$dynlib.ext
   files <- paste0(outer(models, c("", "_s", "_sdcv", "_deriv"), paste0), .so)
   files <- files[file.exists(files)]
-  
+
   if (is.null(zipfile)) {zipfile <- str_replace(rds_file, "rds", "zip")}
-  
+
   zip(zipfile, c(rds_file, files))
 }
 

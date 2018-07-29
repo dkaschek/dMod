@@ -127,16 +127,19 @@ plot.prdlist <- function(x, data = NULL, ..., scales = "free", facet = "wrap", t
 
 #' @export
 #' @rdname plotCombined
-#' @importFrom rlang enquos UQS
+#' @importFrom rlang enquos UQS sym
 #' @importFrom dplyr filter left_join
-plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL) {
+plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL, aesthetics = NULL) {
   
   dots <- rlang::enquos(...)
   mynames <- c("time", "name", "value", "sigma", "condition")
+  covnames <- NULL
   
   if (!is.null(data)) {
     add_condition_column <- function(covtable) cbind(covtable, condition = rownames(covtable), stringsAsFactors = F)
     covtable <- add_condition_column(covariates(data))
+    covnames <- names(covtable)
+    
     data <- lbind(data)
     data <- dplyr::left_join(data, covtable)
     data <- as.data.frame(dplyr::filter(data, rlang::UQS(dots)), stringsAsFactors = F)
@@ -153,16 +156,22 @@ plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", 
     if (!is.null(transform)) prediction <- coordTransform(prediction, transform)
   }
   
-  total <- rbind(prediction[, mynames], data[, mynames])
+  total <- rbind(prediction[, unique(c(mynames, covnames))], data[, unique(c(mynames, covnames))])
   
-  if (facet == "wrap")
-    p <- ggplot(total, aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma, 
-                           group = condition, color = condition)) + facet_wrap(~name, scales = scales)
-  if (facet == "grid")
-    p <- ggplot(total, aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma)) + facet_grid(name ~ condition, scales = scales)
+  aesthetics <- lapply(aesthetics, sym)
   
-  if (facet == "wrap_plain")
-    p <- ggplot(total, aes(x = time, y = value, ymin = value - sigma, ymax = value + sigma)) + facet_wrap(~name*condition, scales = scales)
+  if (facet == "wrap"){
+    aes0 <- quos(ymin = value - sigma, ymax = value + sigma, group = condition, color = condition)
+    aesthetics <- c(aes0[setdiff(names(aes0), names(aesthetics))], aesthetics)
+    p <- ggplot(total, aes(x = time, y = value, UQS(aesthetics))) + facet_wrap(~name, scales = scales)}
+  if (facet == "grid"){
+    aes0 <- quos(ymin = value - sigma, ymax = value + sigma)
+    aesthetics <- c(aes0[setdiff(names(aes0), names(aesthetics))], aesthetics)
+    p <- ggplot(total, aes(x = time, y = value, UQS(aesthetics))) + facet_grid(name ~ condition, scales = scales)}
+  if (facet == "wrap_plain"){
+    aes0 <- quos(ymin = value - sigma, ymax = value + sigma)
+    aesthetics <- c(aes0[setdiff(names(aes0), names(aesthetics))], aesthetics)
+    p <- ggplot(total, aes(x = time, y = value, UQS(aesthetics))) + facet_wrap(~name*condition, scales = scales)}
   
   if (!is.null(prediction))
     p <- p +  geom_line(data = prediction)

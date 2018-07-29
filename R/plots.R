@@ -172,6 +172,8 @@ plotPrediction <- function(x,...) {
 #' \code{"free_x"} or \code{"free_y"}
 #' @param facet \code{"wrap"} or \code{"grid"}. Try \code{"wrap_plain"} for high amounts of conditions and low amounts of observables.
 #' @param transform list of transformation for the states, see \link{coordTransform}.
+#' @param aesthetics Named list of aesthetic mappings, specified as character, e.g. \code{list(linetype = "name")}. 
+#' Can refer to variables in the condition.grid
 #' @details The data.frame being plotted has columns \code{time}, \code{value}, \code{sigma},
 #' \code{name} and \code{condition}.
 #'  

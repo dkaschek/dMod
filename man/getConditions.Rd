@@ -4,6 +4,7 @@
 \alias{getConditions}
 \alias{getConditions.list}
 \alias{getConditions.fn}
+\alias{getConditions.tbl_df}
 \title{Extract the conditions of an object}
 \usage{
 getConditions(x, ...)
@@ -11,11 +12,15 @@ getConditions(x, ...)
 \method{getConditions}{list}(x, ...)
 
 \method{getConditions}{fn}(x, ...)
+
+\method{getConditions}{tbl_df}(dMod.frame, hypothesis = 1)
 }
 \arguments{
 \item{x}{object from which the conditions should be extracted}
 
 \item{...}{additional arguments (not used right now)}
+
+\item{hypothesis}{The hypothesis in the dMod.frame}
 }
 \value{
 The conditions in a format that depends on the class of \code{x}.
