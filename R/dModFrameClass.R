@@ -147,7 +147,8 @@ appendObj <- function(dMod.frame,
 #' Most plotting functions rely on a column "parframes" to be existent in the dMod.frame
 #'
 #' @param dMod.frame A dmod.frame, preferably with a column \code{fits}.
-#' @param parframes Expression to turn a column containing a parlist (e.g. fits) into a column of parframess
+#' @param parframes Expression to turn a column containing a parlist (e.g. fits) into a column of parframes
+#' @param keepFits 
 #' @param ... Other columns you want to mutate
 #' @param keepCalls Store a record of the calls in a new colun? See \link{mutatedMod.frame}.
 #'
@@ -157,13 +158,16 @@ appendObj <- function(dMod.frame,
 #' @export
 appendParframes <- function(dMod.frame,
                             parframes = list(as.parframe(fits)),
+                            keepFits = F,
                             ...,
                             keepCalls = F) {
 
   args <- c(list(parframes = enquo(parframes)), quos(...))
 
-  mutatedMod.frame(dMod.frame, UQS(args), keepCalls = keepCalls)
-
+  out <- mutatedMod.frame(dMod.frame, UQS(args), keepCalls = keepCalls)
+  if(!keepFits)
+    out <- select(dMod.frame, -fits)
+  return(out)
 }
 
 

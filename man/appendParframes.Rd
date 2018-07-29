@@ -4,13 +4,15 @@
 \alias{appendParframes}
 \title{Make a column "parframes" out of "fits"}
 \usage{
-appendParframes(dMod.frame, parframes = list(as.parframe(fits)), ...,
-  keepCalls = F)
+appendParframes(dMod.frame, parframes = list(as.parframe(fits)),
+  keepFits = F, ..., keepCalls = F)
 }
 \arguments{
 \item{dMod.frame}{A dmod.frame, preferably with a column \code{fits}.}
 
-\item{parframes}{Expression to turn a column containing a parlist (e.g. fits) into a column of parframess}
+\item{parframes}{Expression to turn a column containing a parlist (e.g. fits) into a column of parframes}
+
+\item{keepFits}{}
 
 \item{...}{Other columns you want to mutate}
 
