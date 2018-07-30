@@ -166,7 +166,7 @@ appendParframes <- function(dMod.frame,
 
   out <- mutatedMod.frame(dMod.frame, UQS(args), keepCalls = keepCalls)
   if(!keepFits){
-    out <- out[!(names(out)=="fits")]}
+    out <- rowwise(out[!(names(out)=="fits")])}
   return(out)
 }
 

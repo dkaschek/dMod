@@ -94,8 +94,8 @@ as.datalist.list <- function(x, names = NULL, ..., condition.grid = attr(x, "con
 #' @rdname datalist
 "names<-.datalist" <- function(x, value) {
   x <- unclass(x)
-  base::`names<-`(x, value)
-  base::`rownames<-`(attr(x, "condition.grid"), value)
+  x <- base::`names<-`(x, value)
+  attr(x, "condition.grid") <- base::`rownames<-`(attr(x, "condition.grid"), value)
   return(as.datalist(x))
 }
 
