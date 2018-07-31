@@ -127,51 +127,56 @@ plot.prdlist <- function(x, data = NULL, ..., scales = "free", facet = "wrap", t
 
 #' @export
 #' @rdname plotCombined
-#' @importFrom rlang enquos UQS sym
+#' @importFrom rlang enexprs !!! sym exprs
 #' @importFrom dplyr filter left_join
 plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL, aesthetics = NULL) {
   
-  dots <- rlang::enquos(...)
+  dots <- rlang::enexprs(...)
   mynames <- c("time", "name", "value", "sigma", "condition")
-  covnames <- NULL
+  covtable <- NULL
   
   if (!is.null(data)) {
-    add_condition_column <- function(covtable) cbind(covtable, condition = rownames(covtable), stringsAsFactors = F)
-    covtable <- add_condition_column(covariates(data))
-    covnames <- names(covtable)
-    
+    rownames_to_condition <- function(covtable) {
+      out <- cbind(condition = rownames(covtable), covtable, stringsAsFactors = F)
+      out <- out[!duplicated(names(out))]
+      return(out)}
+    covtable <- rownames_to_condition(covariates(data))
+
     data <- lbind(data)
-    data <- dplyr::left_join(data, covtable)
-    data <- as.data.frame(dplyr::filter(data, rlang::UQS(dots)), stringsAsFactors = F)
+    data <- base::merge(data, covtable, by = "condition", all.x = T)
+    data <- dplyr::filter(data, `!!!`(dots))
+    data <- as.data.frame(data, stringsAsFactors = F)
     
     if (!is.null(transform)) data <- coordTransform(data, transform)
   }
   
   if (!is.null(prediction)) {
     prediction <- cbind(wide2long(prediction), sigma = NA)
-    if (!is.null(data))
-      prediction <- dplyr::left_join(prediction, covtable)
-    prediction <- as.data.frame(dplyr::filter(prediction, rlang::UQS(dots)), stringsAsFactors = F)
+    if (!is.null(data)) prediction <- base::merge(prediction, covtable, by = "condition", all.x = T)
+    prediction <- as.data.frame(dplyr::filter(prediction, `!!!`(dots)), stringsAsFactors = F)
     
     if (!is.null(transform)) prediction <- coordTransform(prediction, transform)
   }
   
-  total <- rbind(prediction[, unique(c(mynames, covnames))], data[, unique(c(mynames, covnames))])
+  total <- rbind(prediction[, unique(c(mynames, names(covtable)))], data[, unique(c(mynames, names(covtable)))])
   
-  aesthetics <- lapply(aesthetics, sym)
   
+  aesthetics <- lapply(aesthetics, function(myaes) {
+    if (!is.na(suppressWarnings(as.numeric(myaes))))
+      return(myaes)
+    return(rlang::sym(myaes))})
   if (facet == "wrap"){
-    aes0 <- quos(ymin = value - sigma, ymax = value + sigma, group = condition, color = condition)
+    aes0 <- rlang::exprs(ymin = value - sigma, ymax = value + sigma, group = condition, color = condition)
     aesthetics <- c(aes0[setdiff(names(aes0), names(aesthetics))], aesthetics)
-    p <- ggplot(total, aes(x = time, y = value, UQS(aesthetics))) + facet_wrap(~name, scales = scales)}
+    p <- ggplot(total, aes(x = time, y = value, `!!!`(aesthetics))) + facet_wrap(~name, scales = scales)}
   if (facet == "grid"){
-    aes0 <- quos(ymin = value - sigma, ymax = value + sigma)
+    aes0 <- rlang::exprs(ymin = value - sigma, ymax = value + sigma)
     aesthetics <- c(aes0[setdiff(names(aes0), names(aesthetics))], aesthetics)
-    p <- ggplot(total, aes(x = time, y = value, UQS(aesthetics))) + facet_grid(name ~ condition, scales = scales)}
+    p <- ggplot(total, aes(x = time, y = value, `!!!`(aesthetics))) + facet_grid(name ~ condition, scales = scales)}
   if (facet == "wrap_plain"){
-    aes0 <- quos(ymin = value - sigma, ymax = value + sigma)
+    aes0 <- rlang::exprs(ymin = value - sigma, ymax = value + sigma)
     aesthetics <- c(aes0[setdiff(names(aes0), names(aesthetics))], aesthetics)
-    p <- ggplot(total, aes(x = time, y = value, UQS(aesthetics))) + facet_wrap(~name*condition, scales = scales)}
+    p <- ggplot(total, aes(x = time, y = value, `!!!`(aesthetics))) + facet_wrap(~name*condition, scales = scales)}
   
   if (!is.null(prediction))
     p <- p +  geom_line(data = prediction)
@@ -193,11 +198,11 @@ plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", 
 #' @export
 #' @rdname plotPrediction
 #' @importFrom dplyr filter
-#' @importFrom rlang enquos UQS
+#' @importFrom rlang enexprs !!!
 plotPrediction.prdlist <- function(prediction, ..., scales = "free", facet = "wrap", transform = NULL) {
   
-  dots <- rlang::enquos(...)
-  prediction <- as.data.frame(dplyr::filter(wide2long.list(prediction), rlang::UQS(dots)), stringsAsFactors = F)
+  dots <- rlang::enexprs(...)
+  prediction <- as.data.frame(dplyr::filter(wide2long.list(prediction), `!!!`(dots)), stringsAsFactors = F)
   
   if (!is.null(transform)) prediction <- coordTransform(prediction, transform)
   

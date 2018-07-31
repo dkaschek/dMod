@@ -158,17 +158,21 @@ plot.datalist <- function(x, ..., scales = "free", facet = "wrap") {
 
 #' @export
 #' @rdname plotData
-#' @importFrom dplyr filter left_join
-#' @importFrom rlang enquos UQS
+#' @importFrom dplyr filter
+#' @importFrom rlang enexprs !!!
 plotData.datalist <- function(data, ..., scales = "free", facet = "wrap", transform = NULL) {
 
-  dots <- rlang::enquos(...)
+  dots <- rlang::enexprs(...)
 
-  add_condition_column <- function(covtable) cbind(covtable, condition = rownames(covtable), stringsAsFactors = F)
-  covtable <- add_condition_column(covariates(data))
+  rownames_to_condition <- function(covtable) {
+    out <- cbind(condition = rownames(covtable), covtable, stringsAsFactors = F)
+    out <- out[!duplicated(names(out))]
+    return(out)}
+  covtable <- rownames_to_condition(covariates(data))
+
   data <- lbind(data)
-  data <- dplyr::left_join(data, covtable)
-  data <- as.data.frame(dplyr::filter(data, rlang::UQS(dots)), stringsAsFactors = F)
+  data <- base::merge(data, covtable, by = "condition", all.x = T)
+  data <- as.data.frame(dplyr::filter(data, `!!!`(dots)), stringsAsFactors = F)
 
   if (!is.null(transform)) data <- coordTransform(data, transform)
 
