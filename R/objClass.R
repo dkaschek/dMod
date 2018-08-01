@@ -156,7 +156,7 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data", l
     # Apply res() and wrss() to compute residuals and the weighted residual sum of squares
     out.data <- lapply(conditions, function(cn) {
       err <- NULL
-      if (!is.null(e.conditions) && (cn %in% e.conditions)) {
+      if ((!is.null(errmodel) & is.null(e.conditions)) | (!is.null(e.conditions) && (cn %in% e.conditions))) {
         err <- errmodel(out = prediction[[cn]], pars = getParameters(prediction[[cn]]), conditions = cn)
         mywrss <- nll(res(data[[cn]], prediction[[cn]], err[[cn]], loq))
       } else {
