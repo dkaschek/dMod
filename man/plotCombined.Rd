@@ -8,8 +8,7 @@
 \alias{plot.prdframe}
 \title{Plot a list of model predictions and a list of data points in a combined plot}
 \usage{
-\method{plotCombined}{tbl_df}(dMod.frame, hypothesis = 1, index = 1,
-  ...)
+\method{plotCombined}{tbl_df}(dMod.frame, hypothesis = 1, index = 1, ...)
 
 plotCombined(x, ...)
 
@@ -17,8 +16,7 @@ plotCombined(x, ...)
   facet = "wrap", transform = NULL)
 
 \method{plotCombined}{prdlist}(prediction, data = NULL, ...,
-  scales = "free", facet = "wrap", transform = NULL,
-  aesthetics = NULL)
+  scales = "free", facet = "wrap", transform = NULL, aesthetics = NULL)
 
 \method{plot}{prdframe}(x, data = NULL, ..., scales = "free",
   facet = "wrap", transform = NULL)

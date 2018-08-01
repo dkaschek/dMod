@@ -9,8 +9,7 @@
 \usage{
 \method{plotProfile}{tbl_df}(dMod.frame, hypothesis = 1, ...)
 
-\method{plotProfile}{parframe}(profs, ..., maxvalue = 5,
-  parlist = NULL)
+\method{plotProfile}{parframe}(profs, ..., maxvalue = 5, parlist = NULL)
 
 \method{plotProfile}{list}(profs, ..., maxvalue = 5, parlist = NULL)
 
