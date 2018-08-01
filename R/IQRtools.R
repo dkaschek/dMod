@@ -12,7 +12,7 @@
 #' @param ... arguments going to \code{\link{odemodel}()}.
 #' @return list
 #' @export
-read.IQRmodel <- function(input, errmodel = NULL, regression = NULL, fix = NULL, estimate = NULL, ndoses = 1, ...) {
+read_IQRmodel <- function(input, errmodel = NULL, regression = NULL, fix = NULL, estimate = NULL, ndoses = 1, ...) {
   
   
   
@@ -76,9 +76,7 @@ read.IQRmodel <- function(input, errmodel = NULL, regression = NULL, fix = NULL,
     # Generate events
     derivs__ <- lapply(inputs__, function(x) jacobianSymb(states.equations__, x))
     vars__ <- lapply(derivs__, function(x) states__[x != "0"])
-    print(vars__)
     factors__ <- lapply(derivs__, function(x) x[x != "0"])
-    print(factors__)
     
     
     events__ <- data.frame(
@@ -244,7 +242,7 @@ read.IQRmodel <- function(input, errmodel = NULL, regression = NULL, fix = NULL,
 #' @return A datalist object with additional attributes \code{keep} and
 #' \code{dosing} (dosing parameter transformations).
 #' @export
-read.IQRdata <- function(data, keep = NULL, split.by = "CONDITION", loq = -Inf) {
+read_IQRdata <- function(data, keep = NULL, split.by = "CONDITION", loq = -Inf) {
 
   # Read Data
   if (is.character(data))
@@ -355,14 +353,15 @@ read.IQRdata <- function(data, keep = NULL, split.by = "CONDITION", loq = -Inf) 
 #' @param iiv parameters to be estimated per individuum, subset of the parameter names. By default none.
 #' @return List with guess, estimate, transform and iiv, filled up to the correct lengths. 
 #' @export
-define.IQRpars <- function(guess, estimate = NULL, transform = NULL, iiv = NULL) {
+define_IQRpars <- function(guess, estimate = NULL, transform = NULL, iiv_guess = NULL, iiv_estimate = NULL) {
   
   myguess <- guess
   n <- names(myguess)
   
   myestimate <- setNames(rep(1, length(n)), n)
   mytransform <- setNames(rep("L", length(n)), n)
-  myiiv <- character(0)
+  myiiv_guess <- setNames(rep(1, length(n)), n)
+  myiiv_estimate <- setNames(rep(0, length(n)), n)
   
   if (!is.null(estimate)) {
     myestimate[intersect(names(estimate), n)] <- estimate[intersect(names(estimate), n)]
@@ -372,25 +371,31 @@ define.IQRpars <- function(guess, estimate = NULL, transform = NULL, iiv = NULL)
     mytransform[intersect(names(transform), n)] <- transform[intersect(names(transform), n)]
   }
   
-  if (!is.null(iiv)) {
-    myiiv <- intersect(iiv, n)
+  if (!is.null(iiv_guess)) {
+    myiiv_guess[intersect(names(iiv_guess), n)] <- iiv_guess[intersect(names(iiv_guess), n)]
+  }
+  
+  if (!is.null(iiv_estimate)) {
+    myiiv_estimate[intersect(names(iiv_estimate), n)] <- iiv_estimate[intersect(names(iiv_estimate), n)]
   }
   
   
-  list(guess = myguess, estimate = myestimate, transform = mytransform, iiv = myiiv)
+  list(guess = myguess, estimate = myestimate, 
+       transform = mytransform, 
+       iiv_guess = myiiv_guess, iiv_estimate = myiiv_estimate)
   
 }
 
 
-#' Create dMod.frame from IQRtools imports
+#' Create a dMod.frame from IQRtools imports
 #' 
-#' @param hypothesis hypothesis name
 #' @param model result from \link{read.IQRmodel()}
 #' @param data result from \link{read.IQRdata()}
 #' @param parameters result from \link{define.IQRpars()}
+#' @param projectPath the path where to generate the project and store the results
 #' @return A \link{dMod.frame} object
 #' @export
-IQRdMod.frame <- function(hypothesis = date(), model, data, parameters) {
+IQRsysProject <- function(model, data, parameters, projectPath = NULL) {
   
   conditions <- names(data)
   keep <- attr(data, "keep")
@@ -429,8 +434,8 @@ IQRdMod.frame <- function(hypothesis = date(), model, data, parameters) {
     trafo <- repar("x ~ exp(x)/(1+exp(x))", x = tG, trafo)
     
     # Insert individualized parameters
-    if (length(parameters$iiv) > 0) {
-      trafo <- repar("x ~ (x + eta_x_condition)", x = parameters$iiv, condition = C, trafo)
+    if (any(parameters$iiv_estimate > 0)) {
+      trafo <- repar("x ~ (x + eta_x_condition)", x = names(parameters$iiv_guess)[parameters$iiv_estimate > 0], condition = C, trafo)
     }
     
     P(trafo, condition = C)
@@ -440,34 +445,72 @@ IQRdMod.frame <- function(hypothesis = date(), model, data, parameters) {
   
   outerpars <- getParameters(p)
   
-  etapars <- lapply(parameters$iiv, function(myiiv) paste("eta", myiiv, conditions, sep = "_"))
-  names(etapars) <- parameters$iiv
-  
-  omegapars <- lapply(parameters$iiv, function(myiiv) {
-    setNames(rep(paste0("omega_", myiiv), length(etapars[[myiiv]])), etapars[[myiiv]])
+  etapars.est <- with(parameters, {
+    x <- lapply(names(iiv_guess)[iiv_estimate == 1], function(myiiv) paste("eta", myiiv, conditions, sep = "_"))
+    names(x) <- names(iiv_guess)[iiv_estimate == 1]
+    return(x)
   })
   
+  etapars.fix <- with(parameters, {
+    x <- lapply(names(iiv_guess)[iiv_estimate == 2], function(myiiv) paste("eta", myiiv, conditions, sep = "_"))
+    names(x) <- names(iiv_guess)[iiv_estimate == 2]
+    return(x)
+  })
   
-  etanames <- unlist(etapars, use.names = FALSE)
-  omeganames <- unique(unlist(omegapars, use.names = FALSE))
+  omegapars.est <- with(parameters, {
+    lapply(names(iiv_guess)[iiv_estimate == 1], function(myiiv) {
+      setNames(rep(paste0("omega_", myiiv), length(etapars.est[[myiiv]])), etapars.est[[myiiv]])
+    })
+  })
   
-  eta <- setNames(rep(0, length(etanames)), etanames)
-  omega <- setNames(rep(log(0.2), length(omeganames)), omeganames)
-
+  omegapars.fix <- with(parameters, {
+    lapply(names(iiv_guess)[iiv_estimate == 2], function(myiiv) {
+      setNames(rep(paste0("omega_", myiiv), length(etapars.fix[[myiiv]])), etapars.fix[[myiiv]])
+    })
+  })
+  
+ 
+  
+  etanames.est <- unlist(etapars.est, use.names = FALSE)
+  etanames.fix <- unlist(etapars.fix, use.names = FALSE)
+  omeganames.est <- unique(unlist(omegapars.est, use.names = FALSE))
+  omeganames.fix <- unique(unlist(omegapars.fix, use.names = FALSE))
+  
+  
+  eta.est <- setNames(rep(0, length(etanames.est)), etanames.est)
+  eta.fix <- setNames(rep(0, length(etanames.fix)), etanames.fix)
+  omega.est <- with(parameters, setNames(log(iiv_guess[iiv_estimate == 1]), omeganames.est))
+  omega.fix <- with(parameters, setNames(iiv_guess[iiv_estimate == 2], omeganames.fix))
+  
+  # Other paramters
+  pars <- parameters$guess
+  pars[parameters$transform == "L"] <- log(pars[parameters$transform == "L"])
+  pars[parameters$transform == "G"] <- IQRtools::logit(pars[parameters$transform == "G"])
+  
   
   # Objective functions
   prd <- 
     model$g*model$x*p
   
-  nlme <- 
-    constraintL2(mu = eta, sigma = unlist(omegapars, use.names = FALSE)) + 
-    constraintL2(mu = omega, sigma = .2)
+  nlme <- NULL
+  if (length(omegapars.est) > 0) {
+    nlme.est <- constraintL2(mu = eta.est, sigma = unlist(omegapars.est, use.names = FALSE))
+    nlme <- nlme.est
+  }
   
+  if (length(omegapars.fix) > 0) {
+    nlme.fix <- constraintL2(mu = eta.fix, sigma = as.numeric(omega.fix[unlist(omegapars.fix, use.names = FALSE)]))
+    nlme <- nlme.fix
+  }
   
+  if (length(omega.est) > 0 & length(omega.fix) > 0) {
+    nlme <- nlme.est + nlme.fix
+  }
+
   obj <- obj_data <- 
     normL2(data, prd, model$e, loq = loq)
   
-  if (length(parameters$iiv) > 0) {
+  if (!is.null(nlme)) {
     obj <- obj_data + nlme
   }
   
@@ -476,7 +519,7 @@ IQRdMod.frame <- function(hypothesis = date(), model, data, parameters) {
   times <- seq(min(0, timerange[1]), timerange[2], length.out = 200)
   
   # Output dmod frame
-  myframe <- dMod.frame(hypothesis = hypothesis, 
+  myframe <- dMod.frame(hypothesis = date(), 
                         g = model[["g"]], 
                         x = model[["x"]], 
                         p = p, 
@@ -488,11 +531,198 @@ IQRdMod.frame <- function(hypothesis = date(), model, data, parameters) {
                        prd = list(prd),
                        obj_data = list(obj_data),
                        obj = list(obj),
-                       pars = list(c(omega, c(parameters$guess, eta)[outerpars])),
+                       parameters = list(parameters),
+                       pars = list(c(omega.est, c(pars, eta.est, eta.fix)[outerpars])),
                        times = list(times),
-                       eta = list(etapars),
-                       omega = list(omegapars))
+                       eta = list(c(etapars.est, etapars.fix)),
+                       omega = list(omegapars.est),
+                       projectPath = list(projectPath))
   
+  # Copy everything to project folder
+  if (!is.null(projectPath)) {
+    
+    if (dir.exists(projectPath)) unlink(projectPath, recursive = TRUE)
+    dir.create(projectPath)
+    saveRDS(myframe, file = file.path(projectPath, "project.rds"))
+    dll <- paste0(modelname(model$x), c(".so", ".dll"))
+    dll <- dll[file.exists(dll)]
+    
+    file.copy(dll, projectPath, overwrite = TRUE)
+    file.remove(dll)
+    
+  }
+  
+  return(myframe)
+  
+  
+}
+
+
+#' Runs an IQRsysProject
+run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.iterlim = 100, FLAGprofileLL = FALSE) {
+  
+  if (.Platform$OS.type=="windows") {
+    ncores <- 1
+    message("Only one core supported on Windows")
+  }
+    
+  mywd <- getwd()
+  setwd(proj[["projectPath"]][[1]])
+  
+  # Load project from disk
+  myframe <- readRDS("project.rds")
+  
+  # Load all available dll's
+  dlls <- c(
+    list.files(pattern = glob2rx("*.so")),
+    list.files(pattern = glob2rx("*.dll"))
+  )
+  for (d in dlls) dyn.load(d)
+  
+  # Run fits
+  cat("Running fits ... ")
+  myframe <- mutate(myframe, fits = list(mstrust(obj, pars, rinit = .1, rmax = 10, sd = opt.sd, fits = opt.nfits, iterlim = opt.iterlim, cores = ncores)))
+  cat("done.\n")
+  
+  # Augmenting by additional derived quantities
+  cat("Augmenting result by derived quantities ... ")
+  myframe <- appendParframes(myframe)
+  myframe <- mutate(myframe, parframes_full = list(parframes))
+  myframe <- mutate(myframe, parframes = list(parframes[ , !grepl("^eta_", names(parframes))]))
+  myframe <- mutate(myframe, bestfit = list(as.parvec(parframes_full)))
+  myframe <- mutate(myframe, vcov = list(structure(MASS::ginv(obj(bestfit)[["hessian"]]), dimnames = list(names(bestfit), names(bestfit)))))
+  cat("done.\n")
+  
+  
+  # Run profile likelihood
+  if (FLAGprofileLL) {
+    cat("Running profile likelihood ... ")
+    myframe <- mutate(
+      myframe, 
+      profiles = list(
+        profile(obj, bestfit, 
+                whichPar = names(parameters[["guess"]])[parameters[["estimate"]] == 1 & 
+                                                          !grepl("^sigma_", names(parameters[["guess"]])) &
+                                                          !grepl("^omega_", names(parameters[["guess"]]))],
+                cores = ncores, verbose = FALSE
+        )
+      )
+    )
+    cat("done.\n")
+    
+  }
+  
+  # Generate table of fitted parameters with uncertainty
+  bestfit <- myframe[["bestfit"]][[1]]
+  sigma <- sqrt(diag(myframe[["vcov"]][[1]]))
+  
+  mypartable <- data.frame(
+    parameter = names(bestfit),
+    value = as.numeric(bestfit),
+    lower.68 = as.numeric(bestfit) - sigma,
+    upper.68 = as.numeric(bestfit) + sigma,
+    stringsAsFactors = FALSE,
+    row.names = NULL
+  )
+  
+  # If profiles have been computed, replace sigma by that of profile
+  if (FLAGprofileLL) {
+    CI <- confint(myframe[["profiles"]][[1]], level = 0.68, val.column = "value")
+    select <- match(CI[["name"]], mypartable[["parameter"]])
+    mypartable[["lower.68"]][select] <- CI[["lower"]]
+    mypartable[["upper.68"]][select] <- CI[["upper"]]
+  }
+  
+  # Convert parameters back to original scale
+  transform <- myframe[["parameters"]][[1]][["transform"]]
+  estimate <- myframe[["parameters"]][[1]][["estimate"]]
+  transform <- transform[estimate == 1]
+  for (i in 1:length(transform)) {
+    n <- names(transform)[i]
+    select <- which(mypartable[["parameter"]] == n)
+    v <- unlist(mypartable[select, -1])
+    replacement <- switch(transform[i], N = v, L = exp(v), G = IQRtools::inv_logit(v))
+    mypartable[select, -1] <- replacement
+  }
+  
+  # Sort table alphabetically
+  mypartable <- mypartable[order(mypartable[["parameter"]]),]
+  
+  
+  myframe <- mutate(myframe, partable = list(mypartable))
+  myframe <- mutate(myframe, partable_pop = list(with(mypartable, mypartable[!grepl("^omega_", parameter) & !grepl("^eta_", parameter) & !grepl("^sigma_", parameter),])))
+  myframe <- mutate(myframe, partable_err = list(with(mypartable, mypartable[grepl("^sigma_", parameter),])))
+  myframe <- mutate(myframe, partable_eta = list(with(mypartable, mypartable[grepl("^eta_", parameter),])))
+  myframe <- mutate(myframe, partable_omega = list(with(mypartable, mypartable[grepl("^omega_", parameter),])))
+  
+  # Produce tables
+  cat("Producing tables ... ")
+  mytables <- c("partable_pop", "partable_eta", "partable_omega", "partable_err")
+  for (tabname in mytables) {
+    tab <- myframe[[tabname]][[1]]
+    IQRtools::IQRexportCSVdata(tab, filename = file.path("RESULTS", paste0(tabname, ".csv")))
+    IQRtools::IQRoutputTable(tab, filename = file.path("RESULTS", paste0(tabname, ".txt")), report = FALSE)
+  }
+  cat("done.\n")
+  
+  # Produce plots
+  cat("Producing plots ... ")
+  
+  # Waterfall plot
+  p <- plotValues(myframe[["parframes"]][[1]]) +
+    xlab("index of fit sorted by objective value") +
+    ylab("objective value") +
+    ggtitle("Objective values after parameter estimation for multiple initial guesses")
+  IQRtools::IQRoutputPDF(p, file.path("RESULTS", "plotValues.pdf"))
+  
+  # Parameter values
+  p <- plotPars(myframe[["parframes"]][[1]]) + xlab(NULL) + ylab("value") + coord_flip() + 
+    theme(axis.text.x = element_text(angle = 0, hjust = 0.5)) +
+    ggtitle("Values of the estimated parameters for multiple initial guesses")
+  IQRtools::IQRoutputPDF(p, file.path("RESULTS", "plotPars.pdf"))
+  
+  # Model prediction vs data
+  hypothesis <- lapply(myframe[1,], function(x) x[[1]])
+  p <- suppressMessages(with(hypothesis, {
+    prediction <- predict(prd, times = times, pars = unique(parframes_full), data = data, errormodel = e)
+    IDs <- unique(prediction[["ID"]])
+    IDs <- split(IDs, ceiling(seq_along(IDs)/12))
+    
+    lapply(IDs, function(myID) {
+      myprediction <- prediction[prediction[["ID"]] %in% myID, ]
+      mydata <- attr(prediction, "data")
+      mydata <- mydata[mydata[["ID"]] %in% myID, ]
+
+      ggplot(myprediction, aes(x = time, y = value, color = as.character(.index))) + 
+        facet_wrap(~ID, scales = "free", nrow = 3, ncol = 4) +
+        geom_ribbon(aes(ymin = value - sigma, ymax = value + sigma), alpha = .3, lty = 0) +
+        geom_line() +
+        geom_point(data = mydata, color = "black") +
+        scale_color_dMod(name = "index") + scale_fill_dMod(name = "index") +
+        theme_dMod()
+      
+    })
+  }))
+  IQRtools::IQRoutputPDFstart(file.path("RESULTS", "plotPredVsData.pdf"))
+  for (i in 1:length(p)) print(p[[i]])
+  IQRtools::IQRoutputPDFend(file.path("RESULTS", "plotPredVsData.pdf"))
+  
+  # Profile likelihood
+  if (FLAGprofileLL) {
+    p <- plotProfile(myframe[["profiles"]][[1]])
+    ggtitle("Profile likelihood")
+    IQRtools::IQRoutputPDF(p, file.path("RESULTS", "plotProfile.pdf"))
+  }
+  
+  cat("done.\n")
+  
+  # Save results
+  saveRDS(myframe, file = "project.rds")
+  
+  # Return to original working directory
+  setwd(mywd)
+  
+  # Return the results as dMod.frame
   return(myframe)
   
   
