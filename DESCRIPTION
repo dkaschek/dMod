@@ -22,8 +22,7 @@ Imports:
     plyr,
     digest,
     dplyr,
-    rlang,
-    git2r
+    rlang
 Suggests:
     MASS,
     rPython,
