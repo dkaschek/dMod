@@ -562,6 +562,18 @@ IQRsysProject <- function(model, data, parameters, projectPath = NULL) {
 
 
 #' Runs an IQRsysProject
+#' 
+#' @param proj an IQRsys Project
+#' @param ncores number of cores to use (uses mclapply -> only on Unix/Mac)
+#' @param opt.nfits Number of fits
+#' @param opt.sd Standard deviation of inital guesses for multi-start fitting
+#' @param opt.iterlim Number of iterations allows for the optimizer
+#' @param opt.prior_sigma Width of the L2 prior. No prior if NULL (default)
+#' @param FLAGprofileLL Computes profile likelihood if TRUE (defaults to FALSE)
+#' 
+#' @return dMod.frame including the original project and all the results. In addition, results are written to disc.
+#' 
+#' @export
 run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.iterlim = 100, opt.prior_sigma = NULL, FLAGprofileLL = FALSE) {
   
   if (.Platform$OS.type=="windows") {

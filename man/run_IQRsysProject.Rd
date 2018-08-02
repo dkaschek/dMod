@@ -5,7 +5,25 @@
 \title{Runs an IQRsysProject}
 \usage{
 run_IQRsysProject(proj, ncores = 1, opt.nfits = 10, opt.sd = 1,
-  opt.iterlim = 100, FLAGprofileLL = FALSE)
+  opt.iterlim = 100, opt.prior_sigma = NULL, FLAGprofileLL = FALSE)
+}
+\arguments{
+\item{proj}{an IQRsys Project}
+
+\item{ncores}{number of cores to use (uses mclapply -> only on Unix/Mac)}
+
+\item{opt.nfits}{Number of fits}
+
+\item{opt.sd}{Standard deviation of inital guesses for multi-start fitting}
+
+\item{opt.iterlim}{Number of iterations allows for the optimizer}
+
+\item{opt.prior_sigma}{Width of the L2 prior. No prior if NULL (default)}
+
+\item{FLAGprofileLL}{Computes profile likelihood if TRUE (defaults to FALSE)}
+}
+\value{
+dMod.frame including the original project and all the results. In addition, results are written to disc.
 }
 \description{
 Runs an IQRsysProject
