@@ -90,6 +90,7 @@ as.datalist.list <- function(x, names = NULL, ..., condition.grid = attr(x, "con
 
 ## Methods for class datalist ---------------------------------------
 
+#' @param value The new condition names of the datalist and its condition.grid
 #' @export
 #' @rdname datalist
 "names<-.datalist" <- function(x, value) {
@@ -217,7 +218,7 @@ as.data.frame.datalist <- function(x, ...) {
 
 #' Access the covariates in the data
 #'
-#' @param data Either a \link{datalist} or a \code{data.frame} with mandatory columns \code{c("name", "time", "value", "sigma")} or a \link{dMod.frame}
+#' @param x Either a \link{datalist} or a \code{data.frame} with mandatory columns \code{c("name", "time", "value", "sigma")} or a \link{dMod.frame}
 #' @param hypothesis The hypothesis in the dMod.frame
 #'
 #' @return The \code{condition.grid} of the data
