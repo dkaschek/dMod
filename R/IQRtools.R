@@ -407,6 +407,7 @@ IQRsysProject <- function(model, data, parameters, projectPath = NULL) {
   
   covtable <- covariates(data)
   
+  fixed <- parameters$guess[parameters$estimate == 0]
   p <- Reduce("+", lapply(conditions, function(C) {
     
     trafo <- getEquations(model[["p"]])[[1]]
@@ -419,12 +420,9 @@ IQRsysProject <- function(model, data, parameters, projectPath = NULL) {
     mydosing <- dosing[[C]]
     trafo[names(mydosing)] <- mydosing
     
-    # Replace fixed parameters in what is left
-    trafo <- replaceSymbols(names(model$fixed), 
-                            model$fixed, 
-                            trafo)
-    trafo <- replaceSymbols(names(parameters$guess)[parameters$estimate == 0], 
-                            parameters$guess[parameters$estimate == 0],
+    # Replace fixed parameters from model in what is left
+    trafo <- replaceSymbols(setdiff(names(model$fixed), names(fixed)), 
+                            model$fixed[setdiff(names(model$fixed), names(fixed))], 
                             trafo)
     
     # Perform parameter transformations
@@ -489,7 +487,8 @@ IQRsysProject <- function(model, data, parameters, projectPath = NULL) {
   pars <- parameters$guess
   pars[parameters$transform == "L"] <- log(pars[parameters$transform == "L"])
   pars[parameters$transform == "G"] <- IQRtools::logit(pars[parameters$transform == "G"])
-  
+  fixed <- pars[parameters$estimate == 0]
+  pars <- pars[parameters$estimate == 1]
   
   # Objective functions
   prd <- 
@@ -497,12 +496,12 @@ IQRsysProject <- function(model, data, parameters, projectPath = NULL) {
   
   nlme <- NULL
   if (length(omegapars.est) > 0) {
-    nlme.est <- constraintL2(mu = eta.est, sigma = unlist(omegapars.est, use.names = FALSE))
+    nlme.est <- constraintL2(mu = eta.est, sigma = unlist(omegapars.est, use.names = FALSE), attr.name = "data")
     nlme <- nlme.est
   }
   
   if (length(omegapars.fix) > 0) {
-    nlme.fix <- constraintL2(mu = eta.fix, sigma = as.numeric(omega.fix[unlist(omegapars.fix, use.names = FALSE)]))
+    nlme.fix <- constraintL2(mu = eta.fix, sigma = as.numeric(omega.fix[unlist(omegapars.fix, use.names = FALSE)]), attr.name = "data")
     nlme <- nlme.fix
   }
   
@@ -535,7 +534,8 @@ IQRsysProject <- function(model, data, parameters, projectPath = NULL) {
                        obj_data = list(obj_data),
                        obj = list(obj),
                        parameters = list(parameters),
-                       pars = list(c(omega.est, c(pars, eta.est, eta.fix)[outerpars])),
+                       pars = list(c(omega.est, c(pars, eta.est, eta.fix))),
+                       fixed = list(fixed),
                        times = list(times),
                        eta = list(c(etapars.est, etapars.fix)),
                        omega = list(omegapars.est),
@@ -545,7 +545,7 @@ IQRsysProject <- function(model, data, parameters, projectPath = NULL) {
   if (!is.null(projectPath)) {
     
     if (dir.exists(projectPath)) unlink(projectPath, recursive = TRUE)
-    dir.create(projectPath)
+    dir.create(projectPath, recursive = TRUE)
     saveRDS(myframe, file = file.path(projectPath, "project.rds"))
     dll <- paste0(modelname(model$x), c(".so", ".dll"))
     dll <- dll[file.exists(dll)]
@@ -562,7 +562,7 @@ IQRsysProject <- function(model, data, parameters, projectPath = NULL) {
 
 
 #' Runs an IQRsysProject
-run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.iterlim = 100, FLAGprofileLL = FALSE) {
+run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.iterlim = 100, opt.prior_sigma = NULL, FLAGprofileLL = FALSE) {
   
   if (.Platform$OS.type=="windows") {
     ncores <- 1
@@ -582,9 +582,16 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
   )
   for (d in dlls) dyn.load(d)
   
+  
+  # Prior
+  if (!is.null(opt.prior_sigma)) {
+    mu <- myframe[["parameters"]][[1]][["guess"]]
+    myframe <- mutate(myframe, obj = list(obj + constraintL2(mu, sigma = opt.prior_sigma)))
+  }
+  
   # Run fits
   cat("Running fits ... ")
-  myframe <- mutate(myframe, fits = list(mstrust(obj, pars, rinit = .1, rmax = 10, sd = opt.sd, fits = opt.nfits, iterlim = opt.iterlim, cores = ncores)))
+  myframe <- mutate(myframe, fits = list(mstrust(obj, pars, rinit = .1, rmax = 10, sd = opt.sd, fits = opt.nfits, iterlim = opt.iterlim, cores = ncores, fixed = fixed)))
   cat("done.\n")
   
   # Augmenting by additional derived quantities
@@ -593,7 +600,7 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
   myframe <- mutate(myframe, parframes_full = list(parframes))
   myframe <- mutate(myframe, parframes = list(parframes[ , !grepl("^eta_", names(parframes))]))
   myframe <- mutate(myframe, bestfit = list(as.parvec(parframes_full)))
-  myframe <- mutate(myframe, vcov = list(structure(MASS::ginv(obj(bestfit)[["hessian"]]), dimnames = list(names(bestfit), names(bestfit)))))
+  myframe <- mutate(myframe, vcov = list(structure(MASS::ginv(obj(bestfit, fixed = fixed)[["hessian"]]), dimnames = list(names(bestfit), names(bestfit)))))
   cat("done.\n")
   
   
@@ -607,7 +614,7 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
                 whichPar = names(parameters[["guess"]])[parameters[["estimate"]] == 1 & 
                                                           !grepl("^sigma_", names(parameters[["guess"]])) &
                                                           !grepl("^omega_", names(parameters[["guess"]]))],
-                cores = ncores, verbose = FALSE
+                cores = ncores, verbose = FALSE, fixed = fixed
         )
       )
     )
@@ -630,7 +637,7 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
   
   # If profiles have been computed, replace sigma by that of profile
   if (FLAGprofileLL) {
-    CI <- confint(myframe[["profiles"]][[1]], level = 0.68, val.column = "value")
+    CI <- confint(myframe[["profiles"]][[1]], level = 0.68, val.column = "data")
     select <- match(CI[["name"]], mypartable[["parameter"]])
     mypartable[["lower.68"]][select] <- CI[["lower"]]
     mypartable[["upper.68"]][select] <- CI[["upper"]]
@@ -647,6 +654,24 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
     replacement <- switch(transform[i], N = v, L = exp(v), G = IQRtools::inv_logit(v))
     mypartable[select, -1] <- replacement
   }
+  
+  # Add fixed parameters
+  hypothesis <- lapply(myframe[1,], function(x) x[[1]])
+  mypartable[["estimate"]] <- TRUE
+  fixedtable <- with(hypothesis, {
+    isFixed <- parameters$estimate == 0
+    data.frame(
+      parameter = names(parameters$guess)[isFixed],
+      value = (parameters$guess)[isFixed],
+      lower.68 = NaN,
+      upper.68 = NaN,
+      estimate = FALSE,
+      stringsAsFactors = FALSE,
+      row.names = NULL
+    )
+  })
+  
+  mypartable <- rbind(mypartable, fixedtable)
   
   # Sort table alphabetically
   mypartable <- mypartable[order(mypartable[["parameter"]]),]
@@ -687,21 +712,21 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
   # Model prediction vs data
   hypothesis <- lapply(myframe[1,], function(x) x[[1]])
   p <- suppressMessages(with(hypothesis, {
-    prediction <- predict(prd, times = times, pars = unique(parframes_full), data = data, errormodel = e)
+    prediction <- as.data.frame(prd(times, bestfit, fixed = fixed), data = data, errfn = e) 
+    
     IDs <- unique(prediction[["ID"]])
     IDs <- split(IDs, ceiling(seq_along(IDs)/12))
     
     lapply(IDs, function(myID) {
       myprediction <- prediction[prediction[["ID"]] %in% myID, ]
-      mydata <- attr(prediction, "data")
+      mydata <- as.data.frame(data)
       mydata <- mydata[mydata[["ID"]] %in% myID, ]
 
-      ggplot(myprediction, aes(x = time, y = value, color = as.character(.index))) + 
+      ggplot(myprediction, aes(x = time, y = value)) + 
         facet_wrap(~ID, scales = "free", nrow = 3, ncol = 4) +
         geom_ribbon(aes(ymin = value - sigma, ymax = value + sigma), alpha = .3, lty = 0) +
         geom_line() +
-        geom_point(data = mydata, color = "black") +
-        scale_color_dMod(name = "index") + scale_fill_dMod(name = "index") +
+        geom_point(data = mydata) +
         theme_dMod()
       
     })
@@ -712,8 +737,9 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
   
   # Profile likelihood
   if (FLAGprofileLL) {
-    p <- plotProfile(myframe[["profiles"]][[1]])
-    ggtitle("Profile likelihood")
+    p <- plotProfile(myframe[["profiles"]][[1]], mode == "data") +
+      theme(legend.position = "none") +
+      ggtitle("Profile likelihood")
     IQRtools::IQRoutputPDF(p, file.path("RESULTS", "plotProfile.pdf"))
   }
   
