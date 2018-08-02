@@ -273,6 +273,8 @@ read_IQRdata <- function(data, keep = NULL, split.by = "CONDITION", loq = -Inf) 
   
   dosing <- NULL
   if (nrow(mydosing) > 0) {
+    
+    
     # Determine dosing scheme from data
     # returns a vector (length = max(ADM), value = max number of administrations)
     scheme <- Reduce(function(x, y) {
@@ -300,12 +302,13 @@ read_IQRdata <- function(data, keep = NULL, split.by = "CONDITION", loq = -Inf) 
     # Determine dosing parameters
     dosing <- lapply(split(mydosing, mydosing[split.by]), function(mydosing) {
       
+    
       mydosing <- mydosing[mydosing$ID == mydosing$ID[1], c("TIME", "AMT", "ADM", "TINF")]
       if (nrow(mydosing) > 0) {
         INPUT <- mydosing[["ADM"]]
-        nDOSE <- sapply(1:length(INPUT), function(i) {
-          cumsum(mydosing[["ADM"]] == INPUT[i])[mydosing[["ADM"]] == INPUT[i]][i]
-        })
+        nDOSE <- unlist(lapply(1:length(INPUT), function(i) {
+          cumsum(mydosing[["ADM"]] == INPUT[i])[mydosing[["ADM"]] == INPUT[i]]
+        }))
         AMT <- mydosing[["AMT"]]
         TIME <- mydosing[["TIME"]]
         TINF <- pmax(1e-4, mydosing[["TINF"]])
