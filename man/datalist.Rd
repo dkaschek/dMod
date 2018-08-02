@@ -34,6 +34,8 @@ selected.}
 \item{names}{optional names vector, otherwise names are taken from \code{mylist}}
 
 \item{condition.grid}{Optionally, to manually specify a condition.grid}
+
+\item{value}{The new condition names of the datalist and its condition.grid}
 }
 \value{
 Object of class \code{datalist}.

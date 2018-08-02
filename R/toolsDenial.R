@@ -9,6 +9,7 @@
 #' 
 #' @export
 #' 
+#' 
 #' @example inst/examples/saveShiny_dMod.frame.R
 saveShiny_dMod.frame <- function(dMod.frame, hypothesis = 1, 
                                  reactions = dMod.frame$reactions[[hypothesis]], pubref = "none", fixed = dMod.frame$fixed[[hypothesis]],
@@ -41,14 +42,14 @@ saveShiny_dMod.frame <- function(dMod.frame, hypothesis = 1,
   
   system(paste0("scp input_shiny.RData ", folder, "."))
   
-  models <- do.call(c, dMod.frame[hypothesis, drop = F]) %>%
-    lapply(function(i) {
+  models <-  
+    lapply(do.call(c, dMod.frame[hypothesis, drop = F]), function(i) {
       mymodelname <- try(modelname(i), silent = T)
       if (!inherits(mymodelname, "try-error")) return(mymodelname)
       else return(NULL)
-    }) %>% 
-    do.call(c,.) %>%
-    unique()
+    }) 
+  models <- unique(do.call(c,models))
+  
   .so <- .Platform$dynlib.ext
   files <- paste0(outer(models, c("", "_s", "_sdcv", "_deriv"), paste0), .so)
   files <- files[file.exists(files)]
@@ -75,9 +76,11 @@ saveShiny_dMod.frame <- function(dMod.frame, hypothesis = 1,
 #' 
 #' @seealso \link{parframe}
 #' 
+#' @importFrom stats setNames
+#' 
 #' @example inst/examples/getSteps.R
 getStepIndices <- function(myparframe, nsteps = 5, tol = 1) {
-  steps <- steps0 <- dMod:::stepDetect(myparframe$value, tol)
+  steps <- stepDetect(myparframe$value, tol)
   steps <- steps[order(c(diff(steps), nrow(myparframe)-max(steps)), decreasing = T)][1:nsteps]
   steps <- unique(sort(c(1, steps))) #include the first step no matter what
   setNames(steps, paste0("index", steps))
@@ -97,7 +100,7 @@ getStepIndices <- function(myparframe, nsteps = 5, tol = 1) {
 #' 
 #' @example inst/examples/getSteps.R
 getSteps <- function(myparframe, nsteps = 5, tol = 1) {
-  steps <- steps0 <- dMod:::stepDetect(myparframe$value, tol)
+  steps <- steps0 <- stepDetect(myparframe$value, tol)
   steps <- steps[order(c(diff(steps), nrow(myparframe)-max(steps)), decreasing = T)][1:nsteps]
   steps <- unique(sort(c(1, steps))) #include the first step no matter what
   
@@ -115,15 +118,6 @@ getSteps <- function(myparframe, nsteps = 5, tol = 1) {
   
   myparframe[step_members,]
 }
-
-
-
-
-
-
-
-
-
 
 
 

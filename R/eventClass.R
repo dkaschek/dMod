@@ -31,6 +31,8 @@ eventlist <- function(var = NULL, time = NULL, value = NULL, method = NULL) {
   
 }
 
+#' Coerce to eventlist
+#'
 #' @export
 as.eventlist <- function(x, ...) {
   UseMethod("as.eventlist", x)
@@ -38,6 +40,8 @@ as.eventlist <- function(x, ...) {
 
 
 #' @export
+#' @rdname as.eventlist
+#' @param x list, data.frame
 as.eventlist.list <- function(x) {
   
   # Check names
@@ -57,6 +61,7 @@ as.eventlist.list <- function(x) {
 }
 
 #' @export
+#' @rdname as.eventlist
 as.eventlist.data.frame <- function(x) {
 
   as.eventlist.list(as.list(x))

@@ -100,8 +100,8 @@ parameters <- c("a", "b", "par1", "par2", "par3")
 pars_to_insert <- c("par1", "par2")
 # pars_to_insert <- intersect(getParameters(g*x), names(data)) # this would be the usual way when setting up a model
 
-trafo <- define(NULL, "x~x", x = parameters) \%>\% 
-  branch(covariates(as.datalist(mydataframe)))
+trafo <- define(NULL, "x~x", x = parameters) 
+trafo <- branch(trafo, covariates(as.datalist(mydataframe)))
 
 # Trick 1: Access values from covariates()-Table with get/mget. 
     # The names of the parameters which are supplied in the covariates()-table have to be supplied manually.
@@ -113,8 +113,8 @@ trafo <- insert(trafo, "x~exp(X)", x = .currentSymbols, X = toupper(.currentSymb
 
 # Trick 3: Condition specificity. There are two ways to do this
   # 1. Apply reparametrization only for specific conditions using Regular Expressions for the conditionMatch argument. This matches the condition name agains a regex
-trafo <- define(NULL, "x~x", x = parameters) \%>\% 
-  branch(covariates(as.datalist(mydataframe)))
+trafo <- define(NULL, "x~x", x = parameters) 
+trafo <- branch(trafo, covariates(as.datalist(mydataframe)))
 
 insert(trafo, "x~x_par3", x = "a", conditionMatch = "^0_9", par3 = par3)  # Conditions starting with 0_9
 insert(trafo, "x~0", x = "a", conditionMatch = "^(?!0_9)")                # Conditions NOT starting with 0_9

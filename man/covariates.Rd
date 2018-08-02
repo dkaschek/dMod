@@ -16,9 +16,9 @@ covariates(x)
 \method{covariates}{data.frame}(x)
 }
 \arguments{
-\item{hypothesis}{The hypothesis in the dMod.frame}
+\item{x}{Either a \link{datalist} or a \code{data.frame} with mandatory columns \code{c("name", "time", "value", "sigma")} or a \link{dMod.frame}}
 
-\item{data}{Either a \link{datalist} or a \code{data.frame} with mandatory columns \code{c("name", "time", "value", "sigma")} or a \link{dMod.frame}}
+\item{hypothesis}{The hypothesis in the dMod.frame}
 }
 \value{
 The \code{condition.grid} of the data
