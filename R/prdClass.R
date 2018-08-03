@@ -144,7 +144,7 @@ plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", 
 
     data <- lbind(data)
     data <- base::merge(data, covtable, by = "condition", all.x = T)
-    data <- dplyr::filter(data, `!!!`(dots))
+    data <- dplyr::filter(data, ...)
     data <- as.data.frame(data, stringsAsFactors = F)
     
     if (!is.null(transform)) data <- coordTransform(data, transform)
@@ -153,7 +153,7 @@ plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", 
   if (!is.null(prediction)) {
     prediction <- cbind(wide2long(prediction), sigma = NA)
     if (!is.null(data)) prediction <- base::merge(prediction, covtable, by = "condition", all.x = T)
-    prediction <- as.data.frame(dplyr::filter(prediction, `!!!`(dots)), stringsAsFactors = F)
+    prediction <- as.data.frame(dplyr::filter(prediction, ...), stringsAsFactors = F)
     
     if (!is.null(transform)) prediction <- coordTransform(prediction, transform)
   }
@@ -166,17 +166,17 @@ plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", 
       return(myaes)
     return(rlang::sym(myaes))})
   if (facet == "wrap"){
-    aes0 <- rlang::exprs(ymin = value - sigma, ymax = value + sigma, group = condition, color = condition)
+    aes0 <- list(ymin = "value - sigma", ymax = "value + sigma", group = "condition", color = "condition")
     aesthetics <- c(aes0[setdiff(names(aes0), names(aesthetics))], aesthetics)
-    p <- ggplot(total, aes(x = time, y = value, `!!!`(aesthetics))) + facet_wrap(~name, scales = scales)}
+    p <- ggplot(total, do.call("aes_string", c(list(x = "time", y = "value"), aesthetics))) + facet_wrap(~name, scales = scales)}
   if (facet == "grid"){
-    aes0 <- rlang::exprs(ymin = value - sigma, ymax = value + sigma)
+    aes0 <- list(ymin = "value - sigma", ymax = "value + sigma")
     aesthetics <- c(aes0[setdiff(names(aes0), names(aesthetics))], aesthetics)
-    p <- ggplot(total, aes(x = time, y = value, `!!!`(aesthetics))) + facet_grid(name ~ condition, scales = scales)}
+    p <- ggplot(total, do.call("aes_string", c(list(x = "time", y = "value"), aesthetics))) + facet_grid(name ~ condition, scales = scales)}
   if (facet == "wrap_plain"){
-    aes0 <- rlang::exprs(ymin = value - sigma, ymax = value + sigma)
+    aes0 <- list(ymin = "value - sigma", ymax = "value + sigma")
     aesthetics <- c(aes0[setdiff(names(aes0), names(aesthetics))], aesthetics)
-    p <- ggplot(total, aes(x = time, y = value, `!!!`(aesthetics))) + facet_wrap(~name*condition, scales = scales)}
+    p <- ggplot(total, do.call("aes_string", c(list(x = "time", y = "value"), aesthetics))) + facet_wrap(~name*condition, scales = scales)}
   
   if (!is.null(prediction))
     p <- p +  geom_line(data = prediction)
@@ -201,13 +201,13 @@ plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", 
 #' @importFrom rlang enexprs !!!
 plotPrediction.prdlist <- function(prediction, ..., scales = "free", facet = "wrap", transform = NULL) {
   
-  dots <- rlang::enexprs(...)
-  prediction <- as.data.frame(dplyr::filter(wide2long.list(prediction), `!!!`(dots)), stringsAsFactors = F)
+  prediction <- as.data.frame(dplyr::filter(wide2long.list(prediction), ...), stringsAsFactors = F)
   
   if (!is.null(transform)) prediction <- coordTransform(prediction, transform)
   
   if (facet == "wrap")
-    p <- ggplot(prediction, aes(x = time, y = value, group = condition, color = condition)) + facet_wrap(~name, scales = scales)
+    p <- ggplot(prediction, aes(x = time, y = value, group = condition, color = condition)) + 
+      facet_wrap(~name, scales = scales)
   if (facet == "grid")
     p <- ggplot(prediction, aes(x = time, y = value)) + facet_grid(name ~ condition, scales = scales)
   

@@ -163,8 +163,6 @@ plot.datalist <- function(x, ..., scales = "free", facet = "wrap") {
 #' @importFrom rlang enexprs !!!
 plotData.datalist <- function(data, ..., scales = "free", facet = "wrap", transform = NULL) {
 
-  dots <- rlang::enexprs(...)
-
   rownames_to_condition <- function(covtable) {
     out <- cbind(condition = rownames(covtable), covtable, stringsAsFactors = F)
     out <- out[!duplicated(names(out))]
@@ -173,13 +171,14 @@ plotData.datalist <- function(data, ..., scales = "free", facet = "wrap", transf
 
   data <- lbind(data)
   data <- base::merge(data, covtable, by = "condition", all.x = T)
-  data <- as.data.frame(dplyr::filter(data, `!!!`(dots)), stringsAsFactors = F)
+  data <- as.data.frame(dplyr::filter(data, ...), stringsAsFactors = F)
 
   if (!is.null(transform)) data <- coordTransform(data, transform)
 
   if (facet == "wrap")
-    p <-  ggplot(data, aes(x = time, y = value, ymin = value - sigma,
-                           ymax = value + sigma, group = condition, color = condition)) + facet_wrap(~name, scales = scales)
+    p <- ggplot(data, aes(x = time, y = value, ymin = value - sigma,
+                          ymax = value + sigma, group = condition, color = condition)) + 
+    facet_wrap(~name, scales = scales)
   if (facet == "grid")
     p <- ggplot(data, aes(x = time, y = value, ymin = value - sigma,
                           ymax = value + sigma)) +  facet_grid(name ~ condition, scales = scales)
