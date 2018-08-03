@@ -703,6 +703,37 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
     IQRtools::IQRexportCSVdata(tab, filename = file.path("RESULTS", paste0(tabname, ".csv")))
     IQRtools::IQRoutputTable(tab, filename = file.path("RESULTS", paste0(tabname, ".txt")), report = FALSE)
   }
+  
+  # Produce table of parameters with objective value, AIC, BIC for all local optima found
+  with(hypothesis, {
+    
+    
+    mytable <- unique(parframes)
+    mytransform <- parameters$transform[parameters$estimate == 1]
+    for (i in 1:length(mytransform)) {
+      
+      myname <- names(mytransform)[i]
+      myvalue <- mytable[[myname]]
+      myvalue <- switch(mytransform[i], N = myvalue, L = exp(myvalue), G = IQRtools::inv_logit(myvalue))
+      mytable[[myname]] <- myvalue
+      
+    }
+    
+    ndata <- nrow(as.data.frame(data))
+    npars <- length(bestfit)
+    
+    BIC <- log(ndata)*npars + mytable$value
+    AIC <- 2*npars + mytable$value
+    
+    outtable <- cbind(mytable[, c("index", "value")], BIC, AIC, mytable[ , c("converged", "iterations", attr(mytable, "parameters"))])
+    names(outtable)[2] <- "OBJ"
+    rownames(outtable) <- NULL
+    
+    IQRtools::IQRexportCSVdata(outtable, filename = file.path("RESULTS", "parframe.csv"))
+    IQRtools::IQRoutputTable(outtable, filename = file.path("RESULTS", "parframe.txt"), report = FALSE)
+    
+    
+  })
   cat("done.\n")
   
   # Produce plots
@@ -754,6 +785,35 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
       ggtitle("Profile likelihood")
     IQRtools::IQRoutputPDF(p, file.path("RESULTS", "plotProfile.pdf"))
   }
+  
+  
+  # Plot of the individual parameters
+  with(hypothesis, {
+  
+    eta.result <- bestfit[names(bestfit) %in% unlist(eta)]
+    eta.names <- unlist(eta)
+    names(eta.names) <- sapply(1:length(eta), function(i) rep(names(eta)[i], length(eta[[i]])))
+    
+    mydata <- data.frame(
+      parname = names(eta.result),
+      popname = names(eta.names)[match(names(eta.result), eta.names)],
+      value = eta.result
+    )
+    
+    p <- ggplot(mydata, aes(y = value, x = popname)) +
+      geom_boxplot(color = "darkgray") +
+      geom_point() +
+      coord_flip() +
+      ylab("Individual parameter values") + xlab(NULL) +
+      geom_hline(yintercept = 0, lty = 2, color = "firebrick2") +
+      ggtitle("Distribution of the individual parameter values") +
+      theme_dMod() 
+    
+    IQRtools::IQRoutputPDF(p, file.path("RESULTS", "plotIndividualPars.pdf"))
+    
+  })
+  
+  
   
   cat("done.\n")
   
