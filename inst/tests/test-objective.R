@@ -1,3 +1,4 @@
+context("Sumobjfn")
 test_that("objective functions can be evaluated and summed", {
   
   #-!Start example code
