@@ -546,7 +546,7 @@ IQRsysProject <- function(model, data, parameters, projectPath = NULL) {
     
     if (dir.exists(projectPath)) unlink(projectPath, recursive = TRUE)
     dir.create(projectPath, recursive = TRUE)
-    saveRDS(myframe, file = file.path(projectPath, "project.rds"))
+    saveRDS(myframe, file = file.path(projectPath, "sysProject.rds"))
     dll <- paste0(modelname(model$x), c(".so", ".dll"))
     dll <- dll[file.exists(dll)]
     
@@ -585,7 +585,7 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
   setwd(proj[["projectPath"]][[1]])
   
   # Load project from disk
-  myframe <- readRDS("project.rds")
+  myframe <- readRDS("sysProject.rds")
   
   # Load all available dll's
   dlls <- c(
@@ -800,6 +800,10 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
       value = eta.result
     )
     
+    IQRtools::IQRexportCSVdata(mydata, filename = file.path("RESULTS", "partable_eta_by_name.csv"))
+    
+    
+    
     p <- ggplot(mydata, aes(y = value, x = popname)) +
       geom_boxplot(color = "darkgray") +
       geom_point() +
@@ -818,7 +822,7 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
   cat("done.\n")
   
   # Save results
-  saveRDS(myframe, file = "project.rds")
+  saveRDS(myframe, file = "sysProject.rds")
   
   # Return to original working directory
   setwd(mywd)
@@ -826,5 +830,61 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
   # Return the results as dMod.frame
   return(myframe)
   
+  
+}
+
+#' Creating an IQRsysProjectMulti project
+#' 
+#' @param input a folder where to find the projects are distributed in subfolders
+#' 
+#' @return List of folders where projects were found. The output gets a class 
+#' \code{IQRsysProjectMulti}.
+#' 
+#' @seealso \code{\link{summary.IQRsysProjectMulti}}
+#' @export
+#' 
+as_IQRsysProjectMulti <- function(input, FLAGrecursive = FALSE) {
+  
+  projects <- list.files(input, pattern = "sysProject.rds", recursive = TRUE)
+  folders <- sub("/sysProject.rds", "", projects, fixed = TRUE)
+  
+  
+  output <- as.list(folders)
+  attr(output, "input") <- input
+  class(output) <- c("IQRsysProjectMulti", "list")
+  
+  return(output)
+  
+}
+
+#' Summarize Multi IQRsysProject
+#' 
+#' @param object object of class \code{IQRsysProjectMulti}
+#' @param FLAGreport If \code{TRUE} then the table text is annotated by formatting suitable for IQReport. 
+#' If \code{FALSE} (default), then just text for display.
+#' @param pathname Write the summary to a file in \code{pathname}. If \code{NULL}, no output is written.
+#' @param ... currently not used 
+#' 
+#' @seealso \code{\link{as_IQRsysProjectMulti}}
+#' 
+#' @export
+summary.IQRsysProjectMulti <- function(object, ..., FLAGreport = FALSE, pathname = attr(object, "input")) {
+  
+  folders <- unlist(object)
+  
+  # Collect all results
+  myparframe <- dplyr::bind_rows(lapply(folders, function(mypath) {
+    IQRloadCSVdata(file.path(input, mypath, "RESULTS", "parframe.csv"))
+  }))
+  
+  myparframe <- cbind(model = folders, myparframe)
+  
+  myparframe <- myparframe[order(myparframe[["BIC"]]),]
+  
+  out <- IQRoutputTable(myparframe, 
+                        filename = file.path(pathname, "parframe.txt"), 
+                        report = FLAGreport, 
+                        xtitle = paste("Summary of parameter tables of IQRsysProjects found in", pathname))
+  cat(out)
   
 }
