@@ -1,3 +1,8 @@
+context("Plotting")
+  test_that("PlotX functions behave correctly", {
+
+
+    #-!Start example code
     
     ## Observation function
     fn <- eqnvec(
@@ -41,18 +46,30 @@
     ## Plotting data
     # plot(data)
     plot1 <- plotData(data)
-     plot1
+    #-! plot1
     ## Plotting data and prediction with subsetting
     # plot(prediction, data)
     plot2 <- plotCombined(prediction, data)
-     plot2
+    #-! plot2
     plot3 <- plotCombined(prediction, data, 
                  time <= 0.5 & condition == "frequency_1")
-     plot3
+    #-! plot3
     plot4 <- plotCombined(prediction, data, 
                  time <= 0.5 & condition != "frequency_1", 
                  facet = "grid")
-     plot4
+    #-! plot4
     plot5 <- plotCombined(prediction, data, aesthetics = list(linetype = "condition"))
-     plot5
+    #-! plot5
 
+    #-!End example code
+
+
+    # Define your expectations here
+    expect_known_hash(plot1, hash = "b7c5911d4f")
+    expect_known_hash(plot2, hash = "9932d1abb8")
+    expect_known_hash(plot3, hash = "3257e2a033")
+    expect_known_hash(plot4, hash = "f178a7e8ad")
+    expect_known_hash(plot5, hash = "454fbb0763")
+    
+  })
+  

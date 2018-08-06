@@ -86,4 +86,6 @@ plotCombined(prediction, data,
 plotCombined(prediction, data, 
              time <= 0.5 & condition != "frequency_1", 
              facet = "grid")
+
+plotCombined(prediction, data, aesthetics = list(linetype = "condition"))
 }

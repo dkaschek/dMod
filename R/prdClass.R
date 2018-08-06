@@ -161,22 +161,18 @@ plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", 
   total <- rbind(prediction[, unique(c(mynames, names(covtable)))], data[, unique(c(mynames, names(covtable)))])
   
   
-  aesthetics <- lapply(aesthetics, function(myaes) {
-    if (!is.na(suppressWarnings(as.numeric(myaes))))
-      return(myaes)
-    return(rlang::sym(myaes))})
   if (facet == "wrap"){
-    aes0 <- list(ymin = "value - sigma", ymax = "value + sigma", group = "condition", color = "condition")
+    aes0 <- list(x = "time", y = "value", ymin = "value - sigma", ymax = "value + sigma", group = "condition", color = "condition")
     aesthetics <- c(aes0[setdiff(names(aes0), names(aesthetics))], aesthetics)
-    p <- ggplot(total, do.call("aes_string", c(list(x = "time", y = "value"), aesthetics))) + facet_wrap(~name, scales = scales)}
+    p <- ggplot(total, do.call("aes_string", aesthetics)) + facet_wrap(~name, scales = scales)}
   if (facet == "grid"){
-    aes0 <- list(ymin = "value - sigma", ymax = "value + sigma")
+    aes0 <- list(x = "time", y = "value", ymin = "value - sigma", ymax = "value + sigma")
     aesthetics <- c(aes0[setdiff(names(aes0), names(aesthetics))], aesthetics)
-    p <- ggplot(total, do.call("aes_string", c(list(x = "time", y = "value"), aesthetics))) + facet_grid(name ~ condition, scales = scales)}
+    p <- ggplot(total, do.call("aes_string", aesthetics)) + facet_grid(name ~ condition, scales = scales)}
   if (facet == "wrap_plain"){
-    aes0 <- list(ymin = "value - sigma", ymax = "value + sigma")
+    aes0 <- list(x = "time", y = "value", ymin = "value - sigma", ymax = "value + sigma")
     aesthetics <- c(aes0[setdiff(names(aes0), names(aesthetics))], aesthetics)
-    p <- ggplot(total, do.call("aes_string", c(list(x = "time", y = "value"), aesthetics))) + facet_wrap(~name*condition, scales = scales)}
+    p <- ggplot(total, do.call("aes_string", aesthetics)) + facet_wrap(~name*condition, scales = scales)}
   
   if (!is.null(prediction))
     p <- p +  geom_line(data = prediction)
