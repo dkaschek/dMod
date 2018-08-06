@@ -1,3 +1,4 @@
+context("description of context. Should start with a capital letter.")
 test_that("describe your test here", {
   
   #-!Start example code

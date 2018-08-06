@@ -1,3 +1,4 @@
+context("Example Extractor")
 test_that("unit test files are correctly parsed", {
 
   exmpextr("exampleParser-1-Input.R", "etc", "etc")
@@ -14,3 +15,4 @@ test_that("unit test files are correctly parsed", {
   expect_equal(parserOutput1, parserTarget1)
   expect_equal(parserOutput2, parserTarget2)
   })
+
