@@ -1526,7 +1526,6 @@ getParameters.eqnlist <- function(x) {
 #'
 #' @param x object from which the conditions should be extracted
 #' @param ... additional arguments (not used right now)
-#' @param hypothesis The hypothesis in the dMod.frame
 #' @return The conditions in a format that depends on the class of \code{x}.
 #' @export
 getConditions <- function(x, ...) {
@@ -1550,14 +1549,6 @@ getConditions.fn <- function(x, ...) {
   attr(x, "conditions")
 
 }
-
-#' @export
-#' @rdname getConditions
-getConditions.tbl_df <- function(x, hypothesis = 1, ...) {
-  dMod.frame <- x
-  getConditions.fn(dMod.frame$obj[[hypothesis]])
-}
-
 
 #' Get and set modelname
 #'
@@ -1743,16 +1734,9 @@ getEquations.fn <- function(x, conditions = NULL) {
 #' Extract the observables of an object
 #'
 #' @param x object from which the equations should be extracted
-#' @param hypothesis The hypothesis in the dMod.frame
 #' @return The equations as a character.
 #' @export
 getObservables <- function(x, ...) {
   UseMethod("getObservables", x)
 }
 
-#' @export
-#' @rdname getObservables
-getObservables.tbl_df <- function(x, hypothesis = 1, ...) {
-  dMod.frame <- x
-  Reduce(union, lapply(getEquations(dMod.frame[["g"]][[hypothesis]]), names))
-}

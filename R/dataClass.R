@@ -217,8 +217,8 @@ as.data.frame.datalist <- function(x, ...) {
 
 #' Access the covariates in the data
 #'
-#' @param x Either a \link{datalist} or a \code{data.frame} with mandatory columns \code{c("name", "time", "value", "sigma")} or a \link{dMod.frame}
-#' @param hypothesis The hypothesis in the dMod.frame
+#' @param x Either a \link{datalist} or a \code{data.frame} with mandatory 
+#' columns \code{c("name", "time", "value", "sigma")}.
 #'
 #' @return The \code{condition.grid} of the data
 #' @export

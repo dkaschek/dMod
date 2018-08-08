@@ -351,11 +351,34 @@ plotProfile.tbl_df <- function(dMod.frame, hypothesis = 1, ...) {
 
 # Other methods
 
-#' @export
+#' @export 
+#' @param hypothesis The hypothesis in the dMod.frame
 #' @rdname covariates
 covariates.tbl_df <- function(x, hypothesis = 1) {
   covariates.datalist(x[["data"]][[hypothesis]])
 }
+
+
+
+# Get functions --------------
+
+#' @export
+#' @param hypothesis The hypothesis in the dMod.frame
+#' @rdname getObservables
+getObservables.tbl_df <- function(x, hypothesis = 1, ...) {
+  dMod.frame <- x
+  Reduce(union, lapply(getEquations(dMod.frame[["g"]][[hypothesis]]), names))
+}
+
+
+#' @export
+#' @param hypothesis The hypothesis in the dMod.frame
+#' @rdname getConditions
+getConditions.tbl_df <- function(x, hypothesis = 1, ...) {
+  dMod.frame <- x
+  getConditions.fn(dMod.frame$obj[[hypothesis]])
+}
+
 
 
 # Interaction with .GlobalEnv ----
