@@ -163,6 +163,7 @@ plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", 
     if (!is.na(suppressWarnings(as.numeric(myaes))))
       return(myaes)
     return(rlang::sym(myaes))})
+  
   if (facet == "wrap"){
     aes0 <- list(ymin = "value - sigma", ymax = "value + sigma", group = "condition", color = "condition")
     aesthetics <- c(aes0[setdiff(names(aes0), names(aesthetics))], aesthetics)
