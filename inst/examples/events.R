@@ -20,7 +20,9 @@ checkSensitivities <- function(p, whichpar, cond = 1, step = 0.1) {
   print(colnames(S2))
   colnames(S2) <- colnames(S1)
   
-  out <- list(numeric = S1, sens = S2)
+  
+  out <- prdlist(numeric = S1, sens = S2)
+
   return(out)
   
 }
@@ -40,10 +42,10 @@ x <- model %>% Xs()
 innerpars <- getParameters(x)
 
 p <- eqnvec() %>%
-  reparameterize("x~x", x = innerpars) %>%
-  reparameterize("x~0", x = "B") %>%
-  reparameterize("x~1", x = "A") %>%
-  reparameterize("x~exp(x)", x = innerpars) %>%
+  define("x~x", x = innerpars) %>%
+  define("x~0", x = "B") %>%
+  define("x~1", x = "A") %>%
+  insert("x~exp(x)", x = innerpars) %>%
   P()
 
 outerpars <- getParameters(p)
@@ -86,10 +88,9 @@ x <- model %>% Xs()
 innerpars <- getParameters(x)
 
 p <- eqnvec() %>%
-  reparameterize("x~x", x = innerpars) %>%
-  reparameterize("x~0", x = c("B")) %>%
-  reparameterize("x~1", x = c("kon", "A")) %>%
-  #reparameterize("x~exp(x)", x = innerpars) %>%
+  define("x~x", x = innerpars) %>%
+  define("x~0", x = c("B")) %>%
+  define("x~1", x = c("kon", "A")) %>%
   P()
 
 outerpars <- getParameters(p)

@@ -79,8 +79,8 @@ obj <- normL2(data, x*p, e, loq = myloq)
 obj_cens <- normL2(data_cens, x*p, e)
 
 parsT <- c(A = 2, k = 2, sigma_rel = 0)
-myfit <- trust(obj, parsT, rinit = 1, rmax = 10)
-myfit_cens <- trust(obj_cens, parsT, rinit = 1, rmax = 10)
+myfit <- trust(obj, parsT, rinit = .1, rmax = 10)
+myfit_cens <- trust(obj_cens, parsT, rinit = .1, rmax = 10)
 
 (x*p)(times, myfit$argument) %>% plot(data_cens)
 (x*p)(times, myfit_cens$argument) %>% plot(data_cens)
