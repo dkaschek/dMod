@@ -195,10 +195,11 @@ plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", 
 
 #' @export
 #' @rdname plotPrediction
+#' @param errfn error model function
 #' @importFrom dplyr filter
-plotPrediction.prdlist <- function(prediction, ..., err = NULL, scales = "free", facet = "wrap", transform = NULL) {
+plotPrediction.prdlist <- function(prediction, ..., errfn = NULL, scales = "free", facet = "wrap", transform = NULL) {
   
-  prediction <- as.data.frame(prediction, errfn = err)
+  prediction <- as.data.frame(prediction, errfn = errfn)
   prediction <- dplyr::filter(prediction, ...)
   
   #prediction <- as.data.frame(dplyr::filter(wide2long.list(prediction), ...), stringsAsFactors = F)
@@ -211,7 +212,7 @@ plotPrediction.prdlist <- function(prediction, ..., err = NULL, scales = "free",
   if (facet == "grid")
     p <- ggplot(prediction, aes(x = time, y = value)) + facet_grid(name ~ condition, scales = scales)
   
-  if (!is.null(err))
+  if (!is.null(errfn))
     p <- p + geom_ribbon(aes(ymin = value - sigma, ymax = value + sigma, fill = condition), lty = 0, alpha = .3)
   
   p <- p + geom_line() 

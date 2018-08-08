@@ -1734,6 +1734,7 @@ getEquations.fn <- function(x, conditions = NULL) {
 #' Extract the observables of an object
 #'
 #' @param x object from which the equations should be extracted
+#' @param ... not used
 #' @return The equations as a character.
 #' @export
 getObservables <- function(x, ...) {

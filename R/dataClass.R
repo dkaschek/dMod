@@ -100,8 +100,8 @@ as.datalist.list <- function(x, names = NULL, ..., condition.grid = attr(x, "con
   return(as.datalist(x))
 }
 
-
 #' @export
+#' @rdname datalist
 is.datalist <- function(x) {
   inherits(x, "datalist")
 }

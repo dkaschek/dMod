@@ -33,6 +33,7 @@ eventlist <- function(var = NULL, time = NULL, value = NULL, method = NULL) {
 
 #' Coerce to eventlist
 #'
+#' @param ... not used
 #' @export
 as.eventlist <- function(x, ...) {
   UseMethod("as.eventlist", x)
@@ -69,6 +70,8 @@ as.eventlist.data.frame <- function(x, ...) {
 }
 
 #' @rdname eventlist
+#' @param event object of class \code{eventlist}
+#' @param ... not used
 #' @export
 addEvent <- function(event, ...) {
   
