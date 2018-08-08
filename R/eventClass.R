@@ -42,7 +42,7 @@ as.eventlist <- function(x, ...) {
 #' @export
 #' @rdname as.eventlist
 #' @param x list, data.frame
-as.eventlist.list <- function(x) {
+as.eventlist.list <- function(x, ...) {
   
   # Check names
   required <- c("var", "time", "value", "method")
@@ -62,7 +62,7 @@ as.eventlist.list <- function(x) {
 
 #' @export
 #' @rdname as.eventlist
-as.eventlist.data.frame <- function(x) {
+as.eventlist.data.frame <- function(x, ...) {
 
   as.eventlist.list(as.list(x))
     
@@ -77,7 +77,7 @@ addEvent <- function(event, ...) {
 }
 
 #' @export
-addEvent.eventlist <- function(event, var, time = 0, value = 0, method = "replace") {
+addEvent.eventlist <- function(event, var, time = 0, value = 0, method = "replace", ...) {
   
   event.new <- data.frame(var = var, time = time, value = value, method = method, stringsAsFactors = FALSE)
   as.eventlist(rbind(event, event.new))
@@ -85,7 +85,7 @@ addEvent.eventlist <- function(event, var, time = 0, value = 0, method = "replac
 }
 
 #' @export
-addEvent.NULL <- function(event, var, time = 0, value = 0, method = "replace") {
+addEvent.NULL <- function(event, var, time = 0, value = 0, method = "replace", ...) {
   
   event.new <- data.frame(var = var, time = time, value = value, method = method, stringsAsFactors = FALSE)
   as.eventlist(rbind(event, event.new))

@@ -1553,7 +1553,8 @@ getConditions.fn <- function(x, ...) {
 
 #' @export
 #' @rdname getConditions
-getConditions.tbl_df <- function(dMod.frame, hypothesis = 1) {
+getConditions.tbl_df <- function(x, hypothesis = 1, ...) {
+  dMod.frame <- x
   getConditions.fn(dMod.frame$obj[[hypothesis]])
 }
 
@@ -1745,12 +1746,13 @@ getEquations.fn <- function(x, conditions = NULL) {
 #' @param hypothesis The hypothesis in the dMod.frame
 #' @return The equations as a character.
 #' @export
-getObservables <- function(.x, ...) {
-  UseMethod("getObservables", .x)
+getObservables <- function(x, ...) {
+  UseMethod("getObservables", x)
 }
 
 #' @export
 #' @rdname getObservables
-getObservables.tbl_df <- function(dMod.frame, hypothesis = 1) {
+getObservables.tbl_df <- function(x, hypothesis = 1, ...) {
+  dMod.frame <- x
   Reduce(union, lapply(getEquations(dMod.frame[["g"]][[hypothesis]]), names))
 }

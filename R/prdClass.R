@@ -127,11 +127,9 @@ plot.prdlist <- function(x, data = NULL, ..., scales = "free", facet = "wrap", t
 
 #' @export
 #' @rdname plotCombined
-#' @importFrom rlang enexprs !!! sym exprs
 #' @importFrom dplyr filter left_join
 plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL, aesthetics = NULL) {
   
-  dots <- rlang::enexprs(...)
   mynames <- c("time", "name", "value", "sigma", "condition")
   covtable <- NULL
   
@@ -198,7 +196,6 @@ plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", 
 #' @export
 #' @rdname plotPrediction
 #' @importFrom dplyr filter
-#' @importFrom rlang enexprs !!!
 plotPrediction.prdlist <- function(prediction, ..., err = NULL, scales = "free", facet = "wrap", transform = NULL) {
   
   prediction <- as.data.frame(prediction, errfn = err)

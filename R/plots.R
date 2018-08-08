@@ -154,8 +154,8 @@ coordTransform <- function(data, transformations) {
 #' @import ggplot2
 #' @example inst/examples/plotting.R
 #' @export
-plotPrediction <- function(x,...) {
-  UseMethod("plotPrediction", x)
+plotPrediction <- function(prediction,...) {
+  UseMethod("plotPrediction", prediction)
 }
 
 
@@ -182,8 +182,8 @@ plotPrediction <- function(x,...) {
 #' @example inst/examples/plotting.R
 #' @importFrom graphics par
 #' @export
-plotCombined <- function(x,...) {
-  UseMethod("plotCombined", x)
+plotCombined <- function(prediction,...) {
+  UseMethod("plotCombined", prediction)
 }
 
 
@@ -203,8 +203,8 @@ plotCombined <- function(x,...) {
 #' @return A plot object of class \code{ggplot}.
 #' @example inst/examples/plotting.R
 #' @export
-plotData  <- function(x,...) {
-  UseMethod("plotData", x)
+plotData  <- function(data,...) {
+  UseMethod("plotData", data)
 }
 
 #' @export
@@ -223,8 +223,8 @@ plotData.data.frame <- function(data, ...) {
 #' @return A plot object of class \code{ggplot}.
 #' @details See \link{profile} for examples.
 #' @export
-plotProfile <- function(x,...) {
-  UseMethod("plotProfile", x)
+plotProfile <- function(profs,...) {
+  UseMethod("plotProfile", profs)
 }
 
 
