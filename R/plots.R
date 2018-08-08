@@ -449,7 +449,7 @@ plotPars <- function(x,...) {
 #'  plotResiduals(myfitlist, g*x*p, data,  c("condition","name","index"))
 #' }
 #' @export
-#' @importFrom plyr ddply
+#' @importFrom plyr ddply summarise
 plotResiduals <- function(parframe, x, data, split = "condition", errmodel = NULL, ...){
   timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))
   if(!("index" %in% colnames(parframe)))

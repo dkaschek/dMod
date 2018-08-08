@@ -686,6 +686,7 @@ wrss <- function(nout) {
 #' gradient (numeric, gradient) and 
 #' hessian (matrix of type numeric).
 #' @export
+#' @importFrom stats pnorm dnorm
 nll <- function(nout) {
   
   # Extract BLOQ part from nout

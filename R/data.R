@@ -16,6 +16,7 @@
 #' respect to the parameters).
 #' @export
 #' @import cOde
+#' @importFrom stats setNames
 res <- function(data, out, err = NULL, loq = -Inf) {
   
   data$name <- as.character(data$name)
