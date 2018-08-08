@@ -68,16 +68,51 @@ stat.parlist <- function(x) {
 }
 
 
-#' Coerce object to a parameter frame
+#' Plot a parameter list.
 #' 
-#' @param x object to be coerced
-#' @param ... other arguments
-#' @return object of class \link{parframe}.
-#' @example inst/examples/parlist.R
+#' @param x fitlist obtained from mstrust
+#' @param ... additional arguments
+#' @param path print path of parameters from initials to convergence. For this
+#'   option to be TRUE \code{\link{mstrust}} must have had the option
+#'   \option{blather}.
+#' 
+#' @details If path=TRUE:        
+#' @author Malenka Mader, \email{Malenka.Mader@@fdm.uni-freiburg.de}
+#'   
 #' @export
-as.parframe <- function(x, ...) {
-  UseMethod("as.parframe", x)
+plot.parlist <- function(x, path = FALSE, ...) {
+  
+  pl <- x
+  
+  index <- do.call(rbind, lapply(pl, function(l) l$converged))
+  fl <- pl[index]
+  if (!path) {
+    initPar <- do.call(rbind, lapply(fl, function(l) l$parinit))
+    convPar <- do.call(rbind, lapply(fl, function(l) l$argument))
+    
+    ddata <- data.frame(cbind(matrix(initPar, ncol = 1), matrix(convPar, ncol = 1) ))
+    ddata <- cbind(rep(colnames(initPar), each = nrow(initPar)), ddata, 1)
+    names(ddata) <- c("parameter","x","y","run")
+    
+    #plot initial vs converged parameter values
+    ggplot(data=ddata)+facet_wrap(~ parameter)+geom_point(aes(x=x,y=y))
+  } else {
+    if (!any (names(fl[[1]]) == "argpath")){
+      stop("No path information in the output of mstrust. Restart mstrust with option blather.")
+    }
+    parNames <- names(fl[[1]]$parinit)
+    
+    pathPar <- do.call(rbind, mapply(function(l, idx) {
+      mParPath <- as.data.frame(matrix(l$argpath, ncol = 1))
+      mParPath <- cbind(rep(parNames,each = nrow(l$argpath), times = 1), rep(1:nrow(l$argpath), length(parNames)), mParPath, as.character(idx))
+    }, l = fl, idx = 1:length(fl), SIMPLIFY = FALSE))
+    names(pathPar) <- c("parameter", "iteration", "path", "idx")
+    ggplot(data=pathPar)+geom_line(aes(x=iteration,y=path,colour=idx))+facet_wrap(~ parameter)
+  }
 }
+
+
+
 
 #' @export
 #' @rdname as.parframe
@@ -104,6 +139,89 @@ as.parframe.parlist <- function(x, sort.by = "value", ...) {
   
   
 }
+
+
+
+#' Concatenate parameter lists
+#'
+#' @description Fitlists carry an fit index which must be held unique on merging
+#' multiple fitlists.
+#'
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#'
+#' @rdname parlist
+#' @export
+#' @export c.parlist
+c.parlist <- function(...) {
+    m_fits <- lapply(list(...), unclass)
+    m_fits <- do.call(c, m_fits)
+    m_parlist <- mapply(function(fit, idx) {
+      if (is.list(fit)) fit$index <- idx
+      return(fit)
+      }, fit = m_fits, idx = seq_along(m_fits), SIMPLIFY = FALSE)
+    
+    return(as.parlist(m_parlist))
+  }
+
+
+
+
+
+## Methods for the class parframe ----
+
+
+#' Coerce object to a parameter frame
+#' 
+#' @param x object to be coerced
+#' @param ... other arguments
+#' @return object of class \link{parframe}.
+#' @example inst/examples/parlist.R
+#' @export
+as.parframe <- function(x, ...) {
+  UseMethod("as.parframe", x)
+}
+
+
+#' Select a parameter vector from a parameter frame.
+#' 
+#' @description Obtain a parameter vector from a parameter frame.
+#' 
+#' @param x A parameter frame, e.g., the output of
+#'   \code{\link{as.parframe}}.
+#' @param index Integer, the parameter vector with the \code{index}-th lowest
+#'   objective value.
+#' @param ... not used right now
+#'   
+#' @details With this command, additional information included in the parameter
+#'   frame as the objective value and the convergence state are removed and a
+#'   parameter vector is returned. This parameter vector can be used to e.g.,
+#'   evaluate an objective function.
+#'   
+#'   On selection, the parameters in the parameter frame are ordered such, that
+#'   the parameter vector with the lowest objective value is at \option{index}
+#'   1. Thus, the parameter vector with the \option{index}-th lowest objective
+#'   value is easily obtained.
+#'   
+#' @return The parameter vector with the \option{index}-th lowest objective
+#'   value.
+#'   
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#'   
+#' @export
+as.parvec.parframe <- function(x, index = 1, ...) {
+  parframe <- x
+  m_order <- 1:nrow(x)
+  metanames <- attr(parframe, "metanames")
+  if ("value" %in% metanames) m_order <- order(parframe$value)
+  best <- as.parvec(unlist(parframe[m_order[index], attr(parframe, "parameters")]))
+  if ("converged" %in% metanames && !parframe[m_order[index],]$converged) {
+    warning("Parameter vector of an unconverged fit is selected.", call. = FALSE)
+    }
+  return(best)
+}
+
+
+
 
 #' @export
 #' @rdname plotPars
@@ -367,8 +485,6 @@ plotProfile.list <- function(profs, ..., maxvalue = 5, parlist = NULL) {
   
 }
 
-
-## Methods for the class parframe -----------------------------------------------
 
 
 #' @export

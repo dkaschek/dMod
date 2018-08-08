@@ -570,3 +570,98 @@ sanitizePars <- function(pars = NULL, fixed = NULL) {
   return(list(pars = pars, fixed = fixed))
   
 }
+
+
+
+
+#' Print list of dMod objects in .GlobalEnv
+#' 
+#' @description Lists the objects for a set of classes.
+#'   
+#' @param classlist List of object classes to print.
+#' @param envir Alternative environment to search for objects.
+#' @examples 
+#' \dontrun{
+#' lsdMod()
+#' lsdMod(classlist = "prdfn", envir = environment(obj)) 
+#' }
+#' 
+#' @export
+lsdMod <- function(classlist = c("odemodel", "parfn", "prdfn", "obsfn", "objfn", "datalist"), envir = .GlobalEnv){
+  glist <- as.list(envir)
+  out <- list()
+  for (a in classlist) {
+    flist <- which(sapply(glist, function(f) any(class(f) == a)))
+    out[[a]] <- names(glist[flist])
+    #cat(a,": ")
+    #cat(paste(out[[a]], collapse = ", "),"\n")
+  }
+  
+  unlist(out)
+  
+  
+  
+}
+
+
+
+
+
+#' Select attributes.
+#' 
+#' @description Select or discard attributes from an object.
+#'   
+#' @param x The object to work on
+#' @param atr An optional list of attributes which are either kept or removed. 
+#'   This parameter defaults to dim, dimnames, names,  col.names, and row.names.
+#' @param keep For keep = TRUE, atr is a positive list on attributes which are 
+#'   kept, for keep = FALSE, \option{atr} are removed.
+#'   
+#' @return x with selected attributes.
+#'   
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#' @author Mirjam Fehling-Kaschek, \email{mirjam.fehling@@physik.uni-freiburg.de}
+#'   
+#' @export
+attrs <- function(x, atr = NULL, keep = TRUE) {
+
+  if (is.null(atr)) {
+    atr <- c("class", "dim", "dimnames", "names", "col.names", "row.names")
+  }
+  
+  xattr <- names(attributes(x))
+  if (keep == TRUE) {
+    attributes(x)[!xattr %in% atr] <- NULL
+  } else {
+    attributes(x)[xattr %in% atr] <- NULL
+  }
+  
+  return(x)
+}
+
+
+
+
+#' Print object and its "default" attributes only.
+#' 
+#' @param x Object to be printed
+#' @param list_attributes Prints the names of all attribute of x, defaults to 
+#'   TRUE
+#'   
+#' @details Before the \option{x} is printed by print.default, all its arguments
+#'   not in the default list of \code{\link{attrs}} are removed.
+#'   
+#' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#' @author Mirjam Fehling-Kaschek, 
+#'   \email{mirjam.fehling@@physik.uni-freiburg.de}
+#'   
+#' @export
+print0 <- function(x, list_attributes = TRUE ) {
+  if (list_attributes == TRUE) {
+    cat("List of all attributes: ", names(attributes(x)), "\n")
+  }
+  
+  print.default(attrs(x))
+}
+
+
