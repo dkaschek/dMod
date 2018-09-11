@@ -352,8 +352,10 @@ read_IQRdata <- function(data, keep = NULL, split.by = "CONDITION", loq = -Inf) 
 #' 
 #' @param guess initial guesses for parameters, named numeric.
 #' @param estimate estimate paramter (1, default) or not (0), named numeric/logical.
+#' @param iiv_guess initial guesses for the omegas of the random effects
+#' @param iiv_estimate 0(default): no random effect, 1: random effect is estimated, 2: random effects are not estimated and take on the value provided in iiv_guess
 #' @param transform parameter transformation, no ("N"), log ("L", default), or logit ("G").
-#' @param iiv parameters to be estimated per individuum, subset of the parameter names. By default none.
+#'
 #' @return List with guess, estimate, transform and iiv, filled up to the correct lengths. 
 #' @export
 define_IQRpars <- function(guess, estimate = NULL, transform = NULL, iiv_guess = NULL, iiv_estimate = NULL) {
@@ -786,36 +788,38 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
     IQRtools::IQRoutputPDF(p, file.path("RESULTS", "plotProfile.pdf"))
   }
   
-  
   # Plot of the individual parameters
-  with(hypothesis, {
+  if (!is.null(unlist(hypothesis[["eta"]]))) {
+    with(hypothesis, {
+      
+      eta.result <- bestfit[names(bestfit) %in% unlist(eta)]
+      eta.names <- unlist(eta)
+      names(eta.names) <- sapply(seq_along(eta), function(i) rep(names(eta)[i], length(eta[[i]])))
+      
+      mydata <- data.frame(
+        parname = names(eta.result),
+        popname = names(eta.names)[match(names(eta.result), eta.names)],
+        value = eta.result
+      )
+      
+      IQRtools::IQRexportCSVdata(mydata, filename = file.path("RESULTS", "partable_eta_by_name.csv"))
+      
+      
+      
+      p <- ggplot(mydata, aes(y = value, x = popname)) +
+        geom_boxplot(color = "darkgray") +
+        geom_point() +
+        coord_flip() +
+        ylab("Individual parameter values") + xlab(NULL) +
+        geom_hline(yintercept = 0, lty = 2, color = "firebrick2") +
+        ggtitle("Distribution of the individual parameter values") +
+        theme_dMod() 
+      
+      IQRtools::IQRoutputPDF(p, file.path("RESULTS", "plotIndividualPars.pdf"))
+      
+    })
+  }
   
-    eta.result <- bestfit[names(bestfit) %in% unlist(eta)]
-    eta.names <- unlist(eta)
-    names(eta.names) <- sapply(1:length(eta), function(i) rep(names(eta)[i], length(eta[[i]])))
-    
-    mydata <- data.frame(
-      parname = names(eta.result),
-      popname = names(eta.names)[match(names(eta.result), eta.names)],
-      value = eta.result
-    )
-    
-    IQRtools::IQRexportCSVdata(mydata, filename = file.path("RESULTS", "partable_eta_by_name.csv"))
-    
-    
-    
-    p <- ggplot(mydata, aes(y = value, x = popname)) +
-      geom_boxplot(color = "darkgray") +
-      geom_point() +
-      coord_flip() +
-      ylab("Individual parameter values") + xlab(NULL) +
-      geom_hline(yintercept = 0, lty = 2, color = "firebrick2") +
-      ggtitle("Distribution of the individual parameter values") +
-      theme_dMod() 
-    
-    IQRtools::IQRoutputPDF(p, file.path("RESULTS", "plotIndividualPars.pdf"))
-    
-  })
   
   
   
@@ -874,11 +878,9 @@ summary.IQRsysProjectMulti <- function(object, ..., FLAGreport = FALSE, pathname
   
   # Collect all results
   myparframe <- dplyr::bind_rows(lapply(folders, function(mypath) {
-    IQRloadCSVdata(file.path(input, mypath, "RESULTS", "parframe.csv"))
+    cbind(model = mypath, IQRloadCSVdata(file.path(pathname, mypath, "RESULTS", "parframe.csv")))
   }))
-  
-  myparframe <- cbind(model = folders, myparframe)
-  
+
   myparframe <- myparframe[order(myparframe[["BIC"]]),]
   
   out <- IQRoutputTable(myparframe, 
