@@ -878,7 +878,7 @@ summary.IQRsysProjectMulti <- function(object, ..., FLAGreport = FALSE, pathname
   
   # Collect all results
   myparframe <- dplyr::bind_rows(lapply(folders, function(mypath) {
-    cbind(model = mypath, IQRloadCSVdata(file.path(pathname, mypath, "RESULTS", "parframe.csv")))
+    cbind(model = mypath, IQRloadCSVdata(file.path(pathname, mypath, "RESULTS", "parframe.csv")), stringsAsFactors = F)
   }))
 
   myparframe <- myparframe[order(myparframe[["BIC"]]),]
