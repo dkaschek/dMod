@@ -899,6 +899,7 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
   attr(outfn, "mappings") <- mappings
   attr(outfn, "parameters") <- union(attr(x1, "parameters"), attr(x2, "parameters"))
   attr(outfn, "conditions") <- conditions.x12
+  attr(outfn, "forcings") <- do.call(c, list(attr(x1, "forcings"), attr(x2, "forcings")))
 
   return(outfn)
 
@@ -1620,6 +1621,8 @@ mname.fn <- function(x, conditions = NULL) {
 
 }
 
+
+
 #' @export
 #' @rdname modelname
 #' @param x dMod object for which the model name should be set
@@ -1662,6 +1665,7 @@ mname.fn <- function(x, conditions = NULL) {
   attr(x, "modelname") <- value
   return(x)
 }
+
 
 
 
