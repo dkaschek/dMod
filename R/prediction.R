@@ -390,6 +390,9 @@ Xd <- function(data, condition = NULL) {
 #' the Jacobian 
 #' of the parameter transformation and the sensitivities of the observation function
 #' are multiplied according to the chain rule for differentiation.
+#' @details For \link{odemodel}s with forcings, it is best, to pass the prediction function \code{x} to the "f"-argument 
+#' instead of the equations themselves. If an eqnvec is passed to "f" in this case, the forcings and states
+#' have to be specified manually via the "states"-argument.
 #' @importFrom digest digest
 #' @example inst/examples/prediction.R
 #' @export
