@@ -3,7 +3,12 @@ library(dplyr)
 library(ggplot2)
 setwd("/tmp")
 
-## Check function to check sensitivities
+#' Check function to check sensitivities
+#'
+#' @param p pars for the prediction function
+#' @param whichpar names of pars to check
+#' @param cond indexing for condition
+#' @param step stepsize for finite difference
 checkSensitivities <- function(p, whichpar, cond = 1, step = 0.1) {
   h <- rep(0, length(p))
   h[which(names(p) == whichpar)] <- step
@@ -40,25 +45,26 @@ x <- model %>% Xs()
 innerpars <- getParameters(x)
 
 p <- eqnvec() %>%
-  reparameterize("x~x", x = innerpars) %>%
-  reparameterize("x~0", x = "B") %>%
-  reparameterize("x~1", x = "A") %>%
-  reparameterize("x~exp(x)", x = innerpars) %>%
+  insert("x~x", x = innerpars) %>%
+  insert("x~0", x = "B") %>%
+  insert("x~1", x = "A") %>%
+  insert("x~exp(x)", x = innerpars) %>%
   P()
 
 outerpars <- getParameters(p)
 
+set.seed(2)
 pouter <- structure(rnorm(length(outerpars), 0), names = outerpars)
 times <- seq(0, 2, .01)
 
 pouter %>% (x*p)(times = times) %>% plot()
-#pouter %>% (x*p)(times = times) %>% getDerivs() %>% plot()
+# pouter %>% (x*p)(times = times) %>% getDerivs() %>% plot()
 
 y <- x*p
 
 for (i in 1:length(pouter)) {
-  out <- checkSensitivities(pouter, names(pouter)[i], 1, .0001)
-  print(plotPrediction(out))
+  out <- checkSensitivities(pouter, names(pouter)[i], 1, .0001) %>% as.prdlist
+  print(plotPrediction(out) + ggtitle(names(pouter)[i]))
   
 }
 
@@ -86,10 +92,10 @@ x <- model %>% Xs()
 innerpars <- getParameters(x)
 
 p <- eqnvec() %>%
-  reparameterize("x~x", x = innerpars) %>%
-  reparameterize("x~0", x = c("B")) %>%
-  reparameterize("x~1", x = c("kon", "A")) %>%
-  #reparameterize("x~exp(x)", x = innerpars) %>%
+  insert("x~x", x = innerpars) %>%
+  insert("x~0", x = c("B")) %>%
+  insert("x~1", x = c("kon", "A")) %>%
+  # insert("x~exp(x)", x = innerpars) %>%
   P()
 
 outerpars <- getParameters(p)
@@ -107,7 +113,7 @@ y <- x*p
 
 
 for (i in 1:length(pouter)) {
-  out <- checkSensitivities(pouter, names(pouter)[i], 1, .001)
+  out <- checkSensitivities(pouter, names(pouter)[i], 1, .001) %>% as.prdlist()
   print(plotPrediction(out) + ggtitle(names(pouter)[i])) 
   
 }
