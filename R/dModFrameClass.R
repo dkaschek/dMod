@@ -185,7 +185,10 @@ plotCombined.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
   if (is.null(dMod.frame[["parframes"]]))
     return(
       plotCombined.prdlist(
-        dMod.frame[["prd"]][[hypothesis]](dMod.frame[["times"]][[hypothesis]], dMod.frame[["pars"]][[hypothesis]], deriv = F),
+        dMod.frame[["prd"]][[hypothesis]](dMod.frame[["times"]][[hypothesis]], 
+                                          dMod.frame[["pars"]][[hypothesis]], 
+                                          deriv = F,
+                                          fixed = dMod.frame[["fixed"]][[hypothesis]]),
         dMod.frame[["data"]][[hypothesis]],
         ...) +
         ggtitle(paste(dMod.frame[["hypothesis"]][[hypothesis]], "initiated with predefined (probably random) parameters"))
@@ -196,7 +199,8 @@ plotCombined.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
   myparvec <- as.parvec(dMod.frame[["parframes"]][[hypothesis]], index = index)
   myprediction <- dMod.frame[["prd"]][[hypothesis]](dMod.frame[["times"]][[hypothesis]],
                                                     pars = myparvec,
-                                                    deriv = F)
+                                                    deriv = F,
+                                                    fixed = dMod.frame[["fixed"]][[hypothesis]])
   myvalue <- dMod.frame[["parframes"]][[hypothesis]][index, "value"]
 
   plotCombined.prdlist(myprediction,  dMod.frame[["data"]][[hypothesis]], ...) +
@@ -218,7 +222,8 @@ plotPrediction.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
     return(
       plotPrediction.prdlist(dMod.frame[["prd"]][[hypothesis]](dMod.frame[["times"]][[hypothesis]],
                                                                dMod.frame[["pars"]][[hypothesis]],
-                                                               deriv = F), ...) +
+                                                               deriv = F,
+                                                               fixed = dMod.frame[["fixed"]][[hypothesis]]), ...) +
         ggtitle(paste(dMod.frame[["hypothesis"]][[hypothesis]], "initiated with predefined (probably random) parameters"))
     )
 
@@ -226,7 +231,8 @@ plotPrediction.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
   myparvec <- as.parvec(dMod.frame[["parframes"]][[hypothesis]], index = index)
   myprediction <- dMod.frame[["prd"]][[hypothesis]](dMod.frame[["times"]][[hypothesis]],
                                                     pars = myparvec,
-                                                    deriv = F)
+                                                    deriv = F,
+                                                    fixed = dMod.frame[["fixed"]][[hypothesis]])
   myvalue <- dMod.frame[["parframes"]][[hypothesis]][index, "value"]
 
   plotPrediction.prdlist(myprediction, ...) +
