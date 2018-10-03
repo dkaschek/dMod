@@ -160,7 +160,6 @@ plot.datalist <- function(x, ..., scales = "free", facet = "wrap") {
 #' @export
 #' @rdname plotData
 #' @importFrom dplyr filter
-#' @importFrom rlang enexprs !!!
 plotData.datalist <- function(data, ..., scales = "free", facet = "wrap", transform = NULL) {
 
   rownames_to_condition <- function(covtable) {
