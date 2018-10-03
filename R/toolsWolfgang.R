@@ -333,7 +333,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   m_parlist <- as.parlist(mclapply(1:fits, function(i) {
     
     if(is.parframe(center)) {
-      argstrust$parinit <- as.parvec(center, i)
+      argstrust$parinit <- as.parvec.parframe(center, i)
     } else {
       argstrust$parinit <- center + do.call(samplefun, argssample)
     }
@@ -356,6 +356,10 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     }
     
     fit$parinit <- argstrust$parinit
+    
+    previous_iterations <- 0
+    if (is.parframe(center) && (!is.null(center[["iterations"]][i]))) previous_iterations <- center[["iterations"]][i]
+    fit$iterations <- fit$iterations + previous_iterations
 
     # Write current fit to disk
     if (output) {
