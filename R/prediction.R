@@ -389,6 +389,9 @@ Xd <- function(data, condition = NULL) {
 #' the Jacobian 
 #' of the parameter transformation and the sensitivities of the observation function
 #' are multiplied according to the chain rule for differentiation.
+#' @details For \link{odemodel}s with forcings, it is best, to pass the prediction function \code{x} to the "f"-argument 
+#' instead of the equations themselves. If an eqnvec is passed to "f" in this case, the forcings and states
+#' have to be specified manually via the "states"-argument.
 #' @importFrom digest digest
 #' @example inst/examples/prediction.R
 #' @export
@@ -431,10 +434,18 @@ Y <- function(g, f = NULL, states = NULL, parameters = NULL, condition = NULL, a
     estimate <- union(states, parameters)
     parameters <- union(parameters, setdiff(symbols, c(states, "time")))
   } else if (inherits(f, "fn")) {
-    mystates <- union(names(attr(attr(f, "mappings")[[1]], "equations")), "time")
-    myparameters <- setdiff(union(getParameters(f), getSymbols(unclass(g))), mystates)
+    myforcings <- Reduce(union, lapply(lapply(attr(f, "mappings"), 
+                                              function(mymapping) {attr(mymapping, "forcings")}), 
+                                       function(myforcing) {as.character(myforcing$name)}))
+    mystates <- unique(c(do.call(c, lapply(getEquations(f), names)), "time"))
+    if(length(intersect(myforcings, mystates)) > 0)
+      stop("Forcings and states overlap in different conditions. Please run Y for each condition by supplying only the condition specific f.")
+    
+    mystates <- c(mystates, myforcings)
+    myparameters <- setdiff(union(getParameters(f), getSymbols(unclass(g))), c(mystates, myforcings))
+    
     estimate <- c(states, parameters)
-    if (is.null(states)) estimate <- c(estimate, mystates)
+    if (is.null(states)) estimate <- c(estimate, setdiff(mystates, myforcings))
     if (is.null(parameters)) estimate <- c(estimate, myparameters)
     states <- union(mystates, states)
     parameters <- union(myparameters, parameters)

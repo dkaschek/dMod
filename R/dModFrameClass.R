@@ -176,33 +176,42 @@ appendParframes <- function(dMod.frame,
 
 #' @export
 #' @rdname plotCombined
-plotCombined.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
+plotCombined.tbl_df <- function(model, hypothesis = 1, index = 1, ... ) {
 
   dots <- substitute(alist(...))
   message("If you want to subset() the plot, specify hypothesis AND index")
-  if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
+  if(is.character(hypothesis)) hypothesis <- which(model$hypothesis == hypothesis)
 
-  if (is.null(dMod.frame[["parframes"]]))
-    return(
-      plotCombined.prdlist(
-        dMod.frame[["prd"]][[hypothesis]](dMod.frame[["times"]][[hypothesis]], dMod.frame[["pars"]][[hypothesis]], deriv = F),
-        dMod.frame[["data"]][[hypothesis]],
-        ...) +
-        ggtitle(paste(dMod.frame[["hypothesis"]][[hypothesis]], "initiated with predefined (probably random) parameters"))
-    )
-
-
-
-  myparvec <- as.parvec(dMod.frame[["parframes"]][[hypothesis]], index = index)
-  myprediction <- dMod.frame[["prd"]][[hypothesis]](dMod.frame[["times"]][[hypothesis]],
+  
+  data <- model[["data"]][[hypothesis]]
+  prediction <- title <- NULL
+  if (is.null(model[["parframes"]])) {
+    prediction <- model[["prd"]][[hypothesis]](model[["times"]][[hypothesis]], 
+                                                    model[["pars"]][[hypothesis]], 
+                                                    deriv = F,
+                                                    fixed = model[["fixed"]][[hypothesis]])
+    title <- paste(model[["hypothesis"]][[hypothesis]], "initiated with predefined (probably random) parameters")
+  }
+  
+  if (!is.null(model[["parframes"]])) {
+    myparvec <- as.parvec(model[["parframes"]][[hypothesis]], index = index)
+    prediction <- model[["prd"]][[hypothesis]](model[["times"]][[hypothesis]],
                                                     pars = myparvec,
-                                                    deriv = F)
-  myvalue <- dMod.frame[["parframes"]][[hypothesis]][index, "value"]
+                                                    deriv = F,
+                                                    fixed = model[["fixed"]][[hypothesis]])
+    myvalue <- model[["parframes"]][[hypothesis]][index, "value"]
+    title <- paste0(model[["hypothesis"]][[hypothesis]], "\n",
+                    "value = ", round(model[["parframes"]][[hypothesis]][index,"value", drop = T],1), "\n",
+                    paste0(paste(names(dots), "=", dots )[-1], collapse = "\n"))
+  }
 
-  plotCombined.prdlist(myprediction,  dMod.frame[["data"]][[hypothesis]], ...) +
-    ggtitle(label = paste0(dMod.frame[["hypothesis"]][[hypothesis]], "\n",
-                           "value = ", round(dMod.frame[["parframes"]][[hypothesis]][index,"value", drop = T],1), "\n",
-                           paste0(paste(names(dots), "=", dots )[-1], collapse = "\n")) )
+  predicition_with_error <- NULL
+  if (!is.null(model[["e"]][[hypothesis]]))
+    predicition_with_error <- dMod:::as.data.frame.prdlist(prediction, data = data, errfn = model[["e"]][[hypothesis]])
+
+  plotCombined.prdlist(prediction, data, ...) + 
+    geom_ribbon(data = predicition_with_error, alpha = 0.15, size = 0) +
+    ggtitle(label = title)
 }
 
 #' @export
@@ -218,7 +227,8 @@ plotPrediction.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
     return(
       plotPrediction.prdlist(dMod.frame[["prd"]][[hypothesis]](dMod.frame[["times"]][[hypothesis]],
                                                                dMod.frame[["pars"]][[hypothesis]],
-                                                               deriv = F), ...) +
+                                                               deriv = F,
+                                                               fixed = dMod.frame[["fixed"]][[hypothesis]]), ...) +
         ggtitle(paste(dMod.frame[["hypothesis"]][[hypothesis]], "initiated with predefined (probably random) parameters"))
     )
 
@@ -226,7 +236,8 @@ plotPrediction.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
   myparvec <- as.parvec(dMod.frame[["parframes"]][[hypothesis]], index = index)
   myprediction <- dMod.frame[["prd"]][[hypothesis]](dMod.frame[["times"]][[hypothesis]],
                                                     pars = myparvec,
-                                                    deriv = F)
+                                                    deriv = F,
+                                                    fixed = dMod.frame[["fixed"]][[hypothesis]])
   myvalue <- dMod.frame[["parframes"]][[hypothesis]][index, "value"]
 
   plotPrediction.prdlist(myprediction, ...) +

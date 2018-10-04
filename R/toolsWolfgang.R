@@ -1,6 +1,5 @@
 
 
-
 #' Check which Python versions are installed on the system
 #' 
 #' @param version NULL or character. Check for specific version

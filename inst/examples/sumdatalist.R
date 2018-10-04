@@ -23,10 +23,10 @@
   data2 <- as.datalist(mydata2, split.by = c("compound", "dose")) 
   
   # Direct sum of datalists
-  data <- data1 + data2
+   data <- data1 + data2
    print(data)
   
   # Check the condition.grid (if available)
-  condition.grid <- attr(data, "condition.grid")
+   condition.grid <- attr(data, "condition.grid")
    print(condition.grid)
 

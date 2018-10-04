@@ -54,6 +54,11 @@ Creates an object of type \link{obsfn} that evaluates an observation function
 and its derivatives based on the output of a model prediction function, see \link{prdfn}, 
 as e.g. produced by \link{Xs}.
 }
+\details{
+For \link{odemodel}s with forcings, it is best, to pass the prediction function \code{x} to the "f"-argument 
+instead of the equations themselves. If an eqnvec is passed to "f" in this case, the forcings and states
+have to be specified manually via the "states"-argument.
+}
 \examples{
 # Define a time grid on which to make a prediction by peace-wise linear function.
 # Then define a (generic) prediction function based on thid grid.

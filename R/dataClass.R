@@ -35,7 +35,7 @@ as.datalist.data.frame <- function(x, split.by = NULL, keep.covariates = NULL, .
 
 
   # condition grid
-  conditionframe <- dataframe[!duplicated(splits), c(split.by, keep.covariates), drop = FALSE]
+  conditionframe <- dataframe[!duplicated(splits), union(split.by, keep.covariates), drop = FALSE]
   rownames(conditionframe) <- splits[!duplicated(splits)]
 
 

@@ -3,7 +3,12 @@ library(dplyr)
 library(ggplot2)
 setwd("/tmp")
 
-## Check function to check sensitivities
+#' Check function to check sensitivities
+#'
+#' @param p pars for the prediction function
+#' @param whichpar names of pars to check
+#' @param cond indexing for condition
+#' @param step stepsize for finite difference
 checkSensitivities <- function(p, whichpar, cond = 1, step = 0.1) {
   h <- rep(0, length(p))
   h[which(names(p) == whichpar)] <- step
@@ -50,17 +55,18 @@ p <- eqnvec() %>%
 
 outerpars <- getParameters(p)
 
+set.seed(2)
 pouter <- structure(rnorm(length(outerpars), 0), names = outerpars)
 times <- seq(0, 2, .01)
 
 pouter %>% (x*p)(times = times) %>% plot()
-#pouter %>% (x*p)(times = times) %>% getDerivs() %>% plot()
+# pouter %>% (x*p)(times = times) %>% getDerivs() %>% plot()
 
 y <- x*p
 
 for (i in 1:length(pouter)) {
-  out <- checkSensitivities(pouter, names(pouter)[i], 1, .0001)
-  print(plotPrediction(out))
+  out <- checkSensitivities(pouter, names(pouter)[i], 1, .0001) %>% as.prdlist
+  print(plotPrediction(out) + ggtitle(names(pouter)[i]))
   
 }
 
@@ -108,7 +114,7 @@ y <- x*p
 
 
 for (i in 1:length(pouter)) {
-  out <- checkSensitivities(pouter, names(pouter)[i], 1, .001)
+  out <- checkSensitivities(pouter, names(pouter)[i], 1, .001) %>% as.prdlist()
   print(plotPrediction(out) + ggtitle(names(pouter)[i])) 
   
 }

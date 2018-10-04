@@ -14,7 +14,9 @@ define_IQRpars(guess, estimate = NULL, transform = NULL, iiv_guess = NULL,
 
 \item{transform}{parameter transformation, no ("N"), log ("L", default), or logit ("G").}
 
-\item{iiv}{parameters to be estimated per individuum, subset of the parameter names. By default none.}
+\item{iiv_guess}{initial guesses for the omegas of the random effects}
+
+\item{iiv_estimate}{0(default): no random effect, 1: random effect is estimated, 2: random effects are not estimated and take on the value provided in iiv_guess}
 }
 \value{
 List with guess, estimate, transform and iiv, filled up to the correct lengths.

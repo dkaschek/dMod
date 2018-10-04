@@ -352,8 +352,10 @@ read_IQRdata <- function(data, keep = NULL, split.by = "CONDITION", loq = -Inf) 
 #' 
 #' @param guess initial guesses for parameters, named numeric.
 #' @param estimate estimate paramter (1, default) or not (0), named numeric/logical.
+#' @param iiv_guess initial guesses for the omegas of the random effects
+#' @param iiv_estimate 0(default): no random effect, 1: random effect is estimated, 2: random effects are not estimated and take on the value provided in iiv_guess
 #' @param transform parameter transformation, no ("N"), log ("L", default), or logit ("G").
-#' @param iiv parameters to be estimated per individuum, subset of the parameter names. By default none.
+#'
 #' @return List with guess, estimate, transform and iiv, filled up to the correct lengths. 
 #' @export
 define_IQRpars <- function(guess, estimate = NULL, transform = NULL, iiv_guess = NULL, iiv_estimate = NULL) {
@@ -546,7 +548,7 @@ IQRsysProject <- function(model, data, parameters, projectPath = NULL) {
     
     if (dir.exists(projectPath)) unlink(projectPath, recursive = TRUE)
     dir.create(projectPath, recursive = TRUE)
-    saveRDS(myframe, file = file.path(projectPath, "project.rds"))
+    saveRDS(myframe, file = file.path(projectPath, "sysProject.rds"))
     dll <- paste0(modelname(model$x), c(".so", ".dll"))
     dll <- dll[file.exists(dll)]
     
@@ -585,7 +587,7 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
   setwd(proj[["projectPath"]][[1]])
   
   # Load project from disk
-  myframe <- readRDS("project.rds")
+  myframe <- readRDS("sysProject.rds")
   
   # Load all available dll's
   dlls <- c(
@@ -703,6 +705,37 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
     IQRtools::IQRexportCSVdata(tab, filename = file.path("RESULTS", paste0(tabname, ".csv")))
     IQRtools::IQRoutputTable(tab, filename = file.path("RESULTS", paste0(tabname, ".txt")), report = FALSE)
   }
+  
+  # Produce table of parameters with objective value, AIC, BIC for all local optima found
+  with(hypothesis, {
+    
+    
+    mytable <- unique(parframes)
+    mytransform <- parameters$transform[parameters$estimate == 1]
+    for (i in 1:length(mytransform)) {
+      
+      myname <- names(mytransform)[i]
+      myvalue <- mytable[[myname]]
+      myvalue <- switch(mytransform[i], N = myvalue, L = exp(myvalue), G = IQRtools::inv_logit(myvalue))
+      mytable[[myname]] <- myvalue
+      
+    }
+    
+    ndata <- nrow(as.data.frame(data))
+    npars <- length(bestfit)
+    
+    BIC <- log(ndata)*npars + mytable$value
+    AIC <- 2*npars + mytable$value
+    
+    outtable <- cbind(mytable[, c("index", "value")], BIC, AIC, mytable[ , c("converged", "iterations", attr(mytable, "parameters"))])
+    names(outtable)[2] <- "OBJ"
+    rownames(outtable) <- NULL
+    
+    IQRtools::IQRexportCSVdata(outtable, filename = file.path("RESULTS", "parframe.csv"))
+    IQRtools::IQRoutputTable(outtable, filename = file.path("RESULTS", "parframe.txt"), report = FALSE)
+    
+    
+  })
   cat("done.\n")
   
   # Produce plots
@@ -755,10 +788,45 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
     IQRtools::IQRoutputPDF(p, file.path("RESULTS", "plotProfile.pdf"))
   }
   
+  # Plot of the individual parameters
+  if (!is.null(unlist(hypothesis[["eta"]]))) {
+    with(hypothesis, {
+      
+      eta.result <- bestfit[names(bestfit) %in% unlist(eta)]
+      eta.names <- unlist(eta)
+      names(eta.names) <- sapply(seq_along(eta), function(i) rep(names(eta)[i], length(eta[[i]])))
+      
+      mydata <- data.frame(
+        parname = names(eta.result),
+        popname = names(eta.names)[match(names(eta.result), eta.names)],
+        value = eta.result
+      )
+      
+      IQRtools::IQRexportCSVdata(mydata, filename = file.path("RESULTS", "partable_eta_by_name.csv"))
+      
+      
+      
+      p <- ggplot(mydata, aes(y = value, x = popname)) +
+        geom_boxplot(color = "darkgray") +
+        geom_point() +
+        coord_flip() +
+        ylab("Individual parameter values") + xlab(NULL) +
+        geom_hline(yintercept = 0, lty = 2, color = "firebrick2") +
+        ggtitle("Distribution of the individual parameter values") +
+        theme_dMod() 
+      
+      IQRtools::IQRoutputPDF(p, file.path("RESULTS", "plotIndividualPars.pdf"))
+      
+    })
+  }
+  
+  
+  
+  
   cat("done.\n")
   
   # Save results
-  saveRDS(myframe, file = "project.rds")
+  saveRDS(myframe, file = "sysProject.rds")
   
   # Return to original working directory
   setwd(mywd)
@@ -766,5 +834,59 @@ run_IQRsysProject <- function(proj, ncores = 1, opt.nfits = 10, opt.sd = 1, opt.
   # Return the results as dMod.frame
   return(myframe)
   
+  
+}
+
+#' Creating an IQRsysProjectMulti project
+#' 
+#' @param input a folder where to find the projects are distributed in subfolders
+#' 
+#' @return List of folders where projects were found. The output gets a class 
+#' \code{IQRsysProjectMulti}.
+#' 
+#' @seealso \code{\link{summary.IQRsysProjectMulti}}
+#' @export
+#' 
+as_IQRsysProjectMulti <- function(input, FLAGrecursive = FALSE) {
+  
+  projects <- list.files(input, pattern = "sysProject.rds", recursive = TRUE)
+  folders <- sub("/sysProject.rds", "", projects, fixed = TRUE)
+  
+  
+  output <- as.list(folders)
+  attr(output, "input") <- input
+  class(output) <- c("IQRsysProjectMulti", "list")
+  
+  return(output)
+  
+}
+
+#' Summarize Multi IQRsysProject
+#' 
+#' @param object object of class \code{IQRsysProjectMulti}
+#' @param FLAGreport If \code{TRUE} then the table text is annotated by formatting suitable for IQReport. 
+#' If \code{FALSE} (default), then just text for display.
+#' @param pathname Write the summary to a file in \code{pathname}. If \code{NULL}, no output is written.
+#' @param ... currently not used 
+#' 
+#' @seealso \code{\link{as_IQRsysProjectMulti}}
+#' 
+#' @export
+summary.IQRsysProjectMulti <- function(object, ..., FLAGreport = FALSE, pathname = attr(object, "input")) {
+  
+  folders <- unlist(object)
+  
+  # Collect all results
+  myparframe <- dplyr::bind_rows(lapply(folders, function(mypath) {
+    cbind(model = mypath, IQRloadCSVdata(file.path(pathname, mypath, "RESULTS", "parframe.csv")), stringsAsFactors = F)
+  }))
+
+  myparframe <- myparframe[order(myparframe[["BIC"]]),]
+  
+  out <- IQRoutputTable(myparframe, 
+                        filename = file.path(pathname, "parframe.txt"), 
+                        report = FLAGreport, 
+                        xtitle = paste("Summary of parameter tables of IQRsysProjects found in", pathname))
+  cat(out)
   
 }
