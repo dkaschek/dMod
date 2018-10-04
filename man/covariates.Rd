@@ -16,7 +16,8 @@ covariates(x)
 \method{covariates}{data.frame}(x)
 }
 \arguments{
-\item{x}{Either a \link{datalist} or a \code{data.frame} with mandatory columns \code{c("name", "time", "value", "sigma")} or a \link{dMod.frame}}
+\item{x}{Either a \link{datalist} or a \code{data.frame} with mandatory 
+columns \code{c("name", "time", "value", "sigma", "lloq")}.}
 
 \item{hypothesis}{The hypothesis in the dMod.frame}
 }

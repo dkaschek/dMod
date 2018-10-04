@@ -21,7 +21,6 @@
 #' and the sensitivities of the ODE are multiplied according to the chain rule for
 #' differentiation. The result is saved in the attributed "deriv", 
 #' i.e. in this case the attibutes "deriv" and "sensitivities" do not coincide. 
-#' @example inst/examples/test_blocks.R
 #' @export
 #' @import deSolve
 Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = NULL, optionsOde=list(method = "lsoda"), optionsSens=list(method = "lsodes")) {

@@ -572,6 +572,25 @@ sanitizePars <- function(pars = NULL, fixed = NULL) {
 }
 
 
+sanitizeData <- function(x, required = c("name", "time", "value"), imputed = c(sigma = NA, lloq = -Inf)) {
+  
+  all.names <- names(x)
+  
+  missing.required <- setdiff(required, all.names)
+  missing.imputed <- setdiff(names(imputed), all.names)
+  
+  if (length(missing.required) > 0)
+      stop("These mandatory columns are missing: ", paste(missing.required, collapse = ", "))
+  
+  if (length(missing.imputed) > 0) {
+    
+    for (n in missing.imputed) x[[n]] <- imputed[n]
+    
+  }
+  
+  list(data = x, columns = c(required, names(imputed)))
+  
+}
 
 
 #' Print list of dMod objects in .GlobalEnv

@@ -17,6 +17,10 @@ addEvent(event, ...)
 \item{value}{Character or Numeric, the value of the event}
 
 \item{method}{Character, options are "replace", "add" or "multiply"}
+
+\item{event}{object of class \code{eventlist}}
+
+\item{...}{not used}
 }
 \value{
 data.frame with class eventlist

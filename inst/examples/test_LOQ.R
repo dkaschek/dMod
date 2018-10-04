@@ -20,26 +20,33 @@ parsD <- c(A = 0, k = -2, sigma_rel = 0)
 data <- (x*p)(timesD, parsD) %>% 
   as.data.frame() %>% 
   mutate(sigma = pmax(0.1*value, 0.1), 
-         value = rnorm(length(value), value, sigma)) %>% 
+         value = rnorm(length(value), value, sigma),
+         lloq = 0.3) %>% 
   as.datalist()
 plot(data)
 
 ## Test for fixed sigma ----
 
 # Test case 1: no value BLOQ
-obj <- normL2(data, x*p, loq = -1)
+data <- data %>% as.data.frame() %>% mutate(lloq = -1) %>% as.datalist()
+plotData(data)
+obj <- normL2(data, x*p)
 parsT <- c(A = 0, k = -5, sigma_rel = 0)
 obj(parsT)$grad
 numDeriv::grad(function(x) obj(x)$value, parsT)
 
 # Test case 2: all values BLOQ
-obj <- normL2(data, x*p, loq = 2)
+data <- data %>% as.data.frame() %>% mutate(lloq = 2) %>% as.datalist()
+plotData(data)
+obj <- normL2(data, x*p)
 parsT <- c(A = 0, k = -5, sigma_rel = 0)
 obj(parsT)$grad
 numDeriv::grad(function(x) obj(x)$value, parsT)
 
 # Test case 3: some values BLOQ
-obj <- normL2(data, x*p, loq = 0.5)
+data <- data %>% as.data.frame() %>% mutate(lloq = 0.3) %>% as.datalist()
+plotData(data)
+obj <- normL2(data, x*p)
 parsT <- c(A = 0, k = -5, sigma_rel = 0)
 obj(parsT)$grad
 numDeriv::grad(function(x) obj(x)$value, parsT)
@@ -47,19 +54,25 @@ numDeriv::grad(function(x) obj(x)$value, parsT)
 ## Test for variable sigma ----
 
 # Test case 1: no value BLOQ
-obj <- normL2(data, x*p, e, loq = -1)
+data <- data %>% as.data.frame() %>% mutate(lloq = -1) %>% as.datalist()
+plotData(data)
+obj <- normL2(data, x*p, e)
 parsT <- c(A = 0, k = -5, sigma_rel = 0)
 obj(parsT)$grad
 numDeriv::grad(function(x) obj(x)$value, parsT)
 
 # Test case 2: all values BLOQ
-obj <- normL2(data, x*p, e, loq = 2)
+data <- data %>% as.data.frame() %>% mutate(lloq = 2) %>% as.datalist()
+plotData(data)
+obj <- normL2(data, x*p, e)
 parsT <- c(A = 0, k = -5, sigma_rel = 0)
 obj(parsT)$grad
 numDeriv::grad(function(x) obj(x)$value, parsT)
 
 # Test case 3: some values BLOQ
-obj <- normL2(data, x*p, e, loq = 0.5)
+data <- data %>% as.data.frame() %>% mutate(lloq = 0.5) %>% as.datalist()
+plotData(data)
+obj <- normL2(data, x*p, e)
 parsT <- c(A = 0, k = -5, sigma_rel = 0)
 obj(parsT)$grad
 numDeriv::grad(function(x) obj(x)$value, parsT)
@@ -68,19 +81,17 @@ numDeriv::grad(function(x) obj(x)$value, parsT)
 
 
 ## Fit and plot ----
-myloq <- 0.5
-
 data_cens <- data %>% 
   as.data.frame() %>%
-  filter(value > myloq) %>% 
+  filter(value > lloq) %>% 
   as.datalist()
 
-obj <- normL2(data, x*p, e, loq = myloq)
+obj <- normL2(data, x*p, e)
 obj_cens <- normL2(data_cens, x*p, e)
 
 parsT <- c(A = 2, k = 2, sigma_rel = 0)
 myfit <- trust(obj, parsT, rinit = .1, rmax = 10)
 myfit_cens <- trust(obj_cens, parsT, rinit = .1, rmax = 10)
 
-(x*p)(times, myfit$argument) %>% plot(data_cens)
+(x*p)(times, myfit$argument) %>% plot(data)
 (x*p)(times, myfit_cens$argument) %>% plot(data_cens)

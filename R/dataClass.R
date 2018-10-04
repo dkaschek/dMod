@@ -2,7 +2,10 @@
 ## Class "datalist" and its constructor ------------------------------------------
 
 
-#' @param x object of class \code{data.frame} or \code{list}
+#' @param x object of class \code{data.frame} or \code{list}. Data frames are required to
+#' provide "name", "time" and "value" as columns. Columns "sigma" and "lloq" can be provided.
+#' If "sigma" and "lloq" are missing, they
+#' are imputed with \code{NA} and \code{-Inf}, respectively. 
 #' @return Object of class \link{datalist}
 #' @export
 #' @example inst/examples/datalist.R
@@ -13,20 +16,20 @@ as.datalist <- function(x, ...) {
 
 #' @export
 #' @param split.by vector of columns names which yield a unique identifier (conditions). If NULL, all
-#' columns except for the expected standard columns "name", "time", "value" and "sigma" will be
+#' columns except for the expected standard columns "name", "time", "value", "sigma" and "lloq" will be
 #' selected.
 #' @param keep.covariates vector of additional column names which should be kept in the condition.grid.
 #' @rdname datalist
 as.datalist.data.frame <- function(x, split.by = NULL, keep.covariates = NULL, ...) {
 
-  dataframe <- x
-
-  #remaining.names <- setdiff(names(dataframe), split.by)
+  # Sanitize data and get names
+  x <- sanitizeData(x)
+  dataframe <- x[["data"]]
+  standard.names <- x[["columns"]]
   all.names <- colnames(dataframe)
-  standard.names <- c("name", "time", "value", "sigma")
+  
+  # Get splitting information
   if (is.null(split.by)) split.by <- setdiff(all.names, standard.names)
-
-
   conditions <- lapply(split.by, function(n) dataframe[, n])
   splits <- do.call(paste, c(conditions, list(sep = "_")))
 
@@ -62,14 +65,8 @@ as.datalist.list <- function(x, names = NULL, ..., condition.grid = attr(x, "con
   is.data.frame <- sapply(mylist, class) == "data.frame"
   if (!all(is.data.frame)) stop("list of data.frame expected")
 
-  correct.names <- c("name", "time", "value", "sigma")
-  have.correct.names <- sapply(mylist, function(d) all(correct.names %in% colnames(d)))
-  if (all(have.correct.names)) {
-    mylist <- lapply(mylist, function(d) d[, correct.names])
-  } else {
-    stop(paste("data.frames should have names:", correct.names, collapse = " "))
-  }
-
+  # Sanitize data in list
+  mylist <- lapply(mylist, function(x) sanitizeData(x)[["data"]])
 
   if (length(mynames) != length(mylist)) stop("names argument has wrong length")
 
@@ -171,19 +168,24 @@ plotData.datalist <- function(data, ..., scales = "free", facet = "wrap", transf
   data <- lbind(data)
   data <- base::merge(data, covtable, by = "condition", all.x = T)
   data <- as.data.frame(dplyr::filter(data, ...), stringsAsFactors = F)
+  data$bloq <- ifelse(data$value <= data$lloq, "yes", "no")
 
   if (!is.null(transform)) data <- coordTransform(data, transform)
 
   if (facet == "wrap")
     p <- ggplot(data, aes(x = time, y = value, ymin = value - sigma,
-                          ymax = value + sigma, group = condition, color = condition)) + 
+                          ymax = value + sigma, group = condition, color = condition, pch = bloq)) + 
     facet_wrap(~name, scales = scales)
   if (facet == "grid")
     p <- ggplot(data, aes(x = time, y = value, ymin = value - sigma,
-                          ymax = value + sigma)) +  facet_grid(name ~ condition, scales = scales)
+                          ymax = value + sigma, pch = bloq)) +  
+    facet_grid(name ~ condition, scales = scales)
 
-  p <- p + geom_point() + geom_errorbar(width = 0)
+  p <- p + geom_point() + geom_errorbar(width = 0) +
+    scale_shape_manual(name = "BLoQ", values = c(yes = 4, no = 19))
 
+  if (all(data$bloq %in% "no"))
+    p <- p + guides(shape = FALSE)
 
   attr(p, "data") <- data
   return(p)
@@ -217,7 +219,7 @@ as.data.frame.datalist <- function(x, ...) {
 #' Access the covariates in the data
 #'
 #' @param x Either a \link{datalist} or a \code{data.frame} with mandatory 
-#' columns \code{c("name", "time", "value", "sigma")}.
+#' columns \code{c("name", "time", "value", "sigma", "lloq")}.
 #'
 #' @return The \code{condition.grid} of the data
 #' @export
@@ -237,7 +239,7 @@ covariates.datalist <- function(x) {
 #' @rdname covariates
 covariates.data.frame <- function(x) {
 
-  exclude <- c("name", "time", "value", "sigma")
+  exclude <- c("name", "time", "value", "sigma", "lloq")
   contains.condition <- "condition" %in% colnames(x)
   out <- unique(x[, setdiff(names(x), exclude)])
 

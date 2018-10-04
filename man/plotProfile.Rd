@@ -13,7 +13,7 @@
 
 \method{plotProfile}{list}(profs, ..., maxvalue = 5, parlist = NULL)
 
-plotProfile(x, ...)
+plotProfile(profs, ...)
 }
 \arguments{
 \item{hypothesis}{numeric, can be longer than 1}

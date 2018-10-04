@@ -8,12 +8,14 @@
 \usage{
 as.eventlist(x, ...)
 
-\method{as.eventlist}{list}(x)
+\method{as.eventlist}{list}(x, ...)
 
-\method{as.eventlist}{data.frame}(x)
+\method{as.eventlist}{data.frame}(x, ...)
 }
 \arguments{
 \item{x}{list, data.frame}
+
+\item{...}{not used}
 }
 \description{
 Coerce to eventlist

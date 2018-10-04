@@ -4,7 +4,7 @@
 \alias{res}
 \title{Compare data and model prediction by computing residuals}
 \usage{
-res(data, out, err = NULL, loq = -Inf)
+res(data, out, err = NULL)
 }
 \arguments{
 \item{data}{data.frame with name (factor), time (numeric), value (numeric) and sigma (numeric)}
@@ -16,8 +16,6 @@ contained in the sensitivity equations). If "deriv" is given, also "parameters"
 needs to be given.}
 
 \item{err}{output of the error model function}
-
-\item{loq}{single numeric or named numeric, limit of quantification}
 }
 \value{
 data.frame with the original data augmented by columns "prediction" (

@@ -4,8 +4,7 @@
 \alias{normL2}
 \title{L2 norm between data and model prediction}
 \usage{
-normL2(data, x, errmodel = NULL, times = NULL, attr.name = "data",
-  loq = -Inf)
+normL2(data, x, errmodel = NULL, times = NULL, attr.name = "data")
 }
 \arguments{
 \item{data}{object of class \link{datalist}}

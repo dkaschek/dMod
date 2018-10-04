@@ -624,8 +624,6 @@ list(x = xout, y = w)
 #'   
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'  
-#' @example inst/examples/test_blocks.R
-#'     
 #' @export
 #' @import parallel
 mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20, cores = 1,

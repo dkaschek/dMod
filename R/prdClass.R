@@ -144,6 +144,7 @@ plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", 
     data <- base::merge(data, covtable, by = "condition", all.x = T)
     data <- dplyr::filter(data, ...)
     data <- as.data.frame(data, stringsAsFactors = F)
+    data$bloq <- ifelse(data$value <= data$lloq, "yes", "no")
     
     if (!is.null(transform)) data <- coordTransform(data, transform)
   }
@@ -181,7 +182,14 @@ plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", 
     p <- p +  geom_line(data = prediction)
   
   if (!is.null(data))
-    p <- p + geom_point(data = data) + geom_errorbar(data = data, width = 0)
+    p <- p + 
+    geom_point(data = data, aes(pch = bloq)) + 
+    geom_errorbar(data = data, width = 0) +
+    scale_shape_manual(name = "BLoQ", values = c(yes = 4, no = 19))
+  
+  if (all(data$bloq %in% "no"))
+    p <- p + guides(shape = FALSE)
+  
   
   attr(p, "data") <- list(data = data, prediction = prediction)
   return(p)

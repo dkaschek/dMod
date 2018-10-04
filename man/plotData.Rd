@@ -12,7 +12,7 @@
 \method{plotData}{datalist}(data, ..., scales = "free", facet = "wrap",
   transform = NULL)
 
-plotData(x, ...)
+plotData(data, ...)
 
 \method{plotData}{data.frame}(data, ...)
 }

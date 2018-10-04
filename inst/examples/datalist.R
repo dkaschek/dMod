@@ -2,7 +2,8 @@
 mydata1 <- data.frame(name = "A",
                       time = 0:5,
                       value = 0:5,
-                      sigma = .1)
+                      sigma = .1,
+                      lloq = -0.5)
 
 mydata2 <- data.frame(name = "A",
                       time = 0:5,

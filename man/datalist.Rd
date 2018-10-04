@@ -6,6 +6,7 @@
 \alias{as.datalist.data.frame}
 \alias{as.datalist.list}
 \alias{names<-.datalist}
+\alias{is.datalist}
 \title{Generate a datalist object}
 \usage{
 datalist(...)
@@ -19,14 +20,19 @@ as.datalist(x, ...)
   "condition.grid"))
 
 \method{names}{datalist}(x) <- value
+
+is.datalist(x)
 }
 \arguments{
 \item{...}{data.frame objects to be coerced into a list and additional arguments}
 
-\item{x}{object of class \code{data.frame} or \code{list}}
+\item{x}{object of class \code{data.frame} or \code{list}. Data frames are required to
+provide "name", "time" and "value" as columns. Columns "sigma" and "lloq" can be provided.
+If "sigma" and "lloq" are missing, they
+are imputed with \code{NA} and \code{-Inf}, respectively.}
 
 \item{split.by}{vector of columns names which yield a unique identifier (conditions). If NULL, all
-columns except for the expected standard columns "name", "time", "value" and "sigma" will be
+columns except for the expected standard columns "name", "time", "value", "sigma" and "lloq" will be
 selected.}
 
 \item{keep.covariates}{vector of additional column names which should be kept in the condition.grid.}
@@ -51,6 +57,10 @@ Datalists can be plotted, see \link{plotData} and merged, see \link{sumdatalist}
 They are the basic structure when combining model prediction and data via the \link{normL2}
 objective function.
 
+The standard columns of the datalist data frames are "name" (observable name), 
+"time" (time points), "value" (data value), "sigma" (uncertainty, can be NA), and
+"lloq" (lower limit of quantification, \code{-Inf} by default).
+
 Datalists carry the attribute \code{condition.grid} which contains additional information about different
 conditions, such as dosing information for the experiment. It can be conveniently accessed by the \link{covariates}-function.
 Reassigning names to a datalist also renames the rows of the \code{condition.grid}.
@@ -60,7 +70,8 @@ Reassigning names to a datalist also renames the rows of the \code{condition.gri
 mydata1 <- data.frame(name = "A",
                       time = 0:5,
                       value = 0:5,
-                      sigma = .1)
+                      sigma = .1,
+                      lloq = -0.5)
 
 mydata2 <- data.frame(name = "A",
                       time = 0:5,

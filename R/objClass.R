@@ -106,14 +106,13 @@ constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, fixed=NULL) {
 #' function makes use of events, hand over event \code{times} here.
 #' @param attr.name character. The constraint value is additionally returned in an 
 #' attributed with this name
-#' @param loq named numeric or single valued numeric. Limit of quantification.
 #' @return Object of class \code{obsfn}, i.e. a function 
 #' \code{obj(..., fixed, deriv, conditions, env)} that returns an objective list,
 #' \link{objlist}.
 #' @details Objective functions can be combined by the "+" operator, see \link{sumobjfn}.
 #' @example inst/examples/normL2.R
 #' @export
-normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data", loq = -Inf) {
+normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
 
   timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))
   if (!is.null(times)) timesD <- sort(union(times, timesD))
@@ -124,7 +123,7 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data", l
     stop("The prediction function does not provide predictions for all conditions in the data.")
   e.conditions <- names(attr(errmodel, "mappings"))
   
-  controls <- list(times = timesD, attr.name = attr.name, conditions = x.conditions, loq = loq)
+  controls <- list(times = timesD, attr.name = attr.name, conditions = x.conditions)
 
   # might be necessary to "store" errmodel in the objective function (-> runbg)
   force(errmodel)  
@@ -146,7 +145,6 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data", l
     # Import from controls
     timesD <- controls$times
     attr.name <- controls$attr.name
-    loq <- controls$loq
     
     # Create new environment if necessary
     if (is.null(env)) env <- new.env()
@@ -158,9 +156,9 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data", l
       err <- NULL
       if ((!is.null(errmodel) & is.null(e.conditions)) | (!is.null(e.conditions) && (cn %in% e.conditions))) {
         err <- errmodel(out = prediction[[cn]], pars = getParameters(prediction[[cn]]), conditions = cn)
-        mywrss <- nll(res(data[[cn]], prediction[[cn]], err[[cn]], loq))
+        mywrss <- nll(res(data[[cn]], prediction[[cn]], err[[cn]]))
       } else {
-        mywrss <- wrss(res(data[[cn]], prediction[[cn]], NULL, loq))  
+        mywrss <- wrss(res(data[[cn]], prediction[[cn]]))  
       }
       available <- intersect(pars_out, names(mywrss$gradient))
       result <- template
