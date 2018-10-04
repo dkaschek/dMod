@@ -780,6 +780,28 @@ nll <- function(nout) {
 
 ## Methods for class objlist ------------------------------------------------
 
+#' Tests for objlist
+#' 
+#' Tests if value is numeric, gradient is named numeric, hessian is numeric matrix with dimnames. 
+#' NULL is allowed for each of the three
+#' 
+#' @param x objlist
+#'
+#' @return T or F
+#' @export
+#'
+#' @examples
+#' is.objlist(objlist(1,1,2))
+is.objlist <- function(x) {
+  tests <- rep(F,4)
+  tests[1] <- "objlist" %in% class(x)
+  tests[2] <- is.numeric(x$value) | is.null(x$value)
+  tests[3] <- (is.numeric(x$gradient) & !is.null(names(x$gradient))) | is.null(x$gradient)
+  tests[4] <- (is.numeric(x$hessian) & (is.matrix(x$hessian) & all(!vapply(dimnames(x$hessian), is.null, F)))) | is.null(x$hessian)
+  return(all(tests))
+}
+
+
 #' Add two lists element by element
 #' 
 #' @param out1 List of numerics or matrices
@@ -792,12 +814,18 @@ nll <- function(nout) {
 #' @aliases sumobjlist
 #' @export "+.objlist"
 #' @export
+#' @example inst/examples/sumobjlist.R
 "+.objlist" <- function(out1, out2) {
   
+  # test for well-behaved input
+  is1 <- is.objlist(out1)
+  is2 <- is.objlist(out2)
+  if (!(is1&is2))
+    stop(paste0(c("oblist1", "objlist2")[!c(is1, is2)], " is not a well behaved objlist. (See is.objlist for details)" ))
+    
   if (is.null(out1)) return(out2)
   if (is.null(out2)) return(out1)
 
-  
   
   allnames <- c(names(out1), names(out2))
   what <- allnames[duplicated(allnames)]
@@ -810,20 +838,32 @@ nll <- function(nout) {
   out12 <- lapply(what, function(w) {
     sub1 <- out1[[w]]
     sub2 <- out2[[w]]
-    n <- names(sub1)
-    dn <- dimnames(sub1)
-    if (!is.null(n) && !is.null(sub1) %% !is.null(sub2)) {
-      #print("case1: sum of vectors")
-      sub1[n] + sub2[n]
-    } else if (!is.null(dn) && !is.null(sub1) && !is.null(sub2)) {
-      #print("case2: sum of matrices")
-      matrix(sub1[dn[[1]], dn[[2]]] + sub2[dn[[1]], dn[[2]]], 
-             length(dn[[1]]), length(dn[[2]]), dimnames = list(dn[[1]], dn[[2]]))
+    
+    n1 <- names(sub1)
+    n2 <- names(sub2)
+    dn1 <- dimnames(sub1)
+    dn2 <- dimnames(sub2)
+    if (!is.null(n1) && !is.null(n2) && !is.null(sub1) %% !is.null(sub2)) {
+      # print("case1: sum of vectors")
+      out <- structure(rep(0, length(union(n1, n2))), names = union(n1, n2))
+      out[n1] <- out[n1] + sub1[n1]
+      out[n2] <- out[n2] + sub2[n2]
+      return(out)
+    } else if (!is.null(dn1) && !is.null(dn2) && !is.null(sub1) && !is.null(sub2)) {
+      # print("case2: sum of matrices")
+      out <- matrix(0, 
+                    nrow = length(union(dn1[[1]], dn2[[1]])),
+                    ncol = length(union(dn1[[2]], dn2[[2]])),
+                    dimnames = list(union(dn1[[1]], dn2[[1]]),
+                                    union(dn1[[2]], dn2[[2]])))
+      out[dn1[[1]], dn1[[2]]] <- out[dn1[[1]], dn1[[2]]] + sub1[dn1[[1]], dn1[[2]]]
+      out[dn2[[1]], dn2[[2]]] <- out[dn2[[1]], dn2[[2]]] + sub2[dn2[[1]], dn2[[2]]]
+      return(out)
     } else if (!is.null(sub1) && !is.null(sub2)) {
-      #print("case3: sum of scalars")
-      sub1 + sub2
+      # print("case3: sum of scalars")
+      return(sub1 + sub2)
     } else {
-      #print("case4")
+      # print("case4")
       NULL
     }
   })
