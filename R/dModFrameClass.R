@@ -176,7 +176,9 @@ appendParframes <- function(dMod.frame,
 
 #' @export
 #' @rdname plotCombined
-plotCombined.tbl_df <- function(model, hypothesis = 1, index = 1, ... ) {
+#' @param plotErrorBands If the dMod.frame contains an observation function for the 
+#' error model, use it to show error bands.
+plotCombined.tbl_df <- function(model, hypothesis = 1, index = 1, ... , plotErrorBands = F) {
 
   dots <- substitute(alist(...))
   message("If you want to subset() the plot, specify hypothesis AND index")
@@ -205,13 +207,21 @@ plotCombined.tbl_df <- function(model, hypothesis = 1, index = 1, ... ) {
                     paste0(paste(names(dots), "=", dots )[-1], collapse = "\n"))
   }
 
-  predicition_with_error <- NULL
-  if (!is.null(model[["e"]][[hypothesis]]))
-    predicition_with_error <- dMod:::as.data.frame.prdlist(prediction, data = data, errfn = model[["e"]][[hypothesis]])
 
-  plotCombined.prdlist(prediction, data, ...) + 
-    geom_ribbon(data = predicition_with_error, alpha = 0.15, size = 0) +
+  
+  myplot <- plotCombined.prdlist(prediction, data, ...) + 
     ggtitle(label = title)
+  
+  if (plotErrorBands) {
+    predicition_with_error <- NULL
+    if (!is.null(model[["e"]][[hypothesis]])){
+      predicition_with_error <- dMod:::as.data.frame.prdlist(prediction, data = data, errfn = model[["e"]][[hypothesis]])
+      predicition_with_error <- subset(predicition_with_error, ...)
+    }
+    myplot <- myplot +
+      geom_ribbon(data = predicition_with_error, alpha = 0.15, size = 0)
+  }  
+  return(myplot)
 }
 
 #' @export
