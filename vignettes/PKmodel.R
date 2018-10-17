@@ -3,6 +3,8 @@ setwd(tempdir())
 
 
 library(dMod)
+library(dplyr)
+library(ggplot2)
 
 # Define reactions
 reactions <- eqnlist() %>% 

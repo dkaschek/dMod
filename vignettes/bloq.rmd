@@ -1,0 +1,42 @@
+---
+title: "Handling Values Below Limit of Quantification (BLOQ)"
+author: "Daniel Kaschek"
+date: "September 10, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dMod)
+library(ggplot2)
+```
+
+```{r}
+
+
+
+t <- seq(0, 5, .1)
+y <- 0.4*(t - 3)^2 + 0.2
+
+mydata <- data.frame(
+  time = t,
+  value = log(y)
+)
+
+loq <- -0.5
+
+myobs <- data.frame(
+  time = c(1, 2.5, 3.5, 4.5),
+  value = c(0.1, -0.8, 0.2, -0.7),
+  label = c(1, 2, 3, 4)
+)
+
+ggplot(mydata, aes(x = time, y = value)) +
+  geom_hline(yintercept = loq, lty = 2) +
+  geom_line() +
+  geom_label(data = myobs, aes(label = label)) +
+  annotate("text", x = 0, y = loq, label = "LOQ", vjust = 1.3) +
+  theme_dMod()
+
+```
+
