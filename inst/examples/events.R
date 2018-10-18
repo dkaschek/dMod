@@ -1,7 +1,7 @@
 library(dMod)
 library(dplyr)
 library(ggplot2)
-setwd("/tmp")
+setwd(tempdir())
 
 #' Check function to check sensitivities
 #'
@@ -35,10 +35,11 @@ checkSensitivities <- function(p, whichpar, cond = 1, step = 0.1) {
 
 ## Do the check with method = "replace"
 model <- eqnlist() %>%
-  addReaction("A", "B", "kon*A") %>%
+  addReaction("A+A", "B", "kon*A^2") %>%
   addReaction("B", "A", "koff*B") %>%
   addReaction("B", "0", "degrad*B")%>%
-  addReaction("0", "kon", "0", "Event state") %>%
+  addReaction("0", "kon", "kbase", "Event state") %>%
+  addReaction("kon", "0", "degrad*kon", "Event state") %>%
   odemodel(
     events = data.frame(var = "kon", time = c(0, "toff"), value = c("kmax", 1), method = "replace")
   ) 
@@ -80,7 +81,7 @@ setwd("/tmp")
 
 
 model <- eqnlist() %>%
-  addReaction("A", "B", "kon*A") %>%
+  addReaction("A+A", "B", "kon*A^2") %>%
   addReaction("B", "A", "koff*B") %>%
   addReaction("B", "0", "degrad*B")%>%
   addReaction("0", "kon", "0", "Event state") %>%
