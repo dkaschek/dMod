@@ -23,6 +23,7 @@
 #'   
 #' @export
 #' @importFrom utils write.table
+#' @example inst/examples/steadystates.R
 steadyStates <- function(model, file=NULL, smatrix = NULL, states = NULL, rates = NULL, forcings = NULL, givenCQs = NULL, neglect=NULL, sparsifyLevel = 2, outputFormat = "R") {
   
   # Check if model is an equation list
@@ -47,9 +48,10 @@ steadyStates <- function(model, file=NULL, smatrix = NULL, states = NULL, rates 
       names(out) <- eq[1]
       return(out)
     }))
-    if(!is.null(file) & is.character(file)){
+    if(!is.null(file) & is.character(file))
       saveRDS(object = m_ssChar, file = file)
-    }
+    
+    return(m_ssChar)
   } else return(0)
 }
 
