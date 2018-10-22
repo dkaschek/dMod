@@ -42,10 +42,6 @@ An object of class \code{parvec}, i.e. a named numeric vector with attribute "de
 A parameter vector is a named numeric vector (the parameter values)
 together with a "deriv" attribute
 (the Jacobian of a parameter transformation by which the parameter vector was generated).
-
-Dispatch as.parvec.
-
-Parameter vector
 }
 \examples{
 # Generate a parameter vector

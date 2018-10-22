@@ -1,4 +1,9 @@
-#' Calculate analytical steady states
+#' Calculate analytical steady states. 
+#' 
+#' @description This function follows the method published in [1]. The determined steady-state solution is tailored to parameter estimation. Please note that kinetic parameters might be fixed for solution of steady-state equations. Note that additional parameters might be introduced to ensure positivity of the solution.
+#' @description The function calls a python script via rPython. Usage problems might occur when different python versions are used. The script was written and tested for python 2.7.12, sympy 0.7.6 and numpy 1.8.2.
+#' @description Recently, users went into problems with RJSONIO when rPython was used. Unless a sound solution is available, please try to reinstall RJSONIO in these cases.
+#' 
 #' 
 #' @param model Either name of the csv-file or the eqnlist of the model. If NULL, specify smatrix, states and rates by hand.
 #' @param file Name of the file to which the steady-state equations are saved.
@@ -11,13 +16,15 @@
 #' @param neglect Character vector with names of states and parameters that must not be used for solving the steady-state equations
 #' @param sparsifyLevel numeric, Upper bound for length of linear combinations used for simplifying the stoichiometric matrix
 #' @param outputFormat Define the output format. By default "R" generating dMod 
-#'   compatible output. To obtain an output appropriate for d2d [1] "M" must be 
+#'   compatible output. To obtain an output appropriate for d2d [2] "M" must be 
 #'   selected.
 #'   
 #' @return Character vector of steady-state equations.
 #'   
 #' @references [1]
-#' \url{https://bitbucket.org/d2d-development/d2d-software/wiki/Home}
+#' \url{https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4863410/}
+#' @references [2]
+#' \url{https://github.com/Data2Dynamics/d2d}
 #' 
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
 #'   

@@ -2,7 +2,7 @@
 % Please edit documentation in R/steadyStates.R
 \name{steadyStates}
 \alias{steadyStates}
-\title{Calculate analytical steady states}
+\title{Calculate analytical steady states.}
 \usage{
 steadyStates(model, file = NULL, smatrix = NULL, states = NULL,
   rates = NULL, forcings = NULL, givenCQs = NULL, neglect = NULL,
@@ -29,14 +29,18 @@ Read this file with \code{\link{readRDS}}.}
 \item{sparsifyLevel}{numeric, Upper bound for length of linear combinations used for simplifying the stoichiometric matrix}
 
 \item{outputFormat}{Define the output format. By default "R" generating dMod 
-compatible output. To obtain an output appropriate for d2d [1] "M" must be 
+compatible output. To obtain an output appropriate for d2d [2] "M" must be 
 selected.}
 }
 \value{
 Character vector of steady-state equations.
 }
 \description{
-Calculate analytical steady states
+This function follows the method published in [1]. The determined steady-state solution is tailored to parameter estimation. Please note that kinetic parameters might be fixed for solution of steady-state equations. Note that additional parameters might be introduced to ensure positivity of the solution.
+
+The function calls a python script via rPython. Usage problems might occur when different python versions are used. The script was written and tested for python 2.7.12, sympy 0.7.6 and numpy 1.8.2.
+
+Recently, users went into problems with RJSONIO when rPython was used. Unless a sound solution is available, please try to reinstall RJSONIO in these cases.
 }
 \examples{
    library(dMod)
@@ -67,7 +71,10 @@ Calculate analytical steady states
 }
 \references{
 [1]
-\url{https://bitbucket.org/d2d-development/d2d-software/wiki/Home}
+\url{https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4863410/}
+
+[2]
+\url{https://github.com/Data2Dynamics/d2d}
 }
 \author{
 Marcus Rosenblatt, \email{marcus.rosenblatt@fdm.uni-freiburg.de}

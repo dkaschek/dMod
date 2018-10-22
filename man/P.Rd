@@ -6,7 +6,8 @@
 \usage{
 P(trafo = NULL, parameters = NULL, condition = NULL,
   attach.input = FALSE, keep.root = TRUE, compile = FALSE,
-  modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE)
+  modelname = NULL, method = c("explicit", "implicit"),
+  verbose = FALSE)
 }
 \arguments{
 \item{trafo}{object of class \code{eqnvec} or named character or list thereof. In case,
