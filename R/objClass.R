@@ -826,7 +826,6 @@ is.objlist <- function(x) {
   if (is.null(out1)) return(out2)
   if (is.null(out2)) return(out1)
 
-  
   allnames <- c(names(out1), names(out2))
   what <- allnames[duplicated(allnames)]
   what.names <- what
@@ -843,7 +842,7 @@ is.objlist <- function(x) {
     n2 <- names(sub2)
     dn1 <- dimnames(sub1)
     dn2 <- dimnames(sub2)
-    if (!is.null(n1) && !is.null(n2) && !is.null(sub1) %% !is.null(sub2)) {
+    if (!is.null(n1) && !is.null(n2) && !is.null(sub1) && !is.null(sub2)) {
       # print("case1: sum of vectors")
       out <- structure(rep(0, length(union(n1, n2))), names = union(n1, n2))
       out[n1] <- out[n1] + sub1[n1]
