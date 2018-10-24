@@ -678,15 +678,15 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
       # 3. If not null & intersection is empty, don't evaluate xi at all
       v1 <- v2 <- NULL
       if (is.null(conditions.x1)) {
-        v1 <- x1(pars = pars[names(pars)%in%parameters.x1], fixed = fixed[names(fixed)%in%parameters.x1], deriv = deriv, conditions = conditions.x1, env = env)
+        v1 <- x1(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions.x1, env = env)
       } else if (any(conditions %in% conditions.x1)) {
-        v1 <- x1(pars = pars[names(pars)%in%parameters.x1], fixed = fixed[names(fixed)%in%parameters.x1], deriv = deriv, conditions = intersect(conditions, conditions.x1), env = env)
+        v1 <- x1(pars = pars, fixed = fixed, deriv = deriv, conditions = intersect(conditions, conditions.x1), env = env)
       }
 
       if (is.null(conditions.x2)) {
-        v2 <- x2(pars = pars[names(pars)%in%parameters.x2], fixed = fixed[names(fixed)%in%parameters.x2], deriv = deriv, conditions = conditions.x2, env = env)
+        v2 <- x2(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions.x2, env = env)
       } else if (any(conditions %in% conditions.x2)) {
-        v2 <- x2(pars = pars[names(pars)%in%parameters.x2], fixed = fixed[names(fixed)%in%parameters.x2], deriv = deriv, conditions = intersect(conditions, conditions.x2), env = attr(v1, "env"))
+        v2 <- x2(pars = pars, fixed = fixed, deriv = deriv, conditions = intersect(conditions, conditions.x2), env = attr(v1, "env"))
       }
 
       out <- v1 + v2
