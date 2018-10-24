@@ -690,11 +690,6 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
       }
 
       out <- v1 + v2
-      # rearrange gradient and hessian according to names(pars)
-      out$gradient <- out$gradient[names(pars)]
-      out$hessian <- out$hessian[names(pars), names(pars)]
-      
-      
       attr(out, "env") <- attr(v1, "env")
       return(out)
     }
