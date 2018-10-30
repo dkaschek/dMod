@@ -20,7 +20,6 @@ Imports:
     parallel,
     stringr,
     plyr,
-    digest,
     dplyr,
     rlang,
     rjson
