@@ -569,6 +569,8 @@ list(x = xout, y = w)
 #'   \option{samplefun}. See \code{\link{trust}}, parinit.
 #'   \code{center} Can also be a parframe, then the parameter values are taken 
 #'   from the parframe. In this case, the \code{fits} argument is overwritten.
+#'   To use a reproducible set of initial guesses, generate center with 
+#'   \code{\link{msParframe}}
 #' @param studyname The names of the study or fit. This name is used to 
 #'   determine filenames for interim and final results. See Details.
 #' @param rinit Starting trust region radius, see \code{\link{trust}}.
@@ -619,8 +621,11 @@ list(x = xout, y = w)
 #'   
 #' @return A parlist holding errored and converged fits.
 #'   
-#' @seealso \code{\link{trust}}, \code{\link{rnorm}}, \code{\link{runif}}, 
-#'   \code{\link{as.parframe}}
+#' @seealso 1. \code{\link{trust}}, for the used optimizer,
+#'   2. \code{\link{rnorm}}, \code{\link{runif}} for two common sampling functions,
+#'   3. \code{\link{msParframe}} for passing a reproducible set of random initial 
+#'   guesses to mstrust,
+#'   4. \code{\link{as.parframe}} for formatting the output to a handy table
 #'   
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
 #'  

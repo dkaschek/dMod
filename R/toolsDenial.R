@@ -63,7 +63,7 @@ saveShiny_dMod.frame <- function(dMod.frame, hypothesis = 1,
 
 #' Reproducibly construct "random" parframes
 #' 
-#' The output of this function can be used for the \code{center} - argument of \link{mstrust()}
+#' The output of this function can be used for the \code{center} - argument of \code{\link{mstrust}}
 #'
 #' @param pars Named vector. If \code{samplefun} has a "mean"-argument, values of pars will used as mean
 #' @param n Integer how many lines should the parframe have
@@ -74,23 +74,25 @@ saveShiny_dMod.frame <- function(dMod.frame, hypothesis = 1,
 #' @return parframe (without metanames)
 #' @export
 #' 
-#' @seealso [mstrust()]
+#' @seealso \code{\link{mstrust}} and \code{\link{parframe}}
 #'
 #' @examples
 #' msParframe(c(a = 0, b = 100000), 5)
 msParframe <- function(pars, n = 20, seed = 12345, samplefun = rnorm, ...) {
   set.seed(seed)
   
-  rnd <- samplefun(n*length(pars), ...)
-  mypars <- matrix(rnd, nrow = n)
-  
+  # generate random pars
+  rnd <- samplefun((n-1)*length(pars), ...)
+  mypars <- matrix(rnd, nrow = (n-1))
   mean_pars <- 0
   if ("mean" %in% names(formals(samplefun)))
-    mean_pars <- t(matrix(pars, nrow = length(pars), ncol = n))
-  
+    mean_pars <- t(matrix(pars, nrow = length(pars), ncol = (n-1)))
   mypars <- mypars + mean_pars
   
+  # assure that pars itself is also part
+  mypars <- rbind(t(pars), mypars)
   mypars <- `names<-`(as.data.frame(mypars), names(pars))
+  
   parframe(mypars)
 }
 

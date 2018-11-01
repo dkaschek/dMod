@@ -21,11 +21,11 @@ msParframe(pars, n = 20, seed = 12345, samplefun = rnorm, ...)
 parframe (without metanames)
 }
 \description{
-The output of this function can be used for the \code{center} - argument of \link{mstrust()}
+The output of this function can be used for the \code{center} - argument of \code{\link{mstrust}}
 }
 \examples{
 msParframe(c(a = 0, b = 100000), 5)
 }
 \seealso{
-[mstrust()]
+\code{\link{mstrust}} and \code{\link{parframe}}
 }
