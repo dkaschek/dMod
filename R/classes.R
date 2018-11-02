@@ -27,15 +27,12 @@
 #' @export
 #' @example inst/examples/odemodel.R
 #' @import cOde
-#' @importFrom digest digest
 odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, outputs = NULL, fixed = NULL, estimate = NULL, modelname = "odemodel", solver = c("deSolve", "Sundials"), gridpoints = NULL, verbose = FALSE, ...) {
 
 
   if (is.null(gridpoints)) gridpoints <- 2
 
   f <- as.eqnvec(f)
-  # Add hash to prevent overwriting existing models
-  modelname <- paste0(modelname, "_", substr(digest(list(f,forcings,events,outputs,fixed,estimate,solver,gridpoints)),1,8))
   modelname_s <- paste0(modelname, "_s")
   solver <- match.arg(solver)
 
@@ -678,15 +675,15 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
       # 3. If not null & intersection is empty, don't evaluate xi at all
       v1 <- v2 <- NULL
       if (is.null(conditions.x1)) {
-        v1 <- x1(pars = pars[names(pars)%in%parameters.x1], fixed = fixed[names(fixed)%in%parameters.x1], deriv = deriv, conditions = conditions.x1, env = env)
+        v1 <- x1(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions.x1, env = env)
       } else if (any(conditions %in% conditions.x1)) {
-        v1 <- x1(pars = pars[names(pars)%in%parameters.x1], fixed = fixed[names(fixed)%in%parameters.x1], deriv = deriv, conditions = intersect(conditions, conditions.x1), env = env)
+        v1 <- x1(pars = pars, fixed = fixed, deriv = deriv, conditions = intersect(conditions, conditions.x1), env = env)
       }
 
       if (is.null(conditions.x2)) {
-        v2 <- x2(pars = pars[names(pars)%in%parameters.x2], fixed = fixed[names(fixed)%in%parameters.x2], deriv = deriv, conditions = conditions.x2, env = env)
+        v2 <- x2(pars = pars, fixed = fixed, deriv = deriv, conditions = conditions.x2, env = env)
       } else if (any(conditions %in% conditions.x2)) {
-        v2 <- x2(pars = pars[names(pars)%in%parameters.x2], fixed = fixed[names(fixed)%in%parameters.x2], deriv = deriv, conditions = intersect(conditions, conditions.x2), env = attr(v1, "env"))
+        v2 <- x2(pars = pars, fixed = fixed, deriv = deriv, conditions = intersect(conditions, conditions.x2), env = attr(v1, "env"))
       }
 
       out <- v1 + v2

@@ -664,7 +664,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   # Second, check what trust() and samplefun() accept and check for name clashes.
   # Third, whatever is unused is passed to the objective function objfun().
   nameslocal <- c("studyname", "center", "fits", "cores", "samplefun",
-                  "resultPath", "stats", "narrowing")
+                  "resultPath", "stats", "narrowing", "output")
   namestrust <- intersect(names(formals(trust)), names(argslist))
   namessample <- intersect(names(formals(samplefun)), names(argslist))
   if (length(intersect(namestrust, namessample) != 0)) {
@@ -740,7 +740,6 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   }
   
   m_parlist <- as.parlist(mclapply(1:fits, function(i) {
-    
     if(is.parframe(center)) {
       argstrust$parinit <- as.parvec(center, i)
     } else {

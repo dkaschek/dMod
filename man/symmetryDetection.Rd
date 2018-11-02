@@ -4,9 +4,9 @@
 \alias{symmetryDetection}
 \title{Search for symmetries in the loaded model}
 \usage{
-symmetryDetection(f, obsvect = NULL, prediction = NULL, initial = NULL,
-  ansatz = "uni", pMax = 2, inputs = NULL, fixed = NULL, cores = 1,
-  allTrafos = FALSE)
+symmetryDetection(f, obsvect = NULL, prediction = NULL,
+  initial = NULL, ansatz = "uni", pMax = 2, inputs = NULL,
+  fixed = NULL, cores = 1, allTrafos = FALSE)
 }
 \arguments{
 \item{f}{object containing the ODE for which \code{as.eqnvec()} is defined}
@@ -30,7 +30,11 @@ symmetryDetection(f, obsvect = NULL, prediction = NULL, initial = NULL,
 \item{allTrafos}{do not remove transformations with a common parameter factor}
 }
 \description{
-Search for symmetries in the loaded model
+This function follows the method published in [1].
+
+The function calls a python script via rPython. Usage problems might occur when different python versions are used. The script was written and tested for python 2.7.12, sympy 0.7.6.
+
+Recently, users went into problems with RJSONIO when rPython was used. Unless a sound solution is available, please try to reinstall RJSONIO in these cases.
 }
 \examples{
 \dontrun{
@@ -43,4 +47,8 @@ observables <- eqnvec(Aobs = "alpha * A")
 symmetryDetection(eq, observables)
 
 }
+}
+\references{
+[1]
+\url{https://journals.aps.org/pre/abstract/10.1103/PhysRevE.92.012920}
 }

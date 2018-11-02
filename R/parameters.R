@@ -32,9 +32,6 @@ P <- function(trafo = NULL, parameters=NULL, condition = NULL, attach.input = FA
   
   method <- match.arg(method)
   
-  # Add hash to prevent overwriting of .c-files with different content
-  if (!is.null(modelname)) modelname <- paste0(modelname, "_", substr(digest(list(trafo, parameters)),1,8))
-
   Reduce("+", lapply(1:length(trafo), function(i) {
   
       switch(method, 

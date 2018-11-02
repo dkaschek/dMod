@@ -432,11 +432,9 @@ expand.grid.alt <- function(seq1, seq2) {
 #' @param args Additional arguments for the R CMD SHLIB call, e.g. \code{-leinspline}.
 #' @param verbose Print compiler output to R command line.
 #' @param cores Number of cores used for compilation when several files are compiled.
-#' @param recompile If .so-file with hash+output exists already, recompile and overwrite or don't?
 #' 
-#' @importFrom digest digest
 #' @export
-compile <- function(..., output = NULL, args = NULL, cores = 1, verbose = F, recompile = F) {
+compile <- function(..., output = NULL, args = NULL, cores = 1, verbose = F) {
   
   objects <- list(...)
   obj.names <- as.character(substitute(list(...)))[-1]
@@ -472,25 +470,14 @@ compile <- function(..., output = NULL, args = NULL, cores = 1, verbose = F, rec
     }, mc.cores = cores, mc.silent = FALSE)
     for (r in roots) dyn.load(paste0(r, .so))
   } else {
-    # Append short hash of all .c-files which go into the compiled dll
-    output <- paste0(output, "_", substr(digest(list(roots)),1,8))
     for (i in 1:length(objects)) {
       eval(parse(text = paste0("modelname(", obj.names[i], ") <<- '", output, "'")))
     }
     for (r in roots) try(dyn.unload(paste0(r, .so)), silent = TRUE)
-    
-    if (file.exists(paste0(output, .so)) & !recompile) {
-      dyn.load(paste0(output, .so))
-      if (verbose) message("File already existing. Library was not overwritten.")
-      return(NULL)
-    }
-    
     try(dyn.unload(output), silent = TRUE)
     system(paste0(R.home(component = "bin"), "/R CMD SHLIB ", paste(files, collapse = " "), " -o ", output, .so, " ", args), intern = !verbose)
     dyn.load(paste0(output, .so))
   }
-  
-  
 }
 
 

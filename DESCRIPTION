@@ -20,14 +20,14 @@ Imports:
     parallel,
     stringr,
     plyr,
-    digest,
     dplyr,
-    rlang
+    rlang,
+    rjson
 Suggests:
     MASS,
     rPython,
     pander,
     knitr,
     rmarkdown
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.0
 VignetteBuilder: knitr

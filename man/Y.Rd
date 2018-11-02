@@ -5,8 +5,8 @@
 \title{Observation functions.}
 \usage{
 Y(g, f = NULL, states = NULL, parameters = NULL, condition = NULL,
-  attach.input = TRUE, deriv = TRUE, compile = FALSE, modelname = NULL,
-  verbose = FALSE)
+  attach.input = TRUE, deriv = TRUE, compile = FALSE,
+  modelname = NULL, verbose = FALSE)
 }
 \arguments{
 \item{g}{Named character vector or equation vector defining the observation function}

@@ -3,73 +3,50 @@
 # 
 # 
 #     #-!Start example code
+#     library(dplyr)
+#     library(dMod)
+#     source("../examples/example_CCD4/setup.R")
 #     
-#     ## Observation function
-#     fn <- eqnvec(
-#       sine = "1 + sin(6.28*omega*time)",
-#       cosine = "cos(6.28*omega*time)"
-#     )
-#     g <- Y(fn, parameters = "omega")
-#     
-#     ## Prediction function for time
-#     x <- Xt()
-#     
-#     ## Parameter transformations to split conditions
-#     p <- NULL
-#     for (i in 1:3) {
-#       p <- p + P(trafo = c(omega = paste0("omega_", i)), condition = paste0("frequency_", i))
+#     construct_parframe <- function(pars, n = 20, seed = 12345, samplefun = rnorm) {
+#       set.seed(seed)
+#       rnd <- samplefun(n*length(pars))
+#       mypars <- matrix(rnd, nrow = n)
+#       mypars <- `names<-`(as.data.frame(mypars), names(pars))
+#       parframe(mypars)
 #     }
 #     
-#     ## Evaluate prediction
-#     times <- seq(0, 1, .01)
-#     pars <- structure(seq(1, 2, length.out = 3), names = attr(p, "parameters"))
+#     model <- dMod.frame("Paper version", g, x, p, data, NULL, odemodels = list(model0))
+#     model <- appendObj(model, parframes = list(construct_parframe(pars)))
+#     model <- mutate(model, fits = list(mstrust(obj, parframes, cores = 4)))
+#     model <- appendParframes(model)
 #     
-#     prediction <- (g*x*p)(times, pars)
+#     p1 <- plotCombined(model)
 #     
-#     ## Plotting prediction
-#     # plot(prediction)
-#     plotPrediction(prediction)
-#     plotPrediction(prediction, scales = "fixed")
-#     plotPrediction(prediction, facet = "grid")
-#     plotPrediction(prediction, 
-#                    scales = "fixed",
-#                    transform = list(sine = "x^2", cosine = "x - 1"))
+#     model <- dMod.frame("Paper version", g, x, p, data, NULL, odemodels = list(model0))
+#     model <- appendObj(model)
+#     model <- mutate(model,
+#                     fixed = list(c(logkb1 = -1.04, logbcar = 1.78, logkb2 = -2.31)))
+#     model <- mutate(model,
+#                     pars = list(structure(rnorm(length(getParameters(prd))-3),
+#                                           names = getParameters(prd)[!getParameters(prd)%in%names(fixed)])),
+#                     parframes = list(construct_parframe(pars)))
+#     model <- mutate(model, fits = list(mstrust(obj, parframes, cores = 4, fixed = fixed)))
+#     model <- appendParframes(model)
 #     
-#     ## Simulate data
-#     dataset <- wide2long(prediction)
-#     dataset <- dataset[seq(1, nrow(dataset), 5),]
-#     set.seed(1)
-#     dataset$value <- dataset$value + rnorm(nrow(dataset), 0, .1)
-#     dataset$sigma <- 0.1
-#     data <- as.datalist(dataset, split.by = "condition")
+#     p2 <- plotCombined(model)
 #     
-#     ## Plotting data
-#     # plot(data)
-#     plot1 <- plotData(data)
-#     #-! plot1
-#     ## Plotting data and prediction with subsetting
-#     # plot(prediction, data)
-#     plot2 <- plotCombined(prediction, data)
-#     #-! plot2
-#     plot3 <- plotCombined(prediction, data, 
-#                  time <= 0.5 & condition == "frequency_1")
-#     #-! plot3
-#     plot4 <- plotCombined(prediction, data, 
-#                  time <= 0.5 & condition != "frequency_1", 
-#                  facet = "grid")
-#     #-! plot4
-#     plot5 <- plotCombined(prediction, data, aesthetics = list(linetype = "condition"))
-#     #-! plot5
-# 
+#     unlink(paste0("*.", c("c", "o", "so")))
 #     #-!End example code
-# 
+#     
+#     saveRDS(p1, "resources/plotting/p1.rds")
+#     p1_saved <- readRDS("resources/plotting/p1.rds")
+#     
+#     
+#     saveRDS(p2, "resources/plotting/p2.rds")
+#     p2_saved <- readRDS("resources/plotting/p2.rds")
+#     
 # 
 #     # Define your expectations here
-#     expect_known_hash(plot1, hash = "b7c5911d4f")
-#     expect_known_hash(plot2, hash = "9932d1abb8")
-#     expect_known_hash(plot3, hash = "3257e2a033")
-#     expect_known_hash(plot4, hash = "f178a7e8ad")
-#     expect_known_hash(plot5, hash = "454fbb0763")
-#     
+#     expect_identical(as.character(p1), as.character(p1_saved))
+#     expect_identical(as.character(p2), as.character(p2_saved))
 #   })
-#   

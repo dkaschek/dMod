@@ -763,7 +763,6 @@ c.eqnvec <- function(...) {
 #' parameter values.
 #' The argument \code{attach.input} determines whether \code{M} is attached to the output.
 #' The function \code{f} returns a matrix.
-#' @importFrom digest digest
 #' @examples 
 #' library(ggplot2)
 #' myfun <- funC0(c(y = "a*x^4 + b*x^2 + c"))
@@ -842,10 +841,10 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
     
     # Put equation into C function
     if (is.null(modelname)) {
-      funcname <- paste0("funC0_", substr(digest(expr),1,8))
+      funcname <- paste0("funC0_", paste(sample(c(0:9, letters), 8, replace = TRUE), collapse = ""))
       filename <- funcname
     } else {
-      funcname <- paste0(modelname, "_", substr(digest(expr),1,8))
+      funcname <- paste0(modelname, "_", paste(sample(c(0:9, letters), 8, replace = TRUE), collapse = ""))
       filename <- modelname
     }
     body <- paste(
