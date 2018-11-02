@@ -4,8 +4,7 @@
 \alias{compile}
 \title{Compile one or more prdfn, obsfn or parfn objects}
 \usage{
-compile(..., output = NULL, args = NULL, cores = 1, verbose = F,
-  recompile = F)
+compile(..., output = NULL, args = NULL, cores = 1, verbose = F)
 }
 \arguments{
 \item{...}{Objects of class parfn, obsfn or prdfn}
@@ -18,8 +17,6 @@ passed, the different C files are all compiled into one shared object file.}
 \item{cores}{Number of cores used for compilation when several files are compiled.}
 
 \item{verbose}{Print compiler output to R command line.}
-
-\item{recompile}{If .so-file with hash+output exists already, recompile and overwrite or don't?}
 }
 \description{
 Compile one or more prdfn, obsfn or parfn objects

@@ -7,6 +7,7 @@
 \alias{as.datalist.list}
 \alias{names<-.datalist}
 \alias{is.datalist}
+\alias{c.datalist}
 \title{Generate a datalist object}
 \usage{
 datalist(...)
@@ -22,6 +23,8 @@ as.datalist(x, ...)
 \method{names}{datalist}(x) <- value
 
 is.datalist(x)
+
+\method{c}{datalist}(...)
 }
 \arguments{
 \item{...}{data.frame objects to be coerced into a list and additional arguments}
