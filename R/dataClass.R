@@ -104,6 +104,21 @@ is.datalist <- function(x) {
 }
 
 #' @export
+#' @rdname datalist
+c.datalist <- function(...) {
+  dlist <- lapply(list(...), unclass)
+  
+  condition.grids <- lapply(dlist, function(i) attr(i, "condition.grid"))
+  mycg <- Reduce(dMod::combine, condition.grids)
+  
+  dlist <- Reduce(c, lapply(dlist, function(i) {`attr<-`(i, "condition.grid", NULL)}))
+  attr(dlist, "condition.grid") <-  mycg
+  class(dlist) <- "datalist"
+  return(dlist)
+}
+
+
+#' @export
 print.datalist <- function(x, ...) {
   datalist <- x
   for(n in names(datalist)) {

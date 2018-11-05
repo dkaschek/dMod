@@ -16,7 +16,9 @@ are randomly sampled. The initial values handed to \link{trust} are the sum
 of center and the output of \option{samplefun}, center + 
 \option{samplefun}. See \code{\link{trust}}, parinit.
 \code{center} Can also be a parframe, then the parameter values are taken 
-from the parframe. In this case, the \code{fits} argument is overwritten.}
+from the parframe. In this case, the \code{fits} argument is overwritten.
+To use a reproducible set of initial guesses, generate center with 
+\code{\link{msParframe}}}
 
 \item{studyname}{The names of the study or fit. This name is used to 
 determine filenames for interim and final results. See Details.}
@@ -84,8 +86,11 @@ By running multiple fits starting at randomly chosen inital
   (parameterList.Rda) and the fit log (mstrust.log) are found instead.
 }
 \seealso{
-\code{\link{trust}}, \code{\link{rnorm}}, \code{\link{runif}}, 
-  \code{\link{as.parframe}}
+1. \code{\link{trust}}, for the used optimizer,
+  2. \code{\link{rnorm}}, \code{\link{runif}} for two common sampling functions,
+  3. \code{\link{msParframe}} for passing a reproducible set of random initial 
+  guesses to mstrust,
+  4. \code{\link{as.parframe}} for formatting the output to a handy table
 }
 \author{
 Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
