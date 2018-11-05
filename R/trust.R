@@ -98,14 +98,14 @@ norm <- function(x) sqrt(sum(x^2))
 #' @export
 #' @importFrom stats uniroot
 trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100, 
-                   fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps), 
-                   minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, ...) 
+                  fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps), 
+                  minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, ...) 
 {
-  
+  # Initialize ----
   # Guarantee that pars is named numeric without deriv attribute
   sanePars <- sanitizePars(parinit, list(...)$fixed)
   parinit <- sanePars$pars
-
+  
   
   u <- structure(rep(Inf, length(parinit)), names = names(parinit))
   l <- structure(rep(-Inf, length(parinit)), names = names(parinit))
@@ -118,7 +118,7 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     u[names(parupper)] <- parupper
   if (!is.null(names(parlower)) & !is.null(names(parinit)))
     l[names(parlower)] <- parlower
- 
+  
   parupper <- u
   parlower <- l
   
@@ -162,9 +162,18 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     return(list(error = out, argument = theta, converged = FALSE, 
                 iterations = 0))
   }
-  check.objfun.output(out, minimize, d)
-  if (!is.finite(out$value)) 
-    stop("parinit not feasible")
+  checks <- try(check.objfun.output(out, minimize, d))
+  if (inherits(checks, "try-error")) {
+    warning("error in first call to objfun")
+    return(c(as.list(out), error = checks, list(argument = theta), converged = FALSE, 
+             iterations = 0))
+  }
+  if (!is.finite(out$value))  {
+    error <- try(stop("parinit not feasible: value is not finite"))
+    return(c(as.list(out), error = error, list(argument = theta), converged = FALSE, 
+             iterations = 0))
+  }
+    
   
   #remove boundary elements from gradient and hessian
   # g_boundary <- c(upper[which(out$gradient[upper] < 0)], lower[which(out$gradient[lower] > 0)])
@@ -189,6 +198,7 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     val.try.blather <- NULL
     preddiff.blather <- NULL
   }
+  # Iterate ----
   for (iiter in 1:iterlim) {
     #cat(iiter, out$value,upper,"\n")
     if (blather) {
@@ -199,7 +209,7 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
       else val.blather <- c(val.blather, out.value.save)
     }
     if (accept) {
-     
+      
       if (minimize)
         g_boundary <- c(upper[which(out$gradient[upper] < 0)], lower[which(out$gradient[lower] > 0)])
       if (!minimize)
@@ -300,10 +310,12 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     out <- try(objfun(theta.try, ...))
     if (inherits(out, "try-error")) 
       break
+    checks <- try(check.objfun.output(out, minimize, d))
+    if (inherits(checks, "try-error")){
+      out <- c(as.list(out), error = checks)
+      break
+    }
     
-    
-    
-    check.objfun.output(out, minimize, d)
     ftry <- out$value
     if (!minimize) 
       ftry <- (-ftry)
@@ -363,17 +375,26 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     if (is.terminate) 
       break
   }
+  
+  # Finalize ----
   if (inherits(out, "try-error")) {
-    out <- list(error = out, argument = theta.try, converged = FALSE)
-  }
-  else {
+    # error of last iteration
+    out <- c(error = out, list(argument = theta.try), converged = FALSE)
+  } else if (!is.null(out$error)){
+    # error of last iteration
+    out <- c(out, list(argument = theta.try), converged = FALSE)
+  } else {
     out <- try(objfun(theta, ...))
     if (inherits(out, "try-error")) {
-      out <- list(error = out)
+      # error of final argument
+      out <- list(error = out, argument = theta)
       warning("error in last call to objfun")
     }
     else {
-      check.objfun.output(out, minimize, d)
+      # error of final argument
+      checks <- try(check.objfun.output(out, minimize, d))
+      if (inherits(checks, "try-error"))
+        out <- c(as.list(out), error = checks, list(argument = theta))
     }
     out$argument <- theta
     out$converged <- is.terminate
