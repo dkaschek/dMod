@@ -694,8 +694,7 @@ nll <- function(nout) {
   # Drop BLOQ part from nout
   nout <- nout[!is.bloq, , drop = FALSE]
   
-  obj <- sum(nout$weighted.residual^2) + sum(log(2*pi*nout$sigma^2)) + 
-    sum(-2*log(pnorm(-nout.bloq$weighted.residual)))
+  obj <- sum(nout$weighted.residual^2) + sum(log(2*pi*nout$sigma^2)) 
   grad <- NULL
   hessian <- NULL
   
@@ -738,6 +737,9 @@ nll <- function(nout) {
     
     if (nrow(derivs.bloq) > 0 & nrow(derivs.err.bloq) > 0) {
       
+      objvals.bloq <- -2*log(pnorm(-nout.bloq$weighted.residual))
+      obj.bloq <- sum(objvals.bloq[is.finite(objvals.bloq)])
+      
       # Get sensitivities: sens = dres/dp, sens.err = dsigma/dp
       sens.bloq <- as.matrix(derivs.bloq[, -(1:2), drop = FALSE])
       sens.err.bloq <- as.matrix(derivs.err.bloq[, -(1:2), drop = FALSE])
@@ -747,18 +749,24 @@ nll <- function(nout) {
       res <- nout.bloq$residual
       sigma <- nout.bloq$sigma
       
+      # Deal with numerical issues
+      G_divided_by_Phi <- G/Phi
+      G_divided_by_Phi[!is.finite(G_divided_by_Phi)] <- 0
+      
       # Compute gradient
-      grad.bloq <- as.vector(matrix(2*G/(Phi*sigma), nrow = 1) %*% sens.bloq) -
-        as.vector(matrix(2*G*res/(Phi*sigma^2), nrow = 1) %*% sens.err.bloq)
+      grad.bloq <- as.vector(matrix(2*G_divided_by_Phi/sigma, nrow = 1) %*% sens.bloq) -
+        as.vector(matrix(2*G_divided_by_Phi*res/(sigma^2), nrow = 1) %*% sens.err.bloq)
       names(grad.bloq) <- colnames(sens.bloq)
       
       # Compute hessian
       X <- -(1/sigma)*sens.bloq + (res/sigma^2)*sens.err.bloq
-      X1 <- (2*G^2/Phi^2)*X
-      X2 <- (2*G*res/(Phi*sigma))*X
+      X1 <- (2*G_divided_by_Phi^2)*X
+      X2 <- (2*G_divided_by_Phi*res/(sigma))*X
       
       hessian.bloq <- t(X1) %*% X  - t(X2) %*% X
       
+      
+      obj <- obj + obj.bloq
       if (is.null(grad) & is.null(hessian)) {
         grad <- grad.bloq
         hessian <- hessian.bloq
