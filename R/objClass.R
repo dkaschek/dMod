@@ -615,7 +615,7 @@ wrss <- function(nout) {
   
   # Drop BLOQ part from nout
   nout <- nout[!is.bloq, , drop = FALSE]
-  obj <- sum(nout$weighted.residual^2) + sum(-2*log(pnorm(-nout.bloq$weighted.residual)))
+  obj <- sum(nout$weighted.residual^2) 
   
   grad <- NULL
   hessian <- NULL
