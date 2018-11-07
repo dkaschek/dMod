@@ -369,8 +369,21 @@ plotProfile.tbl_df <- function(dMod.frame, hypothesis = 1, ...) {
                            paste0(paste(names(dots), "=", dots )[-1], collapse = "\n")) )
 }
 
+#' @export
+#' @rdname plotPaths
+#' @param hypothesis numeric, can be longer than 1
+plotPaths.tbl_df <- function(dMod.frame, hypothesis = 1, ...) {
+  dots <- substitute(alist(...))
+  
+  if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
+  
+  myprofs <- dMod.frame[["profiles"]][hypothesis] %>% setNames(dMod.frame[["hypothesis"]][hypothesis])
+  
+  plotPaths.list(myprofs, ...)
+}
 
-# Other methods
+
+# Other methods -----
 
 #' @export 
 #' @param hypothesis The hypothesis in the dMod.frame
