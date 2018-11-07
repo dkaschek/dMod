@@ -643,22 +643,33 @@ wrss <- function(nout) {
     
     if (nrow(derivs.bloq) > 0) {
       
+      nout.bloq$weighted.residual[nout.bloq$weighted.residual > 30] <- 30
+      nout.bloq$weighted.residual[nout.bloq$weighted.residual < -4] <- -4
+      
+      objvals.bloq <- -2*log(pnorm(-nout.bloq$weighted.residual))
+      obj.bloq <- sum(objvals.bloq)
+      
       nout.bloq[is.na(nout.bloq$sigma)] <- 1
       sens.bloq <- as.matrix(derivs.bloq[, -(1:2), drop = FALSE])
       
-      Phi <- pnorm(-nout.bloq$weighted.residual)
-      G <- dnorm(-nout.bloq$weighted.residual)
       res <- nout.bloq$residual
       sigma <- nout.bloq$sigma
       
+      Phi <- pnorm(-nout.bloq$weighted.residual)
+      G <- dnorm(-nout.bloq$weighted.residual)
+      # Deal with numerical issues
+      G_divided_by_Phi <- G/Phi
       
-      grad.bloq <- as.vector(matrix(2*G/(Phi*sigma), nrow = 1) %*% sens.bloq)
+      
+      grad.bloq <- as.vector(matrix(2*G_divided_by_Phi/(sigma), nrow = 1) %*% sens.bloq)
       names(grad.bloq) <- colnames(sens.bloq)
       
-      X1 <- sens.bloq*(G/(Phi*sigma))^2
-      X2 <- sens.bloq*(res*G/(Phi*sigma^3))
+      X1 <- sens.bloq*(G_divided_by_Phi/(sigma))^2
+      X2 <- sens.bloq*(res*G_divided_by_Phi/(sigma^3))
       hessian.bloq <- 2 * t(X1) %*% sens.bloq - 2 * t(X2) %*% sens.bloq
       
+      
+      obj <- obj + obj.bloq
       if (is.null(grad) & is.null(hessian)) {
         grad <- grad.bloq
         hessian <- hessian.bloq
@@ -668,8 +679,6 @@ wrss <- function(nout) {
       }
       
     }
-    
-    
     
   }
   
@@ -737,8 +746,11 @@ nll <- function(nout) {
     
     if (nrow(derivs.bloq) > 0 & nrow(derivs.err.bloq) > 0) {
       
+      nout.bloq$weighted.residual[nout.bloq$weighted.residual > 30] <- 30
+      nout.bloq$weighted.residual[nout.bloq$weighted.residual < -4] <- -4
+      
       objvals.bloq <- -2*log(pnorm(-nout.bloq$weighted.residual))
-      obj.bloq <- sum(objvals.bloq[is.finite(objvals.bloq)])
+      obj.bloq <- sum(objvals.bloq)
       
       # Get sensitivities: sens = dres/dp, sens.err = dsigma/dp
       sens.bloq <- as.matrix(derivs.bloq[, -(1:2), drop = FALSE])
@@ -751,8 +763,7 @@ nll <- function(nout) {
       
       # Deal with numerical issues
       G_divided_by_Phi <- G/Phi
-      G_divided_by_Phi[!is.finite(G_divided_by_Phi)] <- 0
-      
+
       # Compute gradient
       grad.bloq <- as.vector(matrix(2*G_divided_by_Phi/sigma, nrow = 1) %*% sens.bloq) -
         as.vector(matrix(2*G_divided_by_Phi*res/(sigma^2), nrow = 1) %*% sens.err.bloq)
