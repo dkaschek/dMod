@@ -1,0 +1,155 @@
+---
+title: "Accessing Information in dMod Objects"
+author: "Daniel Kaschek"
+date: "December 20, 2018"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 3.5)
+```
+
+
+Many of the objects in dMod carry attributes or special value within their environments. Here, we highlight the major functions to access this information and manipulate it.
+
+We start with setting up a small model, i.e. a prediction function `x` and a parameter transformation function `p`. The model describes a simple dissipative system that is excited by an external periodic force.
+
+```{r, message=FALSE}
+
+library(dMod)
+library(dplyr)
+
+setwd(tempdir())
+
+x <- eqnvec(
+  A = "-lambda*A + sin(omega*time)^2"
+) %>% 
+  odemodel(modelname = "oscillator") %>% 
+  Xs()
+
+p <- 
+  eqnvec(
+    omega = "3.14/T",
+    lambda = "exp(lambda)",
+    A = 0
+  ) %>% 
+  P(condition = "First_harmonic") +
+  eqnvec(
+    omega = "3.14/T/2",
+    lambda = "exp(lambda)",
+    A = 0
+  ) %>% 
+  P(condition = "Second_harmonic")
+  
+
+```
+
+# Extract equations with `getEquations`
+
+Whenever symbolic information goes into a function, it can usually be extract with `getEquations`. Typical examples are prediction functions, parameter transformation functions and observation functions. For our example we get the differential equations back from `x`:
+
+```{r}
+
+getEquations(x)
+
+```
+
+The parameter transformation is returned from `p`:
+
+```{r}
+getEquations(p)
+```
+
+# Extract derivative information with `getDerivs`
+
+Another important `get` function is `getDerivs` which returns numeric values from evaluated prediction, observation and parameter transformation function. We define parameters, times and compute the prediction.
+
+```{r}
+pars <- c(lambda = -1, T = 10)
+pinner <- p(pars)
+
+times <- seq(0, 20, .1)
+prediction <- (x*p)(times, pars, deriv = TRUE)
+plot(prediction)
+
+```
+
+To extract the Jacobian of the parameter transformation, we call:
+
+```{r}
+
+getDerivs(pinner)
+
+```
+
+Also the sensitivities of the model prediction are accessible. The are returned by `getDerivs` as a prediction list (same as the model prediction itself). Therefore, we can directly plot the result:
+
+```{r}
+getDerivs(prediction) %>% plot()
+```
+
+# Extract parameters with `getParameters`
+
+The `getParameters` command can be applied to functions as well as evaluated functions. For parameter-, prediction- and observation functions we get the symbols back:
+
+```{r}
+getParameters(x)
+```
+
+```{r}
+getParameters(p)
+```
+
+For the evaluated prediction function, we get the inner parameters that went into the model evaluation:
+
+```{r}
+getParameters(prediction)
+```
+
+# Changing options of dMod objects
+
+Usually, when dMod objects (e.g. functions) are created, the user can supply additional options that control the behavior of the functions. These options are saved in the environment of the function as `controls` and can be accessed with the `controls()` command.
+
+For example parameter transformtion functions can be created with the argument `attach.input = TRUE` or `FALSE`. We see this option when we call:
+
+
+```{r}
+controls(p)
+```
+
+Here, we see that `p` is composed and each function has its own controls. We access a specific control in this way:
+
+```{r}
+controls(p, "First_harmonic", "attach.input")
+```
+
+The option also can be changed:
+
+```{r}
+controls(p, "First_harmonic", "attach.input") <- TRUE
+```
+
+When we call `p` again after changing the option, the result is:
+
+```{r}
+p(pars)
+```
+For the first condition, incoming parameters are attached. The second transformation still has the default behavior of only returning the explicitly defined parameters. Prominent examples for the `attach.input` option are observation functions. To save time during parameter estimation, `attach.input` would be switched off. When simulating with parameters, one might be interested in the observations and the internal states. With `controls()`, `attach.input` can be switched back on.
+
+
+Prediction functions have some more options:
+```{r}
+controls(x)
+```
+The lonly ":" indicates that no conditions were defined for `x`. To access the single options, we need to specify `condition = NULL`, and call for example:
+
+```{r}
+controls(x, NULL, "optionsSens")
+```
+
+# Conclusion
+
+Find out all about `get` functions in dMod with `dMod::get` + `TAB`. Try `controls(object)` to see which of the options you can change at any time.
+
+**Happy exploring of options!!**
