@@ -73,7 +73,7 @@ as.eventlist.data.frame <- function(x, ...) {
 #' @param event object of class \code{eventlist}
 #' @param ... not used
 #' @export
-addEvent <- function(event, ...) {
+addEvent <- function(event, var, time = 0, value = 0, method = "replace", ...) {
   
   UseMethod("addEvent", event)
   

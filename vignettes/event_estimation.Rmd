@@ -1,0 +1,150 @@
+---
+title: "Event Estimation"
+author: "Daniel Kaschek"
+date: "December 16, 2018"
+output: html_document
+---
+
+Events change the state of a dynmic system at specific time points thereby leading to discontinuous timecourses. Sometimes the exact event time or the jump height is not known. To estimate these two characteristics, they need to be introduced as event parameters. This small example shows how to do that with **dMod**.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 3.5)
+
+```
+
+## Required libraries
+
+Besides **dMod** we load **dplyr** for piping and maniupation of the simulated data. The **ggplot2** package is loaded to manually add elements to the plots.
+
+```{r, message=FALSE}
+library(dMod)
+library(dplyr)
+library(ggplot2)
+setwd(tempdir())
+```
+
+## Setting up the model
+
+The model is an exponential decay model. The decay is just initialized after some time `t_event > 0`. We want to estimate the decay rate `decay` and the event time `t_event`. The reactions for the system read as follows:
+
+
+```{r}
+
+reactions <- eqnlist() %>% 
+  addReaction("A", "0", "decay*A", "Exponential decay") %>% 
+  addReaction("0", "decay", "0", "Flexible decay rate")
+
+
+```
+
+Similar to reactions, events can be created in a consecutive way. The eventlist expects arguments `var` (the name of the affected state), `time` (event time, numeric or character which becomes an inner parameter), `value` (event value, numeric or character), `method` (character, either "replace" (default), "add" or "multiply"). In our example, the state variable `decay` changes from its current value to `decay_event` at time `t_event`.
+
+
+```{r, highlight=TRUE}
+events <- eventlist() %>% 
+  addEvent(var = "decay", time = "t_event", value = "decay_event")
+
+```
+
+Finally, reactions and events are handed over to the `odemodel()` function and a prediction function is generated.
+
+
+```{r}
+
+# Create the prediction function
+x <- reactions %>% 
+  odemodel(events = events, modelname = "eventmodel") %>% 
+  Xs()
+
+```
+
+
+## Simulation of data
+
+We work with simulated data. The simulation is performed for two conditions. In the first condition, denoted by `early`, the decay is switched on at an earlier time point than in the `late` condition. The value of the `decay` parameter is the same for both conditions.
+
+```{r}
+
+# Define parameters and simulation times
+pars_early <- c(A = 10, decay = 0, decay_event = 1, t_event = pi)
+pars_late <- c(A = 10, decay = 0, decay_event = 1, t_event = 2*pi)
+times <- seq(0, 10, .1)
+
+data <- 
+  # Simulate with pars_early and pars_late
+  c(
+    x(times, pars_early, conditions = "early"),
+    x(times, pars_late, conditions = "late")
+  ) %>%
+  # Convert to data frame
+  as.data.frame() %>% 
+  # We observe A at a few time points
+  filter(time %in% 1:10 & name %in% "A") %>% 
+  # Add a sigma column and add noise
+  mutate(sigma = pmax(0.1*value, 0.05)) %>% 
+  mutate(value = value + rnorm(length(value), 0, sd = sigma)) %>% 
+  # Convert to datalist
+  as.datalist()
+
+plot(data)
+
+```
+
+## Estimation
+
+For estimation, we define the appropriate parameterization for the two experimental conditions.
+
+```{r}
+
+p <- eqnvec() %>% 
+  # Start with identity transformation
+  define("x~x", x = getParameters(x)) %>% 
+  # Initialize decay rate by 0
+  define("decay~0") %>% 
+  # Switch to log scale for all parameters currently found in the transformation
+  define("x~exp(x)", x = .currentSymbols) %>% 
+  # Create branches for each condition
+  branch(conditions = names(data)) %>%
+  # Specify t_event per condition
+  insert("x~x_C", x = "t_event", C = condition) %>% 
+  # Convert transformation into function
+  P()
+
+pouter <- c(A = 0, decay_event = 2, t_event_early = 1.5, t_event_late = 1)
+
+(x*p)(times, pouter) %>% plot(data)
+
+
+```
+
+The plot illustrates that the initial guess is quite far from the data. To estimate the parameters, the objective function is defined and the the fit is performed.
+
+```{r}
+
+obj <- normL2(data, x*p)
+myfit <- trust(obj, pouter, rinit = .1, rmax = 10)
+
+(x*p)(times, myfit$argument) %>% plot(data)
+
+```
+
+## Evaluation
+
+Let's evaluate if the parameters are identifiable. The profile likelihood is computed for all parameters. To compare the estimated parameters with the true ones, we add vertical lines representing the parameter values used for simulation to the profiles.
+
+```{r, fig.height = 5}
+
+myprof <- profile(obj, myfit$argument, whichPar = names(pouter))
+ptrue <- log(c(A = 10, decay_event = 1, t_event_early = pi, t_event_late = 2*pi))
+
+plotProfile(myprof) +
+  geom_vline(aes(xintercept = value), 
+             data = data.frame(name = names(ptrue), value = ptrue),
+             color = "firebrick2",
+             lty = 2)
+
+
+```
+
+**Happy event estimation!!**

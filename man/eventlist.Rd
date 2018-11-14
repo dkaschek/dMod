@@ -7,7 +7,7 @@
 \usage{
 eventlist(var = NULL, time = NULL, value = NULL, method = NULL)
 
-addEvent(event, ...)
+addEvent(event, var, time = 0, value = 0, method = "replace", ...)
 }
 \arguments{
 \item{var}{Character, the state to which the event is applied}
