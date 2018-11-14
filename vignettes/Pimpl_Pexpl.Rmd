@@ -1,0 +1,145 @@
+---
+title: "Explicit and Implicit Transformations"
+author: "Daniel Kaschek"
+date: "December 18, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Parameter transformation functions in dMod are generated with `P()`. The `method` argument of `P()` allows to specify the transformation **explicitly** or **implicitly**. Here, we explain the difference.
+
+
+```{r, message=FALSE}
+
+library(dMod)
+library(dplyr)
+
+```
+
+
+
+## Explicit transformations
+
+Explicit parameter transformations express parameters (e.g. model parameters) in terms of other or new parameters. Let us assume we have model parameters `X` and `Y`. Then we could write `X = a + b` and `Y = a - b` to parameterize the original parameters in terms of new parameters `a` and `b`. The implementation reads:
+
+```{r}
+
+p <- eqnvec(
+  X = "a + b",
+  Y = "a - b"
+) %>% P(method = "explicit")
+
+```
+
+Here, the names of the vector denote the original parameters and the vector entries are expressions of the new parameters. We test the result:
+
+```{r}
+
+pars <- c(a = 3, b = 2)
+p(pars)
+
+
+```
+In dMod, we call `X` and `Y` the **inner parameters** and `a` and `b` the **outer parameters**. 
+
+<center>**Important: inner and outer parameters can have the same names!**</center>
+
+## Implicit transformations
+
+Implicit parameter transformations express the current parameters in terms of constraints which need to be satisfied. The constraint is that a certain function of the parameters vanishes. We could for example require that `X + Y - 2*a = 0` and `X - Y - 2*b = 0` (the transformation from above reformulated). `X` and `Y` are the inner parameters, `a` and `b` are the outer parameters which determine the inner ones. To implement this, we write:
+
+```{r}
+p <- eqnvec(
+  X = "X + Y - 2*a",
+  Y = "X - Y - 2*b"
+) %>% P(method = "implicit")
+```
+
+Here, the names of the vector denote the parameters which should be expressed in terms of other parameters and the vector entries denote the constraints which must cancel out.
+
+We test the result:
+
+```{r}
+pars <- c(a = 3, b = 2)
+p(pars)
+
+```
+Compared to the result above, the parameter transformation not only returns the implicitly defined inner parameters `X` and `Y` but also returns the outer parameters `a` and `b` which were used to determine `X` and `Y`. The reason for the different default behavior is the following application of implicit transformations.
+
+## Application of implicit transformations
+
+A frequent application of implicit parameter transformations are steady state constraints. Let's assume the following reactions:
+
+```{r}
+reactions <- eqnlist() %>% 
+  addReaction("A", "B", "k_on*A") %>% 
+  addReaction("B", "A", "k_off*B")
+
+reactions
+
+```
+
+
+The reactions correspond to the following differential equations:
+
+```{r}
+equations <- as.eqnvec(reactions)
+paste("d/dt", names(equations), "=", equations)
+
+```
+
+$(A^*, B^*)$ is a steady state if the derivatives vanish for $A = A^*$ and $B = B^*$. Therefore, the idea is that `equations` itself takes the role of the constraints. The names of `equations` are already `A` and `B`, i.e. the initial value parameters we aim to implicitly define.
+
+However, frequently with steady state constraints, the equations are not independent. In our case $\frac{dA}{dt} = - \frac{dB}{dt}$. Consequently, whenever $\frac{dA}{dt} = 0$ is satisfied, $\frac{dB}{dt} = 0$ is automatically satisfied, too, for all $k_{\rm on}$ and $k_{\rm off}$.
+
+### Keeping states
+
+Because effectively we have only one constraint equation, we could keep one initial value, say `A`, and determine `B` such that we are in steady state. We would do this writing:
+
+```{r}
+
+constraint <- eqnvec(
+  B = equations[["B"]]
+)
+
+p <- P(constraint, method = "implicit")
+
+
+pars <- c(k_on = 1, k_off = 3, A = 2)
+p(pars)
+
+
+```
+
+### Using additional constraints
+
+Another way to deal with the situation would be to introduce additional constraints. In our case we could introduce `total = A + B` as a new parameter. To implement this, we write:
+
+```{r}
+
+constraint <- eqnvec(
+  A = equations[["A"]],
+  B = "A + B - total"
+)
+
+p <- P(constraint, method = "implicit")
+
+pars <- c(k_on = 1, k_off = 3, total = 3)
+p(pars)
+
+
+```
+
+In the spirit of dMod, the parameter transformations can be concatenated. This means that parameter estimation with steady state constraints can be implemented using a mixture of explicit and implicit parameter transformations: `prd <- x*pSS*p` with the implicit steady state transformation `pSS` and the conventional transformation `p`, e.g. log-transformation of parameters, etc.
+
+# Some additional notes
+
+dMod uses the package **rootSolve** to find the root of the constraint function. The method used is a Newton method. This means, the algorithm needs to start with some initial guess of the parameters to be determined. The user can provide initial guesses with `pars`, i.e., we could call `p()` with `pars = c(k_on = 1, k_off = 3, total = 3, A = 0.1, B = 0.1)`. If no guess is provided, the algorithm starts with 1 for all unknown parameters.
+
+
+**Happy parameter transforming!!**
+

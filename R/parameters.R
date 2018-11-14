@@ -282,11 +282,14 @@ Pimpl <- function(trafo, parameters=NULL, condition = NULL, keep.root = TRUE, po
     # check for parameters which are not computed by multiroot
     emptypars <- names(p)[!names(p)%in%c(dependent, fixed)]
     
-    # Set guess
+    # Set guess if available
     p0 <- p
     if(!is.null(guess)) 
       p[intersect(dependent, names(guess))] <- guess[intersect(dependent, names(guess))]
     
+    # If no initial guesses provides, set to 1
+    if (!all(dependent %in% names(p)))
+      p[setdiff(dependent, names(p))] <- 1
     
     getRoot <- function(p) {
       
