@@ -1,0 +1,149 @@
+---
+title: "The Operators `+` and `*` in dMod"
+author: "Daniel Kaschek"
+date: "December 24, 2018"
+output: html_document
+---
+
+The `+` and `*` operators in dMod are very characteristic and representative for the approach dMod takes. Usually, `+` handles **conditions** whereas `*` concatenates **functions** to create a new function.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 3.5)
+
+```
+
+```{r, message=FALSE}
+library(dMod)
+library(dplyr)
+library(ggplot2)
+setwd(tempdir())
+set.seed(9352891)
+```
+
+To illustrate the concepts let's look at an example. We are going to simulate data with a conversion model:
+
+```{r}
+
+reactions <- eqnlist() %>% 
+  addReaction("A_inactive", "A_active", "k_convert * A_inactive") %>% 
+  addReaction("A_active", "0", "k_degrade*A_active")
+
+x <- reactions %>% 
+  odemodel(modelname = "conversion") %>% 
+  Xs()
+```
+
+We simulate a data set with the model. Here, we use the ability of prediction functions without predifined condition (the argument `condition = NULL` was implicitly used in `Xs()`) to be called with any `conditions` argument, here `conditions = "control"`. 
+
+```{r}
+
+times <- seq(0, 20, .1)
+pars <- c(k_convert = .1, k_degrade = .2, A_inactive = 1, A_active = 0)
+pred <- x(times, pars, conditions = "control")
+
+data1 <- pred %>% 
+  as.data.frame() %>% 
+  # Subsetting on observed state and time
+  filter(name == "A_active",
+         time %in% c(1, 5, 10, 15, 20)) %>% 
+  # Adding noise
+  mutate(sigma = 0.1*value,
+         value = rnorm(length(value), mean = value, sd = sigma)) %>% 
+  # Convert to dMod datalist format
+  as.datalist()
+
+```
+
+To estimate the model parameters from this data set, we would like to use prior information on the initial values and we would like to enforce that parameters are always estimated by positive numbers. In general, this can be accomplished by the right parameterization.
+
+Our parameterization for the example could be:
+
+```{r}
+
+p1 <- eqnvec(
+  A_inactive = "A_inactive",
+  A_active = "0",
+  k_convert = "exp(q_convert)",
+  k_degrade = "exp(q_degrade)"
+) %>% 
+  P(condition = "control")
+
+```
+
+The model parameters are expressed in terms of parameters `A_inactive`, `q_convert` (the conversion rate on log scale) and `q_degrade` (the degradation rate on log scale). We would like to call the prediction function `x` with these new parameters. The new prediction function accomplishing this is `x*p1`:
+
+```{r}
+
+prd <- x*p1
+pars <- c(A_inactive = 1, q_convert = -1, q_degrade = -2)
+prd(times, pars) %>% plot()
+
+```
+
+
+We estimate the parameters and see if they are already identifiable from the data:
+
+```{r}
+
+obj <- normL2(data1, x*p1)
+fit <- trust(obj, pars, rinit = .1, rmax = 10)
+profiles <- profile(obj, fit$argument, names(pars))
+plotProfile(profiles)
+
+
+```
+The fit finds the solution which was used for simulation. However, also another solution is found with (almost) the same objective value. The inspection of the paths through parameter space associated with the profiles shows that all three parameters are connected.
+
+```{r}
+plotPaths(profiles)
+```
+
+
+To find out which of the solutions is the right one, an additional hypothetical experiment is performed. In this experiment, the degradation rate is blocked (`k_degrade = 0`). The experimental condition is referred to as `"block_degradation"`.
+
+```{r}
+times <- seq(0, 20, .1)
+pars <- c(k_convert = .1, k_degrade = 0, A_inactive = 1, A_active = 0)
+pred <- x(times, pars, conditions = "block_degradation")
+
+data2 <- pred %>% 
+  as.data.frame() %>% 
+  # Subsetting on observed state and time
+  filter(name == "A_active",
+         time %in% c(1, 5, 10, 20)) %>% 
+  # Adding noise
+  mutate(sigma = 0.1*value,
+         value = rnorm(length(value), mean = value, sd = sigma)) %>% 
+  # Convert to dMod datalist format
+  as.datalist()
+
+```
+
+When parameterizing this experiment, we might not be sure if the blocking is really 100\%. Therefore, a factor `exp(eff)/(1 + exp(eff))` is introduced that ranges between 0 and 1. 
+
+```{r}
+p2 <- eqnvec(
+  A_inactive = "A_inactive",
+  A_active = "0",
+  k_convert = "exp(q_convert)",
+  k_degrade = "exp(q_degrade) * exp(eff)/(1 + exp(eff))"
+) %>% 
+  P(condition = "block_degradation")
+```
+
+In the final step, we construct an objective function from both experiments `data1 + data2` and predictions for both parameterizations `x * (p1 + p2)`. To avoid, that the fit tends to $\pm\infty$ for any of the parameters, we apply another usecase of the `+` operator: the sum of objective functions:
+
+```{r}
+pars <- c(A_inactive = 1, q_convert = -1, q_degrade = -2, eff = 1)
+
+obj <- normL2(data1 + data2, x * (p1 + p2)) + constraintL2(mu = pars, sigma = 10)
+fit <- trust(obj, pars, rinit = .1, rmax = 10)
+profiles <- profile(obj, fit$argument, names(pars), limits = c(-5, 5))
+plotProfile(profiles, mode == "data")
+
+
+```
+
+The profiles show that with the new experimental condition the parameters are identifiable. The parameter `eff` is compatible with $-\infty$ in accordance with the values used for simulation.
+
+**Happy concatenating!!**
