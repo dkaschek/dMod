@@ -1,0 +1,111 @@
+---
+title: "List objects in dMod"
+author: "Daniel Kaschek"
+date: "December 21, 2018"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 3.5)
+```
+
+dMod provides several list objects, i.e., objects which are organized as lists but carry their own class. This vignette is about the typical dMod list objects
+
+* `datalist`
+* `prdlist`
+
+and what they do or do not have in common.
+
+
+```{r, message=FALSE}
+
+library(dMod)
+library(dplyr)
+setwd(tempdir())
+
+```
+
+## `datalist`
+
+Data lists are used to represent the data in dMod. Data lists are most conveniently produced using the `as.datalist()` function on data frames:
+
+```{r}
+
+myframe <- data.frame(
+  # required columns
+  name = "A",
+  time = 1:5,
+  value = c(exp(-0.1 * 1:5), exp(-0.3 * 1:5)),
+  sigma = 0.05,
+  # additional columns to specify the data records
+  treatment = "TRTno",
+  inhibitor = rep(c("INHno", "INHx"), each = 5)
+)
+
+mydata <- as.datalist(myframe)
+
+mydata
+
+```
+
+All non-standard columns are used to create a `condition` identifier. A separate data frame is returned for each condition, structured as a list. Because the non-standard columns describing the data records could potentially be used as covariates for model parameters, the mapping between conditions and covariates can be accessed via
+
+```{r}
+covariates(mydata)
+```
+
+Data lists can be
+
+* concatenated using the `c()` function or the `+` operator,
+* plotted with `plot()` or `plotData()`, and
+* converted back to a data frame (including the additional covariate columns) by `as.data.frame()`.
+
+Whenever parameters are estimated from data with dMod, a valid data list needs to be created.
+
+## `prdlist`
+
+Prediction lists are the counterpart of data lists. They are returned by prediction functions. The prediction function returns a separate matrix with the simulation result for each condition, structured as a list.
+
+Prediction lists can be
+
+* plotted with `plot()` or `plotPrediction()`,
+* converted to a data frame with `as.data.frame(x, data = NULL, errfn = NULL)`. Optionally, a data list can be provided from where the covariate table is used to produce extra covariate columns in the output data frame. If an error model ist provided (`errfn` is formally an observation function), it is used to impute the `sigma` column.
+* Model parameters used to compute the prediction can be extracted with `getParameters()`. 
+
+## Additional lists in dMod
+
+There are some other list structures in dMod which fit a bit less into the schematics presented above. These are `eqnlist` (model representation), `objlist` (list with value, gradient and Hessian returned by an objective function) and `parlist` (a list of parameter fits as returned by `mstrust()`). In the following, we will look a bit close into `eqnlist` and `parlist`.
+
+### `eqnlist`
+
+Equation lists (`eqnlist`) are used to store differential equation models in a list containing the stoichiometric matrix, the states, the rate expressions, volume expressions and a description field:
+
+```{r}
+
+reactions <- eqnlist() %>% 
+  addReaction("A", "B", "k_on*A", "Forward reaction") %>% 
+  addReaction("B", "A", "k_off*B", "Backward reaction")
+
+unclass(reactions)
+
+```
+
+* Models represented by separate equation lists can be combined, using `c()`. 
+* Equation lists can be written to disk using `write()`.
+* They can be subsetted using `subset()`.
+* They can be converted to differential equations by `as.eqnvec()`.
+* Use `as.data.frame()` to extract the stoichiometric matrix and rate expressions as data frame.
+* Parameters can be extracted from the rate expressions using `getParameters()`.
+* Use `getReactions()` to get the reactions as reaction table.
+* `getFluxes()` returns the reaction fluxes from and to every state.
+
+### `parlist`
+
+Parlists are defined by the `mstrust()` output: a list of all the fits. The most important method to run on `parlist` objects is 
+
+* `as.parframe()` which extracts the fitted parameter values from the fits and structures them in a nice data frame and, subsequently,
+* `as.parvec()` which extracts the first parameter vector (or the one with the lowest objective value) from the parframe.
+
+
+**Happy listing!!**

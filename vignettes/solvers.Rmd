@@ -1,0 +1,87 @@
+---
+title: "Using different ODE solves with dMod"
+author: "Daniel Kaschek"
+date: "December 25, 2018"
+output: html_document
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 3.5)
+```
+
+dMod uses the cOde package to simulate ODEs. The cOde package is a wrapper package for deSolve, automatically creating and compiling ODEs as C code to be directly used by deSolve. This means that in dMod, all ODE solvers which are implemented in deSolve can be used. Here, we show how:
+
+```{r, message=FALSE}
+
+library(dMod)
+library(dplyr)
+setwd(tempdir())
+
+```
+
+We begin with defining ODEs and creating an ODE model from the equations.
+
+```{r}
+# Linear chain
+equations <- eqnvec(
+  INPUT = "0",
+  Comp1 = "k_tr*INPUT - k_tr*Comp1",
+  Comp2 = "k_tr*Comp1 - k_tr*Comp2",
+  Comp3 = "k_tr*Comp2 - k_tr*Comp3",
+  Comp4 = "k_tr*Comp3 - k_tr*Comp4",
+  Comp5 = "k_tr*Comp4 - k_tr*Comp5",
+  Comp6 = "k_tr*Comp5 - k_tr*Comp6",
+  OUTPUT = "k_tr*Comp6 - k_degrad*OUTPUT"
+) 
+
+# Switch input on and off
+events <- eventlist() %>% 
+  addEvent(var = "INPUT", time = 0, value = 1) %>% 
+  addEvent(var = "INPUT", time = 2, value = 0)
+
+# Model
+model <- odemodel(equations, events = events, modelname = "linear_chain")
+
+
+```
+
+From the structure of the model it can be seen that the Jacobian of the ODEs is quite sparse. Therefore, we might simulate the model more efficiently with a sparse ODE solver rather than the standard solver LSODA. We select the solver with the `optionsOde` argument in `Xs()`:
+
+```{r}
+x.sparse <- Xs(model, optionsOde = list(method = "lsodes"))
+x.standard <- Xs(model, optionsOde = list(method = "lsoda"))
+```
+
+First, we check if both ODE solver return comparable results:
+
+```{r}
+
+pars <- c(INPUT = 0, Comp1 = 0, Comp2 = 0, Comp3 = 0, Comp4 = 0, Comp5 = 0, Comp6 = 0, OUTPUT = 0, 
+          k_tr = 1, k_degrad = 2)
+times <- seq(0, 20, .1)
+
+prediction.sparse <- x.sparse(times, pars, conditions = "sparse")
+prediction.standard <- x.standard(times, pars, conditions = "standard")
+plot(c(prediction.sparse, prediction.standard))
+
+```
+
+Next, let's see if the simulation time with the sparse solver is really faster than with the standard solver
+
+```{r}
+system.time(for (i in 1:100) x.sparse(times, pars, deriv = FALSE))
+system.time(for (i in 1:100) x.standard(times, pars, deriv = FALSE))
+```
+
+Here, we chose `deriv = FALSE` to avoid that the sensitivity equations are solved alongside the ODE because we are only interested in the different performance in solving the ODE.
+
+**Conclusion:** Both solvers are so fast that it does not make a difference!
+
+## Some remarks
+
+* Have a look at `?cOde::funC` to learn more about specifying the Jacobian of ODEs which can be used by some solvers. Have a look at `?deSolve::lsoda` and `?deSolve::lsodes` to learn all about the possible options that can be passed to the solver via `optionsOde` or `optionsSens`.
+
+* When the ODE and the sensitivity equations are solved simultaneously (with `deriv = TRUE`), dMod uses `lsodes` by default because it is really faster for large ODE systems!
+
+**Happy solving!!**
