@@ -119,3 +119,52 @@ for (i in 1:length(pouter)) {
   print(plotPrediction(out) + ggtitle(names(pouter)[i])) 
   
 }
+
+
+## Do the check with method = "multiply"
+library(dMod)
+library(dplyr)
+library(ggplot2)
+setwd("/tmp")
+
+
+
+model <- eqnlist() %>%
+  addReaction("A+A", "B", "kon*A^2") %>%
+  addReaction("B", "A", "koff*B") %>%
+  addReaction("B", "0", "degrad*B")%>%
+  addReaction("0", "kon", "0", "Event state") %>%
+  addReaction("kon", "0", "decay*B*kon", "Event state") %>%
+  odemodel(
+    events = rbind(data.frame(var = "kon", time = "te", value = "ve", method = "multiply"),
+                   data.frame(var = "kon", time = "tf", value = "ve", method = "multiply"))
+  ) 
+x <- model %>% Xs()
+
+innerpars <- getParameters(x)
+
+p <- eqnvec() %>%
+  define("x~x", x = innerpars) %>%
+  define("x~0", x = c("B")) %>%
+  define("x~1", x = c("kon", "A")) %>%
+  P()
+
+outerpars <- getParameters(p)
+
+pouter <- structure(runif(length(outerpars)), names = outerpars)
+pouter["te"] <- log(2.092)
+pouter["tf"] <- log(3.092)
+pouter["ve"] <- log(3.5)
+times <- seq(0, 4, .01)
+
+pouter %>% (x*p)(times = times) %>% plot()
+#pouter %>% (x*p)(times = times) %>% getDerivs() %>% plot()
+
+y <- x*p
+
+
+for (i in 1:length(pouter)) {
+  out <- checkSensitivities(pouter, names(pouter)[i], 1, .01) %>% as.prdlist()
+  print(plotPrediction(out) + ggtitle(names(pouter)[i])) 
+  
+}
