@@ -69,7 +69,21 @@ odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, outputs = NU
                            reduce = TRUE)
     fs <- c(f, s)
     outputs <- c(attr(s, "outputs"), attr(func, "outputs"))
-    events <- rbind(attr(s, "events"), attr(func, "events"))
+    
+    events.sens <- attr(s, "events") 
+    events.func <- attr(func, "events")
+    events <- NULL
+    if (!is.null(events.func)) {
+      if (is.data.frame(events.sens)) {
+        events <- rbind(events.sens, events.func, straingsAsFactors = FALSE)
+      } else {
+        events <- do.call(rbind, lapply(1:nrow(events.func), function(i) {
+          rbind(events.sens[[i]], events.func[i,], stringsAsFactors = FALSE)
+        }))
+      }
+      
+    }
+    
 
     extended <- cOde::funC(fs, forcings = forcings, modelname = modelname_s, solver = solver, nGridpoints = gridpoints, events = events, outputs = outputs, ...)
   }

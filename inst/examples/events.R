@@ -41,7 +41,10 @@ model <- eqnlist() %>%
   addReaction("0", "kon", "kbase", "Event state") %>%
   addReaction("kon", "0", "degrad*kon", "Event state") %>%
   odemodel(
-    events = data.frame(var = "kon", time = c(0, "toff"), value = c("kmax", 1), method = "replace")
+    events = rbind(
+      data.frame(var = "kon", time = c(0, "toff1"), value = c(1, "kmax"), method = "replace", stringsAsFactors = FALSE),
+      data.frame(var = "B", time = c(0, "toff2"), value = c(1., "kmax"), method = "replace", stringsAsFactors = FALSE)
+    )
   ) 
 x <- model %>% Xs()
 
@@ -57,8 +60,8 @@ p <- eqnvec() %>%
 outerpars <- getParameters(p)
 
 set.seed(2)
-pouter <- structure(rnorm(length(outerpars), 0), names = outerpars)
-times <- seq(0, 2, .01)
+pouter <- structure(rnorm(length(outerpars), -1), names = outerpars)
+times <- seq(0, 4, .01)
 
 pouter %>% (x*p)(times = times) %>% plot()
 # pouter %>% (x*p)(times = times) %>% getDerivs() %>% plot()
@@ -87,8 +90,11 @@ model <- eqnlist() %>%
   addReaction("0", "kon", "0", "Event state") %>%
   addReaction("kon", "0", "decay*B*kon", "Event state") %>%
   odemodel(
-    events = rbind(data.frame(var = "kon", time = "te", value = "ve", method = "add"),
-                   data.frame(var = "kon", time = "tf", value = "ve", method = "add"))
+    events = rbind(
+      data.frame(var = "kon", time = "te", value = "ve", method = "add"),
+      data.frame(var = "kon", time = "tf", value = "ve", method = "add"),
+      data.frame(var = "B"  , time = "te", value = "1" , method = "add")
+    )
   ) 
 x <- model %>% Xs()
 
@@ -137,7 +143,8 @@ model <- eqnlist() %>%
   addReaction("kon", "0", "decay*B*kon", "Event state") %>%
   odemodel(
     events = rbind(data.frame(var = "kon", time = "te", value = "ve", method = "multiply"),
-                   data.frame(var = "kon", time = "tf", value = "ve", method = "multiply"))
+                   data.frame(var = "kon", time = "tf", value = "ve", method = "multiply"),
+                   data.frame(var = "B"  , time = "te", value = "3.", method = "multiply"))
   ) 
 x <- model %>% Xs()
 
@@ -164,7 +171,7 @@ y <- x*p
 
 
 for (i in 1:length(pouter)) {
-  out <- checkSensitivities(pouter, names(pouter)[i], 1, .01) %>% as.prdlist()
+  out <- checkSensitivities(pouter, names(pouter)[i], 1, .001) %>% as.prdlist()
   print(plotPrediction(out) + ggtitle(names(pouter)[i])) 
   
 }
