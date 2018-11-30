@@ -1,0 +1,209 @@
+---
+title: "Advent Calendar - dMod.frame"
+author: "Daniel Lill"
+date: "23 November 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE, warning=FALSE}
+library(dMod)
+library(dplyr)
+```
+
+
+
+# dMod.frame - Introduction
+
+Today's advent calendar door is about dMod.frames, what they are about and what can do with them. 
+
+The goal behind dMod.frame is to reduce the complexity in the interface once a model's elementary parts are set up.
+A dMod.frame is a table-like structure, just as a data.frame containing models. And same as in data.frames, rows and columns
+serve different purposes. 
+In data.frames, columns correspond to variables and rows to observations. In dMod.frames, columns are the different entities
+that a model consists of and rows correspond to different hypotheses.
+
+The workflow with dMod.frames is as follows:
+First, one needs to set up all the fundamental building bricks of a dMod model, which are for example the 
+observation function, the prediction function for the dynamic model, the datalist.
+With these, one is able to set up a minimal dMod.frame which can then easily be extended by derived quantities 
+which are needed for computations and visualizations, such as a prediction function or objective functions.
+Once a dMod.frame is set up, it is possible do all computations on the dMod.frame itself, leaning the usage of it close to
+dplyr - functions
+
+# Set up model
+
+The model we're going to look at is the model published by [Becker et al. in Science, 2010](http://science.sciencemag.org/content/328/5984/1404)
+```{r}
+reactions <- NULL %>% 
+  addReaction(from = "Epo + EpoR", to = "Epo_EpoR", rate = "kon * Epo * EpoR", description = "1") %>% 
+  addReaction(from = "Epo_EpoR", to = "Epo + EpoR", rate = "koff * Epo_EpoR", description = "2") %>% 
+  addReaction(from = "", to = "EpoR", rate = "kt * init_EpoR", description = "3") %>% 
+  addReaction(from = "EpoR", to = "", rate = "kt * EpoR", description = "4") %>% 
+  addReaction(from = "Epo_EpoR", to = "Epo_EpoR_i", rate = "ke * Epo_EpoR", description = "5") %>% 
+  addReaction(from = "Epo_EpoR_i", to = "Epo + EpoR", rate = "kex * Epo_EpoR_i", description = "6") %>% 
+  addReaction(from = "Epo_EpoR_i", to = "dEpo_i", rate = "kdi * Epo_EpoR_i", description = "7") %>% 
+  addReaction(from = "Epo_EpoR_i", to = "dEpo_e", rate = "kde * Epo_EpoR_i", description = "8") %>% {.}
+
+observables <- c(Epo_ext_cpm	=	"log(offset+scale*(Epo + dEpo_e))"	, # 1
+                 Epo_mem_cpm	=	"log(offset+scale*Epo_EpoR)"	, # 2
+                 Epo_int_cpm	=	"log(offset+scale*(Epo_EpoR_i + dEpo_i))"	  # 3 
+                 )
+errors <- c(Epo_ext_cpm = "sd_Epo_ext", Epo_mem_cpm = "sd_Epo_mem", Epo_int_cpm = "sd_Epo_int")	
+
+trafo <- list(C1 = c(Epo = "exp(Epo)", EpoR = "4*exp(Epo)*exp(EpoR_rel)", Epo_EpoR = "0", Epo_EpoR_i = "0", dEpo_i = "0", dEpo_e = "0", kon = "exp(kon)/exp(Epo)", koff = "exp(koff)", kex = "exp(kex)", kt = "exp(kt)", init_EpoR = "exp(init_EopR)", ke = "exp(ke)", kdi = "exp(kdi)", kde = "exp(kde)", offset = "exp(offset)", scale = "exp(scale)/exp(Epo)", sd_Epo_ext = "exp(sd_Epo_ext)", sd_Epo_mem = "exp(sd_Epo_mem)", sd_Epo_int = "exp(sd_Epo_int)"))
+
+```
+
+```{r}
+x <- reactions %>% odemodel() %>% Xs
+g <- Y(observables,x)
+e <- Y(errors, g)
+p <- P(trafo)
+```
+
+```{r, echo=FALSE, include=FALSE}
+data <- structure(list(name = c("Epo_ext_cpm", "Epo_ext_cpm", "Epo_ext_cpm", 
+"Epo_ext_cpm", "Epo_ext_cpm", "Epo_ext_cpm", "Epo_ext_cpm", "Epo_ext_cpm", 
+"Epo_ext_cpm", "Epo_ext_cpm", "Epo_ext_cpm", "Epo_ext_cpm", "Epo_ext_cpm", 
+"Epo_ext_cpm", "Epo_ext_cpm", "Epo_ext_cpm", "Epo_ext_cpm", "Epo_ext_cpm", 
+"Epo_ext_cpm", "Epo_ext_cpm", "Epo_ext_cpm", "Epo_ext_cpm", "Epo_ext_cpm", 
+"Epo_ext_cpm", "Epo_mem_cpm", "Epo_mem_cpm", "Epo_mem_cpm", "Epo_mem_cpm", 
+"Epo_mem_cpm", "Epo_mem_cpm", "Epo_mem_cpm", "Epo_mem_cpm", "Epo_mem_cpm", 
+"Epo_mem_cpm", "Epo_mem_cpm", "Epo_mem_cpm", "Epo_mem_cpm", "Epo_mem_cpm", 
+"Epo_mem_cpm", "Epo_mem_cpm", "Epo_mem_cpm", "Epo_mem_cpm", "Epo_mem_cpm", 
+"Epo_mem_cpm", "Epo_mem_cpm", "Epo_mem_cpm", "Epo_mem_cpm", "Epo_mem_cpm", 
+"Epo_int_cpm", "Epo_int_cpm", "Epo_int_cpm", "Epo_int_cpm", "Epo_int_cpm", 
+"Epo_int_cpm", "Epo_int_cpm", "Epo_int_cpm", "Epo_int_cpm", "Epo_int_cpm", 
+"Epo_int_cpm", "Epo_int_cpm", "Epo_int_cpm", "Epo_int_cpm", "Epo_int_cpm", 
+"Epo_int_cpm", "Epo_int_cpm", "Epo_int_cpm", "Epo_int_cpm", "Epo_int_cpm", 
+"Epo_int_cpm", "Epo_int_cpm", "Epo_int_cpm", "Epo_int_cpm"), 
+    time = c(0.82, 0.82, 0.82, 5.82, 5.82, 5.82, 20.82, 20.82, 
+    20.82, 60.82, 60.82, 60.82, 120.82, 120.82, 120.82, 180.82, 
+    180.82, 180.82, 240.82, 240.82, 240.82, 300.82, 300.82, 300.82, 
+    0.82, 0.82, 0.82, 5.82, 5.82, 5.82, 20.82, 20.82, 20.82, 
+    60.82, 60.82, 60.82, 120.82, 120.82, 120.82, 180.82, 180.82, 
+    180.82, 240.82, 240.82, 240.82, 300.82, 300.82, 300.82, 0.82, 
+    0.82, 0.82, 5.82, 5.82, 5.82, 20.82, 20.82, 20.82, 60.82, 
+    60.82, 60.82, 120.82, 120.82, 120.82, 180.82, 180.82, 180.82, 
+    240.82, 240.82, 240.82, 300.82, 300.82, 300.82), value = c(-0.0481972297473368, 
+    -0.0607547790447169, -0.0557756272248197, -0.194493907243247, 
+    -0.189155614575134, -0.204057510556269, -0.346221931110387, 
+    -0.350530556898696, -0.353301405396168, -0.391889374191048, 
+    -0.441440210566442, -0.402328377734154, -0.459574238247375, 
+    -0.469535501844866, -0.480526355543198, -0.4111723111066, 
+    -0.395100893788803, -0.425435866171107, -0.341716749172752, 
+    -0.352611975692686, -0.312582021004845, -0.25827652493909, 
+    -0.280977654970786, -0.287762920164444, -3.29070534913832, 
+    -3.03071899100809, -3.12870301493076, -2.03120496827487, 
+    -2.05937107621533, -1.97418537240893, -2.08417272823075, 
+    -2.05312943002886, -2.06286541460445, -2.62634788242968, 
+    -2.44702077406491, -2.59329013541043, -2.65226847805848, 
+    -2.77842550707606, -2.77601278891669, -3.23844302190737, 
+    -3.35617875055534, -3.17568499795352, -3.40216187611, -3.59271905338957, 
+    -3.6973951971933, -4.12668081296423, -4.23772726757129, -4.07650745136924, 
+    -7.33404037443953, -6.62656427103652, -7.10904293208094, 
+    -3.59269015104013, -3.63318939144567, -3.6049938575269, -1.94861296416088, 
+    -1.95200957860308, -1.93484997560221, -1.45687951897416, 
+    -1.38490366997875, -1.44168907970132, -1.29010018085237, 
+    -1.23776991131621, -1.21532494860913, -1.28762147363688, 
+    -1.30859691839123, -1.26273459226594, -1.44754290555224, 
+    -1.39237515277442, -1.50179340874013, -1.72287007959673, 
+    -1.62240220230142, -1.61010826933655), sigma = c(NA, NA, 
+    NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, 
+    NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, 
+    NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, 
+    NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, 
+    NA, NA, NA, NA, NA, NA, NA, NA, NA, NA), lloq = c(-Inf, -Inf, 
+    -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, 
+    -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, 
+    -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, 
+    -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, 
+    -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, 
+    -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, 
+    -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf, -Inf
+    ), condition = structure(c(1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 
+    1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 
+    1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 
+    1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 
+    1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 1L, 
+    1L, 1L, 1L, 1L), .Label = "C1", class = "factor")), row.names = c(NA, 
+-72L), class = "data.frame")
+data <- as.datalist(data)
+```
+
+```{r, eval=FALSE}
+data <- read.csv("data.csv") %>% as.datalist()
+```
+
+# Set up dMod.frame
+
+Now, since all the building blocks are set up, the dMod.frame can be initialized.
+The dMod.frame is a tibble, grouped by row (=rowwise), a data.frame whose columns can also be lists, making it possible to store more complex objects in a tibble.
+
+```{r}
+model <- dMod.frame("Publication", g,x,p, data, e)
+model
+```
+
+dMod.frames are not a static object, the only requirements are the building blocks which are considered fundamental. 
+Furthermore, a standardized set of functions grows the dMod.frame by columns which are derived quantities of the required columns. These, can however be adapted to the individual requirements.
+
+For example, in most cases, the full prediction function will be $g*x*p$, therefore, appendObj() constructs the $prd$-column in this manner. If your prediction function would be $g*g2*x*p$, simply call appendObj with the argument $prd = (g*g2*x*p)$.
+
+
+```{r}
+model <- model %>% appendObj()
+print(model)
+
+```
+
+The dMod.frame can then be looked at by several standard plotting functions:
+```{r}
+model %>% plotData
+
+model %>% plotCombined()
+```
+
+plotCombined takes the pars for the simulation of prd either from the pars-column, or, if present, the best fit of the parframe in the parframes-column.
+```{r}
+model <- model %>% mutate(pars = list(trust(obj, pars, 1,10)$argument))
+model %>% plotCombined()
+model <- model %>% mutate(fits = list(mstrust(obj, 0*pars, sd = 1, fits = 8, ncores = 4)))
+model <- model %>% appendParframes()
+model %>% plotValues()
+model %>% plotPars()
+```
+
+
+Many plotting functions are already implemented, same as some other functions such as zipping dMod.frames automatically with the dlls that the dMod.frames depends on, which makes dMod models much more portable. 
+However, some of the additional functions are only available in the package [github.com/dlill/conveniencefunctions](conveniencefunctions).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
