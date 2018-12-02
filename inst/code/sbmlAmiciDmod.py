@@ -25,13 +25,13 @@ def getModelJSON(sbml_file_name):
     variableId.getId().startswith('observable_') and not
     variableId.getId().endswith('_sigma'))
     importer.processSBML()
-    importer.computeModelEquations()
+    # importer.computeModelEquations()
     
     S = symengineMatrixToNumpy(importer.stoichiometricMatrix)
     dataPy = {
-        'S': S.tolist(),
+        'S': importer.stoichiometricMatrix.tolist(),
         'v': [str(x) for x in importer.fluxVector],
-        'p': importer.parameterValues,
+        'p': importer.parameterIndex,
         'stateNames': symengineMatrixToNumpy(importer.symbols['species']['sym'], astype='str').tolist(),
         'parameterNames': symengineMatrixToNumpy(importer.symbols['parameter']['sym'], astype='str').tolist(),
         'x0': symengineMatrixToNumpy(importer.speciesInitial, astype='str').tolist(),

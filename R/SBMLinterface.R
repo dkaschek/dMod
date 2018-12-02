@@ -18,7 +18,7 @@ import_sbml <- function(modelpath, amicipath = NULL) {
   if (!is.null(amicipath))
     amicipath <- paste0("PYTHONPATH=", amicipath)
   
-  run_import_script_call <- paste0('bash -c "', amicipath, " python ", importscript, " ", modelpath, " ", tmpfile_json, '"')
+  run_import_script_call <- paste0('bash -c "', "cd ~/.virtualenvs/amici/bin && source activate &&", amicipath, "&&",  " python ", importscript, " ", modelpath, " ", tmpfile_json, '"')
   system(run_import_script_call)
   json_content <- rjson::fromJSON(file = tmpfile_json)
   
