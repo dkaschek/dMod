@@ -3,13 +3,13 @@
 
 #' Save the necessary objects for dModtoShiny with the correct names
 #'
-#' @param x prediction funciton
+#' @param x prediction function
 #' @param parameters Parframe, result of mstrust()
-#' @param fixed Character? fixed parameters? 
+#' @param fixed character vector with parameter names for fixed parameters 
 #' @param data datalist
 #' @param reactions eqnlist-object
-#' @param profiles Parframe, result of profile(). Is a proflist also possible?
-#' @param pubref Link to publication
+#' @param profiles Parframe, result of profile() or a list of profiles
+#' @param pubref Character, link to publication
 #' @param errmodel obsfn
 saveShiny <- function(reactions = myeqnlist, 
                       x, 
