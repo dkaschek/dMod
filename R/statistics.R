@@ -467,91 +467,90 @@ progressBar <- function(percentage, size = 50, number = TRUE) {
 confint.parframe <- function(object, parm = NULL, level = 0.95, ..., val.column = "data") {
   
   profile <- object
-  
-  maxvalue <- qchisq(level, df = 1)
-  
-  proflist <- as.data.frame(profile)
   obj.attributes <- attr(profile, "obj.attributes")
   
-  if(is.data.frame(proflist)) {
-    whichPars <- unique(proflist$whichPar)
-    if (!is.null(parm)) whichPars <- intersect(whichPars, parm)
-    if (length(whichPars) == 0) stop("profile does not contain the required parameters.")
-    proflist <- lapply(whichPars, function(n) {
-      with(proflist, proflist[whichPar == n, ])
-    })
-    names(proflist) <- whichPars
-  }
+  if (is.null(parm))
+    parm <- unique(profile[["whichPar"]])
   
-  # Discard faulty profiles
-  proflistidx <- sapply(proflist, function(prf) any(class(prf) == "data.frame"))
-  proflist <- proflist[proflistidx]
-  if (sum(!proflistidx) > 0) {
-    warning(sum(!proflistidx), " profiles discarded.", call. = FALSE)
-  }
-  subdata <- do.call(rbind, lapply(names(proflist), function(n) {
-    #print(n)
-    parvalues <- proflist[[n]][, n]
-    values <- proflist[[n]][, val.column]
-    origin <- which.min(abs(proflist[[n]][, "constraint"]))
-    zerovalue <- proflist[[n]][origin, val.column]
-    deltavalues <- values - zerovalue
-    deltavalues[deltavalues < 0] <- 0
-    deltavalues <- sqrt(deltavalues)
-    deltavalues[1:origin] <- - deltavalues[1:origin]
-    lpars <- length(parvalues)
-    x <- abs(deltavalues - sqrt(maxvalue))
-    position_upper <- which(x %in% sort(x)[1:2])[1:2]
-    x <- abs(deltavalues + sqrt(maxvalue))
-    position_lower <- which(x %in% sort(x)[1:2])[1:2]
-    #cat("deltas:",deltavalues[position_lower],deltavalues[position_upper], "\n")
-    #cat("pars:",parvalues[position_lower],parvalues[position_upper], "\n")
-    parlower <- try(approxExtrap(deltavalues[position_lower], y = parvalues[position_lower], xout = -sqrt(maxvalue)), silent = TRUE)
-    parupper <- try(approxExtrap(deltavalues[position_upper], y = parvalues[position_upper], xout = sqrt(maxvalue)), silent = TRUE)
+  threshold <- qchisq(level, df = 1)
+  
+  # Reduce to profiles for parm
+  profile <- profile[profile[["whichPar"]] %in% parm,]
+  
+  # Evaluate confidence intervals per parameter
+  CIs <- lapply(split(profile, profile[["whichPar"]]), function(d) {
     
-    if (inherits(parlower, "try-error")) parlower <- list(x = NA, y = NA)
-    if (inherits(parupper, "try-error")) parupper <- list(x = NA, y = NA)
+    # Get origin of profile
+    origin <- which.min(abs(d[["constraint"]]))
+    whichPar <- d[["whichPar"]][origin]
     
-    parmin <- parvalues[origin]
-    data.frame(name = n, value = parmin, lower = parlower$y, upper = parupper$y)
-  }))
-  return(subdata)
-}
-
-# Extrapolation extension to approx
-# 
-# from Hmisc package, built on approx
-approxExtrap <- function (x, y, xout, method = "linear", n = 50, rule = 2, f = 0, ties = "ordered", na.rm = FALSE) {
-if (is.list(x)) {
-  y <- x[[2]]
-  x <- x[[1]]
-}
-if (na.rm) {
-  d <- !is.na(x + y)
-  x <- x[d]
-  y <- y[d]
-}
-d <- !duplicated(x)
-x <- x[d]
-y <- y[d]
-d <- order(x)
-x <- x[d]
-y <- y[d]
-w <- approx(x, y, xout = xout, method = method, n = n, rule = 2, 
-            f = f, ties = ties)$y
-r <- range(x)
-d <- xout < r[1]
-if (any(is.na(d))) 
-  stop("NAs not allowed in xout")
-if (any(d)) 
-  w[d] <- (y[2] - y[1])/(x[2] - x[1]) * (xout[d] - x[1]) + 
-  y[1]
-d <- xout > r[2]
-n <- length(y)
-if (any(d)) 
-  w[d] <- (y[n] - y[n - 1])/(x[n] - x[n - 1]) * (xout[d] - 
-                                                   x[n - 1]) + y[n - 1]
-list(x = xout, y = w)
+    # Define function to return constraint value where threshold is passed
+    get_xThreshold <- function(branch) {
+      
+      y <- branch[[val.column]] - d[[val.column]][origin]
+      x <- branch[["constraint"]]
+      
+      # If less than 3 points, return NA
+      if (length(x) < 3)
+        return(NA)
+      
+      # If threshold exceeded, take closest points below and above threshold
+      # and interpolate
+      if (any(y > threshold)) {
+        i.above <- head(which(y > threshold), 1)
+        i.below <- tail(which(y < threshold), 1)
+        if (i.below > i.above) {
+          return(NA)
+        } else {
+          slope <- (y[i.above] - y[i.below])/(x[i.above] - x[i.below])
+          dy <- threshold - y[i.below]
+          dx <- dy/slope
+          x_threshold <- x[i.below] + dx
+          return(x_threshold)
+        }
+      }
+      
+      # If threshold not exceeded,
+      # take the last 20% of points (at least 3) an perform linear fit
+      n_last20 <- max(3, length(which(x - x[origin] > 0.8 * (max(x) - x[origin]))))
+      x <- tail(x, n_last20)
+      y <- tail(y, n_last20)
+      slope <- sum((x - mean(x))*(y - mean(y)))/sum((x - mean(x))^2)
+      
+      # If slope < 0, return Inf
+      if (slope < 0)
+        return(Inf)
+      
+      # Extrapolate until threshold is passed
+      dy <- threshold - tail(y, 1)
+      dx <- dy/slope
+      x_threshold <- tail(x, 1) + dx
+      return(x_threshold)
+      
+      
+    } 
+    
+    # Right profiles
+    right <- d[d[["constraint"]] >= 0,]
+    upper <- d[[whichPar]][origin] + get_xThreshold(right)
+    
+    # Left profile
+    left <- d[d[["constraint"]] <= 0,]
+    left[["constraint"]] <- - left[["constraint"]]
+    left <- left[order(left[["constraint"]]), ]
+    lower <- d[[whichPar]][origin] - get_xThreshold(left)
+    
+    
+    data.frame(name = whichPar, 
+               value = d[[whichPar]][origin], 
+               lower = lower, 
+               upper = upper)
+    
+    
+  })
+  
+  do.call(rbind, CIs)
+  
 }
 
 
