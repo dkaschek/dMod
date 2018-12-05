@@ -525,6 +525,12 @@ confint.parframe <- function(object, parm = NULL, level = 0.95, ..., val.column 
       dy <- threshold - tail(y, 1)
       dx <- dy/slope
       x_threshold <- tail(x, 1) + dx
+      
+      # Test if extrapolation takes the point of passage very far
+      # Set to Inf in that case
+      if (x_threshold > 10*(max(x) - min(x)))
+        x_threshold <- Inf
+      
       return(x_threshold)
       
       

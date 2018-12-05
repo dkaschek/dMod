@@ -1,7 +1,6 @@
 ---
 title: "The Operators `+` and `*` in dMod"
 author: "Daniel Kaschek"
-date: "December 24, 2018"
 output: html_document
 ---
 
@@ -20,7 +19,11 @@ setwd(tempdir())
 set.seed(9352891)
 ```
 
-To illustrate the concepts let's look at an example. We are going to simulate data with a conversion model:
+To illustrate the concepts let's look at an example.
+
+## Using the `*` operator
+
+We are going to simulate data with a conversion model:
 
 ```{r}
 
@@ -98,7 +101,8 @@ The fit finds the solution which was used for simulation. However, also another 
 plotPaths(profiles)
 ```
 
-
+## Using the `+` operator
+ 
 To find out which of the solutions is the right one, an additional hypothetical experiment is performed. In this experiment, the degradation rate is blocked (`k_degrade = 0`). The experimental condition is referred to as `"block_degradation"`.
 
 ```{r}
@@ -145,5 +149,47 @@ plotProfile(profiles, mode == "data")
 ```
 
 The profiles show that with the new experimental condition the parameters are identifiable. The parameter `eff` is compatible with $-\infty$ in accordance with the values used for simulation.
+
+## Less common example
+
+A less common application of the `*` operator is the concatenation of objective functions and parameter transformations. Let us assume the following objective function:
+
+```{r}
+
+obj <- constraintL2(mu = c(p1 = -1, p2 = 1), sigma = 1, attr.name = "data")
+
+```
+
+We assume to know the parameters `p1` and `p2` with uncertainty 1. Because we would combine this prior information with other data-derived objective functions, we set `attr.name = "data"`.
+
+When parameters are estimated on a log-scale, we still would like to use the prior information as it was defined. Therefore, we can combine the parmeter transformation with the objective function:
+
+```{r}
+p <- eqnvec(
+  p1 = "exp(logp1)",
+  p2 = "exp(logp2)"
+) %>% P(condition = "base")
+
+obj_inner <- obj*p
+
+```
+
+To illustrate what happens, we fit and compute profiles for the objective function and, to avoid that fits diverge, add a constraint for regularization:
+
+```{r}
+
+pars <- c(logp1 = 0, logp2 = 0)
+reg <- constraintL2(mu = pars, sigma = 10)
+
+
+myfit <- trust(obj*p + reg, parinit = pars, rinit = .1, rmax = 10)
+myprof <- profile(obj*p + reg, myfit$argument, names(myfit$argument))
+
+plotProfile(myprof, mode == "data")
+
+```
+
+We see that the `logp1` tends to $-\infty$. This is because the optimum is at `p1 = -1` which cannot be reached via `logp1` on log-scale. On the other hand, `p2 = 1` corresponds to `logp2 = 0`, giving us the optimum for `logp2`. However, the significance threshold for the 68\% CL is only reached for `logp2`$\rightarrow -\infty$ , and is never exceeded. This is exactly consistent with the definition of the prior information for `p2`.
+
 
 **Happy concatenating!!**
