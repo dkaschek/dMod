@@ -6,7 +6,7 @@
 ## Model Definition ------------------------------------------------------
 
 # Read in model csv
-reactionlist <- read.csv("inst/examples/example_CCD4/model.csv") 
+reactionlist <- read.csv(paste0(system.file(package = "dMod"),'/examples/example_CCD4/model.csv')) 
 
 f <- as.eqnlist(reactionlist)
 
@@ -32,7 +32,7 @@ g <- Y(observables, as.eqnvec(f), compile = TRUE,modelname = "obs", attach.input
 # Generate the model C files, compile them and return a list with func and extended.
 do.compile <- TRUE
 cat("now compile the model", do.compile,"\n")
-model0 <- odemodel(as.eqnvec(f), fixed = fixed, forcings = NULL, jacobian = "inz.lsodes", compile = do.compile,modelname = "ccd4")
+model0 <- odemodel(as.eqnvec(f), fixed = fixed, forcings = NULL, jacobian = "inz.lsodes", compile = do.compile, modelname = "ccd4")
 
 ## Data ----------------------------------------------------------------------
 
@@ -41,7 +41,8 @@ model0 <- odemodel(as.eqnvec(f), fixed = fixed, forcings = NULL, jacobian = "inz
 # dMod::fitErrorModel(datasheet, factors = c("name"), plotting = FALSE, errorModel = "(exp(s0) + x^2*exp(srel))", par = c(s0 = -6, srel = -4))$sigma
 
 # Final data used for the publication (class: datalist):
-data <- readRDS("inst/examples/example_CCD4/datalist.Rds")
+data <- readRDS(paste0(system.file(package = "dMod"),'/examples/example_CCD4/datalist.Rds'))
+data <- as.datalist(data)
 conditions <- getConditions(data)
 ## Parameter Transformations -------------------------------------------
 

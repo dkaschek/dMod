@@ -11,7 +11,7 @@
 #' @param profiles Parframe, result of profile() or a list of profiles
 #' @param pubref Character, link to publication
 #' @param errmodel obsfn
-saveShiny <- function(reactions = myeqnlist, 
+saveShiny <- function(reactions, 
                       x, 
                       parameters, 
                       fixed = NULL, 
