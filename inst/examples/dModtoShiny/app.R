@@ -93,7 +93,7 @@ ui <- dashboardPage(
                     selectInput("jump", "Steps:", list(1), selected = c(1), multiple = TRUE),
                     #p(strong("Parameter values:")),
                     radioButtons("allstepsval","Parameter values:", c("All fits" = "all", "Selected steps"= "sel"), selected = "sel"),
-                    actionButton("plotvals", "plot values"),
+                    actionButton("plotvals", "plot parameter values"),
                     actionButton("exportsteppars","export Parameters")
                 ),
                 box(width = 9,
@@ -902,7 +902,7 @@ server <- shinyServer(function(input, output, session) {
     }
     parametersSteps <- model()$parameters[as.numeric(steps)]
     
-    plotResiduals(parframe = parametersSteps,x =  model()$x, data = model()$data,errmodel = model()$err, conditions = getConditions(model()$data), split = splits)
+    plotResiduals(parframe = parametersSteps,x = model()$x, data = model()$data,errmodel = model()$err, conditions = getConditions(model()$data), split = splits)
   })
   
   output$plotres <- renderPlot({
