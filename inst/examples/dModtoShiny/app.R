@@ -55,10 +55,10 @@ ui <- dashboardPage(
                                            selectInput("color", "Color:", list(), multiple = FALSE),
                                            radioButtons("facetsetup","Facets:", c("wrap" = "wrap", "grid (y~1, x~2,3,...)" =  "grid")),
                                            selectInput("facet", label = NULL, list(), multiple = TRUE),
-                                           p(strong("y-axis scale:")),
+                                           shiny::p(strong("y-axis scale:")),
                                            checkboxInput("log","Log y-axis", value = FALSE),
                                            checkboxInput("yfree","free y-axis between panels", value = FALSE),
-                                           p(strong("Uncertainties:")),
+                                           shiny::p(strong("Uncertainties:")),
                                            checkboxInput("errdata","data", value = FALSE),
                                            uiOutput("errmod")
                                            
