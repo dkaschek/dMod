@@ -49,7 +49,7 @@ library(shiny)
 
 setwd(paste0(system.file(package = "dMod"),'/examples/dModtoShiny/'))
 
-runApp("app.R")
+runApp()
 
 ```
 
