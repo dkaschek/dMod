@@ -81,6 +81,9 @@ saveShiny_dMod.frame <- function(dMod.frame, hypothesis = 1,
 msParframe <- function(pars, n = 20, seed = 12345, samplefun = rnorm, ...) {
   set.seed(seed)
   
+  if (n == 1)
+    return(parframe(as.data.frame(t(pars))))
+  
   # generate random pars
   rnd <- samplefun((n-1)*length(pars), ...)
   mypars <- matrix(rnd, nrow = (n-1))
