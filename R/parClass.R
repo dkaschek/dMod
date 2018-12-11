@@ -258,18 +258,23 @@ plotValues.parframe <- function(x, tol = 1, ...) {
   if (!missing(...)) x <- subset(x, ...)
   
   jumps <- stepDetect(x$value, tol)
-  y.jumps <- seq(max(x$value), min(x$value), length.out = length(jumps))
+  y.range <- c(min(x$value), max(max(x$value), min(x$value) + tol))
+  y.jumps <- seq(y.range[2], y.range[1], length.out = length(jumps))
   
   
   pars <- x
   pars <- pars[order(pars$value),]
   pars[["index"]] <-  1:nrow(pars)
   
+  
+  
   P <- ggplot2::ggplot(pars, aes(x = index, y = value, pch = converged, color = iterations)) + 
     geom_vline(xintercept = jumps, lty = 2) +
     geom_point() + 
     annotate("text", x = jumps + 1, y = y.jumps, label = jumps, hjust = 0, color = "red", size = 3) +
-    xlab("index") + ylab("value") + theme_dMod()
+    xlab("index") + ylab("value") + 
+    coord_cartesian(ylim = y.range) +
+    theme_dMod()
   
   attr(P, "data") <- pars
   attr(P, "jumps") <- jumps
