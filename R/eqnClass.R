@@ -397,7 +397,7 @@ as.data.frame.eqnlist <- function(x, ...) {
 #' Write equation list into a csv file
 #' 
 #' @param eqnlist object of class \link{eqnlist}
-#' @param ... Arguments going to \link[utils]{write.csv}
+#' @param ... Arguments going to \link[utils]{write.table}
 #' 
 #' @export
 #' @importFrom utils file.edit getParseData install.packages installed.packages read.csv str tail write.csv
