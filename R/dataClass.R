@@ -222,7 +222,10 @@ as.data.frame.datalist <- function(x, ...) {
   data <- lbind(data)
   if (!is.null(condition.grid)) {
     for (C in colnames(condition.grid)) {
-      data[, C] <- condition.grid[as.character(data$condition), C]
+      if (nrow(data) > 0)
+        data[, C] <- condition.grid[as.character(data$condition), C]
+      else
+        data[, C] <- vector(mode = mode(condition.grid[[C]]))
     }
   }
 

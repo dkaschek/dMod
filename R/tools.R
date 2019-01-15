@@ -404,9 +404,12 @@ lbind <- function(mylist) {
   outlong <- do.call(rbind, lapply(1:length(conditions), function(cond) {
     
     myout <- mylist[[cond]]
-    myoutlong <- cbind(myout, condition = numconditions[cond])
+    if (nrow(myout) > 0)
+      myout[["condition"]] <- numconditions[cond]
+    else
+      myout[["condition"]] <- character(0)
     
-    return(myoutlong)
+    return(myout)
     
   }))
   
