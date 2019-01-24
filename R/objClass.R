@@ -626,7 +626,7 @@ wrss <- function(nout) {
     derivs.bloq <- derivs[is.bloq, , drop = FALSE]
     # Drop BLOQ part from derivs
     derivs <- derivs[!is.bloq, , drop = FALSE]
-
+    
     if (nrow(derivs) > 0) {
       
       nout$sigma[is.na(nout$sigma)] <- 1 #replace by neutral element
@@ -637,16 +637,13 @@ wrss <- function(nout) {
       
       grad <- as.vector(2*matrix(res/sigma^2, nrow = 1) %*% sens)
       names(grad) <- colnames(sens)
-      hessian <- 2*t(sens/sigma) %*% (sens/sigma)
+      hessian <- 2*t(sens/sigma) %*% (sens/sigma) # + 2. sens
       
     }
     
     if (nrow(derivs.bloq) > 0) {
       
-      nout.bloq$weighted.residual[nout.bloq$weighted.residual > 30] <- 30
-      nout.bloq$weighted.residual[nout.bloq$weighted.residual < -4] <- -4
-      
-      objvals.bloq <- -2*log(pnorm(-nout.bloq$weighted.residual))
+      objvals.bloq <- -2*pnorm(-nout.bloq$weighted.residual, log.p = TRUE)
       obj.bloq <- sum(objvals.bloq)
       
       nout.bloq[is.na(nout.bloq$sigma)] <- 1
@@ -655,18 +652,16 @@ wrss <- function(nout) {
       res <- nout.bloq$residual
       sigma <- nout.bloq$sigma
       
-      Phi <- pnorm(-nout.bloq$weighted.residual)
-      G <- dnorm(-nout.bloq$weighted.residual)
-      # Deal with numerical issues
-      G_divided_by_Phi <- G/Phi
+      LPhi <- pnorm(-nout.bloq$weighted.residual, log.p = TRUE)
+      LG <- dnorm(-nout.bloq$weighted.residual, log = TRUE)
+      G_divided_by_Phi <- exp(LG-LPhi)
       
-      
-      grad.bloq <- as.vector(matrix(2*G_divided_by_Phi/(sigma), nrow = 1) %*% sens.bloq)
+      grad.bloq <- as.vector(matrix(2 * G_divided_by_Phi/(sigma), nrow = 1) %*% sens.bloq)
       names(grad.bloq) <- colnames(sens.bloq)
       
       X1 <- sens.bloq*(G_divided_by_Phi/(sigma))^2
       X2 <- sens.bloq*(res*G_divided_by_Phi/(sigma^3))
-      hessian.bloq <- 2 * t(X1) %*% sens.bloq - 2 * t(X2) %*% sens.bloq
+      hessian.bloq <- 2 * t(X1) %*% sens.bloq - 2 * t(X2) %*% sens.bloq  # + 2. sens
       
       
       obj <- obj + obj.bloq
@@ -682,7 +677,7 @@ wrss <- function(nout) {
     
   }
   
-
+  
   objlist(value = obj, gradient = grad, hessian = hessian)
   
 }
@@ -721,7 +716,7 @@ nll <- function(nout) {
     derivs.err <- derivs.err[!is.bloq, , drop = FALSE]
     
     if (nrow(derivs) > 0 & nrow(derivs.err) > 0) {
-    
+      
       # Get sensitivities: sens = dres/dp, sens.err = dsigma/dp
       sens <- as.matrix(derivs[, -(1:2), drop = FALSE])
       sens.err <- as.matrix(derivs.err[, -(1:2), drop = FALSE])
@@ -746,24 +741,20 @@ nll <- function(nout) {
     
     if (nrow(derivs.bloq) > 0 & nrow(derivs.err.bloq) > 0) {
       
-      nout.bloq$weighted.residual[nout.bloq$weighted.residual > 30] <- 30
-      nout.bloq$weighted.residual[nout.bloq$weighted.residual < -4] <- -4
-      
-      objvals.bloq <- -2*log(pnorm(-nout.bloq$weighted.residual))
+      objvals.bloq <- -2*pnorm(-nout.bloq$weighted.residual, log.p = TRUE)
       obj.bloq <- sum(objvals.bloq)
       
       # Get sensitivities: sens = dres/dp, sens.err = dsigma/dp
       sens.bloq <- as.matrix(derivs.bloq[, -(1:2), drop = FALSE])
       sens.err.bloq <- as.matrix(derivs.err.bloq[, -(1:2), drop = FALSE])
       
-      Phi <- pnorm(-nout.bloq$weighted.residual)
-      G <- dnorm(-nout.bloq$weighted.residual)
       res <- nout.bloq$residual
       sigma <- nout.bloq$sigma
       
-      # Deal with numerical issues
-      G_divided_by_Phi <- G/Phi
-
+      LPhi <- pnorm(-nout.bloq$weighted.residual, log.p = TRUE)
+      LG <- dnorm(-nout.bloq$weighted.residual, log = TRUE)
+      G_divided_by_Phi <- exp(LG-LPhi)
+      
       # Compute gradient
       grad.bloq <- as.vector(matrix(2*G_divided_by_Phi/sigma, nrow = 1) %*% sens.bloq) -
         as.vector(matrix(2*G_divided_by_Phi*res/(sigma^2), nrow = 1) %*% sens.err.bloq)
@@ -774,8 +765,7 @@ nll <- function(nout) {
       X1 <- (2*G_divided_by_Phi^2)*X
       X2 <- (2*G_divided_by_Phi*res/(sigma))*X
       
-      hessian.bloq <- t(X1) %*% X  - t(X2) %*% X
-      
+      hessian.bloq <- t(X1) %*% X  - t(X2) %*% X 
       
       obj <- obj + obj.bloq
       if (is.null(grad) & is.null(hessian)) {
