@@ -25,11 +25,11 @@ res <- function(data, out, err = NULL) {
   names <- unique(data$name)
   
   # Match data times/names in unique times/names
-  data.time <- match(data$time, times)
+  data.time <- match.num(data$time, times)
   data.name <- match(data$name, names)
   
   # Match unique times/names in out times/names
-  time.out <- match(times, out[,1])
+  time.out <- match.num(times, out[,1])
   name.out <- match(names, colnames(out))
   
 
@@ -74,7 +74,7 @@ res <- function(data, out, err = NULL) {
   # Modifications if error model is available
   if (!is.null(err)) {
     
-    time.err <- match(times, err[,1])
+    time.err <- match.num(times, err[,1])
     name.err <- match(names, colnames(err))
     timeIndex <- time.err[data.time]
     nameIndex <- name.err[data.name]
@@ -131,5 +131,11 @@ res <- function(data, out, err = NULL) {
 NULL
 
 
-
+# Match with numeric tolerance 
+match.num <- function(x, y, tol = 1e-8) {
+  
+  digits <- -log10(tol)
+  match(round(x, digits), round(y, digits))
+  
+} 
 

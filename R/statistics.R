@@ -512,7 +512,7 @@ confint.parframe <- function(object, parm = NULL, level = 0.95, ..., val.column 
       
       # If threshold not exceeded,
       # take the last 20% of points (at least 3) an perform linear fit
-      n_last20 <- max(3, length(which(x - x[origin] > 0.8 * (max(x) - x[origin]))))
+      n_last20 <- max(3, length(which(x - x[1] > 0.8 * (max(x) - x[1]))))
       x <- tail(x, n_last20)
       y <- tail(y, n_last20)
       slope <- sum((x - mean(x))*(y - mean(y)))/sum((x - mean(x))^2)
