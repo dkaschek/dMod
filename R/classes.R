@@ -1661,7 +1661,10 @@ mname.fn <- function(x, conditions = NULL) {
   for (i in select) {
     attr(attr(x, "mappings")[[i]], "modelname") <- value[i]
     if (inherits(x, "prdfn")) {
-      attr(environment(attr(x, "mappings")[[i]])[["extended"]], "modelname") <- value[i]
+      extended <- environment(attr(x, "mappings")[[i]])[["extended"]]
+      if (!is.null(extended)) {
+        attr(environment(attr(x, "mappings")[[i]])[["extended"]], "modelname") <- value[i]
+      }
       attr(environment(attr(x, "mappings")[[i]])[["func"]], "modelname") <- value[i]
     }
   }

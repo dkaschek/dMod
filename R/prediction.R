@@ -192,18 +192,19 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
     optionsOde = optionsOde
   )
   
-  P2X <- function(times, P){
+  P2X <- function(times, pars, deriv = TRUE){
     
     events <- controls$events
     forcings <- controls$forcings
+    optionsOde <- controls$optionsOde
     
     # Add event time points (required by integrator) 
     event.times <- unique(events$time)
     times <- sort(union(event.times, times))
     
     
-    yini[names(P[names(P) %in% variables])] <- P[names(P) %in% variables]
-    pars <- P[parameters]
+    yini[names(pars[names(pars) %in% variables])] <- pars[names(pars) %in% variables]
+    pars <- pars[parameters]
     #alltimes <- unique(sort(c(times, forctimes)))
     
     # loadDLL(func)
@@ -211,7 +212,7 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
     out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = events)), optionsOde))
     #out <- cbind(out, out.inputs)      
     
-    prdframe(out, deriv = NULL, parameters = P)
+    prdframe(out, deriv = NULL, parameters = pars)
     
   }
   
