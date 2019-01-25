@@ -25,6 +25,9 @@ The output of this function can be used for the \code{center} - argument of \cod
 }
 \examples{
 msParframe(c(a = 0, b = 100000), 5)
+
+# Parameter specific sigma
+msParframe(c(a = 0, b = 100000), 5, samplefun = rnorm, sd = c(100, 0.5))
 }
 \seealso{
 \code{\link{mstrust}} and \code{\link{parframe}}
