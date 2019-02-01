@@ -175,3 +175,53 @@ for (i in 1:length(pouter)) {
   print(plotPrediction(out) + ggtitle(names(pouter)[i])) 
   
 }
+
+
+
+###
+
+ODEs <- c(
+  Ad= "-ka*Ad+Fabs*INPUT1",
+  Ac = "ka*Ad-CL/Vc*Ac",
+  PD = "kin-(1+(EMAX*(Ac/Vc)/(EC50+(Ac/Vc))))*kout*PD",
+  INPUT1 = "0"
+)
+
+events <- eventlist() %>% 
+  addEvent("INPUT1", "ton_INPUT1_1", "xon_INPUT1_1") %>% 
+  addEvent("INPUT1", "toff_INPUT1_1", "0")
+
+model <- odemodel(ODEs, events = events, estimate = "ton_INPUT1_1")
+attr(model$extended, "events")
+
+
+x <- model %>% Xs()
+
+innerpars <- getParameters(x)
+
+p <- eqnvec() %>%
+  define("x~x", x = innerpars) %>%
+  define("x~0", x = c("INPUT1", "Ad", "Ac")) %>%
+  define("x~1", x = c("PD")) %>%
+  P()
+
+outerpars <- getParameters(p)
+
+pouter <- structure(runif(length(outerpars)), names = outerpars)
+pouter["ton_INPUT1_1"] <- 1
+pouter["toff_INPUT1_1"] <- 2
+pouter["xon_INPUT1_1"] <- 1
+times <- seq(0, 4, .01)
+
+pouter %>% (x*p)(times = times) %>% plot()
+pouter %>% (x*p)(times = times) %>% getDerivs() %>% plot()
+
+y <- x*p
+
+
+for (i in 1:length(pouter)) {
+  out <- checkSensitivities(pouter, names(pouter)[i], 1, .01) %>% as.prdlist()
+  print(plotPrediction(out) + ggtitle(names(pouter)[i])) 
+  
+}
+

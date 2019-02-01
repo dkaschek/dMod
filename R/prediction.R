@@ -209,7 +209,7 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
     
     # loadDLL(func)
     if(!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
-    out <- do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = events)), optionsOde))
+    out <- suppressWarnings(do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = events)), optionsOde)))
     #out <- cbind(out, out.inputs)      
     
     prdframe(out, deriv = NULL, parameters = pars)
