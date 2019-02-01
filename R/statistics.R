@@ -104,9 +104,10 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   "%dopar%" <- foreach::"%dopar%"
   
   # Convert whichPar to index vector
-  if (is.character(whichPar)) whichPar <- which(names(pars) == whichPar)
+  if (is.character(whichPar)) whichPar <- which(names(pars) %in% whichPar)
   
-  out <- foreach::foreach(whichIndex = whichPar, .packages = "dMod", .inorder = TRUE) %dopar% {
+  loaded_packages <- .packages()  
+  out <- foreach::foreach(whichIndex = whichPar, .packages = loaded_packages, .inorder = TRUE) %dopar% {
     
     loadDLL(obj)
     
@@ -803,8 +804,9 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   
   "%dopar%" <- foreach::"%dopar%"
   
-  
-  m_parlist <- as.parlist(foreach::foreach(i = 1:fits, .packages = "dMod", .inorder = TRUE) %dopar% {
+
+  loaded_packages <- .packages()  
+  m_parlist <- as.parlist(foreach::foreach(i = 1:fits, .packages = loaded_packages, .inorder = TRUE) %dopar% {
     
     suppressMessages(loadDLL(objfun))
     
