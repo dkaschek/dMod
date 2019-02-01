@@ -204,12 +204,12 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
     
     
     yini[names(pars[names(pars) %in% variables])] <- pars[names(pars) %in% variables]
-    pars <- pars[parameters]
+    mypars <- pars[parameters]
     #alltimes <- unique(sort(c(times, forctimes)))
     
     # loadDLL(func)
     if(!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
-    out <- suppressWarnings(do.call(odeC, c(list(y=yini, times=times, func=func, parms=pars, forcings=forc,events = list(data = events)), optionsOde)))
+    out <- suppressWarnings(do.call(odeC, c(list(y=yini, times=times, func=func, parms=mypars, forcings=forc,events = list(data = events)), optionsOde)))
     #out <- cbind(out, out.inputs)      
     
     prdframe(out, deriv = NULL, parameters = pars)
