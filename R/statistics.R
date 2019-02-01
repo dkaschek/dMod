@@ -85,12 +85,19 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   if (!is.null(algoControl)) aControl[match(names(algoControl), names(aControl))] <- algoControl
   if (!is.null(optControl )) oControl[match(names(optControl), names(oControl ))] <- optControl
     
-  cluster <- parallel::makeCluster(cores)
-  doParallel::registerDoParallel(cluster)
-  parallel::clusterCall(cl = cluster, function(x) .libPaths(x), .libPaths())
+  
+  
+  
+  
+  
   
   # Start cluster if on windows
   if (Sys.info()[['sysname']] == "Windows") {
+    
+    cluster <- parallel::makeCluster(cores)
+    doParallel::registerDoParallel(cl = cluster)
+    
+    parallel::clusterCall(cl = cluster, function(x) .libPaths(x), .libPaths())
     
     varlist <- ls()
     # Exclude things like "missing argument"
@@ -98,6 +105,10 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                  "pars", "fixed", "dotArgs",
                  "sControl", "aControl", "oControl")
     parallel::clusterExport(cluster, envir = environment(), varlist = varlist)
+    
+  } else {
+    
+    doParallel::registerDoParallel(cores = cores)
     
   }
   
@@ -107,7 +118,10 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   if (is.character(whichPar)) whichPar <- which(names(pars) %in% whichPar)
   
   loaded_packages <- .packages()  
-  out <- foreach::foreach(whichIndex = whichPar, .packages = loaded_packages, .inorder = TRUE) %dopar% {
+  out <- foreach::foreach(whichIndex = whichPar, 
+                          .packages = loaded_packages, 
+                          .inorder = TRUE,
+                          .options.multicore = list(preschedule = FALSE)) %dopar% {
     
     loadDLL(obj)
     
@@ -785,13 +799,14 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     fits <- nrow(center)
   }
   
-  cluster <- parallel::makeCluster(cores)
-  doParallel::registerDoParallel(cluster)
-  parallel::clusterCall(cl = cluster, function(x) .libPaths(x), .libPaths())
   
   
   # Start cluster if on windows
   if (Sys.info()[['sysname']] == "Windows") {
+    
+    cluster <- parallel::makeCluster(cores)
+    doParallel::registerDoParallel(cluster)
+    parallel::clusterCall(cl = cluster, function(x) .libPaths(x), .libPaths())
     
     varlist <- ls()
     # Exclude things like "missing argument"
@@ -800,13 +815,21 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
                  "output", "interResultFolder", "logfile")
     parallel::clusterExport(cluster, envir = environment(), varlist = varlist)
     
+  } else {
+    
+    doParallel::registerDoParallel(cores = cores)
+    
   }
   
   "%dopar%" <- foreach::"%dopar%"
   
 
   loaded_packages <- .packages()  
-  m_parlist <- as.parlist(foreach::foreach(i = 1:fits, .packages = loaded_packages, .inorder = TRUE) %dopar% {
+  m_parlist <- as.parlist(foreach::foreach(i = 1:fits, 
+                                           .packages = loaded_packages, 
+                                           .inorder = TRUE,
+                                           .options.multicore = list(preschedule = FALSE)
+                                           ) %dopar% {
     
     suppressMessages(loadDLL(objfun))
     
