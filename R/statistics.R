@@ -85,12 +85,13 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   if (!is.null(algoControl)) aControl[match(names(algoControl), names(aControl))] <- algoControl
   if (!is.null(optControl )) oControl[match(names(optControl), names(oControl ))] <- optControl
     
+  cluster <- parallel::makeCluster(cores)
+  doParallel::registerDoParallel(cluster)
+  parallel::clusterCall(cl = cluster, function(x) .libPaths(x), .libPaths())
+  
   # Start cluster if on windows
   if (Sys.info()[['sysname']] == "Windows") {
     
-    cluster <- parallel::makeCluster(cores)
-    doParallel::registerDoParallel(cluster)
-    parallel::clusterCall(cl = cluster, function(x) .libPaths(x), .libPaths())
     varlist <- ls()
     # Exclude things like "missing argument"
     varlist <- c("obj", "whichPar", "alpha", "limits", "method", "verbose", "cores",
@@ -783,12 +784,14 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     fits <- nrow(center)
   }
   
+  cluster <- parallel::makeCluster(cores)
+  doParallel::registerDoParallel(cluster)
+  parallel::clusterCall(cl = cluster, function(x) .libPaths(x), .libPaths())
+  
+  
   # Start cluster if on windows
   if (Sys.info()[['sysname']] == "Windows") {
     
-    cluster <- parallel::makeCluster(cores)
-    doParallel::registerDoParallel(cluster)
-    parallel::clusterCall(cl = cluster, function(x) .libPaths(x), .libPaths())
     varlist <- ls()
     # Exclude things like "missing argument"
     varlist <- c("objfun", "center", "argstrust", 
