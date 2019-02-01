@@ -58,7 +58,8 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                           ...) {
   
   # Guarantee that pars is named numeric without deriv attribute
-  sanePars <- sanitizePars(pars, list(...)$fixed)
+  dotArgs <- list(...)
+  sanePars <- sanitizePars(pars, dotArgs$fixed)
   pars <- sanePars$pars
   fixed <- sanePars$fixed
   
@@ -84,11 +85,32 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   if (!is.null(algoControl)) aControl[match(names(algoControl), names(aControl))] <- algoControl
   if (!is.null(optControl )) oControl[match(names(optControl), names(oControl ))] <- optControl
     
-  do.call(rbind, mclapply(whichPar, function(whichPar) {
+  # Start cluster if on windows
+  if (Sys.info()[['sysname']] == "Windows") {
     
+    cluster <- parallel::makeCluster(cores)
+    doParallel::registerDoParallel(cluster)
+    parallel::clusterCall(cl = cluster, function(x) .libPaths(x), .libPaths())
+    varlist <- ls()
+    # Exclude things like "missing argument"
+    varlist <- c("obj", "whichPar", "alpha", "limits", "method", "verbose", "cores",
+                 "pars", "fixed", "dotArgs",
+                 "sControl", "aControl", "oControl")
+    parallel::clusterExport(cluster, envir = environment(), varlist = varlist)
     
-    if (is.character(whichPar)) whichPar <- which(names(pars) == whichPar)
-    whichPar.name <- names(pars)[whichPar]
+  }
+  
+  "%dopar%" <- foreach::"%dopar%"
+  
+  # Convert whichPar to index vector
+  if (is.character(whichPar)) whichPar <- which(names(pars) == whichPar)
+  
+  out <- foreach::foreach(whichIndex = whichPar, .packages = "dMod", .inorder = TRUE) %dopar% {
+    
+    loadDLL(obj)
+    
+
+    whichPar.name <- names(pars)[whichIndex]
     
     
     
@@ -98,7 +120,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       out <- obj(p, ...)
       # If "identity", substitute hessian such that steps are in whichPar-direction.
       Id <- diag(1/.Machine$double.eps, length(out$gradient))
-      Id[whichPar, whichPar] <- 1
+      Id[whichIndex, whichIndex] <- 1
       colnames(Id) <- rownames(Id) <- names(out$gradient)
       
       W <- match.arg(aControl$W[1], c("hessian", "identity"))
@@ -122,9 +144,9 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
     }
     
     constraint <- function(p) {
-      value <- p[whichPar] - pars[whichPar]
+      value <- p[whichIndex] - pars[whichIndex]
       gradient <- rep(0, length(p))
-      gradient[whichPar] <- 1
+      gradient[whichIndex] <- 1
       return(list(value = value, gradient = gradient))
     }
     lagrange <- function(y) {
@@ -132,7 +154,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       # initialize values
       p <- y
       lambda <- 0
-      out <- obj.prof(p, ...)
+      out <- do.call(obj.prof, c(list(p = p), dotArgs))
       g.original <- constraint(p)
       
       # evaluate derivatives and constraints
@@ -154,7 +176,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
         dy <- try(as.vector(W%*%v)[1:length(p)], silent=FALSE)
         dy0 <- try(as.vector(W%*%v0)[1:length(p)], silent=FALSE)
         dy[!valid[1:length(p)]] <- dy0[!valid[1:length(p)]] <- 0
-        dy[whichPar] <- dy0[whichPar] <- direction
+        dy[whichIndex] <- dy0[whichIndex] <- direction
         warning(paste0("Iteration ", i, ": Some singular values of the Hessian are below the threshold. Optimization will be performed."))
       } else {
         dy <- try(as.vector(W%*%v)[1:length(p)], silent=FALSE)
@@ -176,7 +198,12 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       out.attributes.names <- names(out.attributes)
       
       
-      return(c(list(dy = dy, value = out$value, gradient = out$gradient, correction = correction, valid = valid, attributes = out.attributes.names),
+      return(c(list(dy = dy, 
+                    value = out$value, 
+                    gradient = out$gradient, 
+                    correction = correction, 
+                    valid = valid, 
+                    attributes = out.attributes.names),
                out.attributes))
       
       
@@ -191,7 +218,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
         #cat("Evaluation of lagrange() not successful. Will optimize instead.\n")
         optimize <- TRUE
         y.try <- y
-        y.try[whichPar] <- y[whichPar] + direction*stepsize
+        y.try[whichIndex] <- y[whichIndex] + direction*stepsize
         rinit <- oControl$rinit
       } else {
         dy.norm <- sqrt(sum(dy^2))
@@ -202,12 +229,12 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       
       # Do reoptimization if requested or necessary
       if(optimize) {      
-        parinit.opt <- y.try[-whichPar]
-        fixed.opt <- c(fixed, y.try[whichPar])
+        parinit.opt <- y.try[-whichIndex]
+        fixed.opt <- c(fixed, y.try[whichIndex])
         
         arglist <- c(list(objfun = obj.opt, parinit = parinit.opt, fixed = fixed.opt, rinit = rinit), 
                      oControl[names(oControl)!="rinit"],
-                     list(...)[names(list(...)) != "fixed"])
+                     dotArgs[names(dotArgs) != "fixed"])
         
         
         myfit <- try(do.call(trust, arglist), silent=FALSE)
@@ -301,7 +328,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
              constraint = as.vector(constraint.out$value), 
              stepsize = stepsize, 
              gamma = gamma, 
-             whichPar = whichPar,
+             whichPar = whichIndex,
              out.attributes, ini)
     
     # Compute right profile
@@ -352,7 +379,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                      constraint = as.vector(constraint.out$value), 
                      stepsize = stepsize, 
                      gamma = gamma, 
-                     whichPar = whichPar,
+                     whichPar = whichIndex,
                      out.attributes, 
                      y))
       
@@ -411,7 +438,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                      constraint = as.vector(constraint.out$value), 
                      stepsize = stepsize, 
                      gamma = gamma,
-                     whichPar = whichPar,
+                     whichPar = whichIndex,
                      out.attributes,
                      y), 
                    out)
@@ -433,7 +460,19 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       obj.attributes = names(out.attributes)
     )
     
-  }, mc.cores = cores, mc.preschedule = FALSE))  
+  }
+  
+  
+  
+  if (Sys.info()[['sysname']] == "Windows") {
+    
+    parallel::stopCluster(cluster)
+    doParallel::stopImplicitCluster()
+    
+  }
+  
+  do.call(rbind, out)
+  
   
 }
 
@@ -744,7 +783,28 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     fits <- nrow(center)
   }
   
-  m_parlist <- as.parlist(mclapply(1:fits, function(i) {
+  # Start cluster if on windows
+  if (Sys.info()[['sysname']] == "Windows") {
+    
+    cluster <- parallel::makeCluster(cores)
+    doParallel::registerDoParallel(cluster)
+    parallel::clusterCall(cl = cluster, function(x) .libPaths(x), .libPaths())
+    varlist <- ls()
+    # Exclude things like "missing argument"
+    varlist <- c("objfun", "center", "argstrust", 
+                 "samplefun", "argssample", "argsobj", 
+                 "output", "interResultFolder", "logfile")
+    parallel::clusterExport(cluster, envir = environment(), varlist = varlist)
+    
+  }
+  
+  "%dopar%" <- foreach::"%dopar%"
+  
+  
+  m_parlist <- as.parlist(foreach::foreach(i = 1:fits, .packages = "dMod", .inorder = TRUE) %dopar% {
+    
+    suppressMessages(loadDLL(objfun))
+    
     if(is.parframe(center)) {
       argstrust$parinit <- as.parvec(center, i)
     } else {
@@ -800,10 +860,19 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
       }
     }
     return(fit)
-  }, mc.preschedule = FALSE, mc.silent = FALSE, mc.cores = cores))
+  })
+  
   close(logfile)
 
+  if (Sys.info()[['sysname']] == "Windows") {
+    
+    parallel::stopCluster(cluster)
+    doParallel::stopImplicitCluster()
+    
+  }
 
+  
+  
   # Cull failed and completed fits Two kinds of errors occure. The first returns
   # an object of class "try-error". The reason for these failures are unknown to
   # me. The second returns a list of results from trust(), where one name of the

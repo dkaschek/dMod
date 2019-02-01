@@ -465,6 +465,9 @@ compile <- function(..., output = NULL, args = NULL, cores = 1, verbose = F) {
   .so <- .Platform$dynlib.ext
   #print(files)
   
+  # Sanitize cores on windows
+  if (Sys.info()[['sysname']] == "Windows") cores <- 1
+  
   #return(files)
   if (is.null(output)) {
     compilation_out <- mclapply(1:length(files), function(i) {
@@ -531,8 +534,11 @@ loadDLL <- function(...) {
 
 sanitizeCores <- function(cores)  {
   
- if (Sys.info()[['sysname']] == "Windows") cores <- 1
- return(cores)
+  max.cores <- parallel::detectCores()
+  min(max.cores, cores)
+ #  
+ # if (Sys.info()[['sysname']] == "Windows") cores <- 1
+ # return(cores)
   
 }
 
