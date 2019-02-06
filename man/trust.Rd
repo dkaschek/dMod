@@ -7,14 +7,14 @@
 \usage{
 trust(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
   fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps),
-  minimize = TRUE, blather = FALSE, parupper = Inf,
-  parlower = -Inf, ...)
+  minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf,
+  printIter = FALSE, ...)
 
-trustL1(objfun, parinit, mu = 0 * parinit, one.sided = FALSE,
-  lambda = 1, rinit, rmax, parscale, iterlim = 100,
-  fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps),
-  minimize = TRUE, blather = FALSE, blather2 = FALSE,
-  parupper = Inf, parlower = -Inf, ...)
+trustL1(objfun, parinit, mu = 0 * parinit, one.sided = FALSE, lambda = 1,
+  rinit, rmax, parscale, iterlim = 100, fterm = sqrt(.Machine$double.eps),
+  mterm = sqrt(.Machine$double.eps), minimize = TRUE, blather = FALSE,
+  blather2 = FALSE, parupper = Inf, parlower = -Inf, printIter = FALSE,
+  ...)
 }
 \arguments{
 \item{objfun}{an R function that computes value, gradient, and Hessian of the 
@@ -57,6 +57,8 @@ a step is considered close enough to zero to terminate the algorithm.}
 \item{parupper}{named numeric vector of upper bounds.}
 
 \item{parlower}{named numeric vector of lower bounds.}
+
+\item{printIter}{print iteration information to R console}
 
 \item{...}{additional argument to objfun}
 

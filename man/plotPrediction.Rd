@@ -6,8 +6,7 @@
 \alias{plotPrediction.prdlist}
 \title{Plot a list of model predictions}
 \usage{
-\method{plotPrediction}{tbl_df}(dMod.frame, hypothesis = 1, index = 1,
-  ...)
+\method{plotPrediction}{tbl_df}(dMod.frame, hypothesis = 1, index = 1, ...)
 
 plotPrediction(prediction, ...)
 

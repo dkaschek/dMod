@@ -27,6 +27,8 @@ The special use of a parameter list is to save
 the outcome of multiple optimization runs provided by \link{mstrust},
 into one list.
 
+Parameter list
+
 Fitlists carry an fit index which must be held unique on merging
 multiple fitlists.
 }
