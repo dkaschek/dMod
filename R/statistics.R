@@ -78,8 +78,8 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   }
   
   # Check if on Windows
-  cores <- sanitizeCores(cores)
   cores <- min(length(whichPar), cores)
+  cores <- sanitizeCores(cores)
   
   # Substitute user-set control parameters
   if (!is.null(stepControl)) sControl[match(names(stepControl), names(sControl))] <- stepControl
@@ -93,27 +93,37 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   
   
   # Start cluster if on windows
-  if (Sys.info()[['sysname']] == "Windows") {
+  if (cores > 1) {
     
-    cluster <- parallel::makeCluster(cores)
-    doParallel::registerDoParallel(cl = cluster)
+    if (Sys.info()[['sysname']] == "Windows") {
+      
+      cluster <- parallel::makeCluster(cores)
+      doParallel::registerDoParallel(cl = cluster)
+      
+      parallel::clusterCall(cl = cluster, function(x) .libPaths(x), .libPaths())
+      
+      varlist <- ls()
+      # Exclude things like "missing argument"
+      varlist <- c("obj", "whichPar", "alpha", "limits", "method", "verbose", "cores",
+                   "pars", "fixed", "dotArgs",
+                   "sControl", "aControl", "oControl")
+      parallel::clusterExport(cluster, envir = environment(), varlist = varlist)
+      
+    } else {
+      
+      doParallel::registerDoParallel(cores = cores)
+      
+    }
+  
+    "%mydo%" <- foreach::"%dopar%"
     
-    parallel::clusterCall(cl = cluster, function(x) .libPaths(x), .libPaths())
-    
-    varlist <- ls()
-    # Exclude things like "missing argument"
-    varlist <- c("obj", "whichPar", "alpha", "limits", "method", "verbose", "cores",
-                 "pars", "fixed", "dotArgs",
-                 "sControl", "aControl", "oControl")
-    parallel::clusterExport(cluster, envir = environment(), varlist = varlist)
     
   } else {
     
-    doParallel::registerDoParallel(cores = cores)
+    "%mydo%" <- foreach::"%do%"
     
   }
   
-  "%dopar%" <- foreach::"%dopar%"
   
   # Convert whichPar to index vector
   if (is.character(whichPar)) whichPar <- which(names(pars) %in% whichPar)
@@ -122,7 +132,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   out <- foreach::foreach(whichIndex = whichPar, 
                           .packages = loaded_packages, 
                           .inorder = TRUE,
-                          .options.multicore = list(preschedule = FALSE)) %dopar% {
+                          .options.multicore = list(preschedule = FALSE)) %mydo% {
     
     loadDLL(obj)
     
@@ -481,7 +491,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   
   
   
-  if (Sys.info()[['sysname']] == "Windows") {
+  if (Sys.info()[['sysname']] == "Windows" & cores > 1) {
     
     parallel::stopCluster(cluster)
     doParallel::stopImplicitCluster()
@@ -698,9 +708,10 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
 
   narrowing <- NULL
   
+  
   # Check if on Windows
   cores <- sanitizeCores(cores)
-  cores <- min(fits, cores)
+  
   
   # Argument parsing, sorting, and enhancing
   # Gather all function arguments
@@ -802,28 +813,36 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   }
   
   
-  
-  # Start cluster if on windows
-  if (Sys.info()[['sysname']] == "Windows") {
+  cores <- min(fits, cores)
+  if (cores > 1) {
     
-    cluster <- parallel::makeCluster(cores)
-    doParallel::registerDoParallel(cluster)
-    parallel::clusterCall(cl = cluster, function(x) .libPaths(x), .libPaths())
+    # Start cluster if on windows
+    if (Sys.info()[['sysname']] == "Windows") {
+      
+      cluster <- parallel::makeCluster(cores)
+      doParallel::registerDoParallel(cluster)
+      parallel::clusterCall(cl = cluster, function(x) .libPaths(x), .libPaths())
+      
+      varlist <- ls()
+      # Exclude things like "missing argument"
+      varlist <- c("objfun", "center", "argstrust", 
+                   "samplefun", "argssample", "argsobj", 
+                   "output", "interResultFolder", "logfile")
+      parallel::clusterExport(cluster, envir = environment(), varlist = varlist)
+      
+    } else {
+      
+      doParallel::registerDoParallel(cores = cores)
+      
+    }
     
-    varlist <- ls()
-    # Exclude things like "missing argument"
-    varlist <- c("objfun", "center", "argstrust", 
-                 "samplefun", "argssample", "argsobj", 
-                 "output", "interResultFolder", "logfile")
-    parallel::clusterExport(cluster, envir = environment(), varlist = varlist)
+    "%mydo%" <- foreach::"%dopar%"
     
   } else {
     
-    doParallel::registerDoParallel(cores = cores)
+    "%mydo%" <- foreach::"%do%"
     
   }
-  
-  "%dopar%" <- foreach::"%dopar%"
   
 
   loaded_packages <- .packages()  
@@ -831,7 +850,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
                                            .packages = loaded_packages, 
                                            .inorder = TRUE,
                                            .options.multicore = list(preschedule = FALSE)
-                                           ) %dopar% {
+                                           ) %mydo% {
     
     suppressMessages(loadDLL(objfun))
     
@@ -900,7 +919,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   
   close(logfile)
 
-  if (Sys.info()[['sysname']] == "Windows") {
+  if (Sys.info()[['sysname']] == "Windows" & cores > 1) {
     
     parallel::stopCluster(cluster)
     doParallel::stopImplicitCluster()
