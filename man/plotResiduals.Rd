@@ -4,7 +4,8 @@
 \alias{plotResiduals}
 \title{Plot residuals for a fitlist}
 \usage{
-plotResiduals(parframe, x, data, split = "condition", errmodel = NULL, ...)
+plotResiduals(parframe, x, data, split = "condition", errmodel = NULL,
+  ...)
 }
 \arguments{
 \item{parframe}{Object of class \code{parframe}, e.g. returned by \link{mstrust}}
