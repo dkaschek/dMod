@@ -726,8 +726,11 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   argslist[namesinter] <- argsmatch[namesinter]
   argslist <- c(argslist, varargslist)
   
+  # 
   argslist[["objfun"]] <- force(objfun)
   argslist[["center"]] <- force(center)
+  argslist[["rinit"]] <- force(rinit)
+  argslist[["rmax"]] <- force(rmax)
 
   # Add extra arguments
   argslist$n <- length(center) # How many inital values do we need?
