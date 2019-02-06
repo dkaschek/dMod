@@ -201,6 +201,9 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     preddiff.blather <- NULL
   }
   # Iterate ----
+  
+  if (printIter) cat("\n")
+  
   for (iiter in 1:iterlim) {
     #cat(iiter, out$value,upper,"\n")
     if (blather) {
@@ -212,7 +215,7 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     }
     
     if (printIter) {
-      cat("Iteration: ", iiter, "      Objective value: ", out$value, "\n")
+      cat("Iteration: ", format(iiter, width = nchar(iterlim)), "      Objective value: ", out$value, "\n")
     }
     
     if (accept) {

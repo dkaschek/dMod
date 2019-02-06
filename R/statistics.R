@@ -838,7 +838,13 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     if(is.parframe(center)) {
       argstrust$parinit <- as.parvec(center, i)
     } else {
-      argstrust$parinit <- center + do.call(samplefun, argssample)
+      if (i == 1) {
+        # First fit always starts from center
+        argstrust$parinit <- center
+      } else {
+        # All other fits start from random positions
+        argstrust$parinit <- center + do.call(samplefun, argssample)  
+      }
     }
     
     fit <- do.call(trust, c(argstrust, argsobj))

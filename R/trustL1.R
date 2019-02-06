@@ -111,6 +111,8 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, one.sided=FALSE, lambda = 1
         val.try.blather <- NULL
         preddiff.blather <- NULL
     }
+    
+    if (printIter) cat("\n")
 
     for (iiter in 1:iterlim) {
       if(blather2)
