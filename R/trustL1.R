@@ -11,7 +11,7 @@ norm <- function(x) sqrt(sum(x^2))
 trustL1 <- function(objfun, parinit, mu = 0*parinit, one.sided=FALSE, lambda = 1, rinit, rmax, parscale,
     iterlim = 100, fterm = sqrt(.Machine$double.eps),
     mterm = sqrt(.Machine$double.eps),
-    minimize = TRUE, blather = FALSE, blather2 = FALSE, parupper = Inf, parlower = -Inf, ...)
+    minimize = TRUE, blather = FALSE, blather2 = FALSE, parupper = Inf, parlower = -Inf, printIter = FALSE, ...)
 {
   
   # Guarantee that pars is named numeric without deriv attribute
@@ -116,6 +116,12 @@ trustL1 <- function(objfun, parinit, mu = 0*parinit, one.sided=FALSE, lambda = 1
       if(blather2)
         print(paste(iiter,out$value,accept))
 
+      if (printIter) {
+        cat("Iteration: ", iiter, "      Objective value: ", out$value, "\n")
+      }
+      
+      
+      
         if (blather) {
             theta.blather <- rbind(theta.blather, theta)
             r.blather <- c(r.blather, r)

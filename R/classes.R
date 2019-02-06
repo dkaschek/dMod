@@ -97,6 +97,14 @@ odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, outputs = NU
 
 ## Function classes ------------------------------------------------------
 
+#' dMod match function arguments
+#' 
+#' The function is exported for dependency reasons
+#' 
+#' @param arglist list
+#' @param choices character
+#' 
+#' @export
 match.fnargs <- function(arglist, choices) {
 
   # Catch the case of names == NULL

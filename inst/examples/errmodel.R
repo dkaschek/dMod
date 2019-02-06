@@ -52,8 +52,8 @@ data <- as.datalist(datasheet)
 
 ## Fit data with error model
 obj <- normL2(data, g*x*p, e)
-myfit <- trust(obj, ptrue, rinit = 1, rmax = 10)
-fits <- mstrust(obj, center = ptrue, sd = 3, fits = 64, cores = 4)
+myfit <- trust(obj, ptrue, rinit = 1, rmax = 10, printIter = TRUE)
+fits <- mstrust(obj, center = ptrue, sd = 3, fits = 1, cores = 1, printIter = TRUE)
 
 mypars <- myfit$argument[-1]
 myfixed <- myfit$argument[1]

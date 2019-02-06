@@ -79,6 +79,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   
   # Check if on Windows
   cores <- sanitizeCores(cores)
+  cores <- min(length(whichPar), cores)
   
   # Substitute user-set control parameters
   if (!is.null(stepControl)) sControl[match(names(stepControl), names(sControl))] <- stepControl
@@ -699,6 +700,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   
   # Check if on Windows
   cores <- sanitizeCores(cores)
+  cores <- min(fits, cores)
   
   # Argument parsing, sorting, and enhancing
   # Gather all function arguments

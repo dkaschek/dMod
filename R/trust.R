@@ -47,6 +47,8 @@ norm <- function(x) sqrt(sum(x^2))
 #' @param parupper named numeric vector of upper bounds.
 #' @param parlower named numeric vector of lower bounds.
 #' 
+#' @param printIter print iteration information to R console
+#' 
 #' @param ... additional argument to objfun
 #' 
 #' @details See Fletcher (1987, Section 5.1) or Nocedal and Wright (1999, Section 4.2) 
@@ -99,7 +101,7 @@ norm <- function(x) sqrt(sum(x^2))
 #' @importFrom stats uniroot
 trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100, 
                   fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps), 
-                  minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, ...) 
+                  minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, printIter = FALSE, ...) 
 {
   # Initialize ----
   # Guarantee that pars is named numeric without deriv attribute
@@ -208,6 +210,11 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
         val.blather <- c(val.blather, out$value)
       else val.blather <- c(val.blather, out.value.save)
     }
+    
+    if (printIter) {
+      cat("Iteration: ", iiter, "      Objective value: ", out$value, "\n")
+    }
+    
     if (accept) {
       
       if (minimize)
