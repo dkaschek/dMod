@@ -54,7 +54,7 @@ res <- function(data, out, err = NULL) {
   
   if (!is.null(deriv)) {
   
-    pars <- unique(unlist(lapply(strsplit(colnames(deriv)[-1], split = ".", fixed = TRUE), function(i) i[2])))
+    pars <- unique(unlist(lapply(strsplit(colnames(deriv)[-1], split = ".", fixed = TRUE), function(i) paste(i[-1], collapse = "."))))
     sensnames <- as.vector(outer(names, pars, paste, sep = "."))
     # Match names to the corresponding sensitivities in sensnames
     names.sensnames <- t(matrix(1:length(sensnames), nrow = length(names), ncol = length(pars)))
@@ -84,7 +84,7 @@ res <- function(data, out, err = NULL) {
     
     if (!is.null(deriv.err)) {
       
-      pars <- unique(unlist(lapply(strsplit(colnames(deriv.err)[-1], split = ".", fixed = TRUE), function(i) i[2])))
+      pars <- unique(unlist(lapply(strsplit(colnames(deriv.err)[-1], split = ".", fixed = TRUE), function(i) paste(i[-1], collapse = "."))))
       sensnames <- as.vector(outer(names, pars, paste, sep = "."))
       # Match names to the corresponding sensitivities in sensnames
       names.sensnames <- t(matrix(1:length(sensnames), nrow = length(names), ncol = length(pars)))

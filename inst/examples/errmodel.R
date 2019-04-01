@@ -27,7 +27,7 @@ e     <- Y(errors, g, attach.input = FALSE,
 
 # Generate parameter transformation
 innerpars <- getParameters(model, g, e)
-covariates <- data.frame(Aini = 1:2, row.names = c("C1", "C2"))
+covariates <- data.frame(Aini = c("C.1", "C.2"), row.names = c("C.1", "C.2"))
 
 p <- 
   eqnvec() %>%
@@ -43,7 +43,7 @@ compile(g, x, e, p, output = "errtest_total")
 
 
 ## Simulate data
-ptrue <- c(k1 = -2, k2 = -3, off_B = -3, sigma_rel = log(.1), sigma_abs = log(.1))
+ptrue <- c(C.1 = 1, C.2 = 2, k1 = -2, k2 = -3, off_B = -3, sigma_rel = log(.1), sigma_abs = log(.1))
 times <- seq(0, 50, 1)
 prediction <- (g*x*p)(times, ptrue, deriv = TRUE)
 datasheet <- subset(as.data.frame(prediction, errfn = e), name == "B_obs")
