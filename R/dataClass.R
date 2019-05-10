@@ -9,18 +9,24 @@
 #' @return Object of class \link{datalist}
 #' @export
 #' @example inst/examples/datalist.R
+#' @example inst/examples/datalistdataframe.R
 #' @rdname datalist
 as.datalist <- function(x, ...) {
   UseMethod("as.datalist", x)
 }
 
 #' @export
-#' @param split.by vector of columns names which yield a unique identifier (conditions). If NULL, all
-#' columns except for the expected standard columns "name", "time", "value", "sigma" and "lloq" will be
+#' @param split.by vector of columns names which yield a unique identifier (conditions). 
+#' If NULL, two cases are possible: 
+#'   1. if available, split by the column called "condition", 
+#'   2. If the column "condition" is not available all columns except for the expected standard columns "name", "time", "value", "sigma" and "lloq" will be
 #' selected.
-#' @param keep.covariates vector of additional column names which should be kept in the condition.grid.
+#' @param keep.covariates Three options: 
+#'    1. FALSE = don't keep any
+#'    2. TRUE = keep all covariates
+#'    3. vector of additional column names which should be kept in the condition.grid.
 #' @rdname datalist
-as.datalist.data.frame <- function(x, split.by = NULL, keep.covariates = NULL, ...) {
+as.datalist.data.frame <- function(x, split.by = NULL, keep.covariates = TRUE, ...) {
 
   # Sanitize data and get names
   x <- sanitizeData(x)
@@ -28,17 +34,31 @@ as.datalist.data.frame <- function(x, split.by = NULL, keep.covariates = NULL, .
   standard.names <- x[["columns"]]
   all.names <- colnames(dataframe)
   
-  # Get splitting information
-  if (is.null(split.by)) split.by <- setdiff(all.names, standard.names)
+  # Get splitting information: Split per default by "condition" if available
+  if (is.null(split.by)){
+    if ("condition" %in% all.names){
+      split.by <- "condition"
+    } else {
+      split.by <- setdiff(all.names, standard.names)
+    }}
   conditions <- lapply(split.by, function(n) dataframe[, n])
   splits <- do.call(paste, c(conditions, list(sep = "_")))
 
 
-  # condition grid
+  # condition grid: implement support for is.logical(keep.covariates)
+  if (is.logical(keep.covariates)){
+    if (keep.covariates) {
+      keep.covariates <- setdiff(all.names, standard.names)
+    } else {
+      keep.covariates <- character()
+    }
+  }
+  
   conditionframe <- dataframe[!duplicated(splits), union(split.by, keep.covariates), drop = FALSE]
   rownames(conditionframe) <- splits[!duplicated(splits)]
-
-
+  if (!"condition" %in% all.names)
+    conditionframe <- cbind(conditionframe, condition = rownames(conditionframe), stringsAsFactors = FALSE)
+  
   # data list output
   dataframe <- cbind(data.frame(condition = splits), dataframe[, standard.names])
   out <- lapply(unique(splits), function(s) dataframe[dataframe[, 1] == s, -1])
@@ -48,7 +68,6 @@ as.datalist.data.frame <- function(x, split.by = NULL, keep.covariates = NULL, .
   out <- as.datalist(out)
   attr(out, "condition.grid") <- conditionframe
   return(out)
-
 }
 
 #' @export
