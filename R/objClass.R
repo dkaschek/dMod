@@ -123,7 +123,7 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
     stop("The prediction function does not provide predictions for all conditions in the data.")
   e.conditions <- names(attr(errmodel, "mappings"))
   
-  controls <- list(times = timesD, attr.name = attr.name, conditions = x.conditions)
+  controls <- list(times = timesD, attr.name = attr.name, conditions = intersect(x.conditions, data.conditions))
 
   # might be necessary to "store" errmodel in the objective function (-> runbg)
   force(errmodel)  
@@ -194,7 +194,6 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
   return(myfn)
 
 }
-
 
 #' Soft L2 constraint on parameters
 #' 
