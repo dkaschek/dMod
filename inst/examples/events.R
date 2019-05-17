@@ -41,9 +41,10 @@ model <- eqnlist() %>%
   addReaction("kon", "0", "degrad*kon", "Event state") %>%
   odemodel(
     events = rbind(
-      data.frame(var = "B", time = "t_thres", value = "1", root = NA, method = "replace", stringsAsFactors = FALSE),
-      data.frame(var = "A", time = "t_A_thres", value = "val_A", root = "A - A_thres", method = "replace", stringsAsFactors = FALSE)
-    )
+      #data.frame(var = "B", time = "t_thres", value = "1", root = NA, method = "replace", stringsAsFactors = FALSE),
+      data.frame(var = "A", time = "t_A_thres", value = "1", root = "A - A_thres", method = "replace", stringsAsFactors = FALSE)
+    ),
+    estimate = c("A_thres", "A", "t_A_thres")
   ) 
 x <- model %>% Xs(optionsOde = list(method = "lsoda"), optionsSens = list(method = "lsoda", rtol = 1e-10, atol = 1e-10))
 
@@ -61,9 +62,9 @@ outerpars <- getParameters(p)
 set.seed(33)
 pouter <- structure(rnorm(length(outerpars), -1), names = outerpars)
 pouter["A_thres"] <- log(0.8)
-pouter["t_thres"] <- log(0.2)
-pouter["val_A"] <- log(1)
-times <- seq(0, 2, .01)
+# pouter["t_thres"] <- log(0.2)
+# pouter["val_A"] <- log(1)
+times <- seq(0, 3, .01)
 
 pouter %>% (x*p)(times = times, deriv = TRUE) %>% plot()
 # pouter %>% (x*p)(times = times) %>% getDerivs() %>% plot()
