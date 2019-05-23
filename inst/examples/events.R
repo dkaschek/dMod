@@ -19,9 +19,9 @@ checkSensitivities <- function(p, whichpar, cond = 1, step = 0.1) {
   M3 <- attr(y(times, p, deriv = TRUE)[[cond]], "deriv")
   print(colnames(M3))
   
-  S1 <- cbind(time = M1[match(times, M1[, 1]), 1], (M2[match(times, M2[, 1]),-1] - M1[match(times, M1[, 1]),-1])/step)
+  S1 <- cbind(time = M1[match(times, M1[, 1]), 1], (M2[match(times, M2[, 1]),-1, drop = FALSE] - M1[match(times, M1[, 1]),-1, drop = FALSE])/step)
   print(colnames(S1))
-  S2 <- cbind(time = M1[match(times, M1[, 1]), 1], M3[match(times, M3[, 1]),grep(paste0(".", whichpar), colnames(M3), fixed = TRUE)])
+  S2 <- cbind(time = M1[match(times, M1[, 1]), 1], M3[match(times, M3[, 1]), grep(paste0(".", whichpar), colnames(M3), fixed = TRUE), drop = FALSE])
   print(colnames(S2))
   colnames(S2) <- colnames(S1)
   
@@ -44,7 +44,7 @@ model <- eqnlist() %>%
       #data.frame(var = "B", time = "t_thres", value = "1", root = NA, method = "replace", stringsAsFactors = FALSE),
       data.frame(var = "A", time = "t_A_thres", value = "1", root = "A - A_thres", method = "replace", stringsAsFactors = FALSE)
     ),
-    estimate = c("A_thres", "A", "t_A_thres")
+    estimate = c("A_thres", "A", "t_A_thres", "kon", "koff", "degrad")
   ) 
 x <- model %>% Xs(optionsOde = list(method = "lsoda"), optionsSens = list(method = "lsoda", rtol = 1e-10, atol = 1e-10))
 
@@ -74,7 +74,7 @@ y <- x*p
 #pdf("~/root_events.pdf")
 
 for (i in 1:length(pouter)) {
-  out <- checkSensitivities(pouter, names(pouter)[i], 1, .00001) %>% as.prdlist
+  out <- checkSensitivities(pouter, names(pouter)[i], 3, .00000001) %>% as.prdlist
   print(plotPrediction(out) + ggtitle(names(pouter)[i]))
   
 }
@@ -83,7 +83,57 @@ for (i in 1:length(pouter)) {
 
 
 
+(GR-EMAX*((Ce+yps)^hill/((Ce+yps)^hill+EC50^hill)))*Gcure
+(Fcure-1)*Gcure
 
+
+## check with root-triggered events
+model2 <- eqnvec(
+  PL = "(GR - EMAX*exp(-k*time))*Gcure",
+  Gcure = "(Fcure - 1)*Gcure",
+  Fcure = "0"
+) %>%
+  odemodel(
+    events = rbind(
+      #data.frame(var = "B", time = "t_thres", value = "1", root = NA, method = "replace", stringsAsFactors = FALSE),
+      data.frame(var = "Fcure", time = "tPLcure", value = "0", root = "PL - PLcure", method = "replace", stringsAsFactors = FALSE)
+    ),
+    estimate = c("PLcure", "Fcure", "tPLcure", "EMAX")
+  ) 
+x <- model %>% Xs(optionsOde = list(method = "lsoda"), optionsSens = list(method = "lsoda", rtol = 1e-10, atol = 1e-10))
+
+innerpars <- getParameters(x)
+
+p <- eqnvec() %>%
+  define("x~x", x = innerpars) %>%
+  define("x~5", x = "PL") %>%
+  define("x~1", x = c("Fcure", "Gcure")) %>% 
+  P()
+
+outerpars <- getParameters(p)
+
+set.seed(33)
+pouter <- structure(rnorm(length(outerpars), -1), names = outerpars)
+pouter["GR"] <- 0.03
+pouter["PLcure"] <- -5
+pouter["EMAX"] <- 15
+pouter["k"] <- 1 
+pouter["tPLcure"] <- 0
+
+times <- seq(0, 5, .1)
+
+pouter %>% (x*p)(times = times, deriv = TRUE) %>% plot()
+# pouter %>% (x*p)(times = times) %>% getDerivs() %>% plot()
+
+y <- x*p
+
+#pdf("~/root_events.pdf")
+
+for (i in 1:length(pouter)) {
+  out <- checkSensitivities(pouter, names(pouter)[i], 1, .000001) %>% as.prdlist
+  print(plotPrediction(out) + ggtitle(names(pouter)[i]))
+  
+}
 
 
 
@@ -129,7 +179,7 @@ pouter %>% (x*p)(times = times) %>% plot()
 y <- x*p
 
 for (i in 1:length(pouter)) {
-  out <- checkSensitivities(pouter, names(pouter)[i], 1, .0001) %>% as.prdlist
+  out <- checkSensitivities(pouter, names(pouter)[i], 3, .000001) %>% as.prdlist
   print(plotPrediction(out) + ggtitle(names(pouter)[i]))
   
 }
