@@ -100,7 +100,7 @@ model2 <- eqnvec(
     ),
     estimate = c("PLcure", "Fcure", "tPLcure", "EMAX")
   ) 
-x <- model %>% Xs(optionsOde = list(method = "lsoda"), optionsSens = list(method = "lsoda", rtol = 1e-10, atol = 1e-10))
+x <- model2 %>% Xs(optionsOde = list(method = "lsoda"), optionsSens = list(method = "lsoda", rtol = 1e-10, atol = 1e-10))
 
 innerpars <- getParameters(x)
 
@@ -116,11 +116,11 @@ set.seed(33)
 pouter <- structure(rnorm(length(outerpars), -1), names = outerpars)
 pouter["GR"] <- 0.03
 pouter["PLcure"] <- -5
-pouter["EMAX"] <- 15
+pouter["EMAX"] <- 10.3
 pouter["k"] <- 1 
 pouter["tPLcure"] <- 0
 
-times <- seq(0, 5, .1)
+times <- seq(0, 10, .1)
 
 pouter %>% (x*p)(times = times, deriv = TRUE) %>% plot()
 # pouter %>% (x*p)(times = times) %>% getDerivs() %>% plot()
