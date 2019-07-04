@@ -702,7 +702,7 @@ confint.parframe <- function(object, parm = NULL, level = 0.95, ..., val.column 
 #'  
 #' @export
 #' @import parallel
-mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20, cores = 1,
+mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20, cores = 1, optmethod = "trust",
                     samplefun = "rnorm", resultPath = ".", stats = FALSE, output = FALSE,
                     ...) {
 
@@ -739,16 +739,17 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   # First, define argument names used locally in mstrust().
   # Second, check what trust() and samplefun() accept and check for name clashes.
   # Third, whatever is unused is passed to the objective function objfun().
-  nameslocal <- c("studyname", "center", "fits", "cores", "samplefun",
+  nameslocal <- c("studyname", "center", "fits", "cores", "optmethod", "samplefun",
                   "resultPath", "stats", "narrowing", "output")
   namestrust <- intersect(names(formals(trust)), names(argslist))
   namessample <- intersect(names(formals(samplefun)), names(argslist))
   if (length(intersect(namestrust, namessample) != 0)) {
     stop("Argument names of trust() and ", samplefun, "() clash.")
   }
+  
+  # Default optimizer
   namesobj <- setdiff(names(argslist), c(namestrust, namessample, nameslocal))
-
-
+  
   # Assemble argument lists common to all calls in mclapply
   # Sample function
   argssample <- structure(vector("list", length = length(namessample)), names = namessample)
@@ -767,7 +768,6 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   for (name in namestrust) {
     argstrust[[name]] <- argslist[[name]]
   }
-
 
   # Assemble and create output filenames, folders and files
   m_timeStamp <- paste0(format(Sys.time(), "%d-%m-%Y-%H%M%S"))
@@ -869,8 +869,9 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
       }
     }
     
-    fit <- do.call(trust, c(argstrust, argsobj))
-
+    
+    fit <- do.call(optmethod, c(argstrust, argsobj))
+    
     # Keep only numeric attributes of object returned by trust()
     attr.fit <- attributes(fit)
     keep.attr <- sapply(attr.fit, is.numeric)

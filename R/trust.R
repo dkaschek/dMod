@@ -44,8 +44,8 @@ norm <- function(x) sqrt(sum(x^2))
 #' 
 #' @param blather If TRUE return extra info.
 #' 
-#' @param parupper named numeric vector of upper bounds.
-#' @param parlower named numeric vector of lower bounds.
+#' @param parupper named numeric vector of upper bounds. If not named, first value will be used for all parameters.
+#' @param parlower named numeric vector of lower bounds. If not named, first value will be used for all parameters.
 #' 
 #' @param printIter print iteration information to R console
 #' 
@@ -113,9 +113,9 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
   l <- structure(rep(-Inf, length(parinit)), names = names(parinit))
   
   if (is.null(names(parupper)))
-    u[1:length(u)] <- parupper
+    u[1:length(u)] <- parupper[1]
   if (is.null(names(parlower)))
-    l[1:length(l)] <- parlower
+    l[1:length(l)] <- parlower[1]
   if (!is.null(names(parupper)) & !is.null(names(parinit)))
     u[names(parupper)] <- parupper
   if (!is.null(names(parlower)) & !is.null(names(parinit)))
@@ -473,3 +473,111 @@ check.objfun.output <- function(obj, minimize, dimen)
 }
 
 
+# Interface to hjkb optimizer from dfoptim package ----
+hjkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100, 
+                 fterm = 1e-6, mterm = 1e-6, 
+                 minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, printIter = FALSE, ...) {
+  
+  par <- parinit
+  fn <- function(x, ...) {
+    names(x) <- names(parinit)
+    deriv <- FALSE
+    args <- list(...)
+    if ("deriv" %in% names(args)) deriv <- args[["deriv"]]
+    objfun(x, deriv = deriv, ...)[["value"]]
+  }
+  
+  # template for lower/upper
+  lower <- structure(rep(-Inf, length(parinit)), names = names(parinit))
+  upper <- structure(rep(Inf, length(parinit)), names = names(parinit))
+  
+  # sanitize parlower/parupper
+  if (is.null(names(parlower)))
+    parlower <- structure(rep(parlower[1], length(parinit)), names = names(parinit))
+  if (is.null(names(parupper)))
+    parupper <- structure(rep(parupper[1], length(parinit)), names = names(parinit))
+  
+  # Fill parlower/parupper in lower/upper
+  lower[names(parlower)] <- parlower
+  upper[names(parupper)] <- parupper
+  
+  
+  control <- list(
+    tol = mterm,
+    maxfeval = iterlim,
+    maximize = !minimize,
+    info = printIter
+  )
+  
+  result <- dfoptim::hjkb(par = par, fn = fn, lower = lower, upper = upper, control = control, ...)
+  
+  out <- objfun(result[["par"]], ...)
+  out[["argument"]] <- result[["par"]]
+  out[["converged"]] <- !as.logical(result[["convergence"]])
+  out[["iterations"]] <- result[["feval"]]
+  
+  return(out)
+  
+  
+}
+
+# Interface to nmkb optimizer from dfoptim package ----
+nmkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100, 
+                 fterm = 1e-6, mterm = 1e-6, 
+                 minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, printIter = FALSE, ...) {
+  
+  par <- parinit
+  fn <- function(x, ...) {
+    names(x) <- names(parinit)
+    deriv <- FALSE
+    args <- list(...)
+    if ("deriv" %in% names(args)) deriv <- args[["deriv"]]
+    objfun(x, deriv = deriv, ...)[["value"]]
+  }
+  
+  # template for lower/upper
+  lower <- structure(rep(-Inf, length(parinit)), names = names(parinit))
+  upper <- structure(rep(Inf, length(parinit)), names = names(parinit))
+  
+  # sanitize parlower/parupper
+  if (is.null(names(parlower)))
+    parlower <- structure(rep(parlower[1], length(parinit)), names = names(parinit))
+  if (is.null(names(parupper)))
+    parupper <- structure(rep(parupper[1], length(parinit)), names = names(parinit))
+  
+  # Fill parlower/parupper in lower/upper
+  lower[names(parlower)] <- parlower
+  upper[names(parupper)] <- parupper
+  
+  # Sanitize par (to be within lower and upper bounds)
+  if (any(par <= lower)) {
+    par[par <= lower] <- lower[par <= lower] + pmin(mterm, 0.1*(upper[par <= lower] - lower[par <= lower]))
+  }
+  if (any(par > upper)) {
+    par[par >= upper] <- upper[par >= upper] - pmin(mterm, 0.1*(upper[par >= upper] - lower[par >= upper]))
+  }
+  
+  control <- list(
+    tol = fterm,
+    maxfeval = iterlim,
+    maximize = !minimize,
+    trace = printIter
+  )
+  
+  if (all(is.infinite(c(lower, upper)))) {
+    result <- dfoptim::nmk(par = par, fn = fn, control = control, ...)
+  } else {
+    result <- dfoptim::nmkb(par = par, fn = fn, lower = lower, upper = upper, control = control, ...)
+  }
+  
+  argument <- structure(result[["par"]], names = names(parinit))
+  
+  out <- objfun(argument, ...)
+  out[["argument"]] <- argument
+  out[["converged"]] <- !as.logical(result[["convergence"]])
+  out[["iterations"]] <- result[["feval"]]
+  
+  return(out)
+  
+  
+}
