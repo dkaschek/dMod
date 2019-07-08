@@ -553,7 +553,7 @@ nmkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
   if (any(par <= lower)) {
     par[par <= lower] <- lower[par <= lower] + pmin(mterm, 0.1*(upper[par <= lower] - lower[par <= lower]))
   }
-  if (any(par > upper)) {
+  if (any(par >= upper)) {
     par[par >= upper] <- upper[par >= upper] - pmin(mterm, 0.1*(upper[par >= upper] - lower[par >= upper]))
   }
   
