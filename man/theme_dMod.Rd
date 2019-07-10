@@ -4,7 +4,7 @@
 \alias{theme_dMod}
 \title{Standard plotting theme of dMod}
 \usage{
-theme_dMod(base_size = 11, base_family = "")
+theme_dMod(base_size = 12, base_family = "")
 }
 \arguments{
 \item{base_size}{numeric, font-size}
