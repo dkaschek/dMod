@@ -216,6 +216,7 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     
     if (printIter) {
       cat("Iteration: ", format(iiter, width = nchar(iterlim)), "      Objective value: ", out$value, "\n")
+      cat("Parameters: ", paste(paste(names(theta), signif(theta, 3), sep = "="), collapse = ", "), "\n")
     }
     
     if (accept) {
