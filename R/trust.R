@@ -204,6 +204,10 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
   
   if (printIter) cat("\n")
   
+  ftry <- NaN
+  f <- NaN
+  preddiff <- NaN
+  
   for (iiter in 1:iterlim) {
     #cat(iiter, out$value,upper,"\n")
     if (blather) {
@@ -215,7 +219,13 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     }
     
     if (printIter) {
-      cat("Iteration: ", format(iiter, width = nchar(iterlim)), "      Objective value: ", out$value, "\n")
+      if (any(is.nan(c(ftry, f, preddiff)))) {
+        myfterm <- mymterm <- "--"
+      } else {
+        myfterm <- abs(ftry - f)
+        mymterm <- abs(preddiff)
+      }
+      cat("Iteration: ", format(iiter, width = nchar(iterlim)), "      Objective value: ", out$value, "    fterm: ", myfterm, "   mterm: ", mymterm, "\n")
       cat("Parameters: ", paste(paste(names(theta), signif(theta, 3), sep = "="), collapse = ", "), "\n")
     }
     
