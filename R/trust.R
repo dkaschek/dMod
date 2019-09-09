@@ -200,6 +200,11 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     val.try.blather <- NULL
     preddiff.blather <- NULL
   }
+  
+  # Initialize counter for various cases
+  n_fail <- 0
+  n_fail_check <- 0
+  
   # Iterate ----
   
   if (printIter) cat("\n")
@@ -318,13 +323,35 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     theta.try[upper] <- parupper[upper]
     theta.try[lower] <- parlower[lower]
     
+    # Test objective function with theta.try
+    # Allow 3 fails in a row before breaking from the iteration loop
+    # In case of a fail, objvalue is set to Inf to force trust region
+    # radius to get smaller.
     out <- try(objfun(theta.try, ...))
-    if (inherits(out, "try-error")) 
-      break
+    if (inherits(out, "try-error")) {
+      out$value <- Inf*ifelse(minimize, 1, -1)
+      n_fail <- n_fail + 1
+      if (n_fail == 3) {
+       out <- c(as.list(out), error = "Objective function could not be evaluated 3 times in a row. Consider setting parameter bounds.")
+         break 
+      }
+    } else {
+      n_fail <- 0
+    }
+    
+    # Same procedure as for objective value
     checks <- try(check.objfun.output(out, minimize, d))
-    if (inherits(checks, "try-error")){
-      out <- c(as.list(out), error = checks)
-      break
+    if (inherits(checks, "try-error")) {
+      if (n_fail_check < 3) {
+        out$value <- Inf*ifelse(minimize, 1, -1)
+        n_fail_check <- n_fail_check + 1
+      }
+      if (n_fail_check == 3) {
+        out <- c(as.list(out), error = paste0(checks, "\nIn addition: obj. function check failed 3 times in a row. Consider setting parameter bounds."))
+        break  
+      }
+    } else {
+      n_fail_check <- 0
     }
     
     ftry <- out$value
