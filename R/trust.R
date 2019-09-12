@@ -610,7 +610,9 @@ hjkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     # info = printIter
   )
   
-  result <- dfoptim_hjkb(par = par, fn = fn, lower = lower, upper = upper, control = control, ...)
+  result <- try(dfoptim_hjkb(par = par, fn = fn, lower = lower, upper = upper, control = control, ...), silent = TRUE)
+  
+  if (inherits(result, "try-error")) return(result)
   
   out <- objfun(result[["par"]], ...)
   out[["argument"]] <- result[["par"]]
@@ -692,10 +694,12 @@ nmkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
   )
   
   if (all(is.infinite(c(lower, upper)))) {
-    result <- dfoptim_nmk(par = par, fn = fn, control = control, ...)
+    result <- try(dfoptim_nmk(par = par, fn = fn, control = control, ...), silent = TRUE)
   } else {
-    result <- dfoptim_nmkb(par = par, fn = fn, lower = lower, upper = upper, control = control, ...)
+    result <- try(dfoptim_nmkb(par = par, fn = fn, lower = lower, upper = upper, control = control, ...), silent = TRUE)
   }
+  
+  if (inherits(result, "try-error")) return(result)
   
   argument <- structure(result[["par"]], names = names(parinit))
   
