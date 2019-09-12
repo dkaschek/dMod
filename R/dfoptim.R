@@ -355,7 +355,7 @@ function(par, fn, control=list(), ...) {
 	f <- rep(0, n+1)
 	f[1] <- fnm(x0, ...)
 	V[, 1] <- x0
-	scale <- max(1, sqrt(sum(x0^2)))
+	scale <- 1 # max(1, sqrt(sum(x0^2)))
 
 	if (regsimp) {
 		alpha <- scale / (n * sqrt(2)) * c(sqrt(n+1) + n - 1, sqrt(n+1) -1)
@@ -569,7 +569,7 @@ if (all(c2)) stop("Use `nmk()' for unconstrained optimization!", call.=FALSE)
     f <- rep(0, n + 1)
     f[1] <- fnmb(x0)
     V[, 1] <- x0
-    scale <- max(1, sqrt(sum(x0^2)))
+    scale <- 1 # max(1, sqrt(sum(x0^2)))
     if (regsimp) {
         alpha <- scale/(n * sqrt(2)) * c(sqrt(n + 1) + n - 1, 
             sqrt(n + 1) - 1)
