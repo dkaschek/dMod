@@ -101,8 +101,37 @@ norm <- function(x) sqrt(sum(x^2))
 #' @importFrom stats uniroot
 trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100, 
                   fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps), 
-                  minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, printIter = FALSE, ...) 
+                  minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, printIter = FALSE, traceFile = NULL, ...) 
 {
+  
+  
+  
+  # Verbose Initialization and new obfun to be consistent with df optimizers
+  objfun.orig <- objfun 
+  iterations <- 0
+  deltait <- 1
+  if (printIter) cat("\n")
+  
+  par <- parinit
+  objfun <- function(x, ...) {
+    out <- objfun.orig(x, ...)
+    value <- out$value
+    
+    # Output
+    iterations <<- iterations + 1
+    if (printIter & (iterations %% deltait == 0 | iterations == 1)) {
+      printIterations(iterations, value, iterlim)
+      
+    }
+    if ((iterations %% deltait == 0 | iterations == 1) & !is.null(traceFile)) {
+      pipe2Tracefile(traceFile, iterations, value, x, head = (iterations == 1))
+    }
+    
+    return(out)
+    
+  }
+  
+  
   # Initialize ----
   # Guarantee that pars is named numeric without deriv attribute
   sanePars <- sanitizePars(parinit, list(...)$fixed)
@@ -207,8 +236,6 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
   
   # Iterate ----
   
-  if (printIter) cat("\n")
-  
   ftry <- NaN
   f <- NaN
   preddiff <- NaN
@@ -223,17 +250,17 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
       else val.blather <- c(val.blather, out.value.save)
     }
     
-    if (printIter) {
-      if (any(is.nan(c(ftry, f, preddiff)))) {
-        myfterm <- mymterm <- "--"
-      } else {
-        myfterm <- abs(ftry - f)
-        mymterm <- abs(preddiff)
-      }
-      cat("Iteration: ", format(iiter, width = nchar(iterlim)), "      Objective value: ", out$value, "    fterm: ", myfterm, "   mterm: ", mymterm, "\n")
-      cat("Parameters: ", paste(paste(names(theta), signif(theta, 3), sep = "="), collapse = ", "), "\n")
-    }
-    
+    # if (printIter) {
+    #   if (any(is.nan(c(ftry, f, preddiff)))) {
+    #     myfterm <- mymterm <- "--"
+    #   } else {
+    #     myfterm <- abs(ftry - f)
+    #     mymterm <- abs(preddiff)
+    #   }
+    #   cat("Iteration: ", format(iiter, width = nchar(iterlim)), "      Objective value: ", out$value, "    fterm: ", myfterm, "   mterm: ", mymterm, "\n")
+    #   cat("Parameters: ", paste(paste(names(theta), signif(theta, 3), sep = "="), collapse = ", "), "\n")
+    # }
+    # 
     if (accept) {
       
       if (minimize)
@@ -511,10 +538,33 @@ check.objfun.output <- function(obj, minimize, dimen)
 }
 
 
+
+printIterations <- function(iteration, value, iterlim) {
+  
+  cat("Iteration: ", format(iteration, width = nchar(iterlim)), "      Objective value: ", value, "\n")
+  
+}
+
+pipe2Tracefile <- function(filename, iteration, value, parameters, head = FALSE) {
+  
+  myhead <- paste(c("Iteration", "Obj", names(parameters)), collapse = ",")
+  myline <- paste(c(iteration, value, as.numeric(parameters)), collapse = ",")
+  
+  if (head) write(myhead, file = filename)
+  write(myline, file = filename, append = TRUE)
+  
+}
+
+
 # Interface to hjkb optimizer from dfoptim package ----
 hjkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100, 
                  fterm = 1e-6, mterm = 1e-6, 
-                 minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, printIter = FALSE, ...) {
+                 minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, printIter = FALSE, traceFile = NULL, ...) {
+  
+  # Verbose Initialization
+  iterations <- 0
+  deltait <- 10
+  if (printIter) cat("\n")
   
   par <- parinit
   fn <- function(x, ...) {
@@ -522,7 +572,20 @@ hjkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     deriv <- FALSE
     args <- list(...)
     if ("deriv" %in% names(args)) deriv <- args[["deriv"]]
-    objfun(x, deriv = deriv, ...)[["value"]]
+    value <- objfun(x, deriv = deriv, ...)[["value"]]
+    
+    # Output
+    iterations <<- iterations + 1
+    if (printIter & (iterations %% deltait == 0 | iterations == 1)) {
+      printIterations(iterations, value, iterlim)
+      
+    }
+    if ((iterations %% deltait == 0 | iterations == 1) & !is.null(traceFile)) {
+      pipe2Tracefile(traceFile, iterations, value, x, head = (iterations == 1))
+    }
+    
+    return(value)
+    
   }
   
   # template for lower/upper
@@ -543,11 +606,11 @@ hjkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
   control <- list(
     tol = mterm,
     maxfeval = iterlim,
-    maximize = !minimize,
-    info = printIter
+    maximize = !minimize
+    # info = printIter
   )
   
-  result <- dfoptim::hjkb(par = par, fn = fn, lower = lower, upper = upper, control = control, ...)
+  result <- dfoptim_hjkb(par = par, fn = fn, lower = lower, upper = upper, control = control, ...)
   
   out <- objfun(result[["par"]], ...)
   out[["argument"]] <- result[["par"]]
@@ -562,7 +625,20 @@ hjkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
 # Interface to nmkb optimizer from dfoptim package ----
 nmkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100, 
                  fterm = 1e-6, mterm = 1e-6, 
-                 minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, printIter = FALSE, ...) {
+                 minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, printIter = FALSE, traceFile = NULL, ...) {
+  
+  # par <- parinit
+  # fn <- function(x, ...) {
+  #   names(x) <- names(parinit)
+  #   deriv <- FALSE
+  #   args <- list(...)
+  #   if ("deriv" %in% names(args)) deriv <- args[["deriv"]]
+  #   objfun(x, deriv = deriv, ...)[["value"]]
+  # }
+  
+  iterations <- 0
+  deltait <- 10
+  if (printIter) cat("\n")
   
   par <- parinit
   fn <- function(x, ...) {
@@ -570,7 +646,20 @@ nmkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     deriv <- FALSE
     args <- list(...)
     if ("deriv" %in% names(args)) deriv <- args[["deriv"]]
-    objfun(x, deriv = deriv, ...)[["value"]]
+    value <- objfun(x, deriv = deriv, ...)[["value"]]
+    
+    # Output
+    iterations <<- iterations + 1
+    if (printIter & (iterations %% deltait == 0 | iterations == 1)) {
+      printIterations(iterations, value, iterlim)
+      
+    }
+    if ((iterations %% deltait == 0 | iterations == 1) & !is.null(traceFile)) {
+      pipe2Tracefile(traceFile, iterations, value, x, head = (iterations == 1))
+    }
+    
+    return(value)
+    
   }
   
   # template for lower/upper
@@ -598,14 +687,14 @@ nmkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
   control <- list(
     tol = fterm,
     maxfeval = iterlim,
-    maximize = !minimize,
-    trace = printIter
+    maximize = !minimize
+    # trace = printIter
   )
   
   if (all(is.infinite(c(lower, upper)))) {
-    result <- dfoptim::nmk(par = par, fn = fn, control = control, ...)
+    result <- dfoptim_nmk(par = par, fn = fn, control = control, ...)
   } else {
-    result <- dfoptim::nmkb(par = par, fn = fn, lower = lower, upper = upper, control = control, ...)
+    result <- dfoptim_nmkb(par = par, fn = fn, lower = lower, upper = upper, control = control, ...)
   }
   
   argument <- structure(result[["par"]], names = names(parinit))
