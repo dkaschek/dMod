@@ -491,6 +491,11 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     out$preddiff <- preddiff.blather
     out$stepnorm <- stepnorm.blather
   }
+  
+  if (iterations >= iterlim) 
+    message("Maximum number of iterations exceeded. Fit is not converged.")
+  
+  
   return(out)
 }
 
@@ -555,6 +560,10 @@ pipe2Tracefile <- function(filename, iteration, value, parameters, head = FALSE)
   
 }
 
+suppressAll <- function(expr) {
+  suppressWarnings(suppressMessages(expr))
+}
+
 
 # Interface to hjkb optimizer from dfoptim package ----
 hjkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100, 
@@ -610,7 +619,9 @@ hjkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     # info = printIter
   )
   
-  result <- try(dfoptim_hjkb(par = par, fn = fn, lower = lower, upper = upper, control = control, ...), silent = TRUE)
+  result <- suppressAll(
+    try(dfoptim_hjkb(par = par, fn = fn, lower = lower, upper = upper, control = control, ...), silent = TRUE)
+  )
   
   if (inherits(result, "try-error")) return(result)
   
@@ -618,6 +629,10 @@ hjkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
   out[["argument"]] <- result[["par"]]
   out[["converged"]] <- !as.logical(result[["convergence"]])
   out[["iterations"]] <- result[["feval"]]
+  if (iterations >= iterlim) 
+    message("Maximum number of iterations exceeded. Fit is not converged.")
+  
+  
   
   return(out)
   
@@ -694,9 +709,9 @@ nmkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
   )
   
   if (all(is.infinite(c(lower, upper)))) {
-    result <- try(dfoptim_nmk(par = par, fn = fn, control = control, ...), silent = TRUE)
+    result <- suppressAll(try(dfoptim_nmk(par = par, fn = fn, control = control, ...), silent = TRUE))
   } else {
-    result <- try(dfoptim_nmkb(par = par, fn = fn, lower = lower, upper = upper, control = control, ...), silent = TRUE)
+    result <- suppressAll(try(dfoptim_nmkb(par = par, fn = fn, lower = lower, upper = upper, control = control, ...), silent = TRUE))
   }
   
   if (inherits(result, "try-error")) return(result)
@@ -707,6 +722,11 @@ nmkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
   out[["argument"]] <- argument
   out[["converged"]] <- !as.logical(result[["convergence"]])
   out[["iterations"]] <- result[["feval"]]
+  
+  if (iterations >= iterlim) 
+    message("Maximum number of iterations exceeded. Fit is not converged.")
+  
+  
   
   return(out)
   
