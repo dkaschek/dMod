@@ -8,7 +8,7 @@
 trust(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
   fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps),
   minimize = TRUE, blather = FALSE, parupper = Inf,
-  parlower = -Inf, printIter = FALSE, ...)
+  parlower = -Inf, printIter = FALSE, traceFile = NULL, ...)
 
 trustL1(objfun, parinit, mu = 0 * parinit, one.sided = FALSE,
   lambda = 1, rinit, rmax, parscale, iterlim = 100,
@@ -54,9 +54,9 @@ a step is considered close enough to zero to terminate the algorithm.}
 
 \item{blather}{If TRUE return extra info.}
 
-\item{parupper}{named numeric vector of upper bounds.}
+\item{parupper}{named numeric vector of upper bounds. If not named, first value will be used for all parameters.}
 
-\item{parlower}{named numeric vector of lower bounds.}
+\item{parlower}{named numeric vector of lower bounds. If not named, first value will be used for all parameters.}
 
 \item{printIter}{print iteration information to R console}
 

@@ -5,8 +5,8 @@
 \title{Non-Linear Optimization, multi start}
 \usage{
 mstrust(objfun, center, studyname, rinit = 0.1, rmax = 10, fits = 20,
-  cores = 1, samplefun = "rnorm", resultPath = ".", stats = FALSE,
-  output = FALSE, ...)
+  cores = 1, optmethod = "trust", samplefun = "rnorm",
+  resultPath = ".", stats = FALSE, output = FALSE, ...)
 }
 \arguments{
 \item{objfun}{Objective function, see \code{\link{trust}}.}
