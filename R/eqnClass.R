@@ -825,14 +825,14 @@ funC0 <- function(x, variables = getSymbols(x, exclude = parameters),
     by <- NULL
     if ( (!is.null(innames)) & length(innames) != 0) {
       what <- c(what, innames)
-      by <- c(by, paste0("x[", seq_along(innames) - 1, "+i**k]"))
+      by <- c(by, paste0("x[", format(seq_along(innames) - 1, trim = TRUE, scientific = FALSE), "+i**k]"))
     }
     if ( (!is.null(parameters)) & length(parameters) != 0) {
       what <- c(what, parameters)
-      by <- c(by, paste0("p[", seq_along(parameters) - 1, "]"))
+      by <- c(by, paste0("p[", format(seq_along(parameters) - 1, trim = TRUE, scientific = FALSE), "]"))
     }
     x <- replaceSymbols(what, by, x)
-    names(x) <- paste0("y[", (1:length(outnames)) - 1, "+i**l]")
+    names(x) <- paste0("y[", format((1:length(outnames)) - 1, trim = TRUE, scientific = FALSE), "+i**l]")
     
     
     # Paste into equation
