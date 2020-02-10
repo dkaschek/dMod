@@ -14,11 +14,9 @@ datalist(...)
 
 as.datalist(x, ...)
 
-\method{as.datalist}{data.frame}(x, split.by = NULL,
-  keep.covariates = NULL, ...)
+\method{as.datalist}{data.frame}(x, split.by = NULL, keep.covariates = NULL, ...)
 
-\method{as.datalist}{list}(x, names = NULL, ...,
-  condition.grid = attr(x, "condition.grid"))
+\method{as.datalist}{list}(x, names = NULL, ..., condition.grid = attr(x, "condition.grid"))
 
 \method{names}{datalist}(x) <- value
 

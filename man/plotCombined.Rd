@@ -8,20 +8,23 @@
 \alias{plot.prdframe}
 \title{Plot a list of model predictions and a list of data points in a combined plot}
 \usage{
-\method{plotCombined}{tbl_df}(model, hypothesis = 1, index = 1, ...,
-  plotErrorBands = F)
+\method{plotCombined}{tbl_df}(model, hypothesis = 1, index = 1, ..., plotErrorBands = F)
 
 plotCombined(prediction, ...)
 
-\method{plot}{prdlist}(x, data = NULL, ..., scales = "free",
-  facet = "wrap", transform = NULL)
+\method{plot}{prdlist}(x, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL)
 
-\method{plotCombined}{prdlist}(prediction, data = NULL, ...,
-  scales = "free", facet = "wrap", transform = NULL,
-  aesthetics = NULL)
+\method{plotCombined}{prdlist}(
+  prediction,
+  data = NULL,
+  ...,
+  scales = "free",
+  facet = "wrap",
+  transform = NULL,
+  aesthetics = NULL
+)
 
-\method{plot}{prdframe}(x, data = NULL, ..., scales = "free",
-  facet = "wrap", transform = NULL)
+\method{plot}{prdframe}(x, data = NULL, ..., scales = "free", facet = "wrap", transform = NULL)
 }
 \arguments{
 \item{...}{Further arguments going to \code{dplyr::filter}.}

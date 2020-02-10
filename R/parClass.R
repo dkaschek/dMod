@@ -271,9 +271,10 @@ plotValues.parframe <- function(x, tol = 1, ...) {
   P <- ggplot2::ggplot(pars, aes(x = index, y = value, pch = converged, color = iterations)) + 
     geom_vline(xintercept = jumps, lty = 2) +
     geom_point() + 
-    annotate("text", x = jumps + 1, y = y.jumps, label = jumps, hjust = 0, color = "red", size = 3) +
+    annotate("text", x = jumps + 1, y = y.jumps, label = jumps, hjust = 0, color = "firebrick", size = 3) +
     xlab("index") + ylab("value") + 
     coord_cartesian(ylim = y.range) +
+    scale_color_gradient(low = "dodgerblue", high = "orange") +
     theme_dMod()
   
   attr(P, "data") <- pars

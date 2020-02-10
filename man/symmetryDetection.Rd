@@ -4,9 +4,18 @@
 \alias{symmetryDetection}
 \title{Search for symmetries in the loaded model}
 \usage{
-symmetryDetection(f, obsvect = NULL, prediction = NULL,
-  initial = NULL, ansatz = "uni", pMax = 2, inputs = NULL,
-  fixed = NULL, cores = 1, allTrafos = FALSE)
+symmetryDetection(
+  f,
+  obsvect = NULL,
+  prediction = NULL,
+  initial = NULL,
+  ansatz = "uni",
+  pMax = 2,
+  inputs = NULL,
+  fixed = NULL,
+  cores = 1,
+  allTrafos = FALSE
+)
 }
 \arguments{
 \item{f}{object containing the ODE for which \code{as.eqnvec()} is defined}

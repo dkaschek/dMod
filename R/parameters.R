@@ -20,7 +20,6 @@
 #' @param method character, either \code{"explicit"} or \code{"implicit"}
 #' @param verbose Print out information during compilation
 #' @return An object of class \link{parfn}.
-#' @importFrom digest digest
 #' @export
 P <- function(trafo = NULL, parameters=NULL, condition = NULL, attach.input = FALSE,  keep.root = TRUE, compile = FALSE, modelname = NULL, method = c("explicit", "implicit"), verbose = FALSE) {
   

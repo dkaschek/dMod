@@ -4,10 +4,20 @@
 \alias{odemodel}
 \title{Generate the model objects for use in Xs (models with sensitivities)}
 \usage{
-odemodel(f, deriv = TRUE, forcings = NULL, events = NULL,
-  outputs = NULL, fixed = NULL, estimate = NULL,
-  modelname = "odemodel", solver = c("deSolve", "Sundials"),
-  gridpoints = NULL, verbose = FALSE, ...)
+odemodel(
+  f,
+  deriv = TRUE,
+  forcings = NULL,
+  events = NULL,
+  outputs = NULL,
+  fixed = NULL,
+  estimate = NULL,
+  modelname = "odemodel",
+  solver = c("deSolve", "Sundials"),
+  gridpoints = NULL,
+  verbose = FALSE,
+  ...
+)
 }
 \arguments{
 \item{f}{Something that can be converted to \link{eqnvec},
@@ -74,7 +84,9 @@ forc2 <- data.frame(name = "F", time = seq(0,5, 0.1), value = exp(-seq(0,5,0.1))
 forc3 <- data.frame(name = "F", time= 0,              value = 0.1)
 
 
-x <- Xs(model, forc1, condition = "forc1") + Xs(model, forc2, condition = "forc2") + Xs(model, forc3, condition = "forc3")
+x <- Xs(model, forc1, condition = "forc1") + 
+  Xs(model, forc2, condition = "forc2") + 
+  Xs(model, forc3, condition = "forc3")
 
 g <- Y(c(out1 = "F * A", out2 = "F"), x)
 

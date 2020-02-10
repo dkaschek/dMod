@@ -5,8 +5,7 @@
 \title{Transform matrix A into reduced row echelon form 
 this function is written along the lines of the rref-matlab function.}
 \usage{
-rref(A, tol = sqrt(.Machine$double.eps), verbose = FALSE,
-  fractions = FALSE)
+rref(A, tol = sqrt(.Machine$double.eps), verbose = FALSE, fractions = FALSE)
 }
 \arguments{
 \item{A}{matrix for which the reduced row echelon form is searched}
