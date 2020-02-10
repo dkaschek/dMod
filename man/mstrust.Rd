@@ -12,6 +12,7 @@ mstrust(
   rmax = 10,
   fits = 20,
   cores = 1,
+  optmethod = "trust",
   samplefun = "rnorm",
   resultPath = ".",
   stats = FALSE,

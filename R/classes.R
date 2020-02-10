@@ -84,7 +84,6 @@ odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, outputs = NU
       
     }
     
-
     extended <- cOde::funC(fs, forcings = forcings, modelname = modelname_s, solver = solver, nGridpoints = gridpoints, events = events, outputs = outputs, ...)
   }
 

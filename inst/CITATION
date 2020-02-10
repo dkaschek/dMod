@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 bibentry(bibtype = "Article",
   title        = "Dynamic Modeling, Parameter Estimation, and Uncertainty Analysis in {R}",
   author       = c(person(given = "Daniel",
@@ -21,3 +22,28 @@ bibentry(bibtype = "Article",
   header       = "To cite cOde/dMod in publications use:"
 )
 
+=======
+bibentry(bibtype = "Article",
+  title        = "Dynamic Modeling, Parameter Estimation, and Uncertainty Analysis in {R}",
+  author       = c(person(given = "Daniel",
+                          family = "Kaschek",
+                          email = "daniel.kaschek@gmail.com"),
+                   person(given = "Wolfgang",
+                          family = "Mader"),
+                   person(given = "Mirjam",
+                          family = "Fehling-Kaschek"),
+                   person(given = "Marcus",
+                          family = "Rosenblatt"),
+                   person(given = "Jens",
+                          family = "Timmer")),
+  journal      = "Journal of Statistical Software",
+  year         = "2019",
+  volume       = "88",
+  number       = "10",
+  pages        = "1--32",
+  doi          = "10.18637/jss.v088.i10",
+
+  header       = "To cite cOde/dMod in publications use:"
+)
+
+>>>>>>> 8f0d5214e4e4774ea3bac0a5b41adaba8ec61b6f

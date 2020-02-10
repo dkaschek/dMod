@@ -63,7 +63,6 @@ steadyStates <- function(model, file=NULL, smatrix = NULL, states = NULL, rates 
 }
 
 
-
 #' Check which Python versions are installed on the system
 #' 
 #' @param version NULL or character. Check for specific version

@@ -44,8 +44,8 @@ norm <- function(x) sqrt(sum(x^2))
 #' 
 #' @param blather If TRUE return extra info.
 #' 
-#' @param parupper named numeric vector of upper bounds.
-#' @param parlower named numeric vector of lower bounds.
+#' @param parupper named numeric vector of upper bounds. If not named, first value will be used for all parameters.
+#' @param parlower named numeric vector of lower bounds. If not named, first value will be used for all parameters.
 #' 
 #' @param printIter print iteration information to R console
 #' 
@@ -101,8 +101,37 @@ norm <- function(x) sqrt(sum(x^2))
 #' @importFrom stats uniroot
 trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100, 
                   fterm = sqrt(.Machine$double.eps), mterm = sqrt(.Machine$double.eps), 
-                  minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, printIter = FALSE, ...) 
+                  minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, printIter = FALSE, traceFile = NULL, ...) 
 {
+  
+  
+  
+  # Verbose Initialization and new obfun to be consistent with df optimizers
+  objfun.orig <- objfun 
+  iterations <- 0
+  deltait <- 1
+  if (printIter) cat("\n")
+  
+  par <- parinit
+  objfun <- function(x, ...) {
+    out <- objfun.orig(x, ...)
+    value <- out$value
+    
+    # Output
+    iterations <<- iterations + 1
+    if (printIter & (iterations %% deltait == 0 | iterations == 1)) {
+      printIterations(iterations, value, iterlim)
+      
+    }
+    if ((iterations %% deltait == 0 | iterations == 1) & !is.null(traceFile)) {
+      pipe2Tracefile(traceFile, iterations, value, x, head = (iterations == 1))
+    }
+    
+    return(out)
+    
+  }
+  
+  
   # Initialize ----
   # Guarantee that pars is named numeric without deriv attribute
   sanePars <- sanitizePars(parinit, list(...)$fixed)
@@ -113,9 +142,9 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
   l <- structure(rep(-Inf, length(parinit)), names = names(parinit))
   
   if (is.null(names(parupper)))
-    u[1:length(u)] <- parupper
+    u[1:length(u)] <- parupper[1]
   if (is.null(names(parlower)))
-    l[1:length(l)] <- parlower
+    l[1:length(l)] <- parlower[1]
   if (!is.null(names(parupper)) & !is.null(names(parinit)))
     u[names(parupper)] <- parupper
   if (!is.null(names(parlower)) & !is.null(names(parinit)))
@@ -200,9 +229,16 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     val.try.blather <- NULL
     preddiff.blather <- NULL
   }
+  
+  # Initialize counter for various cases
+  n_fail <- 0
+  n_fail_check <- 0
+  
   # Iterate ----
   
-  if (printIter) cat("\n")
+  ftry <- NaN
+  f <- NaN
+  preddiff <- NaN
   
   for (iiter in 1:iterlim) {
     #cat(iiter, out$value,upper,"\n")
@@ -214,10 +250,17 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
       else val.blather <- c(val.blather, out.value.save)
     }
     
-    if (printIter) {
-      cat("Iteration: ", format(iiter, width = nchar(iterlim)), "      Objective value: ", out$value, "\n")
-    }
-    
+    # if (printIter) {
+    #   if (any(is.nan(c(ftry, f, preddiff)))) {
+    #     myfterm <- mymterm <- "--"
+    #   } else {
+    #     myfterm <- abs(ftry - f)
+    #     mymterm <- abs(preddiff)
+    #   }
+    #   cat("Iteration: ", format(iiter, width = nchar(iterlim)), "      Objective value: ", out$value, "    fterm: ", myfterm, "   mterm: ", mymterm, "\n")
+    #   cat("Parameters: ", paste(paste(names(theta), signif(theta, 3), sep = "="), collapse = ", "), "\n")
+    # }
+    # 
     if (accept) {
       
       if (minimize)
@@ -317,13 +360,35 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     theta.try[upper] <- parupper[upper]
     theta.try[lower] <- parlower[lower]
     
+    # Test objective function with theta.try
+    # Allow 3 fails in a row before breaking from the iteration loop
+    # In case of a fail, objvalue is set to Inf to force trust region
+    # radius to get smaller.
     out <- try(objfun(theta.try, ...))
-    if (inherits(out, "try-error")) 
-      break
+    if (inherits(out, "try-error")) {
+      out$value <- Inf*ifelse(minimize, 1, -1)
+      n_fail <- n_fail + 1
+      if (n_fail == 3) {
+       out <- c(as.list(out), error = "Objective function could not be evaluated 3 times in a row. Consider setting parameter bounds.")
+         break 
+      }
+    } else {
+      n_fail <- 0
+    }
+    
+    # Same procedure as for objective value
     checks <- try(check.objfun.output(out, minimize, d))
-    if (inherits(checks, "try-error")){
-      out <- c(as.list(out), error = checks)
-      break
+    if (inherits(checks, "try-error")) {
+      if (n_fail_check < 3) {
+        out$value <- Inf*ifelse(minimize, 1, -1)
+        n_fail_check <- n_fail_check + 1
+      }
+      if (n_fail_check == 3) {
+        out <- c(as.list(out), error = paste0(checks, "\nIn addition: obj. function check failed 3 times in a row. Consider setting parameter bounds."))
+        break  
+      }
+    } else {
+      n_fail_check <- 0
     }
     
     ftry <- out$value
@@ -426,6 +491,11 @@ trust <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100,
     out$preddiff <- preddiff.blather
     out$stepnorm <- stepnorm.blather
   }
+  
+  if (iterations >= iterlim) 
+    message("Maximum number of iterations exceeded. Fit is not converged.")
+  
+  
   return(out)
 }
 
@@ -473,3 +543,192 @@ check.objfun.output <- function(obj, minimize, dimen)
 }
 
 
+
+printIterations <- function(iteration, value, iterlim) {
+  
+  cat("Iteration: ", format(iteration, width = nchar(iterlim)), "      Objective value: ", value, "\n")
+  
+}
+
+pipe2Tracefile <- function(filename, iteration, value, parameters, head = FALSE) {
+  
+  myhead <- paste(c("Iteration", "Obj", names(parameters)), collapse = ",")
+  myline <- paste(c(iteration, value, as.numeric(parameters)), collapse = ",")
+  
+  if (head) write(myhead, file = filename)
+  write(myline, file = filename, append = TRUE)
+  
+}
+
+suppressAll <- function(expr) {
+  suppressWarnings(suppressMessages(expr))
+}
+
+
+# Interface to hjkb optimizer from dfoptim package ----
+hjkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100, 
+                 fterm = 1e-6, mterm = 1e-6, 
+                 minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, printIter = FALSE, traceFile = NULL, ...) {
+  
+  # Verbose Initialization
+  iterations <- 0
+  deltait <- 10
+  if (printIter) cat("\n")
+  
+  par <- parinit
+  fn <- function(x, ...) {
+    names(x) <- names(parinit)
+    deriv <- FALSE
+    args <- list(...)
+    if ("deriv" %in% names(args)) deriv <- args[["deriv"]]
+    value <- objfun(x, deriv = deriv, ...)[["value"]]
+    
+    # Output
+    iterations <<- iterations + 1
+    if (printIter & (iterations %% deltait == 0 | iterations == 1)) {
+      printIterations(iterations, value, iterlim)
+      
+    }
+    if ((iterations %% deltait == 0 | iterations == 1) & !is.null(traceFile)) {
+      pipe2Tracefile(traceFile, iterations, value, x, head = (iterations == 1))
+    }
+    
+    return(value)
+    
+  }
+  
+  # template for lower/upper
+  lower <- structure(rep(-Inf, length(parinit)), names = names(parinit))
+  upper <- structure(rep(Inf, length(parinit)), names = names(parinit))
+  
+  # sanitize parlower/parupper
+  if (is.null(names(parlower)))
+    parlower <- structure(rep(parlower[1], length(parinit)), names = names(parinit))
+  if (is.null(names(parupper)))
+    parupper <- structure(rep(parupper[1], length(parinit)), names = names(parinit))
+  
+  # Fill parlower/parupper in lower/upper
+  lower[names(parlower)] <- parlower
+  upper[names(parupper)] <- parupper
+  
+  
+  control <- list(
+    tol = mterm,
+    maxfeval = iterlim,
+    maximize = !minimize
+    # info = printIter
+  )
+  
+  result <- suppressAll(
+    try(dfoptim_hjkb(par = par, fn = fn, lower = lower, upper = upper, control = control, ...), silent = TRUE)
+  )
+  
+  if (inherits(result, "try-error")) return(result)
+  
+  out <- objfun(result[["par"]], ...)
+  out[["argument"]] <- result[["par"]]
+  out[["converged"]] <- !as.logical(result[["convergence"]])
+  out[["iterations"]] <- result[["feval"]]
+  if (iterations >= iterlim) 
+    message("Maximum number of iterations exceeded. Fit is not converged.")
+  
+  
+  
+  return(out)
+  
+  
+}
+
+# Interface to nmkb optimizer from dfoptim package ----
+nmkb <- function(objfun, parinit, rinit, rmax, parscale, iterlim = 100, 
+                 fterm = 1e-6, mterm = 1e-6, 
+                 minimize = TRUE, blather = FALSE, parupper = Inf, parlower = -Inf, printIter = FALSE, traceFile = NULL, ...) {
+  
+  # par <- parinit
+  # fn <- function(x, ...) {
+  #   names(x) <- names(parinit)
+  #   deriv <- FALSE
+  #   args <- list(...)
+  #   if ("deriv" %in% names(args)) deriv <- args[["deriv"]]
+  #   objfun(x, deriv = deriv, ...)[["value"]]
+  # }
+  
+  iterations <- 0
+  deltait <- 10
+  if (printIter) cat("\n")
+  
+  par <- parinit
+  fn <- function(x, ...) {
+    names(x) <- names(parinit)
+    deriv <- FALSE
+    args <- list(...)
+    if ("deriv" %in% names(args)) deriv <- args[["deriv"]]
+    value <- objfun(x, deriv = deriv, ...)[["value"]]
+    
+    # Output
+    iterations <<- iterations + 1
+    if (printIter & (iterations %% deltait == 0 | iterations == 1)) {
+      printIterations(iterations, value, iterlim)
+      
+    }
+    if ((iterations %% deltait == 0 | iterations == 1) & !is.null(traceFile)) {
+      pipe2Tracefile(traceFile, iterations, value, x, head = (iterations == 1))
+    }
+    
+    return(value)
+    
+  }
+  
+  # template for lower/upper
+  lower <- structure(rep(-Inf, length(parinit)), names = names(parinit))
+  upper <- structure(rep(Inf, length(parinit)), names = names(parinit))
+  
+  # sanitize parlower/parupper
+  if (is.null(names(parlower)))
+    parlower <- structure(rep(parlower[1], length(parinit)), names = names(parinit))
+  if (is.null(names(parupper)))
+    parupper <- structure(rep(parupper[1], length(parinit)), names = names(parinit))
+  
+  # Fill parlower/parupper in lower/upper
+  lower[names(parlower)] <- parlower
+  upper[names(parupper)] <- parupper
+  
+  # Sanitize par (to be within lower and upper bounds)
+  if (any(par <= lower)) {
+    par[par <= lower] <- lower[par <= lower] + pmin(mterm, 0.1*(upper[par <= lower] - lower[par <= lower]))
+  }
+  if (any(par >= upper)) {
+    par[par >= upper] <- upper[par >= upper] - pmin(mterm, 0.1*(upper[par >= upper] - lower[par >= upper]))
+  }
+  
+  control <- list(
+    tol = fterm,
+    maxfeval = iterlim,
+    maximize = !minimize
+    # trace = printIter
+  )
+  
+  if (all(is.infinite(c(lower, upper)))) {
+    result <- suppressAll(try(dfoptim_nmk(par = par, fn = fn, control = control, ...), silent = TRUE))
+  } else {
+    result <- suppressAll(try(dfoptim_nmkb(par = par, fn = fn, lower = lower, upper = upper, control = control, ...), silent = TRUE))
+  }
+  
+  if (inherits(result, "try-error")) return(result)
+  
+  argument <- structure(result[["par"]], names = names(parinit))
+  
+  out <- objfun(argument, ...)
+  out[["argument"]] <- argument
+  out[["converged"]] <- !as.logical(result[["convergence"]])
+  out[["iterations"]] <- result[["feval"]]
+  
+  if (iterations >= iterlim) 
+    message("Maximum number of iterations exceeded. Fit is not converged.")
+  
+  
+  
+  return(out)
+  
+  
+}

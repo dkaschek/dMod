@@ -48,14 +48,14 @@
 #' @example inst/examples/profiles.R
 #' @export
 profile <- function(obj, pars, whichPar, alpha = 0.05, 
-                          limits = c(lower = -Inf, upper = Inf), 
-                          method = c("integrate", "optimize"),
-                          stepControl = NULL, 
-                          algoControl = NULL,
-                          optControl  = NULL,
-                          verbose = FALSE,
-                          cores = 1,
-                          ...) {
+                    limits = c(lower = -Inf, upper = Inf), 
+                    method = c("integrate", "optimize"),
+                    stepControl = NULL, 
+                    algoControl = NULL,
+                    optControl  = NULL,
+                    verbose = FALSE,
+                    cores = 1,
+                    ...) {
   
   # Guarantee that pars is named numeric without deriv attribute
   dotArgs <- list(...)
@@ -85,7 +85,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   if (!is.null(stepControl)) sControl[match(names(stepControl), names(sControl))] <- stepControl
   if (!is.null(algoControl)) aControl[match(names(algoControl), names(aControl))] <- algoControl
   if (!is.null(optControl )) oControl[match(names(optControl), names(oControl ))] <- optControl
-    
+  
   
   
   
@@ -114,7 +114,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
       doParallel::registerDoParallel(cores = cores)
       
     }
-  
+    
     "%mydo%" <- foreach::"%dopar%"
     
     
@@ -133,361 +133,361 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                           .packages = loaded_packages, 
                           .inorder = TRUE,
                           .options.multicore = list(preschedule = FALSE)) %mydo% {
-    
-    loadDLL(obj)
-    
-
-    whichPar.name <- names(pars)[whichIndex]
-    
-    
-    
-    ## Functions needed during profile computation -----------------------
-    obj.opt <- obj
-    obj.prof <- function(p, ...) {
-      out <- obj(p, ...)
-      # If "identity", substitute hessian such that steps are in whichPar-direction.
-      Id <- diag(1/.Machine$double.eps, length(out$gradient))
-      Id[whichIndex, whichIndex] <- 1
-      colnames(Id) <- rownames(Id) <- names(out$gradient)
-      
-      W <- match.arg(aControl$W[1], c("hessian", "identity"))
-      out$hessian <- switch(W,
-                            "hessian" = out$hessian,
-                            "identity" = Id)
-      return(out)    
-    }
-    
-    pseudoinverse <- function(m, tol) {
-      msvd <- svd(m)
-      index <- which(abs(msvd$d) > max(dim(m))*max(msvd$d)*tol) 
-      if (length(index) == 0) {
-        out <- array(0, dim(m)[2:1])
-      }
-      else {
-        out <- msvd$u[,index] %*% (1/msvd$d[index] * t(msvd$v)[index,])
-      }
-      attr(out, "valid") <- 1:length(msvd$d) %in% index
-      return(out)
-    }
-    
-    constraint <- function(p) {
-      value <- p[whichIndex] - pars[whichIndex]
-      gradient <- rep(0, length(p))
-      gradient[whichIndex] <- 1
-      return(list(value = value, gradient = gradient))
-    }
-    lagrange <- function(y) {
-      
-      # initialize values
-      p <- y
-      lambda <- 0
-      out <- do.call(obj.prof, c(list(p = p), dotArgs))
-      g.original <- constraint(p)
-      
-      # evaluate derivatives and constraints
-      g     <- direction * g.original$value
-      gdot  <- direction * g.original$gradient
-      ldot  <- out$gradient
-      lddot <- out$hessian 
-      
-      # compute rhs of profile ODE
-      M <- rbind(cbind(lddot, gdot), 
-                 matrix(c(gdot, 0), nrow=1))
-      
-      v <- c(-rep(gamma, length(p))*(ldot + lambda*gdot), 1)
-      v0 <- c(-rep(0, length(p))*(ldot + lambda*gdot), 1)
-      
-      W <- pseudoinverse(M, tol = aControl$reg)
-      valid <- attr(W, "valid")
-      if(any(!valid)) {
-        dy <- try(as.vector(W%*%v)[1:length(p)], silent=FALSE)
-        dy0 <- try(as.vector(W%*%v0)[1:length(p)], silent=FALSE)
-        dy[!valid[1:length(p)]] <- dy0[!valid[1:length(p)]] <- 0
-        dy[whichIndex] <- dy0[whichIndex] <- direction
-        warning(paste0("Iteration ", i, ": Some singular values of the Hessian are below the threshold. Optimization will be performed."))
-      } else {
-        dy <- try(as.vector(W%*%v)[1:length(p)], silent=FALSE)
-        dy0 <- try(as.vector(W%*%v0)[1:length(p)], silent=FALSE)
-      }
-      
-      
-      if(!inherits(dy, "try-error")) {
-        names(dy) <- names(y) 
-        correction <- sqrt(sum((dy-dy0)^2))/sqrt(sum(dy^2))
-      } else {
-        dy <- NA
-        correction <- 0
-        warning(paste0("Iteration ", i, ": Impossible to invert Hessian. Trying to optimize instead."))
-      }
-      
-      # Get attributes of the returned objective value (only if numeric)
-      out.attributes <- attributes(out)[sapply(attributes(out), is.numeric)]
-      out.attributes.names <- names(out.attributes)
-      
-      
-      return(c(list(dy = dy, 
-                    value = out$value, 
-                    gradient = out$gradient, 
-                    correction = correction, 
-                    valid = valid, 
-                    attributes = out.attributes.names),
-               out.attributes))
-      
-      
-      
-      
-    }
-    doIteration <- function() {
-      
-      optimize <- aControl$reoptimize
-      # Check for error in evaluation of lagrange()
-      if(is.na(dy[1])) {
-        #cat("Evaluation of lagrange() not successful. Will optimize instead.\n")
-        optimize <- TRUE
-        y.try <- y
-        y.try[whichIndex] <- y[whichIndex] + direction*stepsize
-        rinit <- oControl$rinit
-      } else {
-        dy.norm <- sqrt(sum(dy^2))
-        rinit <- min(c(oControl$rinit, 3*dy.norm))
-        y.try <- y + dy
-        if(any(!lagrange.out$valid)) optimize <- TRUE
-      }
-      
-      # Do reoptimization if requested or necessary
-      if(optimize) {      
-        parinit.opt <- y.try[-whichIndex]
-        fixed.opt <- c(fixed, y.try[whichIndex])
-        
-        arglist <- c(list(objfun = obj.opt, parinit = parinit.opt, fixed = fixed.opt, rinit = rinit), 
-                     oControl[names(oControl)!="rinit"],
-                     dotArgs[names(dotArgs) != "fixed"])
-        
-        
-        myfit <- try(do.call(trust, arglist), silent=FALSE)
-        if(!inherits(myfit, "try-error")) {
-          y.try[names(myfit$argument)] <- as.vector(myfit$argument)  
-        } else {
-          warning("Optimization not successful. Profile may be erroneous.")
-        }
-        
-      }
-      
-      return(y.try)
-      
-    }
-    doAdaption <- function() {
-      
-      lagrange.out.try <- lagrange(y.try)
-      valid <- TRUE
-      
-      # Predicted change of the objective value
-      dobj.pred <- sum(lagrange.out$gradient*(y.try - y))
-      dobj.fact <- lagrange.out.try$value - lagrange.out$value
-      correction <- lagrange.out.try$correction
-      
-      # Gamma adaption based on amount of actual correction
-      if (correction > aControl$correction) gamma <- gamma/2
-      if (correction < 0.5*aControl$correction) gamma <- min(c(aControl$gamma, gamma*2))
-      
-      # Stepsize adaption based on difference in predicted change of objective value
-      if (abs(dobj.fact - dobj.pred) > sControl$atol & stepsize > sControl$min) {
-        stepsize <- max(c(stepsize/1.5, sControl$min))
-        valid <- FALSE
-      }
-      if (abs(dobj.fact - dobj.pred) < .3*sControl$atol | abs((dobj.fact - dobj.pred)/dobj.fact) < .3*sControl$rtol) {
-        stepsize <- min(c(stepsize*2, sControl$max))
-      }
-      
-      ## Verbose
-      if (verbose) {
-        # Compute progres
-        diff.thres <- diff.steps <- diff.limit <- 0
-        if (threshold < Inf)
-          diff.thres <- 1 - max(c(0, min(c(1, (threshold - lagrange.out.try$value)/delta))))
-        if (sControl$limit < Inf)
-          diff.steps <- i/sControl$limit
-        diff.limit <- switch(as.character(sign(constraint.out$value)),
-                             "1"  = 1 - (limits[2] - constraint.out$value)/limits[2],
-                             "-1" = diff.limit <- 1 - (limits[1] - constraint.out$value)/limits[1],
-                             "0"  = 0)
-        
-        percentage <- max(c(diff.thres, diff.steps, diff.limit), na.rm = TRUE)*100
-        progressBar(percentage)
-        
-        
-        #cat("diff.thres:", diff.thres, "diff.steps:", diff.steps, "diff.limit:", diff.limit)
-        myvalue <- format(substr(lagrange.out$value  , 0, 8), width = 8)
-        myconst <- format(substr(constraint.out$value, 0, 8), width = 8)
-        mygamma <- format(substr(gamma               , 0, 8), width = 8)
-        myvalid <- all(lagrange.out$valid)
-        cat("\tvalue:", myvalue, "constraint:", myconst, "gamma:", mygamma, "valid:", myvalid) 
-      }
-      
-      
-      
-      return(list(lagrange = lagrange.out.try, stepsize = stepsize, gamma = gamma, valid = valid))
-      
-      
-    }
-    
-    ## Compute profile -------------------------------------------------
-    
-    # Initialize profile
-    i <- 0 
-    direction <- 1
-    gamma <- aControl$gamma
-    stepsize <- sControl$stepsize
-    ini <- pars
-    
-    lagrange.out <- lagrange(ini)
-    constraint.out <- constraint(pars)
-    
-    delta <- qchisq(1-alpha, 1)
-    #delta.t <- qf(1 - alpha, 1L, nobs - npar)
-    
-    
-    
-    threshold <- lagrange.out[[sControl$stop]] + delta
-    out.attributes <- unlist(lagrange.out[lagrange.out$attributes])
-    
-    out <- c(value = lagrange.out$value, 
-             constraint = as.vector(constraint.out$value), 
-             stepsize = stepsize, 
-             gamma = gamma, 
-             whichPar = whichIndex,
-             out.attributes, ini)
-    
-    # Compute right profile
-    if (verbose) {
-      cat("Compute right profile\n")
-    }
-    direction <- 1
-    gamma <- aControl$gamma
-    stepsize <- sControl$stepsize
-    y <- ini
-    
-    lagrange.out <- lagrange.out
-    constraint.out <- constraint.out
-    
-    while (i < sControl$limit) {
-      
-      ## Iteration step
-      sufficient <- FALSE
-      retry <- 0
-      while (!sufficient & retry < 5) {
-        dy <- stepsize*lagrange.out$dy
-        y.try <- try(doIteration(), silent = TRUE)
-        out.try <- try(doAdaption(), silent = TRUE)
-        if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) {
-          sufficient <- FALSE
-          stepsize <- stepsize/1.5
-          retry <- retry + 1
-        } else {
-          sufficient <- out.try$valid
-          stepsize <- out.try$stepsize  
-        }
-        
-      }    
-      if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
-      
-      
-      ## Set values
-      y <- y.try
-      lagrange.out <- out.try$lagrange
-      constraint.out <- constraint(y.try)
-      stepsize <- out.try$stepsize
-      gamma <- out.try$gamma
-      out.attributes <- unlist(lagrange.out[lagrange.out$attributes])
-      
-      ## Return values 
-      out <- rbind(out, 
-                   c(value = lagrange.out$value, 
-                     constraint = as.vector(constraint.out$value), 
-                     stepsize = stepsize, 
-                     gamma = gamma, 
-                     whichPar = whichIndex,
-                     out.attributes, 
-                     y))
-      
-      value <- lagrange.out[[sControl$stop]]
-      if (value > threshold | constraint.out$value > limits[2]) break
-      
-      i <- i + 1
-      
-    }
-    
-    # Compute left profile
-    if (verbose) {
-      cat("\nCompute left profile\n")
-    }
-    i <- 0
-    direction <- -1
-    gamma <- aControl$gamma
-    stepsize <- sControl$stepsize
-    y <- ini
-    
-    lagrange.out <- lagrange(ini)
-    constraint.out <- constraint(pars)
-    
-    while (i < sControl$limit) {
-      
-      ## Iteration step
-      sufficient <- FALSE
-      retry <- 0
-      while (!sufficient & retry < 5) {
-        dy <- stepsize*lagrange.out$dy
-        y.try <- try(doIteration(), silent = TRUE)
-        out.try <- try(doAdaption(), silent = TRUE)
-        if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) {
-          sufficient <- FALSE
-          stepsize <- stepsize/1.5
-          retry <- retry + 1
-        } else {
-          sufficient <- out.try$valid
-          stepsize <- out.try$stepsize  
-        }
-        
-      }
-      if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
-      
-      ## Set values
-      y <- y.try
-      lagrange.out <- out.try$lagrange
-      constraint.out <- constraint(y.try)
-      stepsize <- out.try$stepsize
-      gamma <- out.try$gamma
-      out.attributes <- unlist(lagrange.out[lagrange.out$attributes])
-      
-      
-      ## Return values
-      out <- rbind(c(value = lagrange.out$value, 
-                     constraint = as.vector(constraint.out$value), 
-                     stepsize = stepsize, 
-                     gamma = gamma,
-                     whichPar = whichIndex,
-                     out.attributes,
-                     y), 
-                   out)
-      
-      value <- lagrange.out[[sControl$stop]]
-      if (value > threshold | constraint.out$value < limits[1]) break
-      
-      i <- i + 1
-      
-    }
-    
-    # Output
-    out <- as.data.frame(out)
-    out$whichPar <- whichPar.name
-    parframe(
-      out,
-      parameters = names(pars),
-      metanames = c("value", "constraint", "stepsize", "gamma", "whichPar"),
-      obj.attributes = names(out.attributes)
-    )
-    
-  }
+                            
+                            loadDLL(obj)
+                            
+                            
+                            whichPar.name <- names(pars)[whichIndex]
+                            
+                            
+                            
+                            ## Functions needed during profile computation -----------------------
+                            obj.opt <- obj
+                            obj.prof <- function(p, ...) {
+                              out <- obj(p, ...)
+                              # If "identity", substitute hessian such that steps are in whichPar-direction.
+                              Id <- diag(1/.Machine$double.eps, length(out$gradient))
+                              Id[whichIndex, whichIndex] <- 1
+                              colnames(Id) <- rownames(Id) <- names(out$gradient)
+                              
+                              W <- match.arg(aControl$W[1], c("hessian", "identity"))
+                              out$hessian <- switch(W,
+                                                    "hessian" = out$hessian,
+                                                    "identity" = Id)
+                              return(out)    
+                            }
+                            
+                            pseudoinverse <- function(m, tol) {
+                              msvd <- svd(m)
+                              index <- which(abs(msvd$d) > max(dim(m))*max(msvd$d)*tol) 
+                              if (length(index) == 0) {
+                                out <- array(0, dim(m)[2:1])
+                              }
+                              else {
+                                out <- msvd$u[,index] %*% (1/msvd$d[index] * t(msvd$v)[index,])
+                              }
+                              attr(out, "valid") <- 1:length(msvd$d) %in% index
+                              return(out)
+                            }
+                            
+                            constraint <- function(p) {
+                              value <- p[whichIndex] - pars[whichIndex]
+                              gradient <- rep(0, length(p))
+                              gradient[whichIndex] <- 1
+                              return(list(value = value, gradient = gradient))
+                            }
+                            lagrange <- function(y) {
+                              
+                              # initialize values
+                              p <- y
+                              lambda <- 0
+                              out <- do.call(obj.prof, c(list(p = p), dotArgs))
+                              g.original <- constraint(p)
+                              
+                              # evaluate derivatives and constraints
+                              g     <- direction * g.original$value
+                              gdot  <- direction * g.original$gradient
+                              ldot  <- out$gradient
+                              lddot <- out$hessian 
+                              
+                              # compute rhs of profile ODE
+                              M <- rbind(cbind(lddot, gdot), 
+                                         matrix(c(gdot, 0), nrow=1))
+                              
+                              v <- c(-rep(gamma, length(p))*(ldot + lambda*gdot), 1)
+                              v0 <- c(-rep(0, length(p))*(ldot + lambda*gdot), 1)
+                              
+                              W <- pseudoinverse(M, tol = aControl$reg)
+                              valid <- attr(W, "valid")
+                              if(any(!valid)) {
+                                dy <- try(as.vector(W%*%v)[1:length(p)], silent=FALSE)
+                                dy0 <- try(as.vector(W%*%v0)[1:length(p)], silent=FALSE)
+                                dy[!valid[1:length(p)]] <- dy0[!valid[1:length(p)]] <- 0
+                                dy[whichIndex] <- dy0[whichIndex] <- direction
+                                warning(paste0("Iteration ", i, ": Some singular values of the Hessian are below the threshold. Optimization will be performed."))
+                              } else {
+                                dy <- try(as.vector(W%*%v)[1:length(p)], silent=FALSE)
+                                dy0 <- try(as.vector(W%*%v0)[1:length(p)], silent=FALSE)
+                              }
+                              
+                              
+                              if(!inherits(dy, "try-error")) {
+                                names(dy) <- names(y) 
+                                correction <- sqrt(sum((dy-dy0)^2))/sqrt(sum(dy^2))
+                              } else {
+                                dy <- NA
+                                correction <- 0
+                                warning(paste0("Iteration ", i, ": Impossible to invert Hessian. Trying to optimize instead."))
+                              }
+                              
+                              # Get attributes of the returned objective value (only if numeric)
+                              out.attributes <- attributes(out)[sapply(attributes(out), is.numeric)]
+                              out.attributes.names <- names(out.attributes)
+                              
+                              
+                              return(c(list(dy = dy, 
+                                            value = out$value, 
+                                            gradient = out$gradient, 
+                                            correction = correction, 
+                                            valid = valid, 
+                                            attributes = out.attributes.names),
+                                       out.attributes))
+                              
+                              
+                              
+                              
+                            }
+                            doIteration <- function() {
+                              
+                              optimize <- aControl$reoptimize
+                              # Check for error in evaluation of lagrange()
+                              if(is.na(dy[1])) {
+                                #cat("Evaluation of lagrange() not successful. Will optimize instead.\n")
+                                optimize <- TRUE
+                                y.try <- y
+                                y.try[whichIndex] <- y[whichIndex] + direction*stepsize
+                                rinit <- oControl$rinit
+                              } else {
+                                dy.norm <- sqrt(sum(dy^2))
+                                rinit <- min(c(oControl$rinit, 3*dy.norm))
+                                y.try <- y + dy
+                                if(any(!lagrange.out$valid)) optimize <- TRUE
+                              }
+                              
+                              # Do reoptimization if requested or necessary
+                              if(optimize) {      
+                                parinit.opt <- y.try[-whichIndex]
+                                fixed.opt <- c(fixed, y.try[whichIndex])
+                                
+                                arglist <- c(list(objfun = obj.opt, parinit = parinit.opt, fixed = fixed.opt, rinit = rinit), 
+                                             oControl[names(oControl)!="rinit"],
+                                             dotArgs[names(dotArgs) != "fixed"])
+                                
+                                
+                                myfit <- try(do.call(trust, arglist), silent=FALSE)
+                                if(!inherits(myfit, "try-error")) {
+                                  y.try[names(myfit$argument)] <- as.vector(myfit$argument)  
+                                } else {
+                                  warning("Optimization not successful. Profile may be erroneous.")
+                                }
+                                
+                              }
+                              
+                              return(y.try)
+                              
+                            }
+                            doAdaption <- function() {
+                              
+                              lagrange.out.try <- lagrange(y.try)
+                              valid <- TRUE
+                              
+                              # Predicted change of the objective value
+                              dobj.pred <- sum(lagrange.out$gradient*(y.try - y))
+                              dobj.fact <- lagrange.out.try$value - lagrange.out$value
+                              correction <- lagrange.out.try$correction
+                              
+                              # Gamma adaption based on amount of actual correction
+                              if (correction > aControl$correction) gamma <- gamma/2
+                              if (correction < 0.5*aControl$correction) gamma <- min(c(aControl$gamma, gamma*2))
+                              
+                              # Stepsize adaption based on difference in predicted change of objective value
+                              if (abs(dobj.fact - dobj.pred) > sControl$atol & stepsize > sControl$min) {
+                                stepsize <- max(c(stepsize/1.5, sControl$min))
+                                valid <- FALSE
+                              }
+                              if (abs(dobj.fact - dobj.pred) < .3*sControl$atol | abs((dobj.fact - dobj.pred)/dobj.fact) < .3*sControl$rtol) {
+                                stepsize <- min(c(stepsize*2, sControl$max))
+                              }
+                              
+                              ## Verbose
+                              if (verbose) {
+                                # Compute progres
+                                diff.thres <- diff.steps <- diff.limit <- 0
+                                if (threshold < Inf)
+                                  diff.thres <- 1 - max(c(0, min(c(1, (threshold - lagrange.out.try$value)/delta))))
+                                if (sControl$limit < Inf)
+                                  diff.steps <- i/sControl$limit
+                                diff.limit <- switch(as.character(sign(constraint.out$value)),
+                                                     "1"  = 1 - (limits[2] - constraint.out$value)/limits[2],
+                                                     "-1" = diff.limit <- 1 - (limits[1] - constraint.out$value)/limits[1],
+                                                     "0"  = 0)
+                                
+                                percentage <- max(c(diff.thres, diff.steps, diff.limit), na.rm = TRUE)*100
+                                progressBar(percentage)
+                                
+                                
+                                #cat("diff.thres:", diff.thres, "diff.steps:", diff.steps, "diff.limit:", diff.limit)
+                                myvalue <- format(substr(lagrange.out$value  , 0, 8), width = 8)
+                                myconst <- format(substr(constraint.out$value, 0, 8), width = 8)
+                                mygamma <- format(substr(gamma               , 0, 8), width = 8)
+                                myvalid <- all(lagrange.out$valid)
+                                cat("\tvalue:", myvalue, "constraint:", myconst, "gamma:", mygamma, "valid:", myvalid) 
+                              }
+                              
+                              
+                              
+                              return(list(lagrange = lagrange.out.try, stepsize = stepsize, gamma = gamma, valid = valid))
+                              
+                              
+                            }
+                            
+                            ## Compute profile -------------------------------------------------
+                            
+                            # Initialize profile
+                            i <- 0 
+                            direction <- 1
+                            gamma <- aControl$gamma
+                            stepsize <- sControl$stepsize
+                            ini <- pars
+                            
+                            lagrange.out <- lagrange(ini)
+                            constraint.out <- constraint(pars)
+                            
+                            delta <- qchisq(1-alpha, 1)
+                            #delta.t <- qf(1 - alpha, 1L, nobs - npar)
+                            
+                            
+                            
+                            threshold <- lagrange.out[[sControl$stop]] + delta
+                            out.attributes <- unlist(lagrange.out[lagrange.out$attributes])
+                            
+                            out <- c(value = lagrange.out$value, 
+                                     constraint = as.vector(constraint.out$value), 
+                                     stepsize = stepsize, 
+                                     gamma = gamma, 
+                                     whichPar = whichIndex,
+                                     out.attributes, ini)
+                            
+                            # Compute right profile
+                            if (verbose) {
+                              cat("Compute right profile\n")
+                            }
+                            direction <- 1
+                            gamma <- aControl$gamma
+                            stepsize <- sControl$stepsize
+                            y <- ini
+                            
+                            lagrange.out <- lagrange.out
+                            constraint.out <- constraint.out
+                            
+                            while (i < sControl$limit) {
+                              
+                              ## Iteration step
+                              sufficient <- FALSE
+                              retry <- 0
+                              while (!sufficient & retry < 5) {
+                                dy <- stepsize*lagrange.out$dy
+                                y.try <- try(doIteration(), silent = TRUE)
+                                out.try <- try(doAdaption(), silent = TRUE)
+                                if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) {
+                                  sufficient <- FALSE
+                                  stepsize <- stepsize/1.5
+                                  retry <- retry + 1
+                                } else {
+                                  sufficient <- out.try$valid
+                                  stepsize <- out.try$stepsize  
+                                }
+                                
+                              }    
+                              if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
+                              
+                              
+                              ## Set values
+                              y <- y.try
+                              lagrange.out <- out.try$lagrange
+                              constraint.out <- constraint(y.try)
+                              stepsize <- out.try$stepsize
+                              gamma <- out.try$gamma
+                              out.attributes <- unlist(lagrange.out[lagrange.out$attributes])
+                              
+                              ## Return values 
+                              out <- rbind(out, 
+                                           c(value = lagrange.out$value, 
+                                             constraint = as.vector(constraint.out$value), 
+                                             stepsize = stepsize, 
+                                             gamma = gamma, 
+                                             whichPar = whichIndex,
+                                             out.attributes, 
+                                             y))
+                              
+                              value <- lagrange.out[[sControl$stop]]
+                              if (value > threshold | constraint.out$value > limits[2]) break
+                              
+                              i <- i + 1
+                              
+                            }
+                            
+                            # Compute left profile
+                            if (verbose) {
+                              cat("\nCompute left profile\n")
+                            }
+                            i <- 0
+                            direction <- -1
+                            gamma <- aControl$gamma
+                            stepsize <- sControl$stepsize
+                            y <- ini
+                            
+                            lagrange.out <- lagrange(ini)
+                            constraint.out <- constraint(pars)
+                            
+                            while (i < sControl$limit) {
+                              
+                              ## Iteration step
+                              sufficient <- FALSE
+                              retry <- 0
+                              while (!sufficient & retry < 5) {
+                                dy <- stepsize*lagrange.out$dy
+                                y.try <- try(doIteration(), silent = TRUE)
+                                out.try <- try(doAdaption(), silent = TRUE)
+                                if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) {
+                                  sufficient <- FALSE
+                                  stepsize <- stepsize/1.5
+                                  retry <- retry + 1
+                                } else {
+                                  sufficient <- out.try$valid
+                                  stepsize <- out.try$stepsize  
+                                }
+                                
+                              }
+                              if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
+                              
+                              ## Set values
+                              y <- y.try
+                              lagrange.out <- out.try$lagrange
+                              constraint.out <- constraint(y.try)
+                              stepsize <- out.try$stepsize
+                              gamma <- out.try$gamma
+                              out.attributes <- unlist(lagrange.out[lagrange.out$attributes])
+                              
+                              
+                              ## Return values
+                              out <- rbind(c(value = lagrange.out$value, 
+                                             constraint = as.vector(constraint.out$value), 
+                                             stepsize = stepsize, 
+                                             gamma = gamma,
+                                             whichPar = whichIndex,
+                                             out.attributes,
+                                             y), 
+                                           out)
+                              
+                              value <- lagrange.out[[sControl$stop]]
+                              if (value > threshold | constraint.out$value < limits[1]) break
+                              
+                              i <- i + 1
+                              
+                            }
+                            
+                            # Output
+                            out <- as.data.frame(out)
+                            out$whichPar <- whichPar.name
+                            parframe(
+                              out,
+                              parameters = names(pars),
+                              metanames = c("value", "constraint", "stepsize", "gamma", "whichPar"),
+                              obj.attributes = names(out.attributes)
+                            )
+                            
+                          }
   
   
   
@@ -702,10 +702,10 @@ confint.parframe <- function(object, parm = NULL, level = 0.95, ..., val.column 
 #'  
 #' @export
 #' @import parallel
-mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20, cores = 1,
+mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20, cores = 1, optmethod = "trust",
                     samplefun = "rnorm", resultPath = ".", stats = FALSE, output = FALSE,
                     ...) {
-
+  
   narrowing <- NULL
   
   
@@ -716,13 +716,13 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   # Argument parsing, sorting, and enhancing
   # Gather all function arguments
   varargslist <- list(...)
-
+  
   argslist <- as.list(formals())
   argslist <- argslist[names(argslist) != "..."]
   
   argsmatch <- as.list(match.call(expand.dots = TRUE))
   namesinter <- intersect(names(argslist), names(argsmatch))
-
+  
   argslist[namesinter] <- argsmatch[namesinter]
   argslist <- c(argslist, varargslist)
   
@@ -731,44 +731,44 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   argslist[["center"]] <- force(center)
   argslist[["rinit"]] <- force(rinit)
   argslist[["rmax"]] <- force(rmax)
-
+  
   # Add extra arguments
   argslist$n <- length(center) # How many inital values do we need?
-
+  
   # Determine target function for each function argument.
   # First, define argument names used locally in mstrust().
   # Second, check what trust() and samplefun() accept and check for name clashes.
   # Third, whatever is unused is passed to the objective function objfun().
-  nameslocal <- c("studyname", "center", "fits", "cores", "samplefun",
+  nameslocal <- c("studyname", "center", "fits", "cores", "optmethod", "samplefun",
                   "resultPath", "stats", "narrowing", "output")
   namestrust <- intersect(names(formals(trust)), names(argslist))
   namessample <- intersect(names(formals(samplefun)), names(argslist))
   if (length(intersect(namestrust, namessample) != 0)) {
     stop("Argument names of trust() and ", samplefun, "() clash.")
   }
+  
+  # Default optimizer
   namesobj <- setdiff(names(argslist), c(namestrust, namessample, nameslocal))
-
-
+  
   # Assemble argument lists common to all calls in mclapply
   # Sample function
   argssample <- structure(vector("list", length = length(namessample)), names = namessample)
   for (name in namessample) {
     argssample[[name]] <- argslist[[name]]
   }
-
+  
   # Objective function
   argsobj <- structure(vector("list", length = length(namesobj)), names = namesobj)
   for (name in namesobj) {
     argsobj[[name]] <- argslist[[name]]
   }
-
+  
   # Trust optimizer, except for initial values
   argstrust <- structure(vector("list", length = length(namestrust)), names = namestrust)
   for (name in namestrust) {
     argstrust[[name]] <- argslist[[name]]
   }
-
-
+  
   # Assemble and create output filenames, folders and files
   m_timeStamp <- paste0(format(Sys.time(), "%d-%m-%Y-%H%M%S"))
   
@@ -798,11 +798,11 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
                   strpad("mstrust", 12),                        ": ", paste0(nameslocal, collapse = ", "), "\n",
                   strpad("trust", 12),                          ": ", paste0(namestrust, collapse = ", "), "\n",
                   strpad(as.character(argslist$samplefun), 12), ": ", paste0(namessample, collapse = ", "), "\n\n")
-                  #strpad(as.character(argslist$objfun), 12),    ": ", paste0(namesobj, collapse = ", "), "\n\n")
+    #strpad(as.character(argslist$objfun), 12),    ": ", paste0(namesobj, collapse = ", "), "\n\n")
     writeLines(msg, logfile)
     flush(logfile)
   }
-
+  
   # Write narrowing status information to file
   if (!is.null(narrowing)) {
     msg <- paste0("--> Narrowing, run ", narrowing[1], " of ", narrowing[2], "\n",
@@ -810,7 +810,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     writeLines(msg, logfile)
     flush(logfile)
   }
-
+  
   if(is.parframe(center)) {
     fits <- nrow(center)
   }
@@ -847,13 +847,13 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     
   }
   
-
+  
   loaded_packages <- .packages()  
   m_parlist <- as.parlist(foreach::foreach(i = 1:fits, 
                                            .packages = loaded_packages, 
                                            .inorder = TRUE,
                                            .options.multicore = list(preschedule = FALSE)
-                                           ) %mydo% {
+  ) %mydo% {
     
     suppressMessages(loadDLL(objfun))
     
@@ -869,8 +869,14 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
       }
     }
     
-    fit <- do.call(trust, c(argstrust, argsobj))
-
+    # Check if traceFile is requested. In that case combine tracefile, with logfolder and fit number
+    if (!is.null(argstrust[["traceFile"]])) {
+      digits <- floor(log10(fits))
+      argstrust[["traceFile"]] <- file.path(resultFolder, paste0(formatC(i, digits = digits, flag = "0"), "_", argslist[["traceFile"]]))
+    }
+    
+    fit <- do.call(optmethod, c(argstrust, argsobj))
+    
     # Keep only numeric attributes of object returned by trust()
     attr.fit <- attributes(fit)
     keep.attr <- sapply(attr.fit, is.numeric)
@@ -887,7 +893,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     }
     
     fit$parinit <- argstrust$parinit
-
+    
     # Write current fit to disk
     if (output) {
       saveRDS(fit, file = file.path(interResultFolder, paste0("fit-", i, ".Rda")))
@@ -921,14 +927,14 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   })
   
   close(logfile)
-
+  
   if (Sys.info()[['sysname']] == "Windows" & cores > 1) {
     
     parallel::stopCluster(cluster)
     doParallel::stopImplicitCluster()
     
   }
-
+  
   
   
   # Cull failed and completed fits Two kinds of errors occure. The first returns
@@ -956,16 +962,16 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
       return(m_trustFlags.unconverged)
     }
   })
-
+  
   
   # Wrap up
   # Write out results
   if (output) saveRDS(m_parlist, file = fileParList)
-
+  
   # Remove temporary files
   unlink(interResultFolder, recursive = TRUE)
   
-
+  
   # Show summary
   sum.error <- sum(idxStatus == m_trustFlags.error)
   sum.fatal <- sum(idxStatus == m_trustFlags.fatal)
@@ -983,11 +989,11 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   writeLines(msg, logfile)
   flush(logfile)
   close(logfile)
-
+  
   if (stats) {
     cat(msg)
   }
-
+  
   return(m_parlist)
 }
 
@@ -1123,23 +1129,23 @@ load.parlist <- function(folder) {
 #'
 #' @export
 reduceReplicates <- function(file, select = "condition", datatrans = NULL) {
-
+  
   # File format definiton
   fmtnames <- c("name", "time",  "value", "condition")
   fmtnamesnumber <- length(fmtnames)
-
+  
   # Read data and sanity checks
   data <- read.csv(file)
   if (length(intersect(names(data), fmtnames)) != fmtnamesnumber) {
     stop(paste("Mandatory column names are:", paste(fmtnames, collapse = ", ")))
   }
-
+  
   # Transform data if requested
   if (is.character(datatrans)) {
     x <- data$value
     data$value <- eval(parse(text = datatrans))
   }
-
+  
   # Experiments are usually repeated multiple times possibly under different
   # conditions. The column "Condition" in the data thus groups the data per
   # condition. However, sometimes, a more fine grained grouping is desirable. In
@@ -1165,7 +1171,7 @@ reduceReplicates <- function(file, select = "condition", datatrans = NULL) {
                name = conddata[1, "name"],
                condition = mergecond)
   }))
-
+  
   return(reduct)
 }
 
@@ -1227,22 +1233,22 @@ reduceReplicates <- function(file, select = "condition", datatrans = NULL) {
 #' @importFrom stats D approx optim qchisq sd time
 fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
                           par = c(s0 = 1, srel = .1), plotting = TRUE, blather = FALSE, ...) {
-
+  
   # Assemble conditions
   condidnt <- Reduce(paste, subset(data, select = factors))
   conditions <- unique(condidnt)
-
-
+  
+  
   # Fit error model
   nColData <- ncol(data)
   dataErrorModel <- cbind(data, as.list(par))
-
+  
   for (cond in conditions) {
     subdata <- dataErrorModel[condidnt == cond,]
     x <- subdata$value
     n <- subdata$n
     y <- subdata$sigma*sqrt(n)
-
+    
     obj <- function(par) {
       value <- with(as.list(par), {
         z <- eval(parse(text = errorModel))
@@ -1250,14 +1256,14 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
       })
       return(value)
     }
-
+    
     fit <- optim(par = par, fn = obj, ...)
     sigma <- sqrt(with(as.list(fit$par), eval(parse(text = errorModel))))
     dataErrorModel[condidnt == cond, ]$sigma <- sigma 
     dataErrorModel[condidnt == cond, -(nColData:1)] <- data.frame(as.list(fit$par))
   }
-
-
+  
+  
   # Calculate confidence bounds about sigma
   p68 <- (1-.683)/2
   p95 <- (1-.955)/2
@@ -1265,13 +1271,13 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
   dataErrorModel$cbUpper68 <- dataErrorModel$sigma^2*qchisq(p = p68, df = dataErrorModel$n-1, lower.tail = FALSE)/(dataErrorModel$n-1)
   dataErrorModel$cbLower95 <- dataErrorModel$sigma^2*qchisq(p = p95, df = dataErrorModel$n-1)/(dataErrorModel$n-1)
   dataErrorModel$cbUpper95 <- dataErrorModel$sigma^2*qchisq(p = p95, df = dataErrorModel$n-1, lower.tail = FALSE)/(dataErrorModel$n-1)
-
-
+  
+  
   # Assemble result
   dataErrorModel <- cbind(dataErrorModel, condidnt, sigmaLS = data$sigma)
   attr(dataErrorModel, "errorModel") <- errorModel
-
-
+  
+  
   # Plot if requested
   if (plotting) {
     print(ggplot(dataErrorModel, aes(x=value)) +

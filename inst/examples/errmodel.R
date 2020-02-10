@@ -27,7 +27,7 @@ e     <- Y(errors, g, attach.input = FALSE,
 
 # Generate parameter transformation
 innerpars <- getParameters(model, g, e)
-covariates <- data.frame(Aini = 1:2, row.names = c("C1", "C2"))
+covariates <- data.frame(Aini = c("C.1", "C.2"), row.names = c("C.1", "C.2"))
 
 p <- 
   eqnvec() %>%
@@ -43,7 +43,7 @@ compile(g, x, e, p, output = "errtest_total")
 
 
 ## Simulate data
-ptrue <- c(k1 = -2, k2 = -3, off_B = -3, sigma_rel = log(.1), sigma_abs = log(.1))
+ptrue <- c(C.1 = 1, C.2 = 2, k1 = -2, k2 = -3, off_B = -3, sigma_rel = log(.1), sigma_abs = log(.1))
 times <- seq(0, 50, 1)
 prediction <- (g*x*p)(times, ptrue, deriv = TRUE)
 datasheet <- subset(as.data.frame(prediction, errfn = e), name == "B_obs")
@@ -53,7 +53,7 @@ data <- as.datalist(datasheet)
 ## Fit data with error model
 obj <- normL2(data, g*x*p, e)
 myfit <- trust(obj, ptrue, rinit = 1, rmax = 10, printIter = TRUE)
-fits <- mstrust(obj, center = ptrue, sd = 3, fits = 2, cores = 2, printIter = TRUE)
+fits <- mstrust(obj, center = ptrue, sd = 3, fits = 10, cores = 1, printIter = TRUE, traceFile = "trace.csv")
 
 mypars <- myfit$argument[-1]
 myfixed <- myfit$argument[1]

@@ -47,7 +47,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
   sensvar <- attr(extended, "variables")[!attr(extended, "variables")%in%variables]
   senssplit <- strsplit(sensvar, ".", fixed=TRUE)
   senssplit.1 <- unlist(lapply(senssplit, function(v) v[1]))
-  senssplit.2 <- unlist(lapply(senssplit, function(v) v[2]))
+  senssplit.2 <- unlist(lapply(senssplit, function(v) paste(v[-1], collapse = ".")))
   svariables <- intersect(senssplit.2, variables)
   sparameters <- setdiff(senssplit.2, variables)
   

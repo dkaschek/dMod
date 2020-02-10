@@ -122,22 +122,16 @@ as.parframe.parlist <- function(x, sort.by = "value", ...) {
   m_stat <- stat.parlist(x)
   m_metanames <- c("index", "value", "converged", "iterations")
   m_idx <- which("error" != m_stat)
-  m_parframe <- do.call(rbind,
-                        mapply(function(fit, idx) {
-                          data.frame(
-                            index = idx,
-                            value = fit$value,
-                            converged = fit$converged,
-                            iterations = fit$iterations,
-                            as.data.frame(as.list(fit$argument))
-                          )
-                        }, fit = x[m_idx], idx = m_idx, SIMPLIFY = FALSE))
+  m_parframe <- data.frame(index = m_idx, 
+                           value = vapply(x[m_idx], function(.x) .x$value, 1.0),
+                           converged = vapply(x[m_idx], function(.x) .x$converged, TRUE),
+                           iterations = vapply(x[m_idx], function(.x) as.integer(.x$iterations), 1L))
+  m_parframe <- cbind(m_parframe,
+                      as.data.frame(t(vapply(x[m_idx], function(.x) .x$argument, x[[1]]$argument))))
   # Sort by value
   m_parframe <- m_parframe[order(m_parframe[sort.by]),]
   
   parframe(m_parframe, parameters = names(x[[m_idx[1]]]$argument), metanames = m_metanames)
-  
-  
 }
 
 
@@ -153,15 +147,15 @@ as.parframe.parlist <- function(x, sort.by = "value", ...) {
 #' @export
 #' @export c.parlist
 c.parlist <- function(...) {
-    m_fits <- lapply(list(...), unclass)
-    m_fits <- do.call(c, m_fits)
-    m_parlist <- mapply(function(fit, idx) {
-      if (is.list(fit)) fit$index <- idx
-      return(fit)
-      }, fit = m_fits, idx = seq_along(m_fits), SIMPLIFY = FALSE)
-    
-    return(as.parlist(m_parlist))
-  }
+  m_fits <- lapply(list(...), unclass)
+  m_fits <- do.call(c, m_fits)
+  m_parlist <- mapply(function(fit, idx) {
+    if (is.list(fit)) fit$index <- idx
+    return(fit)
+  }, fit = m_fits, idx = seq_along(m_fits), SIMPLIFY = FALSE)
+  
+  return(as.parlist(m_parlist))
+}
 
 
 
@@ -216,7 +210,7 @@ as.parvec.parframe <- function(x, index = 1, ...) {
   best <- as.parvec(unlist(parframe[m_order[index], attr(parframe, "parameters")]))
   if ("converged" %in% metanames && !parframe[m_order[index],]$converged) {
     warning("Parameter vector of an unconverged fit is selected.", call. = FALSE)
-    }
+  }
   return(best)
 }
 
@@ -273,6 +267,7 @@ plotValues.parframe <- function(x, tol = 1, ...) {
     geom_point() + 
     annotate("text", x = jumps + 1, y = y.jumps, label = jumps, hjust = 0, color = "firebrick", size = 3) +
     xlab("index") + ylab("value") + 
+    scale_color_gradient(low = "dodgerblue", high = "orange") +
     coord_cartesian(ylim = y.range) +
     scale_color_gradient(low = "dodgerblue", high = "orange") +
     theme_dMod()

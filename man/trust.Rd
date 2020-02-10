@@ -19,6 +19,7 @@ trust(
   parupper = Inf,
   parlower = -Inf,
   printIter = FALSE,
+  traceFile = NULL,
   ...
 )
 
@@ -81,9 +82,9 @@ a step is considered close enough to zero to terminate the algorithm.}
 
 \item{blather}{If TRUE return extra info.}
 
-\item{parupper}{named numeric vector of upper bounds.}
+\item{parupper}{named numeric vector of upper bounds. If not named, first value will be used for all parameters.}
 
-\item{parlower}{named numeric vector of lower bounds.}
+\item{parlower}{named numeric vector of lower bounds. If not named, first value will be used for all parameters.}
 
 \item{printIter}{print iteration information to R console}
 
