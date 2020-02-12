@@ -5,9 +5,11 @@
 \alias{addEvent}
 \title{Eventlist}
 \usage{
-eventlist(var = NULL, time = NULL, value = NULL, method = NULL)
+eventlist(var = NULL, time = NULL, value = NULL, root = NULL,
+  method = NULL)
 
-addEvent(event, var, time = 0, value = 0, method = "replace", ...)
+addEvent(event, var, time = 0, value = 0, root = NA,
+  method = "replace", ...)
 }
 \arguments{
 \item{var}{Character, the state to which the event is applied}
@@ -15,6 +17,8 @@ addEvent(event, var, time = 0, value = 0, method = "replace", ...)
 \item{time}{Character or Numeric, the time at which the event happens}
 
 \item{value}{Character or Numeric, the value of the event}
+
+\item{root}{Character or NA, condition to trigger the event instead of time}
 
 \item{method}{Character, options are "replace", "add" or "multiply"}
 
@@ -37,4 +41,11 @@ eventlist(var = "A", time = "5", value = 1, method = "add")
 
 events <- addEvent(NULL, var = "A", time = "5", value = 1, method = "add")
 events <- addEvent(events, var = "A", time = "10", value = 1, method = "add")
+
+# With symbols
+events <- eventlist()
+# Set "A" to "value_switch" at time "time_Switch"
+events <- addEvent(events, var = "A", time = "time_switch", value = "value_switch", method = "replace")
+# Set "B" to 2 when "A" reaches "A_target". The time-parameter for internal use will be "time_root".
+events <- addEvent(events, var = "B", time = "time_root", value = 2, root = "A - A_target", method = "replace")
 }

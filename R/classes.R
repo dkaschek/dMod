@@ -1547,7 +1547,9 @@ getParameters.eqnlist <- function(x) {
 #' @export
 #' @rdname getParameters
 getParameters.eventlist <- function(x) {
-  Reduce(union, lapply(x[c(1:3)], getSymbols))
+  idx <- match(c("time", "value", "root"), names(x))
+  idx[!is.na(idx)]
+  Reduce(union, lapply(x[idx], getSymbols))
 }
 
 #' Extract the conditions of an object
