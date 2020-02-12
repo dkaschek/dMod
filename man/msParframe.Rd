@@ -4,7 +4,7 @@
 \alias{msParframe}
 \title{Reproducibly construct "random" parframes}
 \usage{
-msParframe(pars, n = 20, seed = 12345, samplefun = rnorm, ...)
+msParframe(pars, n = 20, seed = 12345, samplefun = stats::rnorm, ...)
 }
 \arguments{
 \item{pars}{Named vector. If \code{samplefun} has a "mean"-argument, values of pars will used as mean}

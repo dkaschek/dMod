@@ -4,8 +4,13 @@
 \alias{Xf}
 \title{Model prediction function for ODE models without sensitivities.}
 \usage{
-Xf(odemodel, forcings = NULL, events = NULL, condition = NULL,
-  optionsOde = list(method = "lsoda"))
+Xf(
+  odemodel,
+  forcings = NULL,
+  events = NULL,
+  condition = NULL,
+  optionsOde = list(method = "lsoda")
+)
 }
 \arguments{
 \item{odemodel}{Object of class \link{odemodel}.}

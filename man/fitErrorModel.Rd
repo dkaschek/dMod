@@ -4,8 +4,15 @@
 \alias{fitErrorModel}
 \title{Fit an error model}
 \usage{
-fitErrorModel(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
-  par = c(s0 = 1, srel = 0.1), plotting = TRUE, blather = FALSE, ...)
+fitErrorModel(
+  data,
+  factors,
+  errorModel = "exp(s0)+exp(srel)*x^2",
+  par = c(s0 = 1, srel = 0.1),
+  plotting = TRUE,
+  blather = FALSE,
+  ...
+)
 }
 \arguments{
 \item{data}{Reduced replicate data, see \code{\link{reduceReplicates}}. Need 

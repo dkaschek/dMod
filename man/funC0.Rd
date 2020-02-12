@@ -4,9 +4,16 @@
 \alias{funC0}
 \title{Evaluation of algebraic expressions defined by characters}
 \usage{
-funC0(x, variables = getSymbols(x, exclude = parameters),
-  parameters = NULL, compile = FALSE, modelname = NULL,
-  verbose = FALSE, convenient = TRUE, warnings = TRUE)
+funC0(
+  x,
+  variables = getSymbols(x, exclude = parameters),
+  parameters = NULL,
+  compile = FALSE,
+  modelname = NULL,
+  verbose = FALSE,
+  convenient = TRUE,
+  warnings = TRUE
+)
 }
 \arguments{
 \item{x}{Object of class \code{eqnvec} or a

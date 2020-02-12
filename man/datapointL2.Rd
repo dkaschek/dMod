@@ -4,8 +4,7 @@
 \alias{datapointL2}
 \title{L2 objective function for validation data point}
 \usage{
-datapointL2(name, time, value, sigma = 1, attr.name = "validation",
-  condition)
+datapointL2(name, time, value, sigma = 1, attr.name = "validation", condition)
 }
 \arguments{
 \item{name}{character, the name of the prediction, e.g. a state name.}

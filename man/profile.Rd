@@ -4,10 +4,20 @@
 \alias{profile}
 \title{Profile-likelihood (PL) computation}
 \usage{
-profile(obj, pars, whichPar, alpha = 0.05, limits = c(lower = -Inf,
-  upper = Inf), method = c("integrate", "optimize"),
-  stepControl = NULL, algoControl = NULL, optControl = NULL,
-  verbose = FALSE, cores = 1, ...)
+profile(
+  obj,
+  pars,
+  whichPar,
+  alpha = 0.05,
+  limits = c(lower = -Inf, upper = Inf),
+  method = c("integrate", "optimize"),
+  stepControl = NULL,
+  algoControl = NULL,
+  optControl = NULL,
+  verbose = FALSE,
+  cores = 1,
+  ...
+)
 }
 \arguments{
 \item{obj}{Objective function \code{obj(pars, fixed, ...)} returning a list with "value",

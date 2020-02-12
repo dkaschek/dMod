@@ -269,6 +269,7 @@ plotValues.parframe <- function(x, tol = 1, ...) {
     xlab("index") + ylab("value") + 
     scale_color_gradient(low = "dodgerblue", high = "orange") +
     coord_cartesian(ylim = y.range) +
+    scale_color_gradient(low = "dodgerblue", high = "orange") +
     theme_dMod()
   
   attr(P, "data") <- pars

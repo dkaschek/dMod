@@ -7,8 +7,13 @@
 \alias{is.eqnlist}
 \title{Generate eqnlist object}
 \usage{
-eqnlist(smatrix = NULL, states = colnames(smatrix), rates = NULL,
-  volumes = NULL, description = NULL)
+eqnlist(
+  smatrix = NULL,
+  states = colnames(smatrix),
+  rates = NULL,
+  volumes = NULL,
+  description = NULL
+)
 
 as.eqnlist(data, volumes)
 

@@ -4,9 +4,16 @@
 \alias{Pimpl}
 \title{Parameter transformation (implicit)}
 \usage{
-Pimpl(trafo, parameters = NULL, condition = NULL, keep.root = TRUE,
-  positive = TRUE, compile = FALSE, modelname = NULL,
-  verbose = FALSE)
+Pimpl(
+  trafo,
+  parameters = NULL,
+  condition = NULL,
+  keep.root = TRUE,
+  positive = TRUE,
+  compile = FALSE,
+  modelname = NULL,
+  verbose = FALSE
+)
 }
 \arguments{
 \item{trafo}{Named character vector defining the equations to be set to zero. 

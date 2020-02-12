@@ -1017,7 +1017,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
 #' 
 #' # Parameter specific sigma
 #' msParframe(c(a = 0, b = 100000), 5, samplefun = rnorm, sd = c(100, 0.5))
-msParframe <- function(pars, n = 20, seed = 12345, samplefun = rnorm, ...) {
+msParframe <- function(pars, n = 20, seed = 12345, samplefun = stats::rnorm, ...) {
   set.seed(seed)
   
   if (n == 1)
