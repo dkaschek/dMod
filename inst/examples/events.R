@@ -13,7 +13,6 @@ checkSensitivities <- function(p, whichpar, cond = 1, step = 0.1) {
   h <- rep(0, length(p))
   h[which(names(p) == whichpar)] <- step
   
-  
   M1 <-  y(times, p, deriv = TRUE)[[cond]]
   M2 <-  y(times, p + h, deriv = TRUE)[[cond]]
   M3 <- attr(y(times, p, deriv = TRUE)[[cond]], "deriv")
@@ -74,7 +73,7 @@ y <- x*p
 #pdf("~/root_events.pdf")
 
 for (i in 1:length(pouter)) {
-  out <- checkSensitivities(pouter, names(pouter)[i], 3, .00000001) %>% as.prdlist
+  out <- checkSensitivities(pouter, names(pouter)[i], 1, .00000001) %>% as.prdlist
   print(plotPrediction(out) + ggtitle(names(pouter)[i]))
   
 }
@@ -83,8 +82,8 @@ for (i in 1:length(pouter)) {
 
 
 
-(GR-EMAX*((Ce+yps)^hill/((Ce+yps)^hill+EC50^hill)))*Gcure
-(Fcure-1)*Gcure
+# (GR-EMAX*((Ce+yps)^hill/((Ce+yps)^hill+EC50^hill)))*Gcure
+# (Fcure-1)*Gcure
 
 
 ## check with root-triggered events
@@ -179,7 +178,7 @@ pouter %>% (x*p)(times = times) %>% plot()
 y <- x*p
 
 for (i in 1:length(pouter)) {
-  out <- checkSensitivities(pouter, names(pouter)[i], 3, .000001) %>% as.prdlist
+  out <- checkSensitivities(pouter, names(pouter)[i], 1, .000001) %>% as.prdlist
   print(plotPrediction(out) + ggtitle(names(pouter)[i]))
   
 }
