@@ -4,17 +4,13 @@
 \alias{appendObj}
 \title{Append an objective function to a basic dMod.frame}
 \usage{
-appendObj(
-  dMod.frame,
-  prd = list(g * (x * p)),
-  obj_data = list(normL2(data, prd, e)),
-  obj = list(obj_data),
-  pars = list(structure(rnorm(length(getParameters(obj))), names = getParameters(obj))),
+appendObj(dMod.frame, prd = list(g * (x * p)),
+  obj_data = list(normL2(data, prd, e)), obj = list(obj_data),
+  pars = list(structure(rnorm(length(getParameters(obj))), names =
+  getParameters(obj))),
   times = list(seq(min(as.data.frame(data)[["time"]]),
-    max(as.data.frame(data)[["time"]]) * 1.1, length.out = 200)),
-  ...,
-  keepCalls = F
-)
+  max(as.data.frame(data)[["time"]]) * 1.1, length.out = 200)), ...,
+  keepCalls = F)
 }
 \arguments{
 \item{dMod.frame}{A dMod.frame}

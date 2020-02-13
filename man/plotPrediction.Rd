@@ -6,18 +6,13 @@
 \alias{plotPrediction.prdlist}
 \title{Plot a list of model predictions}
 \usage{
-\method{plotPrediction}{tbl_df}(dMod.frame, hypothesis = 1, index = 1, ...)
+\method{plotPrediction}{tbl_df}(dMod.frame, hypothesis = 1, index = 1,
+  ...)
 
 plotPrediction(prediction, ...)
 
-\method{plotPrediction}{prdlist}(
-  prediction,
-  ...,
-  errfn = NULL,
-  scales = "free",
-  facet = "wrap",
-  transform = NULL
-)
+\method{plotPrediction}{prdlist}(prediction, ..., errfn = NULL,
+  scales = "free", facet = "wrap", transform = NULL)
 }
 \arguments{
 \item{...}{Further arguments going to \code{dplyr::filter}.}

@@ -31,7 +31,13 @@ checkSensitivities <- function(p, whichpar, cond = 1, step = 0.1) {
   
 }
 
+# -------------------------------------------------------------------------#
+# Check parametric events with root finding ----
+# -------------------------------------------------------------------------#
+
 ## check with root-triggered events
+estimate <- c("A_thres", "A", "t_A_thres", "kon", "koff", "degrad")
+
 model <- eqnlist() %>%
   addReaction("A", "B", "kon*A") %>%
   addReaction("B", "A", "koff*B") %>%
@@ -39,11 +45,10 @@ model <- eqnlist() %>%
   addReaction("0", "kon", "kbase", "Event state") %>%
   addReaction("kon", "0", "degrad*kon", "Event state") %>%
   odemodel(
-    events = rbind(
-      #data.frame(var = "B", time = "t_thres", value = "1", root = NA, method = "replace", stringsAsFactors = FALSE),
-      data.frame(var = "A", time = "t_A_thres", value = "1", root = "A - A_thres", method = "replace", stringsAsFactors = FALSE)
-    ),
-    estimate = c("A_thres", "A", "t_A_thres", "kon", "koff", "degrad")
+    events = eventlist() %>% 
+      addEvent(var = "B", time = "t_thres", value = "1") %>% 
+      addEvent(var = "A", time = "t_A_thres", value = "1", root = "A - A_thres"),
+    estimate = estimate
   ) 
 x <- model %>% Xs(optionsOde = list(method = "lsoda"), optionsSens = list(method = "lsoda", rtol = 1e-10, atol = 1e-10))
 
@@ -72,9 +77,9 @@ y <- x*p
 
 #pdf("~/root_events.pdf")
 
-for (i in 1:length(pouter)) {
-  out <- checkSensitivities(pouter, names(pouter)[i], 1, .00000001) %>% as.prdlist
-  print(plotPrediction(out) + ggtitle(names(pouter)[i]))
+for (i in 1:length(estimate)) {
+  out <- checkSensitivities(pouter, estimate[i], 1, .00000001) %>% as.prdlist
+  print(plotPrediction(out) + ggtitle(estimate[i]))
   
 }
 
@@ -87,17 +92,16 @@ for (i in 1:length(pouter)) {
 
 
 ## check with root-triggered events
+estimate <- c("PLcure", "Fcure", "tPLcure", "EMAX")
 model2 <- eqnvec(
   PL = "(GR - EMAX*exp(-k*time))*Gcure",
   Gcure = "(Fcure - 1)*Gcure",
   Fcure = "0"
 ) %>%
   odemodel(
-    events = rbind(
-      #data.frame(var = "B", time = "t_thres", value = "1", root = NA, method = "replace", stringsAsFactors = FALSE),
-      data.frame(var = "Fcure", time = "tPLcure", value = "0", root = "PL - PLcure", method = "replace", stringsAsFactors = FALSE)
-    ),
-    estimate = c("PLcure", "Fcure", "tPLcure", "EMAX")
+    events = eventlist() %>% 
+      addEvent(var = "Fcure", time = "tPLcure", value = "0", root = "PL - PLcure"),
+    estimate = estimate
   ) 
 x <- model2 %>% Xs(optionsOde = list(method = "lsoda"), optionsSens = list(method = "lsoda", rtol = 1e-10, atol = 1e-10))
 
@@ -128,9 +132,11 @@ y <- x*p
 
 #pdf("~/root_events.pdf")
 
-for (i in 1:length(pouter)) {
-  out <- checkSensitivities(pouter, names(pouter)[i], 1, .000001) %>% as.prdlist
-  print(plotPrediction(out) + ggtitle(names(pouter)[i]))
+for (i in seq_along(estimate)) {
+  if (estimate[i] %in% names(pouter)) {
+    out <- checkSensitivities(pouter, estimate[i], 1, .000001) %>% as.prdlist
+    print(plotPrediction(out) + ggtitle(estimate[i]))
+  }
   
 }
 
@@ -139,7 +145,9 @@ for (i in 1:length(pouter)) {
 
 
 
-
+# -------------------------------------------------------------------------#
+# Check parametric events without root finding ----
+# -------------------------------------------------------------------------#
 
 
 ## Do the check with method = "replace"
@@ -150,10 +158,9 @@ model <- eqnlist() %>%
   addReaction("0", "kon", "kbase", "Event state") %>%
   addReaction("kon", "0", "degrad*kon", "Event state") %>%
   odemodel(
-    events = rbind(
-      data.frame(var = "kon", time = c(0, "toff1"), value = c(1, "kmax"), method = "replace", stringsAsFactors = FALSE),
-      data.frame(var = "B", time = c(0, "toff2"), value = c(1., "kmax"), method = "replace", stringsAsFactors = FALSE)
-    )
+    events = eventlist() %>% 
+      addEvent(var = "kon", time = c(0, "toff1"), value = c(1, "kmax")) %>% 
+      addEvent(var = "B", time = c(0, "toff2"), value = c(1., "kmax"))
   ) 
 x <- model %>% Xs()
 
@@ -189,7 +196,7 @@ for (i in 1:length(pouter)) {
 library(dMod)
 library(dplyr)
 library(ggplot2)
-setwd("/tmp")
+setwd(tempdir())
 
 
 
@@ -200,11 +207,10 @@ model <- eqnlist() %>%
   addReaction("0", "kon", "0", "Event state") %>%
   addReaction("kon", "0", "decay*B*kon", "Event state") %>%
   odemodel(
-    events = rbind(
-      data.frame(var = "kon", time = "te", value = "ve", method = "add"),
-      data.frame(var = "kon", time = "tf", value = "ve", method = "add"),
-      data.frame(var = "B"  , time = "te", value = "1" , method = "add")
-    )
+    events = eventlist() %>% 
+      addEvent(var = "kon", time = "te", value = "ve", method = "add") %>% 
+      addEvent(var = "kon", time = "tf", value = "ve", method = "add") %>% 
+      addEvent(var = "B"  , time = "te", value = "1" , method = "add")
   ) 
 x <- model %>% Xs()
 
@@ -241,7 +247,7 @@ for (i in 1:length(pouter)) {
 library(dMod)
 library(dplyr)
 library(ggplot2)
-setwd("/tmp")
+setwd(tempdir())
 
 
 
@@ -252,9 +258,10 @@ model <- eqnlist() %>%
   addReaction("0", "kon", "0", "Event state") %>%
   addReaction("kon", "0", "decay*B*kon", "Event state") %>%
   odemodel(
-    events = rbind(data.frame(var = "kon", time = "te", value = "ve", method = "multiply"),
-                   data.frame(var = "kon", time = "tf", value = "ve", method = "multiply"),
-                   data.frame(var = "B"  , time = "te", value = "3.", method = "multiply"))
+    events = eventlist() %>% 
+      addEvent(var = "kon", time = "te", value = "ve", method = "multiply") %>% 
+      addEvent(var = "kon", time = "tf", value = "ve", method = "multiply") %>% 
+      addEvent(var = "B"  , time = "te", value = "3.", method = "multiply")
   ) 
 x <- model %>% Xs()
 
@@ -288,7 +295,9 @@ for (i in 1:length(pouter)) {
 
 
 
-###
+# -------------------------------------------------------------------------#
+# Check lag time estimation ----
+# -------------------------------------------------------------------------#
 
 ODEs <- c(
   Ad= "-ka*Ad+Fabs*INPUT1",

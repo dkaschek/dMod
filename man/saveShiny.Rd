@@ -4,16 +4,8 @@
 \alias{saveShiny}
 \title{Save the necessary objects for dModtoShiny with the correct names}
 \usage{
-saveShiny(
-  reactions = myeqnlist,
-  x,
-  parameters,
-  fixed = NULL,
-  data,
-  profiles,
-  pubref = "none",
-  errmodel = NULL
-)
+saveShiny(reactions = myeqnlist, x, parameters, fixed = NULL, data,
+  profiles, pubref = "none", errmodel = NULL)
 }
 \arguments{
 \item{reactions}{eqnlist-object}

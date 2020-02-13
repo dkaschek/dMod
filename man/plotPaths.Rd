@@ -7,14 +7,8 @@
 \usage{
 plotPaths.tbl_df(dMod.frame, hypothesis = 1, ...)
 
-plotPaths(
-  profs,
-  ...,
-  whichPar = NULL,
-  sort = FALSE,
-  relative = TRUE,
-  scales = "fixed"
-)
+plotPaths(profs, ..., whichPar = NULL, sort = FALSE, relative = TRUE,
+  scales = "fixed")
 }
 \arguments{
 \item{hypothesis}{numeric, can be longer than 1}

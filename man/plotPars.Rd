@@ -6,7 +6,8 @@
 \alias{plotPars}
 \title{Plot parameter values for a fitlist}
 \usage{
-\method{plotPars}{tbl_df}(dMod.frame, hypothesis = 1, ..., nsteps = 3, tol = 1)
+\method{plotPars}{tbl_df}(dMod.frame, hypothesis = 1, ..., nsteps = 3,
+  tol = 1)
 
 \method{plotPars}{parframe}(x, tol = 1, ...)
 

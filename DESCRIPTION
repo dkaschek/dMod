@@ -12,7 +12,7 @@ Description: The framework provides functions to generate ODEs of reaction
     and can handle expressions for symbolic derivatives.
 License: GPL (>= 2)
 Depends:
-    cOde (>= 1.0),
+    cOde (>= 1.1),
 Imports:
     deSolve,
     rootSolve,

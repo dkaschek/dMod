@@ -4,10 +4,8 @@
 \alias{lsdMod}
 \title{Print list of dMod objects in .GlobalEnv}
 \usage{
-lsdMod(
-  classlist = c("odemodel", "parfn", "prdfn", "obsfn", "objfn", "datalist"),
-  envir = .GlobalEnv
-)
+lsdMod(classlist = c("odemodel", "parfn", "prdfn", "obsfn", "objfn",
+  "datalist"), envir = .GlobalEnv)
 }
 \arguments{
 \item{classlist}{List of object classes to print.}

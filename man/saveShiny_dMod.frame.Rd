@@ -4,15 +4,10 @@
 \alias{saveShiny_dMod.frame}
 \title{SaveShiny for dMod.frames}
 \usage{
-saveShiny_dMod.frame(
-  dMod.frame,
-  hypothesis = 1,
-  reactions = dMod.frame$reactions[[hypothesis]],
-  pubref = "none",
-  fixed = dMod.frame$fixed[[hypothesis]],
-  projectname,
-  appfolder = "/home/mfehling/ShinyApps/dModtoShiny/"
-)
+saveShiny_dMod.frame(dMod.frame, hypothesis = 1,
+  reactions = dMod.frame$reactions[[hypothesis]], pubref = "none",
+  fixed = dMod.frame$fixed[[hypothesis]], projectname,
+  appfolder = "/home/mfehling/ShinyApps/dModtoShiny/")
 }
 \arguments{
 \item{dMod.frame}{dmod.frame}

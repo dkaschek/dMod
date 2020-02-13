@@ -7,12 +7,8 @@
 \alias{subset.parframe}
 \title{Generate a parameter frame}
 \usage{
-parframe(
-  x = NULL,
-  parameters = colnames(x),
-  metanames = NULL,
-  obj.attributes = NULL
-)
+parframe(x = NULL, parameters = colnames(x), metanames = NULL,
+  obj.attributes = NULL)
 
 is.parframe(x)
 
