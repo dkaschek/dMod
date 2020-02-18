@@ -626,6 +626,61 @@ confint.parframe <- function(object, parm = NULL, level = 0.95, ..., val.column 
 }
 
 
+#' Get variance-covariance matrix from trust result
+#' 
+#' @param fit return from trust or selected fit from parlist
+#' @param parupper upper limit for parameter values. Parameters
+#' are considered fixed when exceeding these limits.
+#' @param parlower lower limit for parameter values. Parameters
+#' are considered fixed when exceeding these limits.
+#' 
+#' @export 
+vcov <- function(fit, parupper = NULL, parlower = NULL) {
+  
+  hessian__ <- fit[["hessian"]]
+  arg__ <- fit[["argument"]]
+  
+  if (is.null(arg__)) return()
+  
+  if (is.null(hessian)) {
+    vcov__ <- matrix(NA, nrow = length(arg__), ncol = length(arg__), 
+                     dimnames = list(names(arg__), names(arg__)))
+    return(vcov__)
+  }
+  
+  fixed <- NULL
+  if (!is.null(parupper)) {
+    myarg__ <- arg__[names(parupper)]
+    fixed <- union(fixed, names(myarg__)[myarg__ >= parupper])
+  }
+  if (!is.null(parlower)) {
+    myarg__ <- arg__[names(parlower)]
+    fixed <- union(fixed, names(myarg__)[myarg__ <= parlower])
+  }
+  
+  vcov__ <- 0*hessian__
+  is_fixed__ <- colnames(hessian__) %in% fixed
+  subhessian__ <- hessian__[!is_fixed__, !is_fixed__, drop = FALSE]
+  subvcov__ <- try(solve(0.5*subhessian__), silent = TRUE)
+  if (inherits(subvcov__, "try-error")) subvcov__ <- MASS::ginv(subhessian__)
+  vcov__[!is_fixed__, !is_fixed__] <- subvcov__
+
+  # This part should not be necessary due to regularization usually done
+  # Perform identifiability check based on
+  # subvcov__ <- vcov__[!is_fixed__, !is_fixed__, drop = FALSE]
+  # eigen__ <- eigen(subhessian__)
+  # tol__ <- sqrt(.Machine$double.eps)
+  # V__ <- eigen__[["vectors"]][, abs(eigen__[["values"]]) < tol__, drop = FALSE]
+  # identifiable__ <- apply(V__, 1, function(v) all(abs(v) < tol__))
+  # diag(subvcov__)[!identifiable__] <- Inf
+  # 
+  # vcov__[!is_fixed__, !is_fixed__] <- subvcov__
+  
+  return(vcov__) 
+  
+}
+
+
 
 
 #' Non-Linear Optimization, multi start
