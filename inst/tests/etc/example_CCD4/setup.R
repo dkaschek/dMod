@@ -252,5 +252,5 @@ saveRDS(resResult, "062-resResultErrpars.rds")
 saveRDS(lapply(resResult,nll), "063-wrss.rds")
 
 
-
+# >>>> CONTINUE HERE: Save all files and also write out "mydata" each time. Then, set up the tests <<<<<<<<<<< ----
 
