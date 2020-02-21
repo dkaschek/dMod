@@ -7,7 +7,6 @@
 
 
 
-
 # 
 # devtools::load_all("~/PROJTOOLS/dMod")
 # 
