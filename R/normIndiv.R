@@ -16,16 +16,10 @@
 #' attribute "deriv" (data.frame with the derivatives of the residuals with
 #' respect to the parameters).
 #' @export
-#' @author Daniel Lill, IntiQuan
 #' @family dMod interface
 #' @importFrom stats setNames
 res <- function(data, out, err = NULL) {
   
-  # >>>> Differences to original res() function  <<<<<<<<<<< ----
-  # *  pars <- unique(unlist(lapply(strsplit(colnames(deriv)[-1], split = ".", fixed = TRUE), function(i) i[2])))
-  # [] disallows dots in parameter names
-  # * Always prefer data sigmas
-  # * In addition to weighted.residual also return weighted.0
   # .. 1 Preparations to match prediction values with data values ----#
   data$name <- as.character(data$name)
   # Unique times, names and parameter names
@@ -467,24 +461,8 @@ init_empty_objlist <- function(pars, deriv = TRUE) {
 
 # normIndiv ----
 
-#' Title
-#'
-#' @param data
-#' @param prd0
-#' @param errmodel
-#' @param forcings
-#' @param iiv c("ETA_EC50", "ETA_EMAX")
-#' @param conditional data.frame
-#' @param fixed.grid
-#' @param SIMOPT.nauxtimes
-#' @param SIMOPT.cores
-#' @param opt.method
-#' @param attr.name
-#'
-#' @return
 #' @export
-#'
-#' @examples
+#' @rdname normL2
 normIndiv <- function(data,
                       prd0,
                       errmodel = NULL,
@@ -828,13 +806,11 @@ check_grids <- function(fixed.grid, est.grid) {
 #' @param est.grid data.frame(parname, partask, ids...)
 #'
 #' @return character of outer parameter names
-#' @export
 #'
 #' @examples
 #' eg_good <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = NA, "2" = "dummy", "3" = "dummy", stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
 #' getParameters_est.grid(eg_good)
 getParameters_est.grid <- function(est.grid) {
-  # [] unit test?
   parameters <- unique(unlist(est.grid[-(1:2)], use.names = FALSE))
   parameters <- parameters[!is.na(parameters)]
   parameters <- sort(parameters)
@@ -854,14 +830,9 @@ getParameters_est.grid <- function(est.grid) {
 #' @param est.grid
 #'
 #' @return c(par0 = value)
-#' @export
 #'
 #' @importFrom stats setNames
-#'
-#' @examples
 make_pars <- function(parsouter, fixedouter, condition, est.grid,  fixed.grid) {
-  
-  # []  unit tests?
   
   # 1 Generate lookup for outer parameters
   outer_lookup <- stats::setNames(est.grid[[condition]], est.grid[["parname"]])
