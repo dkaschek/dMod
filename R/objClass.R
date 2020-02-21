@@ -154,12 +154,9 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
     # Apply res() and wrss() to compute residuals and the weighted residual sum of squares
     out.data <- lapply(conditions, function(cn) {
       err <- NULL
-      if ((!is.null(errmodel) & is.null(e.conditions)) | (!is.null(e.conditions) && (cn %in% e.conditions))) {
+      if ((!is.null(errmodel) & is.null(e.conditions)) | (!is.null(e.conditions) && (cn %in% e.conditions))) 
         err <- errmodel(out = prediction[[cn]], pars = getParameters(prediction[[cn]]), conditions = cn)
-        mywrss <- nll(res(data[[cn]], prediction[[cn]], err[[cn]]))
-      } else {
-        mywrss <- wrss(res(data[[cn]], prediction[[cn]]))  
-      }
+      mywrss <- nll(res(data[[cn]], prediction[[cn]], err[[cn]]), pars = pouter, deriv = deriv)
       available <- intersect(pars_out, names(mywrss$gradient))
       result <- template
       result$value <- mywrss$value
@@ -599,191 +596,191 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
 }
 
 
-#' Compute the weighted residual sum of squares
-#' 
-#' @param nout data.frame (result of \link{res}) or object of class \link{objframe}.
-#' @return list with entries value (numeric, the weighted residual sum of squares), 
-#' gradient (numeric, gradient) and 
-#' hessian (matrix of type numeric).
-#' @export
-wrss <- function(nout) {
-  
-  # Extract BLOQ part from nout
-  is.bloq <- nout$bloq
-  nout.bloq <- nout[is.bloq, , drop = FALSE]
-  
-  # Drop BLOQ part from nout
-  nout <- nout[!is.bloq, , drop = FALSE]
-  obj <- sum(nout$weighted.residual^2) 
-  
-  grad <- NULL
-  hessian <- NULL
-  derivs <- attr(nout, "deriv")
-  if (!is.null(derivs)) {
-    
-    # Extract BLOQ part from derivs
-    derivs.bloq <- derivs[is.bloq, , drop = FALSE]
-    # Drop BLOQ part from derivs
-    derivs <- derivs[!is.bloq, , drop = FALSE]
-    
-    if (nrow(derivs) > 0) {
-      
-      nout$sigma[is.na(nout$sigma)] <- 1 #replace by neutral element
-      sens <- as.matrix(derivs[, -(1:2), drop = FALSE])
-      
-      res <- nout$residual
-      sigma <- nout$sigma
-      
-      grad <- as.vector(2*matrix(res/sigma^2, nrow = 1) %*% sens)
-      names(grad) <- colnames(sens)
-      hessian <- 2*t(sens/sigma) %*% (sens/sigma) # + 2. sens
-      
-    }
-    
-    if (nrow(derivs.bloq) > 0) {
-      
-      objvals.bloq <- -2*pnorm(-nout.bloq$weighted.residual, log.p = TRUE)
-      obj.bloq <- sum(objvals.bloq)
-      
-      nout.bloq[is.na(nout.bloq$sigma)] <- 1
-      sens.bloq <- as.matrix(derivs.bloq[, -(1:2), drop = FALSE])
-      
-      res <- nout.bloq$residual
-      sigma <- nout.bloq$sigma
-      
-      LPhi <- pnorm(-nout.bloq$weighted.residual, log.p = TRUE)
-      LG <- dnorm(-nout.bloq$weighted.residual, log = TRUE)
-      G_divided_by_Phi <- exp(LG-LPhi)
-      
-      grad.bloq <- as.vector(matrix(2 * G_divided_by_Phi/(sigma), nrow = 1) %*% sens.bloq)
-      names(grad.bloq) <- colnames(sens.bloq)
-      
-      X1 <- sens.bloq*(G_divided_by_Phi/(sigma))^2
-      X2 <- sens.bloq*(res*G_divided_by_Phi/(sigma^3))
-      hessian.bloq <- 2 * t(X1) %*% sens.bloq - 2 * t(X2) %*% sens.bloq  # + 2. sens
-      
-      
-      obj <- obj + obj.bloq
-      if (is.null(grad) & is.null(hessian)) {
-        grad <- grad.bloq
-        hessian <- hessian.bloq
-      } else {
-        grad <- grad + grad.bloq
-        hessian <- hessian + hessian.bloq
-      }
-      
-    }
-    
-  }
-  
-  
-  objlist(value = obj, gradient = grad, hessian = hessian)
-  
-}
-#' Compute the negative log-likelihood
-#' 
-#' @param nout data.frame (result of \link{res}) or object of class \link{objframe}.
-#' @return list with entries value (numeric, the weighted residual sum of squares), 
-#' gradient (numeric, gradient) and 
-#' hessian (matrix of type numeric).
-#' @export
-#' @importFrom stats pnorm dnorm
-nll <- function(nout) {
-  
-  # Extract BLOQ part from nout
-  is.bloq <- nout$bloq
-  nout.bloq <- nout[is.bloq, , drop = FALSE]
-  
-  # Drop BLOQ part from nout
-  nout <- nout[!is.bloq, , drop = FALSE]
-  
-  obj <- sum(nout$weighted.residual^2) + sum(log(2*pi*nout$sigma^2)) 
-  grad <- NULL
-  hessian <- NULL
-  
-  
-  
-  derivs <- attr(nout, "deriv")
-  derivs.err <- attr(nout, "deriv.err")
-  if (!is.null(derivs) & !is.null(derivs.err)) {
-    
-    # Extract BLOQ part from derivs
-    derivs.bloq <- derivs[is.bloq, , drop = FALSE]
-    derivs.err.bloq <- derivs.err[is.bloq, , drop = FALSE]
-    # Drop BLOQ part from derivs
-    derivs <- derivs[!is.bloq, , drop = FALSE]
-    derivs.err <- derivs.err[!is.bloq, , drop = FALSE]
-    
-    if (nrow(derivs) > 0 & nrow(derivs.err) > 0) {
-      
-      # Get sensitivities: sens = dres/dp, sens.err = dsigma/dp
-      sens <- as.matrix(derivs[, -(1:2), drop = FALSE])
-      sens.err <- as.matrix(derivs.err[, -(1:2), drop = FALSE])
-      
-      res <- nout$residual
-      sigma <- nout$sigma
-      
-      # Compute gradient
-      grad <- as.vector(2*matrix(res/sigma^2, nrow = 1) %*% sens -
-                          2*matrix(res^2/sigma^3, nrow = 1) %*% sens.err +
-                          2*matrix(1/sigma, nrow = 1) %*% sens.err)
-      names(grad) <- colnames(sens)
-      
-      # Compute hessian
-      X1 <- (1/sigma)*sens - (res/sigma^2)*sens.err
-      X2 <- (res/sigma^2)*sens.err
-      X3 <- (1/sigma)*sens.err
-      
-      hessian <- 2 * t(X1) %*% X1 #+ 4 * t(X2) %*% X2 - 2 * t(X3) %*% X3
-      
-    }
-    
-    if (nrow(derivs.bloq) > 0 & nrow(derivs.err.bloq) > 0) {
-      
-      objvals.bloq <- -2*pnorm(-nout.bloq$weighted.residual, log.p = TRUE)
-      obj.bloq <- sum(objvals.bloq)
-      
-      # Get sensitivities: sens = dres/dp, sens.err = dsigma/dp
-      sens.bloq <- as.matrix(derivs.bloq[, -(1:2), drop = FALSE])
-      sens.err.bloq <- as.matrix(derivs.err.bloq[, -(1:2), drop = FALSE])
-      
-      res <- nout.bloq$residual
-      sigma <- nout.bloq$sigma
-      
-      LPhi <- pnorm(-nout.bloq$weighted.residual, log.p = TRUE)
-      LG <- dnorm(-nout.bloq$weighted.residual, log = TRUE)
-      G_divided_by_Phi <- exp(LG-LPhi)
-      
-      # Compute gradient
-      grad.bloq <- as.vector(matrix(2*G_divided_by_Phi/sigma, nrow = 1) %*% sens.bloq) -
-        as.vector(matrix(2*G_divided_by_Phi*res/(sigma^2), nrow = 1) %*% sens.err.bloq)
-      names(grad.bloq) <- colnames(sens.bloq)
-      
-      # Compute hessian
-      X <- -(1/sigma)*sens.bloq + (res/sigma^2)*sens.err.bloq
-      X1 <- (2*G_divided_by_Phi^2)*X
-      X2 <- (2*G_divided_by_Phi*res/(sigma))*X
-      
-      hessian.bloq <- t(X1) %*% X  - t(X2) %*% X 
-      
-      obj <- obj + obj.bloq
-      if (is.null(grad) & is.null(hessian)) {
-        grad <- grad.bloq
-        hessian <- hessian.bloq
-      } else {
-        grad <- grad + grad.bloq
-        hessian <- hessian + hessian.bloq
-      }
-      
-    }
-    
-    
-  }
-  
-  
-  objlist(value = obj, gradient = grad, hessian = hessian)
-  
-}
+# #' Compute the weighted residual sum of squares
+# #' 
+# #' @param nout data.frame (result of \link{res}) or object of class \link{objframe}.
+# #' @return list with entries value (numeric, the weighted residual sum of squares), 
+# #' gradient (numeric, gradient) and 
+# #' hessian (matrix of type numeric).
+# #' @export
+# wrss <- function(nout) {
+#   
+#   # Extract BLOQ part from nout
+#   is.bloq <- nout$bloq
+#   nout.bloq <- nout[is.bloq, , drop = FALSE]
+#   
+#   # Drop BLOQ part from nout
+#   nout <- nout[!is.bloq, , drop = FALSE]
+#   obj <- sum(nout$weighted.residual^2) 
+#   
+#   grad <- NULL
+#   hessian <- NULL
+#   derivs <- attr(nout, "deriv")
+#   if (!is.null(derivs)) {
+#     
+#     # Extract BLOQ part from derivs
+#     derivs.bloq <- derivs[is.bloq, , drop = FALSE]
+#     # Drop BLOQ part from derivs
+#     derivs <- derivs[!is.bloq, , drop = FALSE]
+#     
+#     if (nrow(derivs) > 0) {
+#       
+#       nout$sigma[is.na(nout$sigma)] <- 1 #replace by neutral element
+#       sens <- as.matrix(derivs[, -(1:2), drop = FALSE])
+#       
+#       res <- nout$residual
+#       sigma <- nout$sigma
+#       
+#       grad <- as.vector(2*matrix(res/sigma^2, nrow = 1) %*% sens)
+#       names(grad) <- colnames(sens)
+#       hessian <- 2*t(sens/sigma) %*% (sens/sigma) # + 2. sens
+#       
+#     }
+#     
+#     if (nrow(derivs.bloq) > 0) {
+#       
+#       objvals.bloq <- -2*pnorm(-nout.bloq$weighted.residual, log.p = TRUE)
+#       obj.bloq <- sum(objvals.bloq)
+#       
+#       nout.bloq[is.na(nout.bloq$sigma)] <- 1
+#       sens.bloq <- as.matrix(derivs.bloq[, -(1:2), drop = FALSE])
+#       
+#       res <- nout.bloq$residual
+#       sigma <- nout.bloq$sigma
+#       
+#       LPhi <- pnorm(-nout.bloq$weighted.residual, log.p = TRUE)
+#       LG <- dnorm(-nout.bloq$weighted.residual, log = TRUE)
+#       G_divided_by_Phi <- exp(LG-LPhi)
+#       
+#       grad.bloq <- as.vector(matrix(2 * G_divided_by_Phi/(sigma), nrow = 1) %*% sens.bloq)
+#       names(grad.bloq) <- colnames(sens.bloq)
+#       
+#       X1 <- sens.bloq*(G_divided_by_Phi/(sigma))^2
+#       X2 <- sens.bloq*(res*G_divided_by_Phi/(sigma^3))
+#       hessian.bloq <- 2 * t(X1) %*% sens.bloq - 2 * t(X2) %*% sens.bloq  # + 2. sens
+#       
+#       
+#       obj <- obj + obj.bloq
+#       if (is.null(grad) & is.null(hessian)) {
+#         grad <- grad.bloq
+#         hessian <- hessian.bloq
+#       } else {
+#         grad <- grad + grad.bloq
+#         hessian <- hessian + hessian.bloq
+#       }
+#       
+#     }
+#     
+#   }
+#   
+#   
+#   objlist(value = obj, gradient = grad, hessian = hessian)
+#   
+# }
+# #' Compute the negative log-likelihood
+# #' 
+# #' @param nout data.frame (result of \link{res}) or object of class \link{objframe}.
+# #' @return list with entries value (numeric, the weighted residual sum of squares), 
+# #' gradient (numeric, gradient) and 
+# #' hessian (matrix of type numeric).
+# #' @export
+# #' @importFrom stats pnorm dnorm
+# nll <- function(nout) {
+#   
+#   # Extract BLOQ part from nout
+#   is.bloq <- nout$bloq
+#   nout.bloq <- nout[is.bloq, , drop = FALSE]
+#   
+#   # Drop BLOQ part from nout
+#   nout <- nout[!is.bloq, , drop = FALSE]
+#   
+#   obj <- sum(nout$weighted.residual^2) + sum(log(2*pi*nout$sigma^2)) 
+#   grad <- NULL
+#   hessian <- NULL
+#   
+#   
+#   
+#   derivs <- attr(nout, "deriv")
+#   derivs.err <- attr(nout, "deriv.err")
+#   if (!is.null(derivs) & !is.null(derivs.err)) {
+#     
+#     # Extract BLOQ part from derivs
+#     derivs.bloq <- derivs[is.bloq, , drop = FALSE]
+#     derivs.err.bloq <- derivs.err[is.bloq, , drop = FALSE]
+#     # Drop BLOQ part from derivs
+#     derivs <- derivs[!is.bloq, , drop = FALSE]
+#     derivs.err <- derivs.err[!is.bloq, , drop = FALSE]
+#     
+#     if (nrow(derivs) > 0 & nrow(derivs.err) > 0) {
+#       
+#       # Get sensitivities: sens = dres/dp, sens.err = dsigma/dp
+#       sens <- as.matrix(derivs[, -(1:2), drop = FALSE])
+#       sens.err <- as.matrix(derivs.err[, -(1:2), drop = FALSE])
+#       
+#       res <- nout$residual
+#       sigma <- nout$sigma
+#       
+#       # Compute gradient
+#       grad <- as.vector(2*matrix(res/sigma^2, nrow = 1) %*% sens -
+#                           2*matrix(res^2/sigma^3, nrow = 1) %*% sens.err +
+#                           2*matrix(1/sigma, nrow = 1) %*% sens.err)
+#       names(grad) <- colnames(sens)
+#       
+#       # Compute hessian
+#       X1 <- (1/sigma)*sens - (res/sigma^2)*sens.err
+#       X2 <- (res/sigma^2)*sens.err
+#       X3 <- (1/sigma)*sens.err
+#       
+#       hessian <- 2 * t(X1) %*% X1 #+ 4 * t(X2) %*% X2 - 2 * t(X3) %*% X3
+#       
+#     }
+#     
+#     if (nrow(derivs.bloq) > 0 & nrow(derivs.err.bloq) > 0) {
+#       
+#       objvals.bloq <- -2*pnorm(-nout.bloq$weighted.residual, log.p = TRUE)
+#       obj.bloq <- sum(objvals.bloq)
+#       
+#       # Get sensitivities: sens = dres/dp, sens.err = dsigma/dp
+#       sens.bloq <- as.matrix(derivs.bloq[, -(1:2), drop = FALSE])
+#       sens.err.bloq <- as.matrix(derivs.err.bloq[, -(1:2), drop = FALSE])
+#       
+#       res <- nout.bloq$residual
+#       sigma <- nout.bloq$sigma
+#       
+#       LPhi <- pnorm(-nout.bloq$weighted.residual, log.p = TRUE)
+#       LG <- dnorm(-nout.bloq$weighted.residual, log = TRUE)
+#       G_divided_by_Phi <- exp(LG-LPhi)
+#       
+#       # Compute gradient
+#       grad.bloq <- as.vector(matrix(2*G_divided_by_Phi/sigma, nrow = 1) %*% sens.bloq) -
+#         as.vector(matrix(2*G_divided_by_Phi*res/(sigma^2), nrow = 1) %*% sens.err.bloq)
+#       names(grad.bloq) <- colnames(sens.bloq)
+#       
+#       # Compute hessian
+#       X <- -(1/sigma)*sens.bloq + (res/sigma^2)*sens.err.bloq
+#       X1 <- (2*G_divided_by_Phi^2)*X
+#       X2 <- (2*G_divided_by_Phi*res/(sigma))*X
+#       
+#       hessian.bloq <- t(X1) %*% X  - t(X2) %*% X 
+#       
+#       obj <- obj + obj.bloq
+#       if (is.null(grad) & is.null(hessian)) {
+#         grad <- grad.bloq
+#         hessian <- hessian.bloq
+#       } else {
+#         grad <- grad + grad.bloq
+#         hessian <- hessian + hessian.bloq
+#       }
+#       
+#     }
+#     
+#     
+#   }
+#   
+#   
+#   objlist(value = obj, gradient = grad, hessian = hessian)
+#   
+# }
 
 
 ## Methods for class objlist ------------------------------------------------
