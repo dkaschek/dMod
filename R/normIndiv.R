@@ -442,7 +442,9 @@ rename_objlist <- function(myobjlist, condition, est.grid) {
 
 #' Create an objlist with zeros as entries
 #' @param pars named vector. Only names and length are used
-#' @example init_empty_objlist(setNames(rnorm(5), letters[1:5]))
+#' @param deriv TRUE or FALSE
+#' @examples
+#' init_empty_objlist(setNames(rnorm(5), letters[1:5]))
 init_empty_objlist <- function(pars, deriv = TRUE) {
   
   if (!deriv)

@@ -7,7 +7,9 @@
 check_cond(conditional, condition.grid)
 }
 \arguments{
-\item{condition.grid}{}
+\item{conditional}{see \link{normL2}}
+
+\item{condition.grid}{condition.grid from data}
 }
 \description{
 Do some consistency checks on conditional and condition.grid

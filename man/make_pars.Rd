@@ -7,13 +7,22 @@
 make_pars(parsouter, fixedouter, condition, est.grid, fixed.grid)
 }
 \arguments{
-\item{est.grid}{}
+\item{parsouter, fixedouter}{Arguments which are passed to the function returned by \link{normIndiv}}
+
+\item{condition}{The specific condition for which the parameters should be extracted}
+
+\item{est.grid, fixed.grid}{Lookup tables.}
 }
 \value{
-c(par0 = value)
+list(pars, fixed) to put into prd0
 }
 \description{
+From the outer individualized parsouter and fixedouter, get the generalized parsouter0, fixedouter0 to supply to prd0
+}
+\details{
 Catch the following two cases:
-* Entry in est.grid is NA                   => Parameter value present in fixed.grid
-* Parameter name not present in parsouter => Parameter value present in fixed_outer
+\itemize{
+\item Entry in est.grid is NA                 => Parameter value present in fixed.grid
+\item Parameter name not present in parsouter => Parameter value present in fixed_outer
+}
 }
