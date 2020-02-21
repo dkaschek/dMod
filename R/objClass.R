@@ -817,7 +817,7 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
     }
     if (w == "hessian") {
       if (neither_included) return(add_matrix(add_matrix(matrix(0, length(union(gn1,gn2)),length(union(gn1,gn2)),
-                                                       dimnames = list(union(gn1,gn2), union(gn1,gn2)),
+                                                       dimnames = list(union(gn1,gn2), union(gn1,gn2))
                                                        ),v1),v2))
       if (one_includes_two) return(add_matrix(v1,v2))
       if (two_includes_one) return(add_matrix(v2,v1))
