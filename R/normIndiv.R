@@ -1,0 +1,923 @@
+#' Compare data and model prediction by computing residuals
+#'
+#' When sigma is given in the data, it always has priority over the sigma in the error model
+#'
+#' @param data data.frame with name (factor), time (numeric), value (numeric) and sigma (numeric)
+#' @param out output of ode(), optionally augmented with attributes
+#' "deriv" (output of ode() for the sensitivity equations) and
+#' "parameters" (character vector of parameter names, a subsest of those
+#' contained in the sensitivity equations). If "deriv" is given, also "parameters"
+#' needs to be given.
+#' @param err output of the error model function
+#' @return data.frame with the original data augmented by columns "prediction" (
+#' numeric, the model prediction), "residual" (numeric, difference between
+#' prediction and data value), "weighted.residual" (numeric, residual devided
+#' by sigma). If "deriv" was given, the returned data.frame has an
+#' attribute "deriv" (data.frame with the derivatives of the residuals with
+#' respect to the parameters).
+#' @export
+#' @author Daniel Lill, IntiQuan
+#' @family dMod interface
+#' @importFrom stats setNames
+res <- function(data, out, err = NULL) {
+  
+  # >>>> Differences to original res() function  <<<<<<<<<<< ----
+  # *  pars <- unique(unlist(lapply(strsplit(colnames(deriv)[-1], split = ".", fixed = TRUE), function(i) i[2])))
+  #   => disallows dots in parameter names
+  # * Always prefer data sigmas
+  # * In addition to weighted.residual also return weighted.0
+  
+  # Match with numeric tolerance
+  match.num <- function(x, y, tol = 1e-8) {
+    digits <- -log10(tol)
+    match(round(x, digits), round(y, digits))
+  }
+  
+  # .. 1 Preparations to match prediction values with data values ----#
+  data$name <- as.character(data$name)
+  # Unique times, names and parameter names
+  times <- sort(unique(data$time))
+  names <- unique(data$name)
+  # Match data times/names in unique times/names
+  data.time <- match.num(data$time, times)
+  data.name <- match(data$name, names)
+  # Match unique times/names in out times/names
+  out.time <- match.num(times, out[,1])
+  out.name <- match(names, colnames(out))
+  # Match data times/names in out times/names
+  timeIndex <- out.time[data.time]
+  nameIndex <- out.name[data.name]
+  prediction <- sapply(1:nrow(data), function(i) out[timeIndex[i], nameIndex[i]])
+  
+  
+  # .. Propagate derivatives if available ----#
+  deriv <- attr(out, "deriv")
+  deriv.data <- NULL
+  if (!is.null(deriv)) {
+    pars <- unique(unlist(lapply(strsplit(colnames(deriv)[-1], split = ".", fixed = TRUE), function(i) i[2])))
+    sensnames <- as.vector(outer(names, pars, paste, sep = "."))
+    # Match names to the corresponding sensitivities in sensnames
+    names.sensnames <- t(matrix(1:length(sensnames), nrow = length(names), ncol = length(pars)))
+    # Get positions of sensnames in colnames of deriv
+    sensnames.deriv <- match(sensnames, colnames(deriv))
+    # Get the columns in deriv corresponding to data names
+    derivnameIndex <- matrix(sensnames.deriv[names.sensnames[, data.name]], ncol = length(data.name))
+    # Derivatives of the prediction
+    deriv.prediction <- do.call(rbind, lapply(1:nrow(data), function(i) submatrix(deriv, timeIndex[i], derivnameIndex[, i])))
+    colnames(deriv.prediction) <- pars
+    
+    deriv.data <- data.frame(time = data$time, name = data$name, deriv.prediction)
+  }
+  
+  
+  # .. Modifications if error model is available ----#
+  # * There are six cases to consider
+  #   * 1 all(!is.na(data$sigma)) &  is.null(err)  --> only data$sigma counts
+  #   * 2 all(!is.na(data$sigma)) & !is.null(err)  --> only data$sigma counts
+  #   * 3 any_not_all(!is.na(data$sigma)) &  is.null(err)  --> invalid
+  #   * 4 any_not_all(!is.na(data$sigma)) & !is.null(err)  --> complicated
+  #   * 5 all(is.na(data$sigma)) &  is.null(err)  --> invalid
+  #   * 6 all(is.na(data$sigma)) & !is.null(err)  --> only err counts
+  
+  # .. Informative error message for cases 3 and 5 ----#
+  if (any(is.na(data$sigma)) & is.null(err))
+    stop("In data, some sigmas are NA and no errmodel exists for the respective condition. Please fix data$sigma or supply errmodel.")
+  
+  # [] validate that this does exactly what I want
+  # .. This index vector is used to identify candidates for replacing sigmas by errmodel-predictions ----#
+  sNAIndex <- is.na(data$sigma)
+  if (!any(sNAIndex))
+    err <- NULL # if all sigmas are present, err can be thrown away, since no results of it are used anyway
+  
+  if (!is.null(err)) {
+    time.err <- match.num(times, err[,1])
+    name.err <- match(names, colnames(err))
+    timeIndex <- time.err[data.time]
+    nameIndex <- name.err[data.name]
+    errprediction <- sapply(1:nrow(data), function(i) err[timeIndex[i], nameIndex[i]])
+    if (any(sNAIndex & is.na(errprediction)))
+      stop("errmodel predicts NA for some observables with is.na(data$sigma).")
+    data$sigma[sNAIndex] <- errprediction[sNAIndex]
+  }
+  
+  # .. Propagate derivatives of err model if available ----#
+  deriv.err <- attr(err, "deriv")
+  deriv.err.data <- NULL
+  if (!is.null(err) && !is.null(deriv.err)) {
+    
+    pars <- unique(unlist(lapply(strsplit(colnames(deriv.err)[-1], split = ".", fixed = TRUE), function(i) i[2])))
+    sensnames <- as.vector(outer(names, pars, paste, sep = "."))
+    # Match names to the corresponding sensitivities in sensnames
+    names.sensnames <- t(matrix(1:length(sensnames), nrow = length(names), ncol = length(pars)))
+    # Get positions of sensnames in colnames of deriv
+    sensnames.deriv <- match(sensnames, colnames(deriv.err))
+    # Get the columns in deriv corresponding to data names
+    derivnameIndex <- matrix(sensnames.deriv[names.sensnames[, data.name]], ncol = length(data.name))
+    # Derivatives of the prediction
+    deriv.prediction <- do.call(rbind, lapply(1:nrow(data), function(i) submatrix(deriv.err, timeIndex[i], derivnameIndex[, i])))
+    colnames(deriv.prediction) <- pars
+    deriv.prediction[is.na(deriv.prediction)] <- 0
+    
+    deriv.prediction[!sNAIndex, ] <- 0 # set the derivatives of unused error-predictions to zero.
+    
+    deriv.err.data <- data.frame(time = data$time, name = data$name, deriv.prediction)
+    
+  }
+  
+  # .. Set value to loq if below loq ----#
+  data$value <- pmax(data$value, data$lloq)
+  is.bloq <- data$value <= data$lloq
+  
+  # .. Compute residuals ----#
+  residuals <- prediction - data$value
+  weighted.residuals <- (prediction - data$value)/data$sigma
+  weighted.0 <- prediction/data$sigma
+  
+  data[["prediction"]] <- prediction
+  data[["residual"]] <- residuals
+  data[["weighted.residual"]] <- weighted.residuals
+  data[["weighted.0"]] <- weighted.0
+  data[["bloq"]] <- is.bloq
+  
+  # .. output ----#
+  objframe(data, deriv = deriv.data, deriv.err = deriv.err.data)
+  
+}
+
+
+objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
+  
+  # >>>> Difference to original objframe() <<<<<<<<<<< ----
+  # * weighted.0
+    
+  # Check column names
+  mydata <- as.data.frame(mydata)
+  correct.names <- c("time", "name", "value", "prediction",
+                     "sigma", "residual", "weighted.residual", "bloq", "weighted.0")
+  
+  ok <- all(correct.names %in% names(mydata))
+  if (!ok) stop("mydata does not have required names")
+  
+  out <- mydata[, correct.names]
+  attr(out, "deriv") <- deriv
+  attr(out, "deriv.err") <- deriv.err
+  class(out) <- c("objframe", "data.frame")
+  
+  return(out)
+}
+
+
+
+nll <- function(nout, pars, deriv) {
+  
+  # Split residuals into ALOQ and BLOQ
+  is.bloq   <- nout$bloq
+  nout.bloq <- nout[is.bloq, , drop = FALSE]
+  nout.aloq <- nout[!is.bloq, , drop = FALSE]
+  
+  # Handle derivs
+  derivs          <- attr(nout, "deriv")
+  derivs.bloq     <- derivs[is.bloq, , drop = FALSE]
+  derivs.aloq     <- derivs[!is.bloq, , drop = FALSE]
+  derivs.err      <- attr(nout, "deriv.err")
+  derivs.err.bloq <- derivs.err[is.bloq, , drop = FALSE]
+  derivs.err.aloq <- derivs.err[!is.bloq, , drop = FALSE]
+  
+  # Apply nll
+  mywrss <- init_empty_objlist(pars, deriv = deriv)
+  if (!all(is.bloq))
+    mywrss <- mywrss + nll_ALOQ(nout.aloq, derivs.aloq, derivs.err.aloq, opt.BLOQ = opt.BLOQ, opt.hessian = opt.hessian)
+  if (any(is.bloq) && (!opt.BLOQ == "M1"))
+    mywrss <- mywrss + nll_BLOQ(nout.bloq, derivs.bloq, derivs.err.bloq, opt.BLOQ = opt.BLOQ, opt.hessian = opt.hessian)
+  
+  wrss
+}
+
+
+
+#' Non-linear log likelihood for the ALOQ part of the data
+#' @md
+#' @param nout output of [res()]
+#' @param derivs,derivs.err attributes of output of [res()]
+#' @param opt.BLOQ Character denoting the method to deal with BLOQ data
+#' @param opt.hessian Named logical vector to include or exclude
+#'   various non-convex summands of the hessian matrix
+#' @importFrom stats pnorm dnorm
+nll_ALOQ <- function(nout,
+                          derivs,
+                          derivs.err,
+                          opt.BLOQ = c("M3", "M4NM", "M4BEAL", "M1"),
+                          opt.hessian = c(
+                            # ALOQ (Above limit of quantification): Three parts of the hessian which can be obtained with first order derivs
+                            ALOQ_part1 = TRUE,
+                            ALOQ_part2 = TRUE,
+                            ALOQ_part3 = TRUE
+                          )) {
+  
+  # opt.BLOQ: only M4BEAL changes something, all others are implicit, since they do not change anything in the ALOQ part
+  # opt.hessian ALOQ_part1-ALOQ_part3
+  
+  # .. Residual terms ----#
+  wr <- nout$weighted.residual
+  w0 <- nout$weighted.0
+  s  <- nout$sigma
+  
+  # .. Compute objective value ----#
+  obj <- sum(wr^2)
+  if (!is.null(derivs.err))
+    obj <- obj + sum(log(2*pi*s^2))
+  if (opt.BLOQ %in% "M4BEAL")
+    obj <- obj + 2 * sum(stats::pnorm(w0, log.p = TRUE))
+  
+  grad <- NULL
+  hessian <- NULL
+  if (!is.null(derivs) && nrow(derivs) > 0) {
+    # .. Sensitivities terms ----#
+    #   sens = dres/dp = dx/dp, sens.err = dsigma/dp
+    dxdp <- as.matrix(derivs[, -(1:2), drop = FALSE])
+    dsdp <- 0 * dxdp
+    if (!is.null(derivs.err))
+      dsdp <- as.matrix(derivs.err[, -(1:2), drop = FALSE])
+    dwrdp <- 1/s*dxdp - wr/s*dsdp
+    dw0dp <- 1/s*dxdp - w0/s*dsdp
+    dlogsdp <- (1/s)*dsdp # dlogsig.dp
+    G_by_Phi <- function(w) exp(stats::dnorm(w, log = TRUE)- stats::pnorm(w, log.p = TRUE))
+    # .. 2nd Sensitivity terms ----#
+    #   interaction terms of second derivative. d2adb2 means second derivative: d^2a/db^2
+    #   d2wrdp2 does not solely consist of second derivatives but via the prefactors also of some combinations of first order derivs.
+    # * These are the equations, but since we need to sum over residuals, they will be inserted directly
+    # d2wrdp2 <- - 1 / (s^2) * (dxdp * dsdp + dsdp * dxdp) +
+    #               2 * wr/(s^2) * dsdp * dsdp # - wr/s* d2sdp2 + 1/s * d2xdp2
+    
+    # .. Compute gradient ----#
+    grad <- as.vector(2*matrix(wr, nrow = 1) %*% dwrdp + 2*apply(dlogsdp,2, sum))
+    if (opt.BLOQ %in% "M4BEAL")
+      grad <- grad + as.vector((2 * matrix(G_by_Phi(w0), nrow = 1)) %*% (dw0dp))
+    names(grad) <- colnames(dxdp)
+    
+    # .. Compute hessian ----#
+    # >>>> All equations were double-checked, they should be fine. (Dont touch or read them, D2!) <<<<<<<<<<<
+    hessian <- matrix(0, nrow = ncol(dwrdp), ncol = ncol(dwrdp), dimnames = list(colnames(dwrdp), colnames(dwrdp)))
+    hessian <- hessian + 2 * t(dwrdp) %*% dwrdp # - 2 * t(dsig.dp) %*% dsig.dp # + 2. sens
+    
+    if (opt.hessian["ALOQ_part1"])  # "interaction"-terms of d2wrdp2
+      hessian <- hessian + 2 * (t(-wr/s^2 * dxdp) %*% dsdp + t(-wr/s^2 * dsdp) %*% dxdp) #slightly concave
+    if (opt.hessian["ALOQ_part2"])  # "interaction"-terms of d2wrdp2
+      hessian <- hessian + 2 * t(2 * wr^2/(s^2) * dsdp)%*%dsdp # + 2nd order derivs of logsig and wr
+    if (opt.hessian["ALOQ_part3"]) # The non-convex contribution by log(sigma)
+      hessian <- hessian - 2 * t(dlogsdp) %*% dlogsdp
+    
+    
+    if (opt.BLOQ %in% "M4BEAL") {
+      hessian <- hessian + 2 * t((-w0 * G_by_Phi(w0) - G_by_Phi(w0)^2) * dw0dp) %*% dw0dp # 1st order terms
+      hessian <- hessian + 2 * t(G_by_Phi(w0) * (-1)/(s^2) * dxdp ) %*% dsdp + 2 * t(G_by_Phi(w0) * (-1)/(s^2) * dsdp ) %*% dxdp # 2nd order terms
+      if (opt.hessian["ALOQ_part1"]) # The other term from second sensitivities of wr
+        hessian <- hessian + 2 * t(2 * G_by_Phi(w0) * w0/(s^2) * dsdp)%*%dsdp
+    }
+  }
+  
+  objlist(value = obj, gradient = grad, hessian = hessian)
+  
+}
+
+
+
+#' Non-linear log likelihood for the BLOQ part of the data
+#' @md
+#' @param nout.bloq The bloq output of [res()]
+#' @param derivs.bloq,derivs.err.bloq attributes of output of [res()]
+#' @param opt.BLOQ Character denoting the method to deal with BLOQ data
+#' @param opt.hessian Named logical vector to include or exclude
+#'   various summands of the hessian matrix
+#' @importFrom stats pnorm dnorm
+nll_BLOQ <- function(nout.bloq,
+                          derivs.bloq,
+                          derivs.err.bloq,
+                          opt.BLOQ = c("M3", "M4NM", "M4BEAL", "M1"),
+                          opt.hessian = c(
+                            BLOQ_part1 = TRUE,
+                            BLOQ_part2 = TRUE,
+                            BLOQ_part3 = TRUE
+                          )) {
+  
+  # .. Checks -----
+  if (opt.BLOQ %in% c("M4NM", "M4BEAL") & any(nout.bloq$value < 0))
+    stop("M4-Method cannot handle LLOQ < 0. Possible solutions:
+      * Use M3 which allows negative LLOQ (recommended)
+      * If you are working with log-transformed DV, exponentiate DV and LLOQ\n")
+  
+  # .. Residuals and sensitivities ----#
+  wr <- nout.bloq$weighted.residual
+  w0 <- nout.bloq$weighted.0
+  s  <- nout.bloq$sigma
+  
+  # .. Compute objective value ----#
+  if (opt.BLOQ == "M3"){
+    objvals.bloq <- -2*stats::pnorm(-wr, log.p = TRUE)
+  }
+  if (opt.BLOQ %in% c("M4NM", "M4BEAL")){
+    objvals.bloq <- -2*log(1 - stats::pnorm(wr) / stats::pnorm(w0))
+    # .... catch numerically problematic cases ----#
+    # The problematic region can be approximated by a parabola, intercept and linear coefficient depend on LOQ/s
+    intercept = ifelse(log(w0-wr) > 0, 1.8, -1.9 * log(w0-wr) +0.9)
+    lin = ifelse(log(w0-wr) > 0, 0.9, 0.5 )
+    objvals.bloq[!is.finite(objvals.bloq)] <-  (intercept + lin * w0 + 0.95 * w0^2)[!is.finite(objvals.bloq)]
+  }
+  
+  obj.bloq <- sum(objvals.bloq)
+  grad.bloq <- NULL
+  hessian.bloq <- NULL
+  
+  if (!is.null(derivs.bloq) && nrow(derivs.bloq) > 0){
+    # .. Sensitivities ----#
+    #   sens = dres/dp = dx/dp, sens.err = dsigma/dp = dsdp
+    dxdp <- as.matrix(derivs.bloq[, -(1:2), drop = FALSE])
+    dsdp <- 0 * dxdp
+    if (!is.null(derivs.err.bloq))
+      dsdp <- as.matrix(derivs.err.bloq[, -(1:2), drop = FALSE])
+    dwrdp <- 1/s*dxdp - wr/s*dsdp
+    dw0dp <- 1/s*dxdp - w0/s*dsdp
+    dlogsdp <- (1/s)*dsdp # dlogsig.dp
+    G_by_Phi <- function(w1, w2 = w1) exp(stats::dnorm(w1, log = TRUE) - stats::pnorm(w2, log.p = TRUE))
+    
+    # .. 2nd Sensitivities ----#
+    #   interaction terms of second derivative. d2adb2 means second derivative: d^2a/db^2
+    #   d2wrdp2 does not solely consist of second derivatives but via the prefactors also of some combinations of first order derivs.
+    # * These are the equations, but since we need to sum over residuals, they will be inserted directly
+    # d2wrdp2 <- - 1 / (s^2) * (dxdp * dsdp + dsdp * dxdp) +
+    #               2 * wr/(s^2) * dsdp * dsdp # - wr/s* d2sdp2 + 1/s * d2xdp2
+    
+    # .. Compute gradient ----#
+    if (opt.BLOQ == "M3"){
+      grad.bloq <- -2 * as.vector(matrix( G_by_Phi(-wr), nrow = 1) %*% (-dwrdp)) # minus sign of -2logLikelihood and -dwrdp cancel # [] clean this formula
+    }
+    if (opt.BLOQ %in% c("M4NM", "M4BEAL")){
+      grad.bloq <-             as.vector(matrix(2 / (1/G_by_Phi(wr,w0) - 1/G_by_Phi(wr,wr)), nrow = 1) %*% dwrdp)
+      grad.bloq <- grad.bloq - as.vector(matrix(2 / (1/G_by_Phi(w0,w0) - 1/G_by_Phi(w0,wr)), nrow = 1) %*% dw0dp)
+      grad.bloq <- grad.bloq + as.vector(matrix(2 * G_by_Phi(w0), nrow = 1) %*% dw0dp)
+    }
+    names(grad.bloq) <- colnames(dxdp)
+    
+    # .. Compute hessian ----
+    if (opt.BLOQ %in% "M3") {
+      hessian.bloq <- matrix(0, nrow = ncol(dxdp), ncol = ncol(dxdp), dimnames = list(colnames(dxdp), colnames(dxdp)))
+      if (opt.hessian["BLOQ_part1"])
+        hessian.bloq <- hessian.bloq + 2 * t((-wr * G_by_Phi(-wr) + G_by_Phi(-wr)^2) * dwrdp) %*% dwrdp # 1st order terms
+      if (opt.hessian["BLOQ_part2"]){
+        hessian.bloq <- hessian.bloq - 2 * t(G_by_Phi(-wr) * (+1)/(s^2) * dxdp) %*% dsdp # 2nd order terms (+1) because the original term of d2wrdp2 contains -1/s^2, so (d2-wrdp) contains +1/s^2
+        hessian.bloq <- hessian.bloq - 2 * t(G_by_Phi(-wr) * (+1)/(s^2) * dsdp) %*% dxdp
+      }
+      if (opt.hessian["BLOQ_part3"])
+        hessian.bloq <- hessian.bloq - 2 *  t(G_by_Phi(-wr) * (2 * (-wr))/(s^2) * dsdp)%*%dsdp
+    }
+    
+    # .. M4 hessian ----
+    if (opt.BLOQ %in% c("M4NM", "M4BEAL")) {
+      d_dp_sq <- function(A, w = wr, sign = 1) {
+        # @details This function performs the multiplication of A with quadratic first order derivs: A*t(dw/dp)%*%(dw/dp)
+        # @param A: sth to multiply the derivs with
+        # @param w weighted residual: practically choice between wr or w0
+        # @param sign: +1 or -1, e.g. in H(-2*LLBM3), wr appears as -wr, therefore, the minus signs have to be propagated correctly. (In A, however, everything has to specified by hand).
+        dwdp <- 1/s*dxdp - w/s*dsdp
+        out <- matrix(0, nrow = ncol(dxdp), ncol = ncol(dxdp), dimnames = list(colnames(dxdp), colnames(dxdp)))
+        out <- out + t(A * dwdp) %*% dwdp
+      }
+      d2_dp2 <- function(A, w = wr, sign = 1) {
+        # @details This function performs the multiplication of A with the second derivative terms: A*d^2w/dp^2
+        # @inheritParams d_dp_sq
+        out <- matrix(0, nrow = ncol(dxdp), ncol = ncol(dxdp), dimnames = list(colnames(dxdp), colnames(dxdp)))
+        out <- out + t(A * (-1*sign)/(s^2) * dxdp) %*% dsdp
+        out <- out + t(A * (-1*sign)/(s^2) * dsdp) %*% dxdp
+        out <- out + t(A * (2 * (w*sign))/(s^2) * dsdp) %*% dsdp
+      }
+      # In hessian(BM4), one often gets an expression G(w0 or wr)/(Phi(w0)-Phi(wr))
+      # This function is replaces numerically problematic regions by an approximation
+      # @params wn,w0,wr "Weighted residual Numerator/Denominator 1/2"
+      stable <- function(wn, w0, wr) {
+        
+        if(!(identical(wn, w0) | identical(wn, wr)))
+          stop("The first argument wn needs to be identical to either the second or third")
+        
+        out <- stats::dnorm(wn)/(stats::pnorm(w0)-stats::pnorm(wr))
+        # two possible cases with different asymptotics: wn == wd1 or wn == wd2
+        if (identical(wn, w0)){
+          out[is.infinite(out)] <- 0
+          return(out)
+        }
+        if (identical(wn, wr)){
+          out[is.infinite(out)] <- 1/(w0-wr) + wr # This formula was found out "by hand", I didn't really search for an analytic justification. If you want, you can try l'Hospitalizing it.
+          return(out)
+        }
+      }
+      
+      part1 <- d_dp_sq(-wr * stable(wr,w0,wr)) +
+        d2_dp2(stable(wr,w0,wr)) -
+        (d_dp_sq(-w0 * stable(w0,w0,wr), w = w0) +
+           d2_dp2(stable(w0,w0,wr), w = w0))
+      part1 <- 2 * part1
+      
+      part2 <- stable(wr,w0,wr) * dwrdp - stable(w0,w0,wr) * dw0dp
+      part2 <- -2 * t(part2) %*% part2
+      
+      part3 <- d_dp_sq(-w0 * G_by_Phi(w0) - (G_by_Phi(w0))^2, w = w0) + d2_dp2(G_by_Phi(w0), w = w0)
+      part3 <- 2 * part3
+      
+      hessian.bloq <- matrix(0, nrow = ncol(dxdp), ncol = ncol(dxdp), dimnames = list(colnames(dxdp), colnames(dxdp)))
+      if (opt.hessian["BLOQ_part1"])
+        hessian.bloq <- hessian.bloq + part1
+      if (opt.hessian["BLOQ_part2"])
+        hessian.bloq <- hessian.bloq + part2
+      if (opt.hessian["BLOQ_part3"])
+        hessian.bloq <- hessian.bloq + part3
+    }
+    # ..----
+  }
+  
+  out <- objlist(value = obj.bloq, gradient = grad.bloq, hessian = hessian.bloq)
+  return(out)
+}
+
+
+
+
+# 3. Renaming of gradient according to actual outer parameters ----
+
+# Create an objlist with zeros as entries
+# @param pars named vector. Only names and length are used
+# @example init_empty_objlist(setNames(rnorm(5), letters[1:5]))
+init_empty_objlist <- function(pars, deriv = TRUE) {
+  
+  if (!deriv)
+    return(dMod::objlist(0,NULL,NULL))
+  
+  dMod::objlist(value = 0,
+                gradient = setNames(rep(0, length(pars)), names(pars)),
+                hessian = matrix(0, nrow = length(pars), ncol = length(pars),
+                                 dimnames = list(names(pars), names(pars))))
+}
+
+
+# normIndiv ----
+
+#' Title
+#'
+#' @param data
+#' @param prd0
+#' @param errmodel
+#' @param forcings
+#' @param iiv c("ETA_EC50", "ETA_EMAX")
+#' @param conditional data.frame
+#' @param fixed.grid
+#' @param SIMOPT.nauxtimes
+#' @param SIMOPT.cores
+#' @param opt.method
+#' @param attr.name
+#'
+#' @return
+#' @export
+#'
+#' @examples
+normIndiv <- function(data,
+                      prd0,
+                      errmodel = NULL,
+                      forcings = NULL,
+                      iiv = NULL,
+                      conditional = NULL,
+                      fixed.grid,
+                      nauxtimes = 500,
+                      cores = 1,
+                      deriv = TRUE,
+                      attr.name = "data"
+) {
+  
+  # .. 1 Conditions ----- #
+  x.conditions <- names(fixed.grid)[-(1:2)]
+  e.conditions <- names(attr(errmodel, "mappings"))
+  prd0.conditions <- dMod::getConditions(prd0)
+  data.conditions <- names(data)
+  
+  
+  if (!all(data.conditions %in% x.conditions))
+    stop("The prediction function does not provide predictions for all conditions in the data.")
+  
+  cn_prd <- NULL
+  if (length(prd0.conditions) > 0) {
+    cn_prd <- prd0.conditions[1]
+    warning("prd0 contains named conditions. Only ", cn_prd, "will be used.\n",
+            "Preferably, use a general prediction function with no specific conditions.")
+  }
+  
+  # .. 2 Simulation times ----- #
+  timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))
+  timesD <- sort(union(timesD, seq(min(timesD), max(timesD), length.out = nauxtimes)))
+  
+  # .. 3 Optimization options ----- #
+  if (Sys.info()["sysname"] == "Windows" & cores > 1) {
+    warning("Parallelization of conditions on Windows not yet implemented. Unsing only 1 core.")
+    cores <- 1
+  }
+  # [] If more optizers come, one might want to define global variable with derivative-based/free optimizers
+  useDerivs <- deriv
+  
+  # .. 4 BLOQ options ----- #
+  opt.BLOQ = c("M3", "M4NM", "M4BEAL", "M1")
+  opt.hessian = c(
+    ALOQ_part1 = TRUE, ALOQ_part2 = TRUE, ALOQ_part3 = TRUE,
+    BLOQ_part1 = TRUE, BLOQ_part2 = TRUE, BLOQ_part3 = TRUE,
+    PD = TRUE  # enforce Hessian to be positive semidefinite, by setting nearest negative eigenvalues to zero
+  )
+  
+  # .. 5 Construct est.grid ----- #
+  est.grid <- build_est.grid(prd0 = prd0, fixed.grid = fixed.grid, conditional = conditional, condition.grid = attr(data, "condition.grid"), iiv = iiv)
+  parameters <- getParameters_est.grid(est.grid)
+  
+  # .. 6 Controls ----- #
+  controls <- list(timesD = timesD, attr.name = attr.name,
+                   conditions = x.conditions,
+                   opt.BLOQ = opt.BLOQ, opt.hessian = opt.hessian)
+  
+  # -------------------------------------------------------------------------#
+  # Objective Function ---- #
+  # -------------------------------------------------------------------------#
+  myfn <- function(...,
+                     fixed = NULL,
+                     deriv=useDerivs,
+                     conditions = controls$conditions,
+                     # env = NULL,
+                     opt.BLOQ    = controls$opt.BLOQ,
+                     opt.hessian = controls$opt.hessian,
+                     returnResiduals = FALSE) {
+    
+    # .. 1 BLOQ options ----- #
+    opt.hessian <- c(opt.hessian, controls$opt.hessian[setdiff(names(controls$opt.hessian), names(opt.hessian))])
+    opt.BLOQ    <- opt.BLOQ[1]
+    
+    # .. 2 Passed parameters ----- #
+    arglist    <- list(...)
+    arglist    <- arglist[dMod::match.fnargs(arglist, "pars")]
+    parsouter  <- arglist[[1]]
+    fixedouter <- fixed
+    
+    if (!is.null(attr(parsouter, "deriv"))){
+      parsouter <- unclass(parsouter)
+      attr(parsouter, "deriv") <- NULL
+      # TODO
+      # Implement chain rule for this function to allow function concatenation with to the right:
+      # obj_indiv*p(pars) does not work
+      # warning("The 'deriv' attribute of the pars-argument to obj_data has been set to NULL")
+    }
+    
+    # .. 3 Evaluate norm ----- #
+    outlist <- parallel::mclapply(conditions, function(cn) {
+      # outlist <- lapply(conditions, function(cn) {
+      
+      # .... 1 Parameters ------ #
+      # Fill general pars with individual values
+      dummy  <- make_pars(parsouter = parsouter, fixedouter = fixedouter, condition = cn, est.grid = est.grid,  fixed.grid = fixed.grid)
+      pars0  <- dummy$pars
+      fixed0 <- dummy$fixed
+      
+      
+      # .... 2 Prediction ------ #
+      prediction <- prd0(times = controls$timesD, pars = pars0, fixed = fixed0, deriv = deriv, conditions = cn_prd)
+      
+      if (nrow(prediction[[1]]) < length(timesD))
+        warning("Integrator has problems reaching tmax. Try increasing nauxtimes")
+      
+      
+      # .... 3 Calculate residuals ------ #
+      
+      # Skip condition if the data does not provide any observation for the prediction of the prd function.
+      if (length(intersect(data[[cn]][["name"]], colnames(prediction[[1]]))) == 0){
+        mywrss <- dMod_init_empty_objlist(pars0, deriv = deriv)
+        mywrss <- rename_objlist(mywrss, cn, est.grid)
+        return(mywrss)
+      }
+      err <- NULL
+      if (!is.null(errmodel) && (is.null(e.conditions) | (cn %in% e.conditions)))
+        err <- errmodel(out = prediction[[1]], pars = dMod::getParameters(prediction[[1]]), conditions = cn) 
+      nout <- dMod_res(data[[cn]], prediction[[1]], err[[cn]])
+      mywrss <- nll(nout = nout, pars = pars0, deriv = deriv)
+      # .... 4 Rename general parnames into individual parnames ------ #
+      mywrss <- rename_objlist(mywrss, cn, est.grid)
+      if (returnResiduals) attr(mywrss, "residuals") <- cbind(condition = cn, nout)
+      return(mywrss)
+      # })
+    }, mc.cores = cores)
+    
+    # Remove list elements which could not be evaluated
+    failed <- vapply(outlist, is.character, FUN.VALUE = FALSE)
+    if (any(failed))
+      warning("Objective function could not be evaluated for conditions", paste0(conditions[failed], collapse = ", "))
+    outlist <- outlist[!failed]
+    if (length(outlist) == 0)
+      stop("Objective function could not be evaluated for any of the conditions.")
+    
+    # Extract values, gradients and hessians
+    values    <- lapply(outlist, function(x) x[["value"]]+1e6*sum(failed))
+    gradients <- lapply(outlist, function(x) x[["gradient"]])
+    hessians  <- lapply(outlist, function(x) x[["hessian"]])
+    residuals <- do.call(rbind, lapply(outlist, function(x) attr(x, "residuals")))
+    
+    # Generate output list with combined value, gradient and hessian
+    out <- dMod_init_empty_objlist(parsouter, deriv = deriv)
+    out[["value"]] <- Reduce("+", values)
+    if (deriv) {
+      for (grad in gradients) out$gradient[names(grad)]                 <- out$gradient[names(grad)] + grad
+      for (hes in hessians)   out$hessian[rownames(hes), colnames(hes)] <- out$hessian[rownames(hes), colnames(hes)] + hes
+    }
+    
+    
+    nearPD2 <- function (x, corr = FALSE){
+      # Ensure symmetry
+      X <- 0.5*(x+t(x))
+      # Eigenvalue decomposition
+      e <- eigen(X)
+      # Determine eigenvalues
+      # If all >0 then do nothing
+      # If minimum smaller than -1e-4 then do nothing
+      # If minimum larger than -1e-4 then do the algorithm
+      eV <- e$values
+      if (min(eV) > 0) return(X)
+      # Adjust negative eigenvalues to 0
+      eV[eV<0] <- 0
+      Xout <- e$vectors %*% diag(eV) %*% ginv(e$vectors)
+      if (corr) diag(Xout) <- 1
+      return(Xout)
+    }
+    
+    if (opt.hessian["PD"] & deriv) {
+      dn <- dimnames(out$hessian)
+      out$hessian <- nearPD2(out$hessian)
+      dimnames(out$hessian) <- dn
+    }
+    
+    # Combine contributions and attach attributes
+    attr(out, controls$attr.name) <- out$value
+    
+    # Add residuals if available
+    out[["residuals"]] <- residuals
+    
+    return(out)
+  }
+  
+  
+  # -------------------------------------------------------------------------#
+  # Other Indiv functions ---- #
+  # -------------------------------------------------------------------------#
+  myparfn <- Reduce("+", lapply(controls$conditions, function(cn) {
+    parfn(
+      p2p = function(pars, fixed, deriv) {
+        dummy <- make_pars(parsouter = pars, fixedouter = fixed, condition = cn, est.grid = est.grid,  fixed.grid = fixed.grid)
+        pars0  <- dummy$pars
+        fixed0 <- dummy$fixed
+        as.parvec(c(pars0, fixed0))
+      },
+      parameters = parameters,
+      condition = cn
+    )
+  }))
+  
+  class(myfn) <- c("objfn", "fn")
+  attr(myfn, "conditions") <- data.conditions
+  attr(myfn, "parameters") <- parameters
+  attr(myfn, "modelname")  <- dMod::modelname(prd0, errmodel)
+  attr(myfn, "p_indiv")    <- myparfn
+  
+  return(myfn)
+  
+  
+}
+
+
+#' Build the est.grid from prd, fixed.grid, conditional and condition.grid
+#'
+#' Performs indiviudalization and localization of parameters
+#'
+#' @param prd0 prdfn for 1 condition. Extracts parameters via dMod::getParameters
+#' @param fixed.grid As specified in template_project_sysfit.R: data.frame(parname, partask, ids...)
+#' @param conditional As specified in template_project_sysfit.R: data.frame(parname, covname, covvalue)
+#' @param condition.grid from datalist
+#'
+#' @return est.grid data.frame(parname, ids...)
+#' @export
+#'
+#' @examples
+#' prd0 <- dMod::P(c(a = "exp(a + ETA_a)", "b" = "b", d = "d"))
+#' fixed.grid <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = 1, "2" = NA, "3" = NA, stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
+#' conditional <- data.frame(parname = c("b", "b", "d"), covname = "SEX", covvalue = c("male", "female", "male"), stringsAsFactors = FALSE)
+#' condition.grid <- data.frame(ID = 1:3, SEX = c("female", "male", "male"), stringsAsFactors = FALSE)
+#' iiv <- "ETA_a"
+#' build_est.grid(prd0, fixed.grid, conditional, condition.grid, iiv)
+build_est.grid <- function(prd0, fixed.grid, conditional, condition.grid, iiv = NULL) {
+  # [] unit test?
+  check_cond(conditional, condition.grid)
+  
+  parameters     <- dMod::getParameters(prd0)
+  parameters_est <- setdiff(parameters, fixed.grid$parname)
+  parameters_est <- union(parameters_est, conditional$parname)
+  ids            <- condition.grid$condition
+  
+  est.grid <- matrix(parameters_est, nrow = length(parameters_est), ncol = nrow(condition.grid), dimnames = list(parameters_est, ids))
+  # 1 ETAs - iiv
+  if (length(iiv))
+    est.grid[iiv,] <- matrix(paste0(t(est.grid[iiv,,drop = FALSE]), "_", ids), ncol = length(ids), byrow = TRUE)
+  # 2 LOCmodel
+  if (length(conditional$parname)){
+    for (x in seq_along(conditional$parname)) {
+      # 1 Replace est pars by localized pars
+      cn      <- conditional[x,, drop = FALSE]
+      ids_est <- as.character(condition.grid$ID[condition.grid[[cn$covname]] == cn$covvalue])
+      est.grid[cn$parname,ids_est] <- paste0(est.grid[cn$parname,ids_est], "_", cn$covvalue)
+      
+      if (length(intersect(cn$parname, fixed.grid$parname))){
+        # 2 Replace fixed localized pars by NA
+        ids_fix <- vapply(fixed.grid[fixed.grid$parname == cn$parname, -c(1:2)], function(y) !is.na(y), TRUE)
+        ids_fix <- names(ids_fix)[ids_fix]
+        est.grid[cn$parname,ids_fix] <- NA
+      }
+    }
+  }
+  # 3 Output data.frame
+  # [] Handle partask properly
+  est.grid <- cbind(data.frame(parname = parameters_est, partask = parameters_est, stringsAsFactors = FALSE),
+                    est.grid, stringsAsFactors = FALSE)
+  rownames(est.grid) <- NULL
+  
+  check_grids(fixed.grid, est.grid)
+  
+  est.grid
+}
+
+
+#' Do some consistency checks on conditional and condition.grid
+#'
+#' @param conditional
+#' @param condition.grid
+#'
+#' @return
+#' @export
+#'
+#' @examples
+check_cond <- function(conditional, condition.grid) {
+  if (length(setdiff(conditional$covname, names(condition.grid))))
+    stop("The following covariates to individualize parameters are not available: ", paste0(setdiff(conditional$covname, names(condition.grid)), collapse = ", "))
+  
+  cov_values <- unique(unlist(condition.grid[conditional$covname], use.names = FALSE))
+  if (length(setdiff(conditional$covvalue, cov_values)))
+    stop("The following covariate values to individualize parameters are not available: ", paste0(setdiff(conditional$covvalue, cov_values), collapse = ", "))
+}
+
+
+
+#' Some consistency checks for fixed.grid and est.grid
+#'
+#' * Checks for localized parameters appearing in both grids that exactly one NA is in either of the grids
+#' * More to come ...
+#'
+#' @param fixed.grid,est.grid data.frame(parname, partask, ids...)
+#'
+#' @return TRUE: All tests passed, else an error is thrown
+#' @export
+#'
+#' @examples
+#' fg <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = 1, "2" = NA, "3" = NA, stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
+#' eg_good <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = NA, "2" = "dummy", "3" = "dummy", stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
+#' eg_bad1 <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = NA, "2" = NA, "3" = "dummy", stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
+#' eg_bad2 <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = "dummy", "2" = "dummy", "3" = "dummy", stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
+#'
+#' check_grids(fg, eg_good)
+#' check_grids(fg, eg_bad1)
+#' check_grids(fg, eg_bad2)
+check_grids <- function(fixed.grid, est.grid) {
+  # [] unit test?
+  par_overlap <- intersect(fixed.grid$parname, est.grid$parname)
+  if (length(par_overlap)){
+    # NA in both grids
+    both_na_check <- lapply(stats::setNames(nm = par_overlap), function(x) {
+      f <- fixed.grid[fixed.grid$parname == x, -(1:2)]
+      e <- est.grid[est.grid$parname == x, -(1:2)]
+      two_nas <- c(names(f)[is.na(f)], names(e)[is.na(e)])
+      two_nas[duplicated(two_nas)]
+    })
+    both_na_check <- do.call(c, both_na_check)
+    if (length(both_na_check)) stop("Parameter is NA in both fixed.grid and est.grid. The following parameters and conditions are affected", "\n", "\n", deparse(both_na_check))
+    
+    # Not NA in both grids
+    none_na_check <- lapply(stats::setNames(nm = par_overlap), function(x) {
+      f <- fixed.grid[fixed.grid$parname == x, -(1:2)]
+      e <- est.grid[est.grid$parname == x, -(1:2)]
+      no_nas <- c(names(f)[!is.na(f)], names(e)[!is.na(e)])
+      no_nas[duplicated(no_nas)]
+    })
+    none_na_check <- do.call(c, none_na_check)
+    if (length(none_na_check)) stop("Parameter is not NA in both fixed.grid and est.grid. The following parameters and conditions affected", "\n", "\n", deparse(none_na_check))
+  }
+}
+
+#' Extract parameter names from est.grid
+#'
+#' @param est.grid data.frame(parname, partask, ids...)
+#'
+#' @return character of outer parameter names
+#' @export
+#'
+#' @examples
+#' eg_good <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = NA, "2" = "dummy", "3" = "dummy", stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
+#' getParameters_est.grid(eg_good)
+getParameters_est.grid <- function(est.grid) {
+  # [] unit test?
+  parameters <- unique(unlist(est.grid[-(1:2)], use.names = FALSE))
+  parameters <- parameters[!is.na(parameters)]
+  parameters <- sort(parameters)
+  parameters
+}
+
+
+
+#' Extract individualized parameters for one ID
+#'
+#' Catch the following two cases:
+#' * Entry in est.grid is NA                   => Parameter value present in fixed.grid
+#' * Parameter name not present in parsouter => Parameter value present in fixed_outer
+#'
+#' @param parsouter
+#' @param condition
+#' @param est.grid
+#'
+#' @return c(par0 = value)
+#' @export
+#'
+#' @importFrom stats setNames
+#'
+#' @examples
+make_pars <- function(parsouter, fixedouter, condition, est.grid,  fixed.grid) {
+  
+  # []  unit tests?
+  
+  # 1 Generate lookup for outer parameters
+  outer_lookup <- stats::setNames(est.grid[[condition]], est.grid[["parname"]])
+  outer_lookup <- outer_lookup[!is.na(outer_lookup)]
+  
+  # 2 Generate vector of all supplied "outer pars" to look things up
+  outer.vec <- c(parsouter, fixedouter)
+  
+  # 3.1 Look up est parameters
+  pars_lookup <- outer_lookup[outer_lookup %in% names(parsouter)]
+  pars0 <- NULL
+  if (length(pars_lookup))
+    pars0 <- stats::setNames(parsouter[pars_lookup], names(pars_lookup))
+  
+  # 3.2 Look up fixed parameters
+  fixed_lookup <- outer_lookup[outer_lookup %in% names(fixedouter)]
+  fixedouter <- NULL
+  if (length(fixed_lookup))
+    fixedouter <- stats::setNames(fixedouter[fixed_lookup], names(fixed_lookup))
+  
+  # 4 Get fixed parameters from fixed.grid and combine with fixedouter
+  fixed0 <- NULL
+  if (nrow(fixed.grid)){
+    fixed0 <- stats::setNames(fixed.grid[[condition]], fixed.grid[["parname"]])
+    fixed0 <- fixed0[!is.na(fixed0)]
+  }
+  fixed0 <- c(fixed0, fixedouter)
+  
+  # 5 Output
+  list(pars = pars0, fixed = fixed0)
+}
+
+
+
+#' Rename the derivatives of an objective function according to a lookup table
+#'
+#' @param myobjlist dMod objective list
+#' @param condition a specific condition (ID)
+#' @param est.grid  estimation grid
+#'
+#' @return objective list
+#'
+#'
+#' @author Daniel Lill
+rename_objlist <- function(myobjlist, condition, est.grid) {
+  est_lookup <- stats::setNames(est.grid[[condition]], est.grid[["parname"]])
+  
+  if (!is.null(myobjlist$gradient)){
+    grad_names <- stats::setNames(names(myobjlist$gradient), names(myobjlist$gradient))
+    
+    est_lookup_used <- names(est_lookup)[names(est_lookup) %in% grad_names]
+    grad_names[est_lookup_used] <- est_lookup[est_lookup_used]
+    
+    names(myobjlist$gradient) <- grad_names
+  }
+  if (!is.null(myobjlist$hessian))
+    dimnames(myobjlist$hessian) <- list(grad_names, grad_names)
+  
+  return(myobjlist)
+}
+
+
+
+
+
+
+

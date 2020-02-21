@@ -1,0 +1,2 @@
+* in res(), when pars are taken from derivs, they are first strsplit by ".", then repasted. However, the current implementation only skips the first element, not allowing for dots in the observables
+    * Eaxmple: obs1.ka works, but not obs1.cn1.ka
