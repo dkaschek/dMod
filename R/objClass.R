@@ -106,6 +106,20 @@ constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, fixed=NULL) {
 #' function makes use of events, hand over event \code{times} here.
 #' @param attr.name character. The constraint value is additionally returned in an 
 #' attributed with this name
+#' 
+#' 
+#' @param forcings TO BE FILLED BY DANIEL K
+#' @param iiv Example: c("ka", "ETA_EMAX"). \cr 
+#'   Vector with names which are individualized per condition
+#' @param conditional Example: data.frame(parname = "GR", covname = "SEX", covvalue = "1", stringsAsFactors = FALSE).\cr
+#'   * covname can relate to any parameter in the condition.grid of the data. \cr
+#'   * covvalue is the value of this variable to use for individualization
+#'
+#' @param fixed.grid data.frame(parname, partask, ids...) Lookup table for fixed parameters
+#' @param nauxtimes additional simulation times
+#' @param cores to parallelize over conditions not over fits
+#' 
+#' 
 #' @return Object of class \code{obsfn}, i.e. a function 
 #' \code{obj(..., fixed, deriv, conditions, env)} that returns an objective list,
 #' \link{objlist}.
