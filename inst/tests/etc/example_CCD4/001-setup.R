@@ -1,3 +1,12 @@
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ----
+# >>>> TO BE REMOVED <<<<<<<< ----
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> ----
+# This file was to perform some manual checks that I didn't break anything while 
+#   updating the nll and normL2 function when I ported the stuff back from IQRtools. 
+# I just leave it here for completeness at the moment.
+
+
+
 # publised in https://www.ncbi.nlm.nih.gov/pubmed/27811075
 # D2D: transferred to D2D exmple models, named bruno
 # simple model, sort of A -> B -> C
