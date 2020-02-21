@@ -2,8 +2,6 @@
 # D2D: transferred to D2D exmple models, named bruno
 # simple model, sort of A -> B -> C
 # no error model fitting
-
-setwd(tempdir())
 ## Model Definition ------------------------------------------------------
 
 # Read in model csv
@@ -182,75 +180,5 @@ ini <- c(ini, errpars)
 # Prediction  
 prediction <- (g*x*p)(c(times, seq(130,210, length.out = 10)), ini, conditions = conditions)
 
-# -------------------------------------------------------------------------#
-# 1 Write expectations ----
-# -------------------------------------------------------------------------#
-# .. 1 normal -----
-# .... 1 Objective function ------
-saveRDS(obj(ini), "011-objResult.rds")
-# .... 2 Res ------
-resResult <- lapply(setNames(nm = conditions), function(cn) {
-  res(data[[cn]], prediction[[cn]])
-})
-saveRDS(resResult, "012-resResult.rds")
-# .... 3 wrss ------
-saveRDS(lapply(resResult,wrss), "013-wrss.rds")
 
-
-# .. 2 error model -----
-# .... 1 res with error model ------
-resResult <- lapply(setNames(nm = conditions), function(cn) {
-  err <- e(prediction[[cn]], ini)
-  res(data[[cn]], prediction[[cn]], err[[1]])
-})
-saveRDS(resResult, "022-resResultErrpars.rds")
-# .... 2 nll ------
-saveRDS(lapply(resResult,nll), "023-wrss.rds")
-
-# .. 3 error model, delete sigma first -----
-# .... 1 res with error model ------
-mydata <- as.datalist(lapply(data, function(x) {x$sigma = NA;x}))
-resResult <- lapply(setNames(nm = conditions), function(cn) {
-  err <- e(prediction[[cn]], ini)
-  res(mydata[[cn]], prediction[[cn]], err[[1]])
-})
-saveRDS(resResult, "032-resResultErrpars.rds")
-# .... 2 nll ------
-saveRDS(lapply(resResult,nll), "033-wrss.rds")
-
-# .. 4 Data with LLOQ, sigma from data -----
-mydata <- as.datalist(lapply(data, function(x) {x$lloq = median(x$value);x}))
-resResult <- lapply(setNames(nm = conditions), function(cn) {
-  # err <- e(prediction[[cn]], ini)
-  err <- NULL
-  res(mydata[[cn]], prediction[[cn]], err[[1]])
-})
-saveRDS(resResult, "042-resResultErrpars.rds")
-# .... 2 wrss ------
-saveRDS(lapply(resResult,wrss), "043-wrss.rds")
-
-# .. 5 Data with LLOQ, sigma from errorModel -----
-mydata <- as.datalist(lapply(data, function(x) {x$lloq = median(x$value);x}))
-resResult <- lapply(setNames(nm = conditions), function(cn) {
-  err <- e(prediction[[cn]], ini)
-  res(mydata[[cn]], prediction[[cn]], err[[1]])
-})
-saveRDS(resResult, "052-resResultErrpars.rds")
-# .... 2 nll ------
-saveRDS(lapply(resResult,nll), "053-wrss.rds")
-
-
-
-# .. 6 Data with LLOQ, delete sigma first -----
-mydata <- as.datalist(lapply(data, function(x) {x$lloq = median(x$value);x$sigma = NA;x}))
-resResult <- lapply(setNames(nm = conditions), function(cn) {
-  err <- e(prediction[[cn]], ini)
-  res(mydata[[cn]], prediction[[cn]], err[[1]])
-})
-saveRDS(resResult, "062-resResultErrpars.rds")
-# .... 2 nll ------
-saveRDS(lapply(resResult,nll), "063-wrss.rds")
-
-
-# >>>> CONTINUE HERE: Save all files and also write out "mydata" each time. Then, set up the tests <<<<<<<<<<< ----
 
