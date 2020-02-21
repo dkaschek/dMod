@@ -580,89 +580,6 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
 }
 
 
-# #' Compute the weighted residual sum of squares
-# #' 
-# #' @param nout data.frame (result of \link{res}) or object of class \link{objframe}.
-# #' @return list with entries value (numeric, the weighted residual sum of squares), 
-# #' gradient (numeric, gradient) and 
-# #' hessian (matrix of type numeric).
-# #' @export
-# wrss <- function(nout) {
-#   
-#   # Extract BLOQ part from nout
-#   is.bloq <- nout$bloq
-#   nout.bloq <- nout[is.bloq, , drop = FALSE]
-#   
-#   # Drop BLOQ part from nout
-#   nout <- nout[!is.bloq, , drop = FALSE]
-#   obj <- sum(nout$weighted.residual^2) 
-#   
-#   grad <- NULL
-#   hessian <- NULL
-#   derivs <- attr(nout, "deriv")
-#   if (!is.null(derivs)) {
-#     
-#     # Extract BLOQ part from derivs
-#     derivs.bloq <- derivs[is.bloq, , drop = FALSE]
-#     # Drop BLOQ part from derivs
-#     derivs <- derivs[!is.bloq, , drop = FALSE]
-#     
-#     if (nrow(derivs) > 0) {
-#       
-#       nout$sigma[is.na(nout$sigma)] <- 1 #replace by neutral element
-#       sens <- as.matrix(derivs[, -(1:2), drop = FALSE])
-#       
-#       res <- nout$residual
-#       sigma <- nout$sigma
-#       
-#       grad <- as.vector(2*matrix(res/sigma^2, nrow = 1) %*% sens)
-#       names(grad) <- colnames(sens)
-#       hessian <- 2*t(sens/sigma) %*% (sens/sigma) # + 2. sens
-#       
-#     }
-#     
-#     if (nrow(derivs.bloq) > 0) {
-#       
-#       objvals.bloq <- -2*pnorm(-nout.bloq$weighted.residual, log.p = TRUE)
-#       obj.bloq <- sum(objvals.bloq)
-#       
-#       nout.bloq[is.na(nout.bloq$sigma)] <- 1
-#       sens.bloq <- as.matrix(derivs.bloq[, -(1:2), drop = FALSE])
-#       
-#       res <- nout.bloq$residual
-#       sigma <- nout.bloq$sigma
-#       
-#       LPhi <- pnorm(-nout.bloq$weighted.residual, log.p = TRUE)
-#       LG <- dnorm(-nout.bloq$weighted.residual, log = TRUE)
-#       G_divided_by_Phi <- exp(LG-LPhi)
-#       
-#       grad.bloq <- as.vector(matrix(2 * G_divided_by_Phi/(sigma), nrow = 1) %*% sens.bloq)
-#       names(grad.bloq) <- colnames(sens.bloq)
-#       
-#       X1 <- sens.bloq*(G_divided_by_Phi/(sigma))^2
-#       X2 <- sens.bloq*(res*G_divided_by_Phi/(sigma^3))
-#       hessian.bloq <- 2 * t(X1) %*% sens.bloq - 2 * t(X2) %*% sens.bloq  # + 2. sens
-#       
-#       
-#       obj <- obj + obj.bloq
-#       if (is.null(grad) & is.null(hessian)) {
-#         grad <- grad.bloq
-#         hessian <- hessian.bloq
-#       } else {
-#         grad <- grad + grad.bloq
-#         hessian <- hessian + hessian.bloq
-#       }
-#       
-#     }
-#     
-#   }
-#   
-#   
-#   objlist(value = obj, gradient = grad, hessian = hessian)
-#   
-# }
-
-
 #' Compute the negative log-likelihood
 #' 
 #' Gaussian Log-likelihood. Supports NONMEM-like BLOQ handling methods M1, M3 and M4 and estimation of error models
@@ -682,7 +599,7 @@ nll <- function(nout, pars, deriv, opt.BLOQ = "M3", opt.hessian = c(
   ALOQ_part1 = TRUE, ALOQ_part2 = TRUE, ALOQ_part3 = TRUE,
   BLOQ_part1 = TRUE, BLOQ_part2 = TRUE, BLOQ_part3 = TRUE,
   PD = TRUE  # enforce Hessian to be positive semidefinite, by setting nearest negative eigenvalues to zero
-)) {
+  )) {
   
   # Split residuals into ALOQ and BLOQ
   is.bloq   <- nout$bloq

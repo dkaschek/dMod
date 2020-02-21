@@ -1,26 +1,4 @@
 
-
-
-
-
-
-# 3. Renaming of gradient according to actual outer parameters ----
-
-# Create an objlist with zeros as entries
-# @param pars named vector. Only names and length are used
-# @example init_empty_objlist(setNames(rnorm(5), letters[1:5]))
-init_empty_objlist <- function(pars, deriv = TRUE) {
-  
-  if (!deriv)
-    return(dMod::objlist(0,NULL,NULL))
-  
-  dMod::objlist(value = 0,
-                gradient = setNames(rep(0, length(pars)), names(pars)),
-                hessian = matrix(0, nrow = length(pars), ncol = length(pars),
-                                 dimnames = list(names(pars), names(pars))))
-}
-
-
 # normIndiv ----
 
 #' @export
@@ -238,6 +216,8 @@ normIndiv <- function(data,
 }
 
 
+# Grid-related functions ----
+
 #' Build the est.grid from prd, fixed.grid, conditional and condition.grid
 #'
 #' Performs indiviudalization and localization of parameters
@@ -248,7 +228,6 @@ normIndiv <- function(data,
 #' @param condition.grid from datalist
 #'
 #' @return est.grid data.frame(parname, ids...)
-#' @export
 #'
 #' @examples
 #' prd0 <- dMod::P(c(a = "exp(a + ETA_a)", "b" = "b", d = "d"))
@@ -298,71 +277,6 @@ build_est.grid <- function(prd0, fixed.grid, conditional, condition.grid, iiv = 
 }
 
 
-#' Do some consistency checks on conditional and condition.grid
-#'
-#' @param conditional
-#' @param condition.grid
-#'
-#' @return
-#' @export
-#'
-#' @examples
-check_cond <- function(conditional, condition.grid) {
-  if (length(setdiff(conditional$covname, names(condition.grid))))
-    stop("The following covariates to individualize parameters are not available: ", paste0(setdiff(conditional$covname, names(condition.grid)), collapse = ", "))
-  
-  cov_values <- unique(unlist(condition.grid[conditional$covname], use.names = FALSE))
-  if (length(setdiff(conditional$covvalue, cov_values)))
-    stop("The following covariate values to individualize parameters are not available: ", paste0(setdiff(conditional$covvalue, cov_values), collapse = ", "))
-}
-
-
-
-#' Some consistency checks for fixed.grid and est.grid
-#'
-#' * Checks for localized parameters appearing in both grids that exactly one NA is in either of the grids
-#' * More to come ...
-#'
-#' @param fixed.grid,est.grid data.frame(parname, partask, ids...)
-#'
-#' @return TRUE: All tests passed, else an error is thrown
-#' @export
-#'
-#' @examples
-#' fg <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = 1, "2" = NA, "3" = NA, stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
-#' eg_good <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = NA, "2" = "dummy", "3" = "dummy", stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
-#' eg_bad1 <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = NA, "2" = NA, "3" = "dummy", stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
-#' eg_bad2 <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = "dummy", "2" = "dummy", "3" = "dummy", stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
-#'
-#' check_grids(fg, eg_good)
-#' check_grids(fg, eg_bad1)
-#' check_grids(fg, eg_bad2)
-check_grids <- function(fixed.grid, est.grid) {
-  # [] unit test?
-  par_overlap <- intersect(fixed.grid$parname, est.grid$parname)
-  if (length(par_overlap)){
-    # NA in both grids
-    both_na_check <- lapply(stats::setNames(nm = par_overlap), function(x) {
-      f <- fixed.grid[fixed.grid$parname == x, -(1:2)]
-      e <- est.grid[est.grid$parname == x, -(1:2)]
-      two_nas <- c(names(f)[is.na(f)], names(e)[is.na(e)])
-      two_nas[duplicated(two_nas)]
-    })
-    both_na_check <- do.call(c, both_na_check)
-    if (length(both_na_check)) stop("Parameter is NA in both fixed.grid and est.grid. The following parameters and conditions are affected", "\n", "\n", deparse(both_na_check))
-    
-    # Not NA in both grids
-    none_na_check <- lapply(stats::setNames(nm = par_overlap), function(x) {
-      f <- fixed.grid[fixed.grid$parname == x, -(1:2)]
-      e <- est.grid[est.grid$parname == x, -(1:2)]
-      no_nas <- c(names(f)[!is.na(f)], names(e)[!is.na(e)])
-      no_nas[duplicated(no_nas)]
-    })
-    none_na_check <- do.call(c, none_na_check)
-    if (length(none_na_check)) stop("Parameter is not NA in both fixed.grid and est.grid. The following parameters and conditions affected", "\n", "\n", deparse(none_na_check))
-  }
-}
-
 #' Extract parameter names from est.grid
 #'
 #' @param est.grid data.frame(parname, partask, ids...)
@@ -381,17 +295,21 @@ getParameters_est.grid <- function(est.grid) {
 
 
 
-#' Extract individualized parameters for one ID
-#'
+
+#' Extract individualized parameters for one ID 
+#' 
+#' From the outer individualized parsouter and fixedouter, get the generalized parsouter0, fixedouter0 to supply to prd0
+#' 
 #' Catch the following two cases:
-#' * Entry in est.grid is NA                   => Parameter value present in fixed.grid
+#' * Entry in est.grid is NA                 => Parameter value present in fixed.grid
 #' * Parameter name not present in parsouter => Parameter value present in fixed_outer
+#' 
+#' @param parsouter,fixedouter Arguments which are passed to the function returned by [normIndiv]
+#' @param condition The specific condition for which the parameters should be extracted
+#' @param est.grid,fixed.grid Lookup tables.
 #'
-#' @param parsouter
-#' @param condition
-#' @param est.grid
-#'
-#' @return c(par0 = value)
+#' @md
+#' @return list(pars, fixed) to put into prd0
 #'
 #' @importFrom stats setNames
 make_pars <- function(parsouter, fixedouter, condition, est.grid,  fixed.grid) {
@@ -428,6 +346,71 @@ make_pars <- function(parsouter, fixedouter, condition, est.grid,  fixed.grid) {
 }
 
 
+#' Do some consistency checks on conditional and condition.grid
+#'
+#' @param conditional see [normL2]
+#' @param condition.grid condition.grid from data
+#' @md
+check_cond <- function(conditional, condition.grid) {
+  if (length(setdiff(conditional$covname, names(condition.grid))))
+    stop("The following covariates to individualize parameters are not available: ", paste0(setdiff(conditional$covname, names(condition.grid)), collapse = ", "))
+  
+  cov_values <- unique(unlist(condition.grid[conditional$covname], use.names = FALSE))
+  if (length(setdiff(conditional$covvalue, cov_values)))
+    stop("The following covariate values to individualize parameters are not available: ", paste0(setdiff(conditional$covvalue, cov_values), collapse = ", "))
+}
+
+
+
+#' Some consistency checks for fixed.grid and est.grid
+#'
+#' * Checks for localized parameters appearing in both grids that exactly one NA is in either of the grids
+#' * More to come ...
+#'
+#' @param fixed.grid,est.grid data.frame(parname, partask, ids...)
+#'
+#' @return TRUE: All tests passed, else an error is thrown
+#'
+#' @examples
+#' fg <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = 1, "2" = NA, "3" = NA, stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
+#' eg_good <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = NA, "2" = "dummy", "3" = "dummy", stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
+#' eg_bad1 <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = NA, "2" = NA, "3" = "dummy", stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
+#' eg_bad2 <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = "dummy", "2" = "dummy", "3" = "dummy", stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
+#'
+#' check_grids(fg, eg_good)
+#' check_grids(fg, eg_bad1)
+#' check_grids(fg, eg_bad2)
+check_grids <- function(fixed.grid, est.grid) {
+  par_overlap <- intersect(fixed.grid$parname, est.grid$parname)
+  if (length(par_overlap)){
+    # NA in both grids
+    both_na_check <- lapply(stats::setNames(nm = par_overlap), function(x) {
+      f <- fixed.grid[fixed.grid$parname == x, -(1:2)]
+      e <- est.grid[est.grid$parname == x, -(1:2)]
+      two_nas <- c(names(f)[is.na(f)], names(e)[is.na(e)])
+      two_nas[duplicated(two_nas)]
+    })
+    both_na_check <- do.call(c, both_na_check)
+    if (length(both_na_check)) stop("Parameter is NA in both fixed.grid and est.grid. The following parameters and conditions are affected", "\n", "\n", deparse(both_na_check))
+    
+    # Not NA in both grids
+    none_na_check <- lapply(stats::setNames(nm = par_overlap), function(x) {
+      f <- fixed.grid[fixed.grid$parname == x, -(1:2)]
+      e <- est.grid[est.grid$parname == x, -(1:2)]
+      no_nas <- c(names(f)[!is.na(f)], names(e)[!is.na(e)])
+      no_nas[duplicated(no_nas)]
+    })
+    none_na_check <- do.call(c, none_na_check)
+    if (length(none_na_check)) stop("Parameter is not NA in both fixed.grid and est.grid. The following parameters and conditions affected", "\n", "\n", deparse(none_na_check))
+  }
+}
+
+
+
+
+# Indiv-objlist related functions ----
+
+
 
 #' Rename the derivatives of an objective function according to a lookup table
 #'
@@ -436,7 +419,6 @@ make_pars <- function(parsouter, fixedouter, condition, est.grid,  fixed.grid) {
 #' @param est.grid  estimation grid
 #'
 #' @return objective list
-#'
 #'
 #' @author Daniel Lill
 rename_objlist <- function(myobjlist, condition, est.grid) {
@@ -458,6 +440,19 @@ rename_objlist <- function(myobjlist, condition, est.grid) {
 
 
 
+#' Create an objlist with zeros as entries
+#' @param pars named vector. Only names and length are used
+#' @example init_empty_objlist(setNames(rnorm(5), letters[1:5]))
+init_empty_objlist <- function(pars, deriv = TRUE) {
+  
+  if (!deriv)
+    return(dMod::objlist(0,NULL,NULL))
+  
+  dMod::objlist(value = 0,
+                gradient = setNames(rep(0, length(pars)), names(pars)),
+                hessian = matrix(0, nrow = length(pars), ncol = length(pars),
+                                 dimnames = list(names(pars), names(pars))))
+}
 
 
 
