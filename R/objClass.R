@@ -136,11 +136,6 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
     
     # Generate output template
     pars_out <- colnames(getDerivs(as.parvec(pouter)))
-    template <- objlist(
-      value = 0,
-      gradient = structure(rep(0, length(pars_out)), names = pars_out),
-      hessian = matrix(0, nrow = length(pars_out), ncol = length(pars_out), dimnames = list(pars_out, pars_out))
-    )
    
     # Import from controls
     timesD <- controls$times
@@ -156,19 +151,7 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
       err <- NULL
       if ((!is.null(errmodel) & is.null(e.conditions)) | (!is.null(e.conditions) && (cn %in% e.conditions))) 
         err <- errmodel(out = prediction[[cn]], pars = getParameters(prediction[[cn]]), conditions = cn)
-      # mywrss <- 
       nll(res(data[[cn]], prediction[[cn]], err[[cn]]), pars = pouter, deriv = deriv)
-      # available <- intersect(pars_out, names(mywrss$gradient))
-      # result <- template
-      # result$value <- mywrss$value
-      # if (deriv) {
-      #   result$gradient[available] <- mywrss$gradient[available]
-      #   result$hessian[available, available] <- mywrss$hessian[available, available]  
-      # } else {
-      #   result$gradient <- result$hessian <- NULL
-      # }
-      # 
-      # return(result)
     })
     out.data <- Reduce("+", out.data)
     
@@ -806,6 +789,7 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
   what <- intersect(c("value", "gradient", "hessian"), c(names(out1), names(out2)))
   
   add_vector <- function(a,b) {
+    # add vector b to a by names
     i <- intersect(names(a), names(b))
     a[i] <- a[i] + b[i]
     a}
@@ -817,9 +801,9 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
   gn1 <- names(out1$gradient)
   gn2 <- names(out2$gradient)
   
-  two_in_one <- !length(setdiff(gn2, gn1))
-  one_in_two <- !length(setdiff(gn1, gn2))
-  neither <- !(two_in_one | one_in_two)
+  one_includes_two <- all(gn2 %in% gn1) 
+  two_includes_one <- all(gn1 %in% gn2)
+  neither_included <- !(one_includes_two | two_includes_one)
   
   out12 <- lapply(what, function(w) {
     v1 <- out1[[w]]
@@ -827,16 +811,16 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
     if (w == "value") 
       return(v1 + v2)
     if (w == "gradient"){
-      if (two_in_one) return(add_vector(v1,v2))
-      if (one_in_two) return(add_vector(v2,v1))
-      if (neither) return(add_vector(add_vector(setNames(rep(0, length(union(gn1, gn2))), union(gn1, gn2)),v1),v2))
+      if (neither_included) return(add_vector(add_vector(setNames(rep(0, length(union(gn1, gn2))), union(gn1, gn2)),v1),v2))
+      if (one_includes_two) return(add_vector(v1,v2))
+      if (two_includes_one) return(add_vector(v2,v1))
     }
     if (w == "hessian") {
-      if (two_in_one) return(add_matrix(v1,v2))
-      if (one_in_two) return(add_matrix(v2,v1))
-      if (neither) return(add_matrix(add_matrix(matrix(0, length(union(gn1,gn2)),length(union(gn1,gn2)),
+      if (neither_included) return(add_matrix(add_matrix(matrix(0, length(union(gn1,gn2)),length(union(gn1,gn2)),
                                                        dimnames = list(union(gn1,gn2), union(gn1,gn2)),
                                                        ),v1),v2))
+      if (one_includes_two) return(add_matrix(v1,v2))
+      if (two_includes_one) return(add_matrix(v2,v1))
     }
   })
   names(out12) <- what
