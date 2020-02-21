@@ -23,7 +23,7 @@ res <- function(data, out, err = NULL) {
   
   # >>>> Differences to original res() function  <<<<<<<<<<< ----
   # *  pars <- unique(unlist(lapply(strsplit(colnames(deriv)[-1], split = ".", fixed = TRUE), function(i) i[2])))
-  #   => disallows dots in parameter names
+  # [] disallows dots in parameter names
   # * Always prefer data sigmas
   # * In addition to weighted.residual also return weighted.0
   # .. 1 Preparations to match prediction values with data values ----#
@@ -173,7 +173,11 @@ objframe <- function(mydata, deriv = NULL, deriv.err = NULL) {
 #' # [] Update
 #' 
 #' @export
-nll <- function(nout, pars, deriv) {
+nll <- function(nout, pars, deriv, opt.BLOQ = "M3", opt.hessian = c(
+  ALOQ_part1 = TRUE, ALOQ_part2 = TRUE, ALOQ_part3 = TRUE,
+  BLOQ_part1 = TRUE, BLOQ_part2 = TRUE, BLOQ_part3 = TRUE,
+  PD = TRUE  # enforce Hessian to be positive semidefinite, by setting nearest negative eigenvalues to zero
+)) {
   
   # Split residuals into ALOQ and BLOQ
   is.bloq   <- nout$bloq

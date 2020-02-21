@@ -2,8 +2,10 @@
 # D2D: transferred to D2D exmple models, named bruno
 # simple model, sort of A -> B -> C
 # no error model fitting
-## Model Definition ------------------------------------------------------
 
+library(dMod)
+
+## Model Definition ------------------------------------------------------
 # Read in model csv
 reactionlist <- read.csv(paste0(system.file(package = "dMod"),'/examples/example_CCD4/model.csv')) 
 
@@ -37,7 +39,7 @@ cat("now compile the model", do.compile,"\n")
 model0 <- odemodel(as.eqnvec(f), fixed = fixed, forcings = NULL, jacobian = "inz.lsodes", compile = do.compile, modelname = "ccd4")
 
 ## Data ----------------------------------------------------------------------
-
+cat("l40")
 # Data was preprocessed using an error model fit
 # datasheet <- subset(read.table("data_mark_out.csv",sep=",",header=TRUE), time >0 ) # needs columns condition, name, time, value, sigma, time = 0 were removed due to experimental problems
 # dMod::fitErrorModel(datasheet, factors = c("name"), plotting = FALSE, errorModel = "(exp(s0) + x^2*exp(srel))", par = c(s0 = -6, srel = -4))$sigma
@@ -47,7 +49,7 @@ data <- readRDS(paste0(system.file(package = "dMod"),'/examples/example_CCD4/dat
 data <- as.datalist(data)
 conditions <- getConditions(data)
 ## Parameter Transformations -------------------------------------------
-
+cat("l50")
 # Define inner parameters (parameters occurring in the equations except forcings)
 # Add names(observables) if addObservables(observables, f) is used
 innerpars <- getSymbols(c(as.character(as.eqnvec(f)), names(as.eqnvec(f)), as.character(observables)), exclude=c(forcings, "time"))
@@ -64,7 +66,6 @@ constraints <- c(
   zea = 0
 )
 constraints <- resolveRecurrence(constraints)
-
 # Build up a parameter transformation (constraints, log-transform, etc.)
 # Start with replacing initial value parameters of the observables
 trafo <- replaceSymbols(names(observables), observables, innerpars)
@@ -77,7 +78,7 @@ trafo <- replaceSymbols(parsT, paste0("exp(log", parsT, ")"), trafo)
 parameters <- innerpars[!(innerpars %in% species)]
 
 offsets <- paste0("log",parameters[grepl("off", parameters) & !(grepl("zea", parameters))& !(grepl("bcry", parameters))])
-
+cat("l79")
 ## Specify different conditions -----------------------------------------------------
 # Set condition-specific parameter transformations
 # Mostly the conditions differ by the set of initial values for the states (different substrates provided for each condition)
@@ -155,7 +156,7 @@ x <- Xs(model0, optionsOde = optionsOde, optionsSens = optionsSens)
 trafoL <- trafoLTot[conditions]
 
 ## Objective Function -------------------------------------------------------
-
+cat("obj...")
 # Initalize parameters 
 outerpars <- getSymbols(do.call(c, trafoL[conditions]))
 set.seed(2)

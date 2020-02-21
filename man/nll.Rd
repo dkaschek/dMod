@@ -4,7 +4,9 @@
 \alias{nll}
 \title{# [] Update}
 \usage{
-nll(nout, pars, deriv)
+nll(nout, pars, deriv, opt.BLOQ = "M3", opt.hessian = c(ALOQ_part1 =
+  TRUE, ALOQ_part2 = TRUE, ALOQ_part3 = TRUE, BLOQ_part1 = TRUE, BLOQ_part2
+  = TRUE, BLOQ_part3 = TRUE, PD = TRUE))
 }
 \description{
 # [] Update

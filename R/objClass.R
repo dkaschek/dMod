@@ -156,18 +156,19 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
       err <- NULL
       if ((!is.null(errmodel) & is.null(e.conditions)) | (!is.null(e.conditions) && (cn %in% e.conditions))) 
         err <- errmodel(out = prediction[[cn]], pars = getParameters(prediction[[cn]]), conditions = cn)
-      mywrss <- nll(res(data[[cn]], prediction[[cn]], err[[cn]]), pars = pouter, deriv = deriv)
-      available <- intersect(pars_out, names(mywrss$gradient))
-      result <- template
-      result$value <- mywrss$value
-      if (deriv) {
-        result$gradient[available] <- mywrss$gradient[available]
-        result$hessian[available, available] <- mywrss$hessian[available, available]  
-      } else {
-        result$gradient <- result$hessian <- NULL
-      }
-      
-      return(result)
+      # mywrss <- 
+      nll(res(data[[cn]], prediction[[cn]], err[[cn]]), pars = pouter, deriv = deriv)
+      # available <- intersect(pars_out, names(mywrss$gradient))
+      # result <- template
+      # result$value <- mywrss$value
+      # if (deriv) {
+      #   result$gradient[available] <- mywrss$gradient[available]
+      #   result$hessian[available, available] <- mywrss$hessian[available, available]  
+      # } else {
+      #   result$gradient <- result$hessian <- NULL
+      # }
+      # 
+      # return(result)
     })
     out.data <- Reduce("+", out.data)
     
@@ -802,37 +803,49 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
   if (is.null(out1)) return(out2)
   if (is.null(out2)) return(out1)
 
+  what <- intersect(c("value", "gradient", "hessian"), c(names(out1), names(out2)))
   
+  gn1 <- names(out1$gradient)
+  hn1 <- dimnames(out1$hessian)
+  if (!identical(hn1[[1]], hn[[2]])) 
+    stop("Hessian matrix does not have symmetric names. \n Rows: ", 
+         paste0(hn1[[1]], collapse = ", "), "\n Cols: ",
+         paste0(hn1[[2]], collapse = ", "))
+  hn1 <- hn1[[1]]
+  if (!setequal(gn1, hn1)) stop("Names of gradient and hessian are not the same.")
   
-  allnames <- c(names(out1), names(out2))
-  what <- allnames[duplicated(allnames)]
-  what.names <- what
-  if (is.null(what)) {
-    what <- 1:min(c(length(out1), length(out2)))
-    what.names <- NULL
-  }
+  gn2 <- names(out2$gradient)
+  hn2 <- dimnames(out2$hessian)
+  if (!identical(hn2[[1]], hn[[2]])) 
+    stop("Hessian matrix does not have symmetric names. \n Rows: ", 
+         paste0(hn2[[1]], collapse = ", "), "\n Cols: ",
+         paste0(hn2[[2]], collapse = ", "))
+  hn2 <- hn2[[1]]
+  if (!setequal(gn2, hn2)) stop("Names of gradient and hessian are not the same.")
+  
+  template <- init_empty_objlist(pars = union(gn1, gn2), deriv = (!is.null(gn1) | !is.null(gn2)))
   
   out12 <- lapply(what, function(w) {
     sub1 <- out1[[w]]
     sub2 <- out2[[w]]
-    n <- names(sub1)
-    dn <- dimnames(sub1)
-    if (!is.null(n) && !is.null(sub1) %% !is.null(sub2)) {
-      #print("case1: sum of vectors")
-      sub1[n] + sub2[n]
-    } else if (!is.null(dn) && !is.null(sub1) && !is.null(sub2)) {
-      #print("case2: sum of matrices")
-      matrix(sub1[dn[[1]], dn[[2]]] + sub2[dn[[1]], dn[[2]]], 
-             length(dn[[1]]), length(dn[[2]]), dimnames = list(dn[[1]], dn[[2]]))
-    } else if (!is.null(sub1) && !is.null(sub2)) {
-      #print("case3: sum of scalars")
-      sub1 + sub2
-    } else {
-      #print("case4")
-      NULL
+    if (w == "value") 
+      return(sub1 + sub2)
+    if (w == "gradient"){
+      g <- template$gradient
+      g[intersect(names(g), gn1)] <- g[intersect(names(g), gn1)] + sub1[intersect(names(g), gn1)]
+      g[intersect(names(g), gn2)] <- g[intersect(names(g), gn2)] + sub2[intersect(names(g), gn2)]
+      return(g)
+    }
+    if (w == "hessian") {
+      h <- template$hessian
+      i1 <- intersect(dimnames(h)[[1]], hn1)
+      h[i1,i1] <- h[i1,i1] + sub1[i1,i1]
+      i2 <- intersect(dimnames(h)[[1]], hn2)
+      h[i2,i2] <- h[i2,i2] + sub2[i2,i2]
+      return(h)
     }
   })
-  names(out12) <- what.names
+  names(out12) <- what
   
   # Summation of numeric attributes 
   out1.attributes <- attributes(out1)[sapply(attributes(out1), is.numeric)]
@@ -845,10 +858,7 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
   })
   attributes(out12)[attr.names] <- out12.attributes
   
-  
-  
   class(out12) <- "objlist"
-  
   return(out12)
 }
 
