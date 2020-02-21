@@ -805,44 +805,38 @@ priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL
 
   what <- intersect(c("value", "gradient", "hessian"), c(names(out1), names(out2)))
   
+  add_vector <- function(a,b) {
+    i <- intersect(names(a), names(b))
+    a[i] <- a[i] + b[i]
+    a}
+  add_matrix <- function(a,b) {
+    i <- intersect(rownames(a), rownames(b))
+    a[i,i] <- a[i,i] + b[i,i]
+    a}
+  
   gn1 <- names(out1$gradient)
-  hn1 <- dimnames(out1$hessian)
-  if (!identical(hn1[[1]], hn[[2]])) 
-    stop("Hessian matrix does not have symmetric names. \n Rows: ", 
-         paste0(hn1[[1]], collapse = ", "), "\n Cols: ",
-         paste0(hn1[[2]], collapse = ", "))
-  hn1 <- hn1[[1]]
-  if (!setequal(gn1, hn1)) stop("Names of gradient and hessian are not the same.")
-  
   gn2 <- names(out2$gradient)
-  hn2 <- dimnames(out2$hessian)
-  if (!identical(hn2[[1]], hn[[2]])) 
-    stop("Hessian matrix does not have symmetric names. \n Rows: ", 
-         paste0(hn2[[1]], collapse = ", "), "\n Cols: ",
-         paste0(hn2[[2]], collapse = ", "))
-  hn2 <- hn2[[1]]
-  if (!setequal(gn2, hn2)) stop("Names of gradient and hessian are not the same.")
   
-  template <- init_empty_objlist(pars = union(gn1, gn2), deriv = (!is.null(gn1) | !is.null(gn2)))
+  two_in_one <- !length(setdiff(gn2, gn1))
+  one_in_two <- !length(setdiff(gn1, gn2))
+  neither <- !(two_in_one | one_in_two)
   
   out12 <- lapply(what, function(w) {
-    sub1 <- out1[[w]]
-    sub2 <- out2[[w]]
+    v1 <- out1[[w]]
+    v2 <- out2[[w]]
     if (w == "value") 
-      return(sub1 + sub2)
+      return(v1 + v2)
     if (w == "gradient"){
-      g <- template$gradient
-      g[intersect(names(g), gn1)] <- g[intersect(names(g), gn1)] + sub1[intersect(names(g), gn1)]
-      g[intersect(names(g), gn2)] <- g[intersect(names(g), gn2)] + sub2[intersect(names(g), gn2)]
-      return(g)
+      if (two_in_one) return(add_vector(v1,v2))
+      if (one_in_two) return(add_vector(v2,v1))
+      if (neither) return(add_vector(add_vector(setNames(rep(0, length(union(gn1, gn2))), union(gn1, gn2)),v1),v2))
     }
     if (w == "hessian") {
-      h <- template$hessian
-      i1 <- intersect(dimnames(h)[[1]], hn1)
-      h[i1,i1] <- h[i1,i1] + sub1[i1,i1]
-      i2 <- intersect(dimnames(h)[[1]], hn2)
-      h[i2,i2] <- h[i2,i2] + sub2[i2,i2]
-      return(h)
+      if (two_in_one) return(add_matrix(v1,v2))
+      if (one_in_two) return(add_matrix(v2,v1))
+      if (neither) return(add_matrix(add_matrix(matrix(0, length(union(gn1,gn2)),length(union(gn1,gn2)),
+                                                       dimnames = list(union(gn1,gn2), union(gn1,gn2)),
+                                                       ),v1),v2))
     }
   })
   names(out12) <- what

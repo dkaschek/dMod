@@ -3,7 +3,7 @@
 # simple model, sort of A -> B -> C
 # no error model fitting
 
-library(dMod)
+# library(dMod)
 
 ## Model Definition ------------------------------------------------------
 # Read in model csv

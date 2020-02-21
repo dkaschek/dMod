@@ -2,10 +2,14 @@
 # test_that("IQR-nll", {
 
 #-!Start example code
+
+devtools::load_all("~/PROJTOOLS/dMod")
+
 source("etc/example_CCD4/001-setup.R")
 # ..  -----
-debugonce(dMod:::`+.objlist`)
-debugonce(obj)
+# debugonce(dMod:::`+.objlist`)
+# debugonce(obj)
+# debugonce(nll)
 obj(ini)
 
 # ..  -----
