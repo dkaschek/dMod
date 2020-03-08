@@ -609,6 +609,9 @@ datalist <- function(...) {
 #' @param hessian matrix with rownames and colnames according to gradient names
 #' @return Object of class \code{objlist}
 #' @export
+#' 
+#' @examples 
+#' objlist(1, c(a = 1, b = 2), matrix(2, nrow = 2, ncol = 2, dimnames = list(c("a", "b"),c("a", "b"))))
 objlist <- function(value, gradient, hessian) {
 
   out <- list(value = value, gradient = gradient, hessian = hessian)

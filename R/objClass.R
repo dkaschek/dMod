@@ -630,10 +630,14 @@ nll <- function(nout, pars, deriv, opt.BLOQ = "M3", opt.hessian = c(
   
   # Apply nll
   mywrss <- init_empty_objlist(pars, deriv = deriv)
+  nll_ALOQ_result <- NULL
   if (!all(is.bloq))
-    mywrss <- mywrss + nll_ALOQ(nout.aloq, derivs.aloq, derivs.err.aloq, opt.BLOQ = opt.BLOQ, opt.hessian = opt.hessian)
+    nll_ALOQ_result <- nll_ALOQ(nout.aloq, derivs.aloq, derivs.err.aloq, opt.BLOQ = opt.BLOQ, opt.hessian = opt.hessian)
+  mywrss <- mywrss + nll_ALOQ_result
   if (any(is.bloq) && (!opt.BLOQ == "M1"))
     mywrss <- mywrss + nll_BLOQ(nout.bloq, derivs.bloq, derivs.err.bloq, opt.BLOQ = opt.BLOQ, opt.hessian = opt.hessian)
+  
+  attr(mywrss, "chisquare") <- attr(nll_ALOQ_result, "chisquare")
   
   mywrss
 }
@@ -668,7 +672,7 @@ nll_ALOQ <- function(nout,
   s  <- nout$sigma
   
   # .. Compute objective value ----#
-  obj <- sum(wr^2)
+  chisquare <- obj <- sum(wr^2)
   if (!is.null(derivs.err))
     obj <- obj + sum(log(2*pi*s^2))
   if (opt.BLOQ %in% "M4BEAL")
@@ -721,8 +725,9 @@ nll_ALOQ <- function(nout,
     }
   }
   
-  objlist(value = obj, gradient = grad, hessian = hessian)
-  
+  out <- objlist(value = obj, gradient = grad, hessian = hessian)
+  attr(out, "chisquare") <- chisquare
+  out
 }
 
 

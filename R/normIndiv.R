@@ -66,13 +66,13 @@ normIndiv <- function(data,
   # Objective Function ---- #
   # -------------------------------------------------------------------------#
   myfn <- function(...,
-                     fixed = NULL,
-                     deriv=useDerivs,
-                     conditions = controls$conditions,
-                     # env = NULL,
-                     opt.BLOQ    = controls$opt.BLOQ,
-                     opt.hessian = controls$opt.hessian,
-                     returnResiduals = FALSE) {
+                   fixed = NULL,
+                   deriv=useDerivs,
+                   conditions = controls$conditions,
+                   # env = NULL,
+                   opt.BLOQ    = controls$opt.BLOQ,
+                   opt.hessian = controls$opt.hessian,
+                   returnResiduals = FALSE) {
     
     # .. 1 BLOQ options ----- #
     opt.hessian <- c(opt.hessian, controls$opt.hessian[setdiff(names(controls$opt.hessian), names(opt.hessian))])
@@ -124,6 +124,7 @@ normIndiv <- function(data,
         err <- errmodel(out = prediction[[1]], pars = dMod::getParameters(prediction[[1]]), conditions = cn) 
       nout <- dMod_res(data[[cn]], prediction[[1]], err[[cn]])
       mywrss <- nll(nout = nout, pars = pars0, deriv = deriv)
+      chisquare <- attr(mywrss, "chisquare")
       # .... 4 Rename general parnames into individual parnames ------ #
       mywrss <- rename_objlist(mywrss, cn, est.grid)
       if (returnResiduals) attr(mywrss, "residuals") <- cbind(condition = cn, nout)
@@ -183,6 +184,9 @@ normIndiv <- function(data,
     
     # Add residuals if available
     out[["residuals"]] <- residuals
+    
+    # Add chisquare to outputs
+    attr(out.chisquare) <- Reduce("+", c(0, do.call(c,lapply(outlist, attr, which = "chisquare"))))
     
     return(out)
   }
