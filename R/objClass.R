@@ -673,8 +673,7 @@ nll_ALOQ <- function(nout,
   
   # .. Compute objective value ----#
   chisquare <- obj <- sum(wr^2)
-  if (!is.null(derivs.err))
-    obj <- obj + sum(log(2*pi*s^2))
+  obj <- obj + sum(log(2*pi*s^2))
   if (opt.BLOQ %in% "M4BEAL")
     obj <- obj + 2 * sum(stats::pnorm(w0, log.p = TRUE))
   
