@@ -22,7 +22,8 @@ Imports:
     plyr,
     dplyr,
     foreach,
-    doParallel
+    doParallel,
+    rjson
 Suggests:
     MASS,
     rPython,
