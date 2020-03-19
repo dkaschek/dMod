@@ -4,9 +4,9 @@
 \alias{nll}
 \title{Compute the negative log-likelihood}
 \usage{
-nll(nout, pars, deriv, opt.BLOQ = "M3", opt.hessian = c(ALOQ_part1 =
-  TRUE, ALOQ_part2 = TRUE, ALOQ_part3 = TRUE, BLOQ_part1 = TRUE, BLOQ_part2
-  = TRUE, BLOQ_part3 = TRUE, PD = TRUE))
+nll(nout, pars, deriv, opt.BLOQ = "M3", opt.hessian = c(ALOQ_part1 = TRUE,
+  ALOQ_part2 = TRUE, ALOQ_part3 = TRUE, BLOQ_part1 = TRUE, BLOQ_part2 = TRUE,
+  BLOQ_part3 = TRUE, PD = TRUE))
 }
 \arguments{
 \item{nout}{data.frame (result of \link{res}) or object of class \link{res}.}

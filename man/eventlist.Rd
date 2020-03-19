@@ -8,8 +8,8 @@
 eventlist(var = NULL, time = NULL, value = NULL, root = NULL,
   method = NULL)
 
-addEvent(event, var, time = 0, value = 0, root = NA,
-  method = "replace", ...)
+addEvent(event, var, time = 0, value = 0, root = NA, method = "replace",
+  ...)
 }
 \arguments{
 \item{var}{Character, the state to which the event is applied}
