@@ -5,7 +5,7 @@
 \title{Import an SBML model and corresponding PEtab objects}
 \usage{
 importPEtabSBML(modelname = "Boehm_JProteomeRes2014",
-  path2model = "BenchmarkModels/", testCases = FALSE,
+  path2model = "/BenchmarkModels/", testCases = FALSE,
   path2TestCases = "PEtabTests/", compile = TRUE, SBML_file = NULL,
   observable_file = NULL, condition_file = NULL, data_file = NULL,
   parameter_file = NULL)
