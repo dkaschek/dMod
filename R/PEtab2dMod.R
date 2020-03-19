@@ -41,6 +41,9 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
   require(dplyr)
   require(rlang)
   require(stringr)
+  require(deSolve)
+  require(ggplot2)
+  require(trust)
   ## Define path to SBML and PEtab files --------------------
   
   starttime <- Sys.time()
@@ -378,6 +381,10 @@ testPEtabSBML <- function(models = c(
     )
     if (inherits(y, "try-error")) NULL else y
   }
+  require(crayon)
+  require(trust)
+  require(deSolve)
+  require(ggplot2)
   cat(green("Start test function...\n"))
   mywd <- getwd()
   teststarttime <- Sys.time()
