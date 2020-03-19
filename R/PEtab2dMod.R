@@ -24,7 +24,7 @@
 #' @export
 #' 
 importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
-                            path2model = "BenchmarkModels/",
+                            path2model = "/BenchmarkModels/",
                             testCases = FALSE,
                             path2TestCases = "PEtabTests/",
                             compile = TRUE,
@@ -35,7 +35,12 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
                             parameter_file = NULL
 )
 {
+  ## load required packages
   
+  require(libSBML)
+  require(dplyr)
+  require(rlang)
+  require(stringr)
   ## Define path to SBML and PEtab files --------------------
   
   starttime <- Sys.time()
@@ -1182,5 +1187,178 @@ function_def_to_string <- function(fun)
   
 }
 
+#' Import Data from PEtab 
+#' 
+#' @description This function imports data from the PEtab data file as a data list and defines errors if an error model is required.
+#'  
+#' @param data PEtab data file as .tsv
+#' @param observables observables as eqnvec
+#'   
+#' @return data as data list and errors (if required) as eqnvec.
+#'   
+#' @author Marcus Rosenblatt and Svenja Kemmer
+#'
+#' @export
+#' 
+getDataPEtabSBML <- function(data, observables){
+  mydata <- read.csv(file = data, sep = "\t")
+  myobs <- read.csv(file = observables, sep = "\t") %>% as.data.frame()
+  obs <- myobs$observableId %>% as.character()
+  errors <- NULL
+  
+  # if(!is.null(mydata$noiseParameters) & !is.null(myobs$noiseFormula)) cat(red("Warning: errors specified in data and observable file.\n"))
+  if(!mydata$noiseParameters %>% is.numeric) {
+    # define errors
+    errors <- myobs$noiseFormula %>% as.character()
+    which_err <- c(1:length(obs))
+    if(length(errors) != length(obs)) errors <- rep(errors,length(obs))
+    names(errors) <- obs[which_err]
+    errors <- as.eqnvec(errors)
+    # set fixed sigmas 
+    if(is.null(mydata$noiseParameters)){
+      mydata$noiseParameters <- errors %>% as.numeric()
+    } else mydata$noiseParameters <- NA
+  }
+  
+  # # rename observables with _obs
+  # obs <- mydata$observableId %>% as.character() %>% paste0("_obs")
+  # mydata$observableId <- obs
+  # if(!is.null(errors)) names(errors) <- paste0(names(errors), "_obs")
+  mydata$simulationConditionId <- as.character(mydata$simulationConditionId)
+  if(!is.null(mydata$observableParameters)){
+    for (observable in unique(mydata$observableId)){
+      for(condition in unique(mydata$simulationConditionId)){
+        sub <- subset(mydata, simulationConditionId==condition & observableId==observable)
+        if(nrow(sub) > 0){
+          if(length(unique(sub$observableParameters)) > 1){
+            index <- which(mydata$simulationConditionId==condition & mydata$observableId==observable)
+            mydata$simulationConditionId[index] <- paste0(mydata$simulationConditionId[index], "_",mydata$observableParameters[index])
+          }
+        }
+      }
+    }
+  }
+  
+  # select necessary data columns
+  data <- data.frame(name = mydata$observableId, time = mydata$time, 
+                     value = mydata$measurement, sigma = mydata$noiseParameters,
+                     condition = mydata$simulationConditionId) 
+  obs2log <- myobs$observableId[which(myobs$observableTransformation=="log")]
+  data$value[which(data$name%in%obs2log)] <- log(data$value[which(data$name%in%obs2log)])
+  obs2log10 <- myobs$observableId[which(myobs$observableTransformation=="log10")]
+  data$value[which(data$name%in%obs2log10)] <- log10(data$value[which(data$name%in%obs2log10)])
+  data <- data %>% as.datalist()
+  
+  return(list(data=data,errors=errors))
+}
 
 
+#' Import Data from PEtab 
+#' 
+#' @description This function imports data from the PEtab data file as a data list and defines errors if an error model is required.
+#'  
+#' @param data PEtab data file as .tsv
+#' @param observables observables as eqnvec
+#'   
+#' @return data as data list and errors (if required) as eqnvec.
+#'   
+#' @author Marcus Rosenblatt and Svenja Kemmer
+#'
+#' @export
+#' 
+getDataPEtabSBML <- function(data, observables){
+  mydata <- read.csv(file = data, sep = "\t")
+  myobs <- read.csv(file = observables, sep = "\t") %>% as.data.frame()
+  obs <- myobs$observableId %>% as.character()
+  errors <- NULL
+  
+  # if(!is.null(mydata$noiseParameters) & !is.null(myobs$noiseFormula)) cat(red("Warning: errors specified in data and observable file.\n"))
+  if(!mydata$noiseParameters %>% is.numeric) {
+    # define errors
+    errors <- myobs$noiseFormula %>% as.character()
+    which_err <- c(1:length(obs))
+    if(length(errors) != length(obs)) errors <- rep(errors,length(obs))
+    names(errors) <- obs[which_err]
+    errors <- as.eqnvec(errors)
+    # set fixed sigmas 
+    if(is.null(mydata$noiseParameters)){
+      mydata$noiseParameters <- errors %>% as.numeric()
+    } else mydata$noiseParameters <- NA
+  }
+  
+  # # rename observables with _obs
+  # obs <- mydata$observableId %>% as.character() %>% paste0("_obs")
+  # mydata$observableId <- obs
+  # if(!is.null(errors)) names(errors) <- paste0(names(errors), "_obs")
+  mydata$simulationConditionId <- as.character(mydata$simulationConditionId)
+  if(!is.null(mydata$observableParameters)){
+    for (observable in unique(mydata$observableId)){
+      for(condition in unique(mydata$simulationConditionId)){
+        sub <- subset(mydata, simulationConditionId==condition & observableId==observable)
+        if(nrow(sub) > 0){
+          if(length(unique(sub$observableParameters)) > 1){
+            index <- which(mydata$simulationConditionId==condition & mydata$observableId==observable)
+            mydata$simulationConditionId[index] <- paste0(mydata$simulationConditionId[index], "_",mydata$observableParameters[index])
+          }
+        }
+      }
+    }
+  }
+  
+  # select necessary data columns
+  data <- data.frame(name = mydata$observableId, time = mydata$time, 
+                     value = mydata$measurement, sigma = mydata$noiseParameters,
+                     condition = mydata$simulationConditionId) 
+  obs2log <- myobs$observableId[which(myobs$observableTransformation=="log")]
+  data$value[which(data$name%in%obs2log)] <- log(data$value[which(data$name%in%obs2log)])
+  obs2log10 <- myobs$observableId[which(myobs$observableTransformation=="log10")]
+  data$value[which(data$name%in%obs2log10)] <- log10(data$value[which(data$name%in%obs2log10)])
+  data <- data %>% as.datalist()
+  
+  return(list(data=data,errors=errors))
+}
+
+
+#' Plot observables and states of an SBML/PEtab model
+#' 
+#' @description This function plots data and fits of an SBML/PEtab model after the import.
+#' Note: Certain objects generated during the model import by importPEtabSBML have to be present in the global environment and are used as default variables if not specified differntly.
+#'  
+#' @param g observation function as obsfn
+#' @param x prediction function as prdfn
+#' @param p parameter function as parfn
+#' @param mydata data as datalist
+#' @param pars parameter as vector
+#' @param times times as vector
+#' @param ... further arguments going to \link{plotCombined}
+#'   
+#' @return NULL
+#'   
+#' @author Marcus Rosenblatt and Svenja Kemmer
+#' 
+#' @export
+#' 
+plotPEtabSBML <- function(..., g1 = g,
+                          x1 = x,
+                          p1 = p0,
+                          mydata1 = mydata,
+                          pouter1 = pouter,
+                          times1 = times,
+                          errfn = err){
+  if(!is.null(errfn)){
+    prediction <- as.data.frame((g1*x1*p1)(times1, pouter1), errfn = err)
+    data <- as.data.frame(mydata1)
+    P1 <- ggplot() + geom_line(data=subset(prediction, ...), aes(x=time, y=value, color=condition)) + 
+      geom_ribbon(data=subset(prediction, ...), aes(x=time, ymin=value-sigma, ymax=value+sigma, fill=condition), color=NA, alpha=0.25) +
+      geom_point(data=subset(data, ...), aes(x=time, y=value, color=condition)) +
+      theme_dMod() + scale_color_dMod() + scale_fill_dMod() +
+      facet_wrap(~name, scales="free")
+  } else {
+    prediction <- (g1*x1*p1)(times1, pouter1)
+    P1 <- plotCombined(prediction, mydata1, ...) 
+  }
+  print(P1)
+  # plotPrediction(prediction)
+  
+  # return(modelname)
+}
