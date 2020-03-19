@@ -24,7 +24,7 @@
 #' @export
 #' 
 importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
-                            path2model = "/BenchmarkModels/",
+                            path2model = "BenchmarkModels/",
                             testCases = FALSE,
                             path2TestCases = "PEtabTests/",
                             compile = TRUE,
@@ -1107,7 +1107,7 @@ getReactionsSBML <- function(model, conditions){
           if(!is.na(suppressWarnings(as.numeric(timepoint)))) timepoint <- as.numeric(timepoint) # avoid warning if variable is not numeric
           if(!is.na(suppressWarnings(as.numeric(first)))) first <- as.numeric(first)
           if(!is.na(suppressWarnings(as.numeric(second)))) second <- as.numeric(second)
-          return(data.frame(var=paste0("event",i), time=c(0,timepoint), value=c(first, second), method="replace"))
+          return(data.frame(var=paste0("event",i), time=c(0,timepoint), value=c(first, second),root=NA, method="replace"))
         } else {cat("Warning: Event not yet supported"); return(myevent)}
       }))
     } else return(NULL)
@@ -1127,7 +1127,7 @@ getReactionsSBML <- function(model, conditions){
       mycongrid <- filter(myconditions, conditionId==con | conditionId==paste0("preeq_", con))
       if(ncol(mycongrid)>1){
         for(i in 2:ncol(mycongrid)){
-          preeqEvents <- addEvent(preeqEvents, var=names(mycongrid)[i], time=0, value=mycongrid[[which(mycongrid$conditionId==con),i]], method="replace")
+          preeqEvents <- addEvent(preeqEvents, var=names(mycongrid)[i], time=0, value=mycongrid[[which(mycongrid$conditionId==con),i]],root=NA,  method="replace")
           attrib <- c(attrib, mycongrid[[which(mycongrid$conditionId==paste0("preeq_",con)),i]])
         }
       }
