@@ -370,7 +370,7 @@ testPEtabSBML <- function(models = c(
   "0014",
   "0015",
   "0016"
-), testFit = TRUE, timelimit = 5000, testCases = FALSE) {
+), testFit = TRUE, timelimit = 5000, testCases = TRUE) {
   try_with_time_limit <- function(expr, cpu = Inf, elapsed = Inf) {
     y <- try(
       {
