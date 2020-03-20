@@ -23,10 +23,6 @@ as.eqnvec(x, ...)
 object of class \link{eqnvec}.
 }
 \description{
-Coerce to an equation vector
-
-Generate equation vector object
-
 An equation list stores an ODE in a list format. The function
 translates this list into the right-hand sides of the ODE.
 }

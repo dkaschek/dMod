@@ -10,8 +10,14 @@
 
 plotPrediction(prediction, ...)
 
-\method{plotPrediction}{prdlist}(prediction, ..., errfn = NULL,
-  scales = "free", facet = "wrap", transform = NULL)
+\method{plotPrediction}{prdlist}(
+  prediction,
+  ...,
+  errfn = NULL,
+  scales = "free",
+  facet = "wrap",
+  transform = NULL
+)
 }
 \arguments{
 \item{...}{Further arguments going to \code{dplyr::filter}.}

@@ -4,8 +4,15 @@
 \alias{runbg}
 \title{Run an R expression in the background (only on UNIX)}
 \usage{
-runbg(..., machine = "localhost", filename = NULL, input = ls(.GlobalEnv),
-  compile = FALSE, wait = FALSE, recover = F)
+runbg(
+  ...,
+  machine = "localhost",
+  filename = NULL,
+  input = ls(.GlobalEnv),
+  compile = FALSE,
+  wait = FALSE,
+  recover = F
+)
 }
 \arguments{
 \item{...}{Some R code}

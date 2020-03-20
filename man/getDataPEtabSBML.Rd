@@ -2,7 +2,6 @@
 % Please edit documentation in R/PEtab2dMod.R
 \name{getDataPEtabSBML}
 \alias{getDataPEtabSBML}
-\alias{getDataPEtabSBML}
 \title{Import Data from PEtab}
 \usage{
 getDataPEtabSBML(data, observables)
@@ -10,10 +9,6 @@ getDataPEtabSBML(data, observables)
 getDataPEtabSBML(data, observables)
 }
 \arguments{
-\item{data}{PEtab data file as .tsv}
-
-\item{observables}{observables as eqnvec}
-
 \item{data}{PEtab data file as .tsv}
 
 \item{observables}{observables as eqnvec}

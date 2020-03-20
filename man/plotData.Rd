@@ -9,8 +9,7 @@
 \usage{
 \method{plotData}{tbl_df}(dMod.frame, hypothesis = 1, ...)
 
-\method{plotData}{datalist}(data, ..., scales = "free", facet = "wrap",
-  transform = NULL)
+\method{plotData}{datalist}(data, ..., scales = "free", facet = "wrap", transform = NULL)
 
 plotData(data, ...)
 

@@ -4,9 +4,17 @@
 \alias{runbg_bwfor}
 \title{Run an R expression on the bwForCluster}
 \usage{
-runbg_bwfor(..., machine, filename = NULL, nodes = 1, cores = 1,
-  walltime = "01:00:00", input = ls(.GlobalEnv), compile = TRUE,
-  recover = F)
+runbg_bwfor(
+  ...,
+  machine,
+  filename = NULL,
+  nodes = 1,
+  cores = 1,
+  walltime = "01:00:00",
+  input = ls(.GlobalEnv),
+  compile = TRUE,
+  recover = F
+)
 }
 \arguments{
 \item{...}{Some R code}

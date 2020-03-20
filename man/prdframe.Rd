@@ -4,8 +4,12 @@
 \alias{prdframe}
 \title{Prediction frame}
 \usage{
-prdframe(prediction = NULL, deriv = NULL, sensitivities = NULL,
-  parameters = NULL)
+prdframe(
+  prediction = NULL,
+  deriv = NULL,
+  sensitivities = NULL,
+  parameters = NULL
+)
 }
 \arguments{
 \item{prediction}{matrix of model prediction}

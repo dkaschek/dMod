@@ -4,8 +4,13 @@
 \alias{nll_ALOQ}
 \title{Non-linear log likelihood for the ALOQ part of the data}
 \usage{
-nll_ALOQ(nout, derivs, derivs.err, opt.BLOQ = c("M3", "M4NM", "M4BEAL", "M1"),
-  opt.hessian = c(ALOQ_part1 = TRUE, ALOQ_part2 = TRUE, ALOQ_part3 = TRUE))
+nll_ALOQ(
+  nout,
+  derivs,
+  derivs.err,
+  opt.BLOQ = c("M3", "M4NM", "M4BEAL", "M1"),
+  opt.hessian = c(ALOQ_part1 = TRUE, ALOQ_part2 = TRUE, ALOQ_part3 = TRUE)
+)
 }
 \arguments{
 \item{nout}{output of \code{\link[=res]{res()}}}
