@@ -9,7 +9,7 @@ testPEtabSBML(
     "0010", "0011", "0012", "0013", "0014", "0015", "0016"),
   testFit = TRUE,
   timelimit = 5000,
-  testCases = FALSE
+  testCases = TRUE
 )
 }
 \arguments{

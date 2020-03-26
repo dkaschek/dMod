@@ -4,3 +4,5 @@
 .Rbuildignore
 .gitignore.swp
 .f*
+CompiledObjects
+Test
