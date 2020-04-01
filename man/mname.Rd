@@ -10,7 +10,7 @@
 \usage{
 mname(x, conditions = NULL)
 
-\method{mname}{NULL}(x, conditions = NULL)
+\method{mname}{`NULL`}(x, conditions = NULL)
 
 \method{mname}{character}(x, conditions = NULL)
 

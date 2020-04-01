@@ -1,3 +1,4 @@
+
 #' Search for symmetries in the loaded model
 #' 
 #' @description This function follows the method published in [1].

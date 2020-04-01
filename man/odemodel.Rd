@@ -4,10 +4,20 @@
 \alias{odemodel}
 \title{Generate the model objects for use in Xs (models with sensitivities)}
 \usage{
-odemodel(f, deriv = TRUE, forcings = NULL, events = NULL,
-  outputs = NULL, fixed = NULL, estimate = NULL,
-  modelname = "odemodel", solver = c("deSolve", "Sundials"),
-  gridpoints = NULL, verbose = FALSE, ...)
+odemodel(
+  f,
+  deriv = TRUE,
+  forcings = NULL,
+  events = NULL,
+  outputs = NULL,
+  fixed = NULL,
+  estimate = NULL,
+  modelname = "odemodel",
+  solver = c("deSolve", "Sundials"),
+  gridpoints = NULL,
+  verbose = FALSE,
+  ...
+)
 }
 \arguments{
 \item{f}{Something that can be converted to \link{eqnvec},
@@ -49,6 +59,7 @@ list with \code{func} (ODE object) and \code{extended} (ODE+Sensitivities object
 Generate the model objects for use in Xs (models with sensitivities)
 }
 \examples{
+
 \dontrun{
 
 ## Generate a compiled ODE model from an equation vector

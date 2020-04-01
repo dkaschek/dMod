@@ -4,9 +4,18 @@
 \alias{steadyStates}
 \title{Calculate analytical steady states.}
 \usage{
-steadyStates(model, file = NULL, smatrix = NULL, states = NULL,
-  rates = NULL, forcings = NULL, givenCQs = NULL, neglect = NULL,
-  sparsifyLevel = 2, outputFormat = "R")
+steadyStates(
+  model,
+  file = NULL,
+  smatrix = NULL,
+  states = NULL,
+  rates = NULL,
+  forcings = NULL,
+  givenCQs = NULL,
+  neglect = NULL,
+  sparsifyLevel = 2,
+  outputFormat = "R"
+)
 }
 \arguments{
 \item{model}{Either name of the csv-file or the eqnlist of the model. If NULL, specify smatrix, states and rates by hand.}
@@ -43,6 +52,7 @@ The function calls a python script via rPython. Usage problems might occur when 
 Recently, users went into problems with RJSONIO when rPython was used. Unless a sound solution is available, please try to reinstall RJSONIO in these cases.
 }
 \examples{
+
 \dontrun{
   library(dMod)
   setwd(tempdir())

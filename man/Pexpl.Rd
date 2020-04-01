@@ -4,9 +4,15 @@
 \alias{Pexpl}
 \title{Parameter transformation}
 \usage{
-Pexpl(trafo, parameters = NULL, attach.input = FALSE,
-  condition = NULL, compile = FALSE, modelname = NULL,
-  verbose = FALSE)
+Pexpl(
+  trafo,
+  parameters = NULL,
+  attach.input = FALSE,
+  condition = NULL,
+  compile = FALSE,
+  modelname = NULL,
+  verbose = FALSE
+)
 }
 \arguments{
 \item{trafo}{Named character vector. Names correspond to the parameters being fed into

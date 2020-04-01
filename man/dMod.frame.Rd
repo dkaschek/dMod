@@ -37,6 +37,7 @@ Each row corresponds to a distinct hypothesis, e.g. one would have two distinct 
 for fitting with and without a prior.
 }
 \examples{
+
 \dontrun{
 
 # ---- Example

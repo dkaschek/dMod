@@ -25,9 +25,9 @@ expression in \code{list()}
 }
 \examples{
 \dontrun{
-mytbl <- tibble(a = 1:2, b = letters[1:2]) \%>\%
-mutatedMod.frame(e = paste0(a,b), keepCalls = T) \%>\%
-mutatedMod.frame(f = paste0(e, "=", a, "*", b), keepCalls = T) \%>\%
+mytbl <- tibble(a = 1:2, b = letters[1:2]) %>%
+mutatedMod.frame(e = paste0(a,b), keepCalls = T) %>%
+mutatedMod.frame(f = paste0(e, "=", a, "*", b), keepCalls = T) %>%
 mutatedMod.frame(e = paste0(a,"*", b), keepCalls = T)
 
 mytbl$.calls

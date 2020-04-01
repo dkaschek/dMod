@@ -1,3 +1,4 @@
+
 # Custom interface to ggplot2 ---
 
 #' Open last plot in external pdf viewer

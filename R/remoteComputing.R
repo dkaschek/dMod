@@ -1,3 +1,4 @@
+
 #' Detect number of free cores (on UNIX)
 #' 
 #' @description Read \code{/proc/loadavg} and subtract from the number of cores

@@ -1,3 +1,4 @@
+
 \dontrun{
 library(dMod)
 # library(dplyr) # devtools::install_github("dlill/conveniencefunctions")

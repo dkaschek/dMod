@@ -1,3 +1,4 @@
+
 #' Compare two objects and return differences
 #' 
 #' Works eigher on a list or on two arguments. In case of a list,

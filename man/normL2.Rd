@@ -5,9 +5,19 @@
 \alias{normL2}
 \title{L2 norm between data and model prediction}
 \usage{
-normIndiv(data, prd0, errmodel = NULL, forcings = NULL, iiv = NULL,
-  conditional = NULL, fixed.grid, nauxtimes = 500, cores = 1,
-  deriv = TRUE, attr.name = "data")
+normIndiv(
+  data,
+  prd0,
+  errmodel = NULL,
+  forcings = NULL,
+  iiv = NULL,
+  conditional = NULL,
+  fixed.grid,
+  nauxtimes = 500,
+  cores = 1,
+  deriv = TRUE,
+  attr.name = "data"
+)
 
 normL2(data, x, errmodel = NULL, times = NULL, attr.name = "data")
 }

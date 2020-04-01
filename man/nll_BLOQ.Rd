@@ -4,9 +4,13 @@
 \alias{nll_BLOQ}
 \title{Non-linear log likelihood for the BLOQ part of the data}
 \usage{
-nll_BLOQ(nout.bloq, derivs.bloq, derivs.err.bloq, opt.BLOQ = c("M3",
-  "M4NM", "M4BEAL", "M1"), opt.hessian = c(BLOQ_part1 = TRUE, BLOQ_part2
-  = TRUE, BLOQ_part3 = TRUE))
+nll_BLOQ(
+  nout.bloq,
+  derivs.bloq,
+  derivs.err.bloq,
+  opt.BLOQ = c("M3", "M4NM", "M4BEAL", "M1"),
+  opt.hessian = c(BLOQ_part1 = TRUE, BLOQ_part2 = TRUE, BLOQ_part3 = TRUE)
+)
 }
 \arguments{
 \item{nout.bloq}{The bloq output of \code{\link[=res]{res()}}}

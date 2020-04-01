@@ -4,8 +4,7 @@
 \alias{confint.parframe}
 \title{Profile uncertainty extraction}
 \usage{
-\method{confint}{parframe}(object, parm = NULL, level = 0.95, ...,
-  val.column = "data")
+\method{confint}{parframe}(object, parm = NULL, level = 0.95, ..., val.column = "data")
 }
 \arguments{
 \item{object}{object of class \code{parframe}, returned from \link{profile} function.}
