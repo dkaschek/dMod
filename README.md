@@ -8,7 +8,13 @@ dMod uses the package [cOde](https://github.com/dkaschek/cOde) to set up ODE mod
 
 For **parallelization**, dMod uses `mclapply()` which is available on Linux and Mac but not on Windows. Windows users may use the `foreach` package to put dMod functions in a `%dopar%` loop.
 
-To **install dMod from the git repository**, it is convenient to use RStudio. Create a "New Project" -> "Version Control" -> "Git". Use the address `https://github.com/dkaschek/dMod` and create project. Next, go to menu "Build" -> "Build and Reload". Once theses steps are completed, it should be possible to run the following example. 
+To **install dMod from the git repository**, it is convenient to use RStudio. Create a "New Project" -> "Version Control" -> "Git". Use the address `https://github.com/dkaschek/dMod` and create project. Next, go to menu "Build" -> "Build and Reload". Once theses steps are completed, it should be possible to run the example below.
+
+When installing dMod from git, you use the development version of dMod. Further packages might be needed to install. 
+
+Linux users can get the libSBML package via  `devtools::install_url("https://sourceforge.net/projects/sbml/files/libsbml/5.18.0/stable/R%20interface/libSBML_5.18.0.tar.gz")`
+
+Installation guide for Windows will soon be added.
 
 ## Simple example: enzyme kinetics
 
