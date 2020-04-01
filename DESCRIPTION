@@ -22,12 +22,18 @@ Imports:
     plyr,
     dplyr,
     foreach,
-    doParallel
+    doParallel,
+    rjson,
+    stringr,
+    crayon,
+    yaml,
+    rlang,
+    libSBML
 Suggests:
     MASS,
     rPython,
     pander,
     knitr,
-    rmarkdown
+    rmarkdown,
 RoxygenNote: 7.0.2
 VignetteBuilder: knitr
