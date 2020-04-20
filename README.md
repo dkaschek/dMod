@@ -12,9 +12,7 @@ To **install dMod from the git repository**, it is convenient to use RStudio. Cr
 
 When installing dMod from git, you use the development version of dMod. Further packages might be needed to install. 
 
-Linux users can get the libSBML package via  `devtools::install_url("https://sourceforge.net/projects/sbml/files/libsbml/5.18.0/stable/R%20interface/libSBML_5.18.0.tar.gz")`
-
-Installation guide for Windows will soon be added.
+If **PEtab support** is wanted, libSBML will be required in addition. Installation and usage instructions can be found in the wiki under [Support for PEtab](https://github.com/dkaschek/dMod/wiki/Support-for-PEtab)
 
 ## Simple example: enzyme kinetics
 
