@@ -27,8 +27,7 @@ Imports:
     stringr,
     crayon,
     yaml,
-    rlang,
-    libSBML
+    rlang
 Suggests:
     MASS,
     rPython,
