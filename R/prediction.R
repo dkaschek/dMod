@@ -16,6 +16,8 @@
 #' the condition for which the function makes a prediction.
 #' @param optionsOde list with arguments to be passed to odeC() for the ODE integration.
 #' @param optionsSens list with arguments to be passed to odeC() for integration of the extended system
+#' @param fcontrol list with additional fine-tuning arguments for the forcing interpolation. 
+#' See \link[stats]{approxfun} for possible arguments.
 #' @return Object of class \link{prdfn}. If the function is called with parameters that
 #' result from a parameter transformation (see \link{P}), the Jacobian of the parameter transformation
 #' and the sensitivities of the ODE are multiplied according to the chain rule for
@@ -23,7 +25,7 @@
 #' i.e. in this case the attibutes "deriv" and "sensitivities" do not coincide. 
 #' @export
 #' @import deSolve
-Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = NULL, optionsOde=list(method = "lsoda"), optionsSens=list(method = "lsodes")) {
+Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = NULL, optionsOde=list(method = "lsoda"), optionsSens=list(method = "lsodes"), fcontrol = NULL) {
   
   func <- odemodel$func
   extended <- odemodel$extended
@@ -31,6 +33,8 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
   
   myforcings <- forcings
   myevents <- events
+  myfcontrol <- fcontrol
+  
   if (!is.null(attr(func, "events")) & !is.null(myevents))
     warning("Events already defined in odemodel. Additional events in Xs() will be ignored. Events need to be defined in either odemodel() or Xs().")
   if (is.null(attr(func, "events")) & !is.null(myevents))
@@ -74,7 +78,8 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
     events = myevents,
     names = names,
     optionsOde = optionsOde,
-    optionsSens = optionsSens
+    optionsSens = optionsSens,
+    fcontrol = myfcontrol
   )
   
   P2X <- function(times, pars, deriv=TRUE){
@@ -87,6 +92,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
     events <- controls$events
     optionsOde <- controls$optionsOde
     optionsSens <- controls$optionsSens
+    fcontrol <- controls$fcontrol
     names <- controls$names
     
     # Add event time points (required by integrator) 
@@ -104,7 +110,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
       # Evaluate model without sensitivities
       # loadDLL(func)
       if (!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
-      out <- suppressWarnings(do.call(odeC, c(list(y = unclass(yini), times = times, func = func, parms = mypars, forcings = forc, events = list(data = events)), optionsOde)))
+      out <- suppressWarnings(do.call(odeC, c(list(y = unclass(yini), times = times, func = func, parms = mypars, forcings = forc, events = list(data = events), fcontrol = fcontrol), optionsOde)))
       out <- submatrix(out, cols = c("time", names))
       #out <- cbind(out, out.inputs)
       
@@ -116,7 +122,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
       if (!is.null(forcings)) forc <- setForcings(extended, forcings) else forc <- NULL
       
       outSens <- suppressWarnings(do.call(odeC, c(list(y = c(unclass(yini), yiniSens), times = times, func = extended, parms = mypars, 
-                                      forcings = forc, 
+                                      forcings = forc, fcontrol = fcontrol,
                                       events = list(data = events)), optionsSens)))
       #out <- cbind(outSens[,c("time", variables)], out.inputs)
       out <- submatrix(outSens, cols = c("time", names))
@@ -168,17 +174,20 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
 #' @param condition either NULL (generic prediction for any condition) or a character, denoting
 #' the condition for which the function makes a prediction.
 #' @param optionsOde list with arguments to be passed to odeC() for the ODE integration.
+#' @param fcontrol list with additional fine-tuning arguments for the forcing interpolation. 
+#' See \link[stats]{approxfun} for possible arguments.
 #' @details Can be used to integrate additional quantities, e.g. fluxes, by adding them to \code{f}. 
 #' All quantities that are not initialised by pars 
 #' in \code{x(..., forcings, events)} are initialized with 0. For more details and
 #' the return value see \link{Xs}.
 #' @export
-Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optionsOde=list(method = "lsoda")) {
+Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optionsOde=list(method = "lsoda"), fcontrol = NULL) {
   
   func <- odemodel$func
   
   myforcings <- forcings
   myevents <- events
+  myfcontrol <- fcontrol
   
   variables <- attr(func, "variables")
   parameters <- attr(func, "parameters")
@@ -189,7 +198,8 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
   controls <- list(
     forcings = myforcings,
     events = myevents,
-    optionsOde = optionsOde
+    optionsOde = optionsOde,
+    fctonrol = myfcontrol
   )
   
   P2X <- function(times, pars, deriv = TRUE){
@@ -209,7 +219,7 @@ Xf <- function(odemodel, forcings = NULL, events = NULL, condition = NULL, optio
     
     # loadDLL(func)
     if(!is.null(forcings)) forc <- setForcings(func, forcings) else forc <- NULL
-    out <- suppressWarnings(do.call(odeC, c(list(y=yini, times=times, func=func, parms=mypars, forcings=forc,events = list(data = events)), optionsOde)))
+    out <- suppressWarnings(do.call(odeC, c(list(y=yini, times=times, func=func, parms=mypars, forcings=forc,events = list(data = events), fcontrol = fcontrol), optionsOde)))
     #out <- cbind(out, out.inputs)      
     
     prdframe(out, deriv = NULL, parameters = pars)
