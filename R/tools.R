@@ -517,7 +517,7 @@ loadDLL <- function(...) {
   
   .so <- .Platform$dynlib.ext
   models <- modelname(...)
-  files <- paste0(outer(models, c("", "_s", "_sdcv", "_deriv"), paste0), .so)
+  files <- paste0(outer(models, c("", "_s", "_sdcv", "_deriv", "_dfdx", "_dfdp"), paste0), .so)
   files <- files[file.exists(files)]
   
   for (f in files) {
