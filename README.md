@@ -1,4 +1,4 @@
-# dMod -- Dynamic Modeling and Parameter Estimation in R
+# dMod - Dynamic Modeling and Parameter Estimation in R
 
 The dMod package is a framework that provides functions to generate ODEs of reaction networks, parameter transformations, observation functions, residual functions, etc. The framework follows the paradigm that derivative information should be used for optimization whenever possible. Therefore, all major functions produce and can handle expressions for symbolic derivatives.
 
@@ -6,13 +6,15 @@ The dMod package is a framework that provides functions to generate ODEs of reac
 
 dMod uses the package [cOde](https://github.com/dkaschek/cOde) to set up ODE models as compiled C code (deSolve) or C++ code (Sundials). This means that **C and C++ compilers** are required on the system. On Linux, the compilers are installed by default. Windows users need to install [RTools](https://cran.r-project.org/bin/windows/Rtools/).
 
-For **parallelization**, dMod uses `mclapply()` which is available on Linux and Mac but not on Windows. Windows users may use the `foreach` package to put dMod functions in a `%dopar%` loop.
+For **parallelization**, dMod uses `mclapply()` on Linux and Mac. For Windows, parallelization is implemented via the `foreach` package using `%dopar%`.
 
-To **install dMod from the git repository**, it is convenient to use RStudio. Create a "New Project" -> "Version Control" -> "Git". Use the address `https://github.com/dkaschek/dMod` and create project. Next, go to menu "Build" -> "Build and Reload". Once theses steps are completed, it should be possible to run the example below.
+To **install dMod from the git repository**, it is convenient to use RStudio. Create a "New Project" -> "Version Control" -> "Git". Use the address `https://github.com/dkaschek/dMod` and create project. Next, go to menu "Build" -> "Build and Reload". Once theses steps are completed, it should be possible to run the following example. 
 
-When installing dMod from git, you use the development version of dMod. Further packages might be needed to install. 
+When installing dMod from github, you use the development version of dMod. Further packages might be needed to install. In particular, please make sure that if you install dMod from github, also [cOde](https://github.com/dkaschek/cOde) is installed from github.
 
 If **PEtab support** is wanted, libSBML will be required in addition. Installation and usage instructions can be found in the wiki under [Support for PEtab](https://github.com/dkaschek/dMod/wiki/Support-for-PEtab)
+
+
 
 ## Simple example: enzyme kinetics
 
@@ -168,5 +170,8 @@ plotProfile(profiles)
 ```
 
 ![](README_files/figure-html/profiles-1.png)<!-- -->
+
+
+
 
 
