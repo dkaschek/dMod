@@ -1,7 +1,7 @@
 #' Calculate analytical steady states. 
 #' 
 #' @description This function follows the method published in [1]. Find the latest version of the tool and some examples under [2]. The determined steady-state solution is tailored to parameter estimation. Please note that kinetic parameters might be fixed for solution of steady-state equations. Note that additional parameters might be introduced to ensure positivity of the solution.
-#' @description The function calls a python script via the reticulate package. 
+#' @description The function calls a python script via the reticulate package. Use python3.x
 #' 
 #' 
 #' @param model Either name of the csv-file or the eqnlist of the model.
