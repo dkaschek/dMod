@@ -41,7 +41,7 @@ steadyStates <- function(model, file=NULL, rates = NULL, forcings = NULL, givenC
   }
 
   # Calculate steady states.
-  source_python("inst/code/AlySSaPEtit_ver1.0.py")
+  source_python(system.file("code/AlySSaPEtit_ver1.0.py", package = "dMod"))
   m_ss <- AlySSa(model, as.list(forcings), as.list(givenCQs), as.list(neglect), sparsifyLevel, outputFormat)
   
   # Write steady states to disk.
