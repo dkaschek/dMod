@@ -1,15 +1,11 @@
 #' Calculate analytical steady states. 
 #' 
-#' @description This function follows the method published in [1]. The determined steady-state solution is tailored to parameter estimation. Please note that kinetic parameters might be fixed for solution of steady-state equations. Note that additional parameters might be introduced to ensure positivity of the solution.
-#' @description The function calls a python script via rPython. Usage problems might occur when different python versions are used. The script was written and tested for python 2.7.12, sympy 0.7.6 and numpy 1.8.2.
-#' @description Recently, users went into problems with RJSONIO when rPython was used. Unless a sound solution is available, please try to reinstall RJSONIO in these cases.
+#' @description This function follows the method published in [1]. Find the latest version of the tool and some examples under [2]. The determined steady-state solution is tailored to parameter estimation. Please note that kinetic parameters might be fixed for solution of steady-state equations. Note that additional parameters might be introduced to ensure positivity of the solution.
+#' @description The function calls a python script via the reticulate package. 
 #' 
 #' 
-#' @param model Either name of the csv-file or the eqnlist of the model. If NULL, specify smatrix, states and rates by hand.
+#' @param model Either name of the csv-file or the eqnlist of the model.
 #' @param file Name of the file to which the steady-state equations are saved.
-#'   Read this file with \code{\link{readRDS}}.
-#' @param smatrix Numeric matrix, stiochiometry matrix of the system 
-#' @param states Character vector, state vector of the system
 #' @param rates Character vector, flux vector of the system
 #' @param forcings Character vector with the names of the forcings
 #' @param givenCQs Character vector with conserved quantities. Use the format c("A + pA = totA", "B + pB = totB"). If NULL, conserved quantities are automatically calculated.
@@ -24,6 +20,8 @@
 #' @references [1]
 #' \url{https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4863410/}
 #' @references [2]
+#' \url{https://github.com/marcusrosenblatt/AlySSaPEtit}
+#' @references [3]
 #' \url{https://github.com/Data2Dynamics/d2d}
 #' 
 #' @author Marcus Rosenblatt, \email{marcus.rosenblatt@@fdm.uni-freiburg.de}
@@ -31,22 +29,20 @@
 #' @export
 #' @importFrom utils write.table
 #' @example inst/examples/steadystates.R
-steadyStates <- function(model, file=NULL, smatrix = NULL, states = NULL, rates = NULL, forcings = NULL, givenCQs = NULL, neglect=NULL, sparsifyLevel = 2, outputFormat = "R") {
+steadyStates <- function(model, file=NULL, rates = NULL, forcings = NULL, givenCQs = NULL, neglect=NULL, sparsifyLevel = 2, outputFormat = "R") {
+  
+  require(reticulate)
   
   # Check if model is an equation list
-  if (inherits(model, "eqnlist")) {    
+  if (inherits(model, "eqnlist")) {
+    if(is.null(file)) file <- "reactions_for_AlySSa"
     write.eqnlist(model, file = paste0(file, "_model.csv"))
     model <- paste0(file, "_model.csv")    
   }
-  if(!is.null(smatrix)){
-    write.table(smatrix, file="smatrix.csv", sep = ",")
-    smatrix=TRUE
-  }
-  
+
   # Calculate steady states.
-  python_version_request("2.7")  
-  rPython::python.load(system.file("code/steadyStates.py", package = "dMod"))
-  m_ss <- rPython::python.call("ODESS", model, smatrix, as.list(states), as.list(rates), as.list(forcings), as.list(givenCQs), as.list(neglect), sparsifyLevel, outputFormat)
+  source_python("inst/code/AlySSaPEtit_ver1.0.py")
+  m_ss <- AlySSa(model, as.list(forcings), as.list(givenCQs), as.list(neglect), sparsifyLevel, outputFormat)
   
   # Write steady states to disk.
   if(length(m_ss)>1){    

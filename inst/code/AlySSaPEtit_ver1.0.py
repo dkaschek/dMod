@@ -1,21 +1,23 @@
-import sympy
-from sympy import *
+# AlySSaPEtit version 1.0
+# Use with python 3.x
+
 import numpy
-from numpy import *
+import sympy
+from sympy import Matrix, simplify, expand, solve
+from numpy import shape, zeros, concatenate
 from numpy.linalg import matrix_rank
-from sympy.parsing.sympy_parser import *
+from sympy.parsing.sympy_parser import parse_expr
 from sympy.matrices import *
+from sympy.matrices import matrix_multiply_elementwise
 import csv
-import os
-import sys
 import random
 from random import shuffle
 
 def LCS(s1, s2):
-    m = [[0] * (1 + len(s2)) for i in xrange(1 + len(s1))]
+    m = [[0] * (1 + len(s2)) for i in range(1 + len(s1))]
     longest, x_longest = 0, 0
-    for x in xrange(1, 1 + len(s1)):
-        for y in xrange(1, 1 + len(s2)):
+    for x in range(1, 1 + len(s1)):
+        for y in range(1, 1 + len(s2)):
             if s1[x - 1] == s2[y - 1]:
                 m[x][y] = m[x - 1][y - 1] + 1
                 if m[x][y] > longest:
@@ -236,17 +238,19 @@ def DetermineGraphStructure(SM, F, X, neglect):
                 if(j==i):
                     In=((SM*F)[i]).subs(X[j],0)
                     Out=simplify(((SM*F)[i]-In)/X[j])
-                    if(Out!=Out.subs(X[j],1) or '-' in str(In)):
+                    if(Out!=Out.subs(X[j],1)):
                         liste.append(str(X[j]))
                 else:
                     liste.append(str(X[j]))
             else:
                 if(j==i):
                     liste.append(str(X[j]))
+                    
         graph[str(X[i])]=liste
+        #print(graph)
     for el in neglect:
         if(parse_expr(el) in X):
-            if not graph.has_key(el):
+            if not el in graph:
                 graph[el]=[el]
             else:
                 if(el not in graph[el]):
@@ -262,7 +266,7 @@ def FindCycle(graph, X):
     
 def find_cycle(graph, start, end, path=[]):
     path = path + [start]
-    if not graph.has_key(start):
+    if not start in graph:
         return None
     if ((start == end) & (path!=[start])):
         return path    
@@ -438,7 +442,8 @@ def CountNZE(V):
             counter=counter+1
     return(counter)
     
-def Sparsify(M, level):
+def Sparsify(M, level, sparseIter):
+    oldM=M.copy()
     if(level==3):
         ncol=len(M.row(0))
         print('0 columns of '+str(ncol) +' done')
@@ -504,113 +509,72 @@ def Sparsify(M, level):
                             if(CountNZE(test)!=0 and M.rank()==Mtest.rank()):
                                 M=Mtest.copy()
                                 tobeat=CountNZE(test)
-    return(M)
+    if(oldM!=M and sparseIter<10):
+        oldM=M.copy() 
+        print("Sparsify with level", level,", Iteration ",sparseIter, " of maximal 10")
+        return(Sparsify(M,level, sparseIter=sparseIter+1))                            
+    else:
+        return(M)
     
-def ODESS(filename,
-          SM=False,
-          X=[],
-          F=[],
+def AlySSa(filename,
           injections=[],
           givenCQs=[],
           neglect=[],
           sparsifyLevel = 2,
           outputFormat='R'):
-    if(filename!=None):
-        filename=str(filename)
-        file=csv.reader(open(filename), delimiter=',')
-        print('Reading csv-file ...')
-        L=[]
-        nrrow=0
-        nrcol=0
-        for row in file:
-            nrrow=nrrow+1
-            nrcol=len(row)
-            L.append(row)
-            
-        nrspecies=nrcol-2
+    filename=str(filename)
+    file=csv.reader(open(filename), delimiter=',')
+    print('Reading csv-file ...')
+    L=[]
+    nrrow=0
+    nrcol=0
+    for row in file:
+        nrrow=nrrow+1
+        nrcol=len(row)
+        L.append(row)
+        
+    nrspecies=nrcol-2
     
 ##### Remove injections  
-        counter=0
-        for i in range(1,len(L)):
-            if(L[i-counter][1] in injections):
-                L.remove(L[i-counter])
-                counter=counter+1       
+    counter=0
+    for i in range(1,len(L)):
+        if(L[i-counter][1] in injections):
+            L.remove(L[i-counter])
+            counter=counter+1       
     
-##### Define flux vector F
-    if(filename!=None):
-        F=[]    
-        for i in range(1,len(L)):
-            F.append(L[i][1])
-            #print(F)
-            F[i-1]=F[i-1].replace('^','**')
-            F[i-1]=parse_expr(F[i-1])
-            for inj in injections:
-                F[i-1]=F[i-1].subs(parse_expr(inj),0)
-        F=Matrix(F)
-    else:
-        if(F!=[]):
-            flist=[]
-            for f in F:
-                flist.append(parse_expr(f))
-            F=Matrix(flist)
-        else:
-            print("You have to specify a flux vector or a model file!")
-
+##### Define flux vector F	
+    F=[]
+    
+    for i in range(1,len(L)):
+        F.append(L[i][1])
+        #print(F)
+        F[i-1]=F[i-1].replace('^','**')
+        F[i-1]=parse_expr(F[i-1])
+        for inj in injections:
+            F[i-1]=F[i-1].subs(parse_expr(inj),0)
+    F=Matrix(F)
+    #print(F)
 ##### Define state vector X
-    if(filename!=None):
-        X=[]
-        X=L[0][2:]
-        for i in range(len(X)):
-            X[i]=parse_expr(X[i])               
-        X=Matrix(X)
-    else:
-        if(X!=[]):
-            xlist=[]
-            for x in X:
-                xlist.append(parse_expr(x))
-            X=Matrix(xlist)
-        else:
-            print("You have to specify a state vector or a model file!")
-##### Save a copy of X for testing the solution at the end
+    X=[]
+    X=L[0][2:]
+    for i in range(len(X)):
+        X[i]=parse_expr(X[i])               
+    X=Matrix(X)
+    #print(X)
     Xo=X.copy()
         
 ##### Define stoichiometry matrix SM
-    #print(SM)
-    if(filename!=None):
-        SM=[]
-        for i in range(len(L)-1):
-          SM.append(L[i+1][2:])        
-        for i in range(len(SM)):
-          for j in range(len(SM[0])):
-        		if (SM[i][j]==''):
-        			SM[i][j]='0'
-        		SM[i][j]=parse_expr(SM[i][j])    
-        SM=Matrix(SM)
-        SM=SM.T
-    else:
-        if(SM):
-            SMfile=csv.reader(open("smatrix.csv"), delimiter=',')
-            nrrow=0
-            nrcol=0
-            L=[]
-            for row in SMfile:
-                nrrow=nrrow+1
-                nrcol=len(row)
-                L.append(row)
-            
-            nrspecies=nrcol-2
-            SM=[]
-            for i in range(len(L)-1):
-                SM.append(L[i+1][2:])
-            for i in range(len(SM)):
-              for j in range(len(SM[0])):
-        		    if (SM[i][j]=='NA'):
-        			    SM[i][j]='0'
-        		    SM[i][j]=parse_expr(SM[i][j])
-            SM=Matrix(SM)
-            SM=SM.T
-        else:
-            print("You have to specify a stoichiometry matrix or a model file.")
+    SM=[]
+    for i in range(len(L)-1):
+    	SM.append(L[i+1][2:])        
+    for i in range(len(SM)):
+    	for j in range(len(SM[0])):
+    		if (SM[i][j]==''):
+    			SM[i][j]='0'
+    		SM[i][j]=parse_expr(SM[i][j])    
+    SM=Matrix(SM)
+    SM=SM.T
+    SMorig=SM.copy()
 
     
 ##### Check for zero fluxes
@@ -624,8 +588,10 @@ def ODESS(filename,
                     #UsedRC.append(X[j-jcounter])
                     X.row_del(j-jcounter)
                     SM.row_del(j-jcounter)
+                    SMorig.row_del(j-jcounter)
                     jcounter=jcounter+1
             SM.col_del(i-icounter)
+            SMorig.col_del(i-icounter)
             icounter=icounter+1
     
     print('Removed '+str(icounter)+' fluxes that are a priori zero!')
@@ -835,11 +801,14 @@ def ODESS(filename,
 
 ##### Increase Sparsity of stoichiometry matrix SM
     print('Sparsify stoichiometry matrix with sparsify-level '+str(sparsifyLevel)+'!')
-    SM=(Sparsify(SM.T, level=sparsifyLevel)).T
+    newSM=(Sparsify(SM.T, level=sparsifyLevel, sparseIter=1)).T
+    if(newSM!=SM):
+        print("Sparsified!")
+        SM=newSM
     
 #### Find conserved quantities
     
-    #printmatrix(CMbig.transpose())
+    #printmatrix(CMbig)
     #print(X)
     if(givenCQs==[]):
         print('\nFinding conserved quantities ...')
@@ -935,7 +904,6 @@ def ODESS(filename,
             index=list(X).index(parse_expr(state2Rem))            
             negs, sumnegs, negfps=GetOutfluxes(state2Rem, X, SM, F, fluxpars)
             poss, sumposs, posfps=GetInfluxes(state2Rem, X, SM, F, fluxpars)
-            #print(anz)
             if(anz==1):
                 if((sign=="minus" and not signChanged) or (sign=="plus" and signChanged)):
                     fp2Rem=negfps[0]
@@ -946,8 +914,8 @@ def ODESS(filename,
                 eq=(SM*F)[index]
                 sol=solve(eq, fp2Rem, simplify=False)[0]
                 eqOut.append(str(fp2Rem)+' = '+str(sol))
-                print('   '+str(state2Rem)+' --> '+str(fp2Rem))
-                colindex=list(fluxpars).index(fp2Rem)
+                FsearchFlux = matrix_multiply_elementwise(abs(SM[index,:]),F.T)
+                colindex=list(FsearchFlux).index(flux)
                 for row2repl in range(len(SM.col(0))):
                     if(SM[row2repl,colindex]!=0 and row2repl!=index):
                         SM=SM.row_insert(row2repl,SM.row(row2repl)-(SM[row2repl,colindex]/SM[index,colindex])*SM.row(index))
@@ -969,13 +937,11 @@ def ODESS(filename,
                             gesnew=gesnew+1
                             trafoList.append(str(fp)+' = ('+str(sumposs)+')*'+'r_'+state2Rem+'_'+str(j)+'/('+str(nenner)+')*1/('+str(prefactor)+')')
                         
-                        colindex=list(fluxpars).index(fp)
+                        FsearchFlux = matrix_multiply_elementwise(abs(SM[index,:]),F.T)
+                        colindex=list(FsearchFlux).index(flux)
                         for k in range(len(posfps)):
                             SM=SM.col_insert(len(SM.row(0)),SM.col(colindex))
-                            if(j==0):
-                                F=F.row_insert(len(F),Matrix(1,1,[poss[k]/nenner]))
-                            else:
-                                F=F.row_insert(len(F),Matrix(1,1,[parse_expr('r_'+state2Rem+'_'+str(j))*poss[k]/nenner]))
+                            F=F.row_insert(len(F),Matrix(1,1,[poss[k]/nenner]))
                             fluxpars.append(posfps[k])
                         SM.col_del(colindex)
                         F.row_del(colindex)
@@ -992,13 +958,11 @@ def ODESS(filename,
                         else:
                             gesnew=gesnew+1
                             trafoList.append(str(fp)+' = ('+str(sumnegs)+')*'+'r_'+state2Rem+'_'+str(j)+'/('+str(nenner)+')*1/('+str(prefactor)+')')
-                        colindex=list(fluxpars).index(fp)
+                        FsearchFlux = matrix_multiply_elementwise(abs(SM[index,:]),F.T)
+                        colindex=list(FsearchFlux).index(flux)
                         for k in range(len(negfps)):
                             SM=SM.col_insert(len(SM.row(0)),SM.col(colindex))
-                            if(j==0):
-                                F=F.row_insert(len(F),Matrix(1,1,[negs[k]/nenner]))
-                            else:
-                                F=F.row_insert(len(F),Matrix(1,1,[parse_expr('r_'+state2Rem+'_'+str(j))*negs[k]/nenner]))
+                            F=F.row_insert(len(F),Matrix(1,1,[negs[k]/nenner]))
                             fluxpars.append(negfps[k])
                         SM.col_del(colindex)
                         F.row_del(colindex)
@@ -1009,10 +973,8 @@ def ODESS(filename,
         X.row_del(index)
         SM.row_del(index)
         SSgraph=DetermineGraphStructure(SM, F, X, neglect)
-        #printgraph(SSgraph)
-        #printmatrix(SM)
-        #print(F)
         #print(X)
+        #printgraph(SSgraph)
         cycle=FindCycle(SSgraph, X)
         counter=counter+1       
     print('There is no cycle in the system!\n')              
@@ -1098,9 +1060,9 @@ def ODESS(filename,
         for state in zeroStates:
             print('\t'+str(state)+' = 0'+'\n')
         eqOutReturn=[]
-        for eq in eqOut:
-            print('\t'+eq+'\n')
+        for eq in eqOut:            
             ls, rs = eq.split(' = ')
+            print('\t'+ls+' = "'+rs+'",'+'\n')
             eqOutReturn.append(ls+'='+rs)
     print('Number of Species:  '+str(nrspecies))
     print('Number of Equations:  '+str(len(eqOut)+len(zeroStates)))
