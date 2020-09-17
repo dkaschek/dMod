@@ -20,7 +20,7 @@
 #' @references [1]
 #' \url{https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4863410/}
 #' @references [2]
-#' \url{https://github.com/marcusrosenblatt/AlySSaPEtit}
+#' \url{https://github.com/marcusrosenblatt/AlyssaPetit}
 #' @references [3]
 #' \url{https://github.com/Data2Dynamics/d2d}
 #' 
@@ -35,14 +35,14 @@ steadyStates <- function(model, file=NULL, rates = NULL, forcings = NULL, givenC
   
   # Check if model is an equation list
   if (inherits(model, "eqnlist")) {
-    if(is.null(file)) file <- "reactions_for_AlySSa"
+    if(is.null(file)) file <- "reactions_for_Alyssa"
     write.eqnlist(model, file = paste0(file, "_model.csv"))
     model <- paste0(file, "_model.csv")    
   }
 
   # Calculate steady states.
-  source_python(system.file("code/AlySSaPEtit_ver1.0.py", package = "dMod"))
-  m_ss <- AlySSa(model, as.list(forcings), as.list(givenCQs), as.list(neglect), sparsifyLevel, outputFormat)
+  source_python(system.file("code/AlyssaPetit_ver1.0.py", package = "dMod"))
+  m_ss <- Alyssa(model, as.list(forcings), as.list(givenCQs), as.list(neglect), sparsifyLevel, outputFormat)
   
   # Write steady states to disk.
   if(length(m_ss)>1){    

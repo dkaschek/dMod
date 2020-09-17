@@ -1,4 +1,4 @@
-# AlySSaPEtit version 1.0
+# AlyssaPetit version 1.0
 # Use with python 3.x
 
 import numpy
@@ -516,7 +516,7 @@ def Sparsify(M, level, sparseIter):
     else:
         return(M)
     
-def AlySSa(filename,
+def Alyssa(filename,
           injections=[],
           givenCQs=[],
           neglect=[],
