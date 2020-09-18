@@ -487,7 +487,7 @@ runbg_bwfor <- function(..., machine, filename = NULL, nodes = 1, cores = 1, wal
 #' into an R data file and copied to the remove machine.
 #' @param compile Logical. If \code{TRUE}, C files are copied and compiled on the remote machine.
 #' Otherwise, the .so files are copied.
-#' @param recover Logical, If \cde{TRUE}, the scripts will not be started again.
+#' @param recover Logical, If \code{TRUE}, the scripts will not be started again.
 #' Can be used to get back the check and get functions for an already started process, e.g. after local session has aborted.
 #' @param password Your ssh password in plain text (yes, no joke unfortunately), the password is handed over to sshpass for automatic login on the cluster.
 #' @return List of functions \code{check()}, \code{get()} and \code{purge()}. 
