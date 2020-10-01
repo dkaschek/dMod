@@ -281,7 +281,7 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
 #' into an R data file and copied to the remove machine.
 #' @param compile Logical. If \code{TRUE}, C files are copied and compiled on the remote machine.
 #' Otherwise, the .so files are copied.
-#' @param recover Logical, If \cde{TRUE}, the scripts will not be started again.
+#' @param recover Logical, If \code{TRUE}, the scripts will not be started again.
 #' Can be used to get back the check and get functions for an already started process, e.g. after local session has aborted.
 #' @return List of functions \code{check()}, \code{get()} and \code{purge()}. 
 #' \code{check()} checks, if the result is ready.
