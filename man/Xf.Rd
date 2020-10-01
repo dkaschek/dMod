@@ -9,7 +9,8 @@ Xf(
   forcings = NULL,
   events = NULL,
   condition = NULL,
-  optionsOde = list(method = "lsoda")
+  optionsOde = list(method = "lsoda"),
+  fcontrol = NULL
 )
 }
 \arguments{
@@ -23,6 +24,9 @@ Xf(
 the condition for which the function makes a prediction.}
 
 \item{optionsOde}{list with arguments to be passed to odeC() for the ODE integration.}
+
+\item{fcontrol}{list with additional fine-tuning arguments for the forcing interpolation. 
+See \link[stats]{approxfun} for possible arguments.}
 }
 \description{
 Interface to get an ODE 

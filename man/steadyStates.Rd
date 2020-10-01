@@ -7,8 +7,6 @@
 steadyStates(
   model,
   file = NULL,
-  smatrix = NULL,
-  states = NULL,
   rates = NULL,
   forcings = NULL,
   givenCQs = NULL,
@@ -18,14 +16,9 @@ steadyStates(
 )
 }
 \arguments{
-\item{model}{Either name of the csv-file or the eqnlist of the model. If NULL, specify smatrix, states and rates by hand.}
+\item{model}{Either name of the csv-file or the eqnlist of the model.}
 
-\item{file}{Name of the file to which the steady-state equations are saved.
-Read this file with \code{\link{readRDS}}.}
-
-\item{smatrix}{Numeric matrix, stiochiometry matrix of the system}
-
-\item{states}{Character vector, state vector of the system}
+\item{file}{Name of the file to which the steady-state equations are saved.}
 
 \item{rates}{Character vector, flux vector of the system}
 
@@ -45,11 +38,9 @@ selected.}
 Character vector of steady-state equations.
 }
 \description{
-This function follows the method published in [1]. The determined steady-state solution is tailored to parameter estimation. Please note that kinetic parameters might be fixed for solution of steady-state equations. Note that additional parameters might be introduced to ensure positivity of the solution.
+This function follows the method published in [1]. Find the latest version of the tool and some examples under [2]. The determined steady-state solution is tailored to parameter estimation. Please note that kinetic parameters might be fixed for solution of steady-state equations. Note that additional parameters might be introduced to ensure positivity of the solution.
 
-The function calls a python script via rPython. Usage problems might occur when different python versions are used. The script was written and tested for python 2.7.12, sympy 0.7.6 and numpy 1.8.2.
-
-Recently, users went into problems with RJSONIO when rPython was used. Unless a sound solution is available, please try to reinstall RJSONIO in these cases.
+The function calls a python script via the reticulate package. Use python3.x
 }
 \examples{
 
@@ -90,6 +81,9 @@ Recently, users went into problems with RJSONIO when rPython was used. Unless a 
 \url{https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4863410/}
 
 [2]
+\url{https://github.com/marcusrosenblatt/AlyssaPetit}
+
+[3]
 \url{https://github.com/Data2Dynamics/d2d}
 }
 \author{

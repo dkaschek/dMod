@@ -670,7 +670,7 @@ runbg_bwfor_sshpass <- function(..., machine, filename = NULL, nodes = 1, cores 
 
 
 
-#' Run an R expression on the bwForCluster via sshpass
+#' Run an R expression on the bwForCluster via sshpass and slurm
 #' 
 #' @description Generate an R code of the expression that is copied via \code{scp}
 #' to the bwForCluster. Then collect the results. ssh-key not needed. Password can be provided via an additional argument.
@@ -688,6 +688,7 @@ runbg_bwfor_sshpass <- function(..., machine, filename = NULL, nodes = 1, cores 
 #' file name ist chosen if NULL.
 #' @param nodes Number of nodes, e.g. 10
 #' @param cores Number of cores, e.g. 16
+#' @param partition character, the partition where to start the job
 #' @param walltime estimated runtime in the format \code{hh:mm:ss}, e.g. \code{01:30:00}.
 #' Jobs with a walltime up to 30 min are sent to a quick queue. When the walltime
 #' is exceeded, all jobs are automatically killed by the queue.

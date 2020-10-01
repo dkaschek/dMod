@@ -11,7 +11,8 @@ Xs(
   names = NULL,
   condition = NULL,
   optionsOde = list(method = "lsoda"),
-  optionsSens = list(method = "lsodes")
+  optionsSens = list(method = "lsodes"),
+  fcontrol = NULL
 )
 }
 \arguments{
@@ -34,6 +35,9 @@ the condition for which the function makes a prediction.}
 \item{optionsOde}{list with arguments to be passed to odeC() for the ODE integration.}
 
 \item{optionsSens}{list with arguments to be passed to odeC() for integration of the extended system}
+
+\item{fcontrol}{list with additional fine-tuning arguments for the forcing interpolation. 
+See \link[stats]{approxfun} for possible arguments.}
 }
 \value{
 Object of class \link{prdfn}. If the function is called with parameters that

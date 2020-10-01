@@ -37,6 +37,9 @@ into an R data file and copied to the remove machine.}
 
 \item{compile}{Logical. If \code{TRUE}, C files are copied and compiled on the remote machine.
 Otherwise, the .so files are copied.}
+
+\item{recover}{Logical, If \cde{TRUE}, the scripts will not be started again.
+Can be used to get back the check and get functions for an already started process, e.g. after local session has aborted.}
 }
 \value{
 List of functions \code{check()}, \code{get()} and \code{purge()}. 

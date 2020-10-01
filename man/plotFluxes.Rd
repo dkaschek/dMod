@@ -29,6 +29,6 @@ Plot Fluxes given a list of flux Equations
 \examples{
 \dontrun{
 
-plotFluxes(bestfit, x, times, subset(f, "B"%in%Product)$rates, nameFlux = "B production")
+plotFluxes(bestfit, x, times, subset(f, "B"\%in\%Product)$rates, nameFlux = "B production")
 }
 }
