@@ -722,7 +722,7 @@ runbg_bwfor_sshpass <- function(..., machine, filename = NULL, nodes = 1, cores 
 #' }
 #' 
 #' @export
-runbg_bwfor_slurm <- function(..., machine, filename = NULL, nodes = 1, cores = 1, walltime = "01:00:00", input = ls(.GlobalEnv), compile = TRUE, recover = F, password="'begin__end'") {
+runbg_bwfor_slurm <- function(..., machine, filename = NULL, nodes = 1, cores = 1, partition = "single", walltime = "01:00:00", input = ls(.GlobalEnv), compile = TRUE, recover = F, password="'begin__end'") {
   
   if(is.null(password)){
     ssh_command <- "ssh "
@@ -836,9 +836,9 @@ runbg_bwfor_slurm <- function(..., machine, filename = NULL, nodes = 1, cores = 
       "# Estimated wallclock time for job",
       paste0("#SBATCH -t ", walltime),
       "#",
-      # "# Write standard output and errors in same file",
-      # "#SBATCH --output=<combined stdout/stderr file> ",   
-      # "#",
+      "# Request correct partition",
+      paste0("#SBATCH --partition ", partition),
+      "#",
       "########### End MOAB header ##########",
       "",
       "# Setup R Environment",
