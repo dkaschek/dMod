@@ -27,7 +27,8 @@ Imports:
     stringr,
     crayon,
     yaml,
-    rlang
+    rlang,
+    data.table
 Suggests:
     MASS,
     rPython,

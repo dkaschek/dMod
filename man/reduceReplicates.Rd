@@ -3,8 +3,7 @@
 \name{reduceReplicates}
 \alias{reduceReplicates}
 \title{Reduce replicated measurements to mean and standard deviation}
-\format{
-The following columns are mandatory for the data file.
+\format{The following columns are mandatory for the data file.
 \describe{
  \item{name}{Name of the observed species.}
  \item{time}{Measurement time point.}
@@ -14,8 +13,7 @@ The following columns are mandatory for the data file.
 
 In addition to these columns, any number of columns can follow to allow a
 fine grained definition of conditions. The values of all columns named in
-\option{select} are then merged to get the set of conditions.
-}
+\option{select} are then merged to get the set of conditions.}
 \usage{
 reduceReplicates(file, select = "condition", datatrans = NULL)
 }
