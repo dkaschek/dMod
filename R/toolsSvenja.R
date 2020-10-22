@@ -18,7 +18,7 @@
 #'     "up", condition.grid, name == "ProteinA" & condition == "c1") 
 #' }
 #' @export
-#' @import data.table
+#' @import data.table, purrr
 plotArray <- function (par, profs, prd, times, direction = c("up", "down"), covtable, ..., nsimus = 4) {
   
   # select subframe from profiles
@@ -34,8 +34,8 @@ plotArray <- function (par, profs, prd, times, direction = c("up", "down"), covt
   partable <- mysubF[seq(1, nrow(mysubF), (round(nrow(mysubF)/nsimus)))]
   
   # remove non_parameter names
-  no_pars <- c("value", "constraint", "stepsize", "gamma", "whichPar", "data", "condition_obj", "AIC", "BIC", "prior", "ID")
-  partable <- partable %>% .[, (no_pars) := NULL]
+  no_pars <- c("value", "constraint","chisquare", "stepsize", "gamma", "whichPar", "data", "condition_obj", "AIC", "BIC", "prior", "ID")
+  partable %>% .[, (no_pars) := NULL]
   
   # make predictions
   predictionDT <- predict_array(prd, times, pars = partable, whichpar = par)
@@ -89,7 +89,7 @@ predict_array <- function (prd, times, pars = partable, whichpar = par, keep_nam
   if (FLAGverbose2) cat("postprocessing", "\n")
   out <- rbindlist(out[!is.null(out)])
   
-  pars <- cf_parf_getMeta(pars)
+  #pars <- cf_parf_getMeta(pars)
   if (!is.null(pars)){
     pars <- data.table(pars)[, `:=`(ParValue = 1:length(fitrank))]
     out <- merge(pars, out, by = "ParValue")
