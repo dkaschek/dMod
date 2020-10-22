@@ -28,7 +28,8 @@ Imports:
     crayon,
     yaml,
     rlang,
-    data.table
+    data.table,
+    purrr
 Suggests:
     MASS,
     rPython,
