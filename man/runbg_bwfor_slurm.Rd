@@ -24,7 +24,7 @@ runbg_bwfor_slurm(
 \item{machine}{e.g. \code{fr_dk846@bwfor.cluster.uni-mannheim.de}}
 
 \item{filename}{Character, defining the filename of the temporary file. Random
-file name ist chosen if NULL.}
+file name ist chosen if NULL. Must not contain the string "Minus".}
 
 \item{nodes}{Number of nodes, e.g. 10}
 

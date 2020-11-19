@@ -685,7 +685,7 @@ runbg_bwfor_sshpass <- function(..., machine, filename = NULL, nodes = 1, cores 
 #' @param ... Some R code
 #' @param machine e.g. \code{fr_dk846@@bwfor.cluster.uni-mannheim.de}
 #' @param filename Character, defining the filename of the temporary file. Random
-#' file name ist chosen if NULL.
+#' file name ist chosen if NULL. Must not contain the string "Minus".
 #' @param nodes Number of nodes, e.g. 10
 #' @param cores Number of cores, e.g. 16
 #' @param partition character, the partition where to start the job
