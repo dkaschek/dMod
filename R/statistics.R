@@ -499,7 +499,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   }
   
   # .. Prepare output -----
-  outncol <- lapply(out, ncol)
+  outncol <- vapply(out, ncol, 1)
   failed <- outncol != max(outncol)
   if (any(failed)) message("The following profiles failed: ", paste0(whichPar[failed], collapse = ", "))
   out <- out[!failed]  
