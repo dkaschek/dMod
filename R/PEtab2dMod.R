@@ -48,24 +48,24 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
   
   starttime <- Sys.time()
   if(testCases == FALSE){
-    if(is.null(SBML_file))       SBML_file <- paste0(path2model, modelname, "/model_", modelname, ".xml")
+    if(is.null(SBML_file))       SBML_file       <- paste0(path2model, modelname, "/model_", modelname, ".xml")
     if(is.null(observable_file)) observable_file <- paste0(path2model, modelname, "/observables_", modelname, ".tsv")
-    if(is.null(condition_file))  condition_file <- paste0(path2model, modelname, "/experimentalCondition_", modelname, ".tsv")
-    if(is.null(data_file))       data_file <- paste0(path2model, modelname, "/measurementData_", modelname, ".tsv")
-    if(is.null(parameter_file))  parameter_file <- paste0(path2model, modelname, "/parameters_", modelname, ".tsv")
+    if(is.null(condition_file))  condition_file  <- paste0(path2model, modelname, "/experimentalCondition_", modelname, ".tsv")
+    if(is.null(data_file))       data_file       <- paste0(path2model, modelname, "/measurementData_", modelname, ".tsv")
+    if(is.null(parameter_file))  parameter_file  <- paste0(path2model, modelname, "/parameters_", modelname, ".tsv")
   } else{
-    SBML_file <- paste0(path2TestCases, modelname, "/_model.xml")
+    SBML_file       <- paste0(path2TestCases, modelname, "/_model.xml")
     observable_file <- paste0(path2TestCases, modelname, "/_observables.tsv")
-    condition_file <- paste0(path2TestCases, modelname, "/_conditions.tsv")
-    data_file <- paste0(path2TestCases, modelname, "/_measurements.tsv")
-    parameter_file <- paste0(path2TestCases, modelname, "/_parameters.tsv")
+    condition_file  <- paste0(path2TestCases, modelname, "/_conditions.tsv")
+    data_file       <- paste0(path2TestCases, modelname, "/_measurements.tsv")
+    parameter_file  <- paste0(path2TestCases, modelname, "/_parameters.tsv")
   }
   mywd <- getwd()
-  if(!file.exists(SBML_file)){cat(paste0("The file ",mywd,SBML_file, " does not exist. Please check spelling or provide the file name via the SBML_file argument.")); return(NULL)}
-  if(!file.exists(observable_file)){cat(paste0("The file ",mywd,observable_file, " does not exist. Please check spelling or provide the file name via the observable_file argument.")); return(NULL)}
-  if(!file.exists(condition_file)){cat(paste0("The file ",mywd,condition_file, " does not exist. Please check spelling or provide the file name via the condition_file argument.")); return(NULL)}
-  if(!file.exists(data_file)){cat(paste0("The file ",mywd,data_file, " does not exist. Please check spelling or provide the file name via the data_file argument.")); return(NULL)}
-  if(!file.exists(parameter_file)){cat(paste0("The file ",mywd,parameter_file, " does not exist. Please check spelling or provide the file name via the parameter_file argument.")); return(NULL)}
+  if(!file.exists(SBML_file)){       cat(paste0("The file ",mywd,SBML_file, " does not exist. Please check spelling or provide the file name via the SBML_file argument.")); return(NULL)}
+  if(!file.exists(observable_file)){ cat(paste0("The file ",mywd,observable_file, " does not exist. Please check spelling or provide the file name via the observable_file argument.")); return(NULL)}
+  if(!file.exists(condition_file)){  cat(paste0("The file ",mywd,condition_file, " does not exist. Please check spelling or provide the file name via the condition_file argument.")); return(NULL)}
+  if(!file.exists(data_file)){       cat(paste0("The file ",mywd,data_file, " does not exist. Please check spelling or provide the file name via the data_file argument.")); return(NULL)}
+  if(!file.exists(parameter_file)){  cat(paste0("The file ",mywd,parameter_file, " does not exist. Please check spelling or provide the file name via the parameter_file argument.")); return(NULL)}
   
   if(is.null(modelname)) modelname <- "mymodel"
   ## Load shared objects --------------------
