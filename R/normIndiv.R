@@ -258,8 +258,8 @@ build_est.grid <- function(prd0, fixed.grid, conditional, condition.grid, iiv = 
     for (x in seq_along(conditional$parname)) {
       # 1 Replace est pars by localized pars
       cn      <- conditional[x,, drop = FALSE]
-      ids_est <- as.character(condition.grid$ID[condition.grid[[cn$covname]] == cn$covvalue])
-      est.grid[cn$parname,ids_est] <- paste0(est.grid[cn$parname,ids_est], "_", cn$covvalue)
+      ids_est <- as.character(condition.grid$condition[as.character(condition.grid[[cn$covname]]) == as.character(cn$covvalue)])
+      est.grid[cn$parname,ids_est] <- paste0(est.grid[cn$parname,ids_est], "_", cn$covname, "_", cn$covvalue)
       
       if (length(intersect(cn$parname, fixed.grid$parname))){
         # 2 Replace fixed localized pars by NA
