@@ -10,7 +10,7 @@
 #' 
 #' The code to be executed remotely is passed to the \code{...} argument, its final
 #' output is stored in \code{cluster_result}, which is loaded in the local
-#' workspace by the \cod{get()} function.
+#' workspace by the \code{get()} function.
 #' 
 #' It is possible to either run repetitions of the same program realization (by 
 #' use of the \code{no_rep} parameter), or to pass a list of parameter arrays
@@ -445,6 +445,54 @@ distributed_computing <- function(
       "sbatch ", jobname, ".sh'" # start bash script
     )
   )
+  
+  return(out)
+}
+
+
+
+#' Generate parameter list for distributed profile calculation
+#' 
+#' @description Generates list of \code{WhichPar} entries to facillitate distribute
+#' profile calculation.
+#' @details Lists to split the parameters for which the profiles are calculated
+#' on the different nodes.
+#' 
+#' @param parameters list of parameters 
+#' @param fits_per_node numerical, number of parameters that will be send to each node.
+#' 
+#' @return List with two arrays: \code{from} contains the number of the starting
+#' parameter, while \code{to} stores the respective upper end of the parameter list
+#' per node.
+#' @examples
+#' \dontrun{
+#' var_list <- profile_pars_node_list(parameter_list, 4)
+#' }
+#' 
+#' @export
+profile_pars_per_node <- function(parameters, fits_per_node) {
+  # get the number of parameters
+  n_pars <- length(parameters)
+  
+  # Get number of fits per node
+  fits_per_node <- fits_per_node
+  
+  # determine the number of nodes necessary
+  no_nodes <- 1:ceiling(n_pars/fits_per_node)
+  
+  # generate the lists which parameters are send to wich node
+  pars_from <- fits_per_node
+  pars_to_vec <- fits_per_node
+  while (pars_from <= (n_pars)) {
+    pars_from <- pars_from + fits_per_node
+    pars_to_vec <- c(pars_to_vec, pars_from)
+  }
+  pars_to_vec[length(pars_to_vec)] <- n_pars
+  
+  pars_from_vec <- c(1, pars_to_vec+1)
+  pars_from_vec <- head(pars_from_vec, -1)
+  
+  out <- list(from=pars_from_vec, to=pars_to_vec)
   
   return(out)
 }

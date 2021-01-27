@@ -91,7 +91,7 @@ is used by sshpass (which has to be installed on the local machine).
 
 The code to be executed remotely is passed to the \code{...} argument, its final
 output is stored in \code{cluster_result}, which is loaded in the local
-workspace by the \cod{get()} function.
+workspace by the \code{get()} function.
 
 It is possible to either run repetitions of the same program realization (by 
 use of the \code{no_rep} parameter), or to pass a list of parameter arrays
