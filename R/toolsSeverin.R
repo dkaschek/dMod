@@ -94,6 +94,51 @@
 #' out_distributed_computing$purge()
 #' result <- cluster_result
 #' print(result)
+#' 
+#' 
+#' # calculate profiles
+#' var_list <- profile_pars_node_list(best_fit, 4)
+#' profile_jobname <- paste0(fit_filename,"_profiles_opt")
+#' method <- "optimize"
+#' profiles_distributed_computing <- distributed_computing(
+#'   {
+#'     profile(
+#'       obj = obj,
+#'       pars =  best_fit,
+#'       whichPar = (as.numeric(var_1):as.numeric(var_2)),
+#'       limits = c(-5, 5),
+#'       cores = 16,
+#'       method = method,
+#'       stepControl = list(
+#'         stepsize = 1e-6,
+#'         min = 1e-4, 
+#'         max = Inf, 
+#'         atol = 1e-2,
+#'         rtol = 1e-2, 
+#'         limit = 100
+#'       ),
+#'       optControl = list(iterlim = 20)
+#'     )
+#'   },
+#'   jobname = profile_jobname,
+#'   partition = "single",
+#'   cores = 16,
+#'   nodes = 1,
+#'   walltime = "02:00:00",
+#'   ssh_passwd = "domain-possiblyA1",
+#'   machine = "cluster",
+#'   var_values = var_list,
+#'   no_rep = NULL,
+#'   recover = F,
+#'   compile = F
+#' )
+#' profiles_distributed_computing$check()
+#' profiles_distributed_computing$get()
+#' profiles_distributed_computing$purge()
+#' profiles  <- NULL
+#' for (i in cluster_result) {
+#'   profiles <- rbind(profiles, i)
+#' }
 #' }
 #' 
 #' @export
