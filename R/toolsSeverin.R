@@ -211,7 +211,7 @@ distributed_computing <- function(
   }
   
   # get function
-  out[[2]] <- function (purge_local = purge_local) {
+  out[[2]] <- function () {
     # copy all files back
     system(
       paste0(
@@ -249,7 +249,7 @@ distributed_computing <- function(
   
   
   # purge function
-  out[[3]] <- function () {
+  out[[3]] <- function (purge_local = FALSE) {
     # remove files remote
     system(
       paste0(
