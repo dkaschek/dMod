@@ -115,14 +115,14 @@ normIndiv <- function(data,
       
       # Skip condition if the data does not provide any observation for the prediction of the prd function.
       if (length(intersect(data[[cn]][["name"]], colnames(prediction[[1]]))) == 0){
-        mywrss <- dMod_init_empty_objlist(pars0, deriv = deriv)
+        mywrss <- init_empty_objlist(pars0, deriv = deriv)
         mywrss <- rename_objlist(mywrss, cn, est.grid)
         return(mywrss)
       }
       err <- NULL
       if (!is.null(errmodel) && (is.null(e.conditions) | (cn %in% e.conditions)))
         err <- errmodel(out = prediction[[1]], pars = dMod::getParameters(prediction[[1]]), conditions = cn) 
-      nout <- dMod_res(data[[cn]], prediction[[1]], err[[cn]])
+      nout <- res(data[[cn]], prediction[[1]], err[[cn]])
       mywrss <- nll(nout = nout, pars = pars0, deriv = deriv)
       chisquare <- attr(mywrss, "chisquare")
       # .... 4 Rename general parnames into individual parnames ------ #
@@ -147,7 +147,7 @@ normIndiv <- function(data,
     residuals <- do.call(rbind, lapply(outlist, function(x) attr(x, "residuals")))
     
     # Generate output list with combined value, gradient and hessian
-    out <- dMod_init_empty_objlist(parsouter, deriv = deriv)
+    out <- init_empty_objlist(parsouter, deriv = deriv)
     out[["value"]] <- Reduce("+", values)
     if (deriv) {
       for (grad in gradients) out$gradient[names(grad)]                 <- out$gradient[names(grad)] + grad
@@ -186,7 +186,7 @@ normIndiv <- function(data,
     out[["residuals"]] <- residuals
     
     # Add chisquare to outputs
-    attr(out.chisquare) <- Reduce("+", c(0, do.call(c,lapply(outlist, attr, which = "chisquare"))))
+    attr(out, "chisquare") <- Reduce("+", c(0, do.call(c,lapply(outlist, attr, which = "chisquare"))))
     
     return(out)
   }
@@ -258,8 +258,8 @@ build_est.grid <- function(prd0, fixed.grid, conditional, condition.grid, iiv = 
     for (x in seq_along(conditional$parname)) {
       # 1 Replace est pars by localized pars
       cn      <- conditional[x,, drop = FALSE]
-      ids_est <- as.character(condition.grid$ID[condition.grid[[cn$covname]] == cn$covvalue])
-      est.grid[cn$parname,ids_est] <- paste0(est.grid[cn$parname,ids_est], "_", cn$covvalue)
+      ids_est <- as.character(condition.grid$condition[as.character(condition.grid[[cn$covname]]) == as.character(cn$covvalue)])
+      est.grid[cn$parname,ids_est] <- paste0(est.grid[cn$parname,ids_est], "_", cn$covname, "_", cn$covvalue)
       
       if (length(intersect(cn$parname, fixed.grid$parname))){
         # 2 Replace fixed localized pars by NA
@@ -462,4 +462,23 @@ init_empty_objlist <- function(pars, deriv = TRUE) {
 
 
 
-
+#' Generalized Inverse of a Matrix
+#'
+#' Calculates the Moore-Penrose generalized inverse of a matrix X.
+#'
+#' @param X Matrix for which the Moore-Penrose inverse is required.
+#' @param tol A relative tolerance to detect zero singular values.
+#' @return A MP generalized inverse matrix for X.
+#' @family Auxiliary
+#' @export
+ginv <- function(X, tol = sqrt(.Machine$double.eps)) {
+  if(length(dim(X)) > 2L || !(is.numeric(X) || is.complex(X)))
+    stop("'X' must be a numeric or complex matrix")
+  if(!is.matrix(X)) X <- as.matrix(X)
+  Xsvd <- svd(X)
+  if(is.complex(X)) Xsvd$u <- Conj(Xsvd$u)
+  Positive <- Xsvd$d > max(tol * Xsvd$d[1L], 0)
+  if (all(Positive)) Xsvd$v %*% (1/Xsvd$d * t(Xsvd$u))
+  else if(!any(Positive)) array(0, dim(X)[2L:1L])
+  else Xsvd$v[, Positive, drop=FALSE] %*% ((1/Xsvd$d[Positive]) * t(Xsvd$u[, Positive, drop=FALSE]))
+}
