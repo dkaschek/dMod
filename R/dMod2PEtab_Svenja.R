@@ -23,13 +23,13 @@ modelname <- "TestCase"
 
 #' Export observables to PEtab. 
 #' 
-#' @description This function imports observables from the PEtab observable file.
+#' @description This function exports observables from dMod into the PEtab observable file.
 #'  
-#' @param observables PEtab observable file as .tsv
+#' @param observables dMod observable as named vector or eqnvec
 #'   
-#' @return Eqnvec of observables.
+#' @return PEtab observable file as .tsv
 #'   
-#' @author Marcus Rosenblatt and Svenja Kemmer
+#' @author Svenja Kemmer
 #'   
 #' @export
 #' 
@@ -41,7 +41,7 @@ writeObservablesTSV <- function(observables, errors, modelname){
   errFormula <- as.character(errors)
   errDistribution <- "normal"
   
-  obsFormula[which(obsTrafo !="lin")] <- sub("\\).*", "", sub(".*\\(", "", obsFormula[which(obsTrafo !="lin")])) 
+  obsFormula[which(obsTrafo !="lin")] <- gsub("^log\\(|^log10\\(|\\)$", "", obsFormula[which(obsTrafo !="lin")])
 
   obsDT <- data.table(observableId = obsIDs, 
                       observableFormula = obsFormula, 
