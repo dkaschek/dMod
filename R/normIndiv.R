@@ -136,6 +136,25 @@ add_pars_to_grids <- function(pars, gridlist, FLAGoverwrite = FALSE) {
 
 
 
+#' Create an objlist with zeros as entries
+#' @param pars named vector. Only names and length are used
+#' @param deriv TRUE or FALSE
+#' @examples
+#' init_empty_objlist(setNames(rnorm(5), letters[1:5]))
+init_empty_objlist <- function(pars, deriv = TRUE) {
+
+  if (!deriv)
+    return(dMod::objlist(0,NULL,NULL))
+
+  dMod::objlist(value = 0,
+                gradient = setNames(rep(0, length(pars)), names(pars)),
+                hessian = matrix(0, nrow = length(pars), ncol = length(pars),
+                                 dimnames = list(names(pars), names(pars))))
+}
+
+
+
+
 
 # -------------------------------------------------------------------------#
 # normIndiv - externals ----
