@@ -11,15 +11,15 @@
 # [Date]
 # 2021-03-02 
 #
-rm(list = ls(all.names = TRUE))
-.currentwd <- getwd()
-.exportFolder <- "PEtabExports"
-
-# -------------------------------------------------------------------------#
-# General definitions ----
-# -------------------------------------------------------------------------#
-
-modelname <- "TestCase"
+# rm(list = ls(all.names = TRUE))
+# .currentwd <- getwd()
+# .exportFolder <- "PEtabExports"
+# 
+# # -------------------------------------------------------------------------#
+# # General definitions ----
+# # -------------------------------------------------------------------------#
+# 
+# modelname <- "TestCase"
 
 #' Export observables to PEtab. 
 #' 
