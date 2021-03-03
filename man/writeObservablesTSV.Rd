@@ -2,7 +2,7 @@
 % Please edit documentation in R/dMod2PEtab_Svenja.R
 \name{writeObservablesTSV}
 \alias{writeObservablesTSV}
-\title{Export observables to PEtab.}
+\title{Export observables as .tsv}
 \usage{
 writeObservablesTSV(observables, errors, modelname)
 }
