@@ -36,6 +36,10 @@ unclass_parvec <- function(x) {setNames(unclass(x)[1:length(x)], names(x))}
 #' make_pars(pars, fixed, est.grid, fix.grid, 2)
 make_pars <- function(pars, fixed = NULL, est.grid, fix.grid, ID){
   
+  i <- ID
+  est.grid <- data.table(est.grid)
+  fix.grid <- data.table(fix.grid)
+  
   pars        <- unclass_parvec(pars)
   fixed       <- unclass_parvec(fixed)
   
@@ -44,12 +48,12 @@ make_pars <- function(pars, fixed = NULL, est.grid, fix.grid, ID){
   
   # Match parameters to est.grid: Need to consider supplied "fixed" as well!s
   pars <- c(pars, fixed)
-  parnames  <- unlist(est.grid[est.grid$ID == ID, setdiff(names(est.grid), c("ID", "condition"))])
+  parnames  <- unlist(est.grid[ID == i, .SD,.SDcols = setdiff(names(est.grid), c("ID", "condition"))])
   parnames <- parnames[!is.na(parnames)]
   pars <- setNames(pars[parnames], names(parnames))
   
   # Get Parameters from fix.grid
-  fixed <- unlist(fix.grid[fix.grid$ID == ID, setdiff(names(fix.grid), c("ID", "condition"))])
+  fixed <- unlist(fix.grid[ID == i, .SD,.SDcols = setdiff(names(fix.grid), c("ID", "condition"))])
   # remove NAs
   fixed <- fixed[!is.na(fixed)]
   
@@ -93,34 +97,8 @@ renameDerivPars <- function(pred0, pars, est.grid, cn) {
 }
 
 
-#' Title
-#'
-#' @param x 
-#' @param ... 
-#'
-#' @return
-#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
-#' @md
-#'
-#' @examples
-getParameters.data.table <- function(x,...) {
-  unique(unlist(x[,!c("condition", "ID")], use.names = FALSE))
-}
 
 
-add_pars_to_grid <- function(pars, grid, FLAGoverwrite) {
-  pars <- as.data.table(t(pars))
-  if (FLAGoverwrite) {
-    # Replace
-    grid <- data.table(grid[,!names(..pars_chr)], pars)
-  } else {
-    # Append setdiff
-    parnm <- setdiff(names(pars), names(grid)) 
-    if (length(parnm))
-      grid <- data.table(grid, pars[,..parnm])
-  }
-  grid
-}
 
 #' Add single-valued parameters to the pargrids
 #'
@@ -151,7 +129,7 @@ add_pars_to_grids <- function(pars, gridlist, FLAGoverwrite = FALSE) {
   is_num  <- !is.na(as.numeric(pars))
   # 4 Add parameters to grid
   if (sum(!is_num)) est.grid <- data.table(est.grid, as.data.table(t(pars[!is_num])))
-  if (sum( is_num)) fix.grid <- data.table(fix.grid, as.data.table(t(pars[ is_num])))
+  if (sum( is_num)) fix.grid <- data.table(fix.grid, as.data.table(t(setNames(as.numeric(pars[ is_num]), names(pars[ is_num])))))
   
   list(est.grid = est.grid, fix.grid = fix.grid)
 }
@@ -175,6 +153,12 @@ add_pars_to_grids <- function(pars, gridlist, FLAGoverwrite = FALSE) {
 #' @examples
 PRD_indiv <- function(prd0, est.grid, fix.grid) {
   
+  if (!is.data.table(est.grid)) warning("est.grid was coerced to data.table (was", class(est.grid), ")")
+  if (!is.data.table(fix.grid)) warning("fix.grid was coerced to data.table (was", class(fix.grid), ")")
+  
+  est.grid <- data.table(est.grid)
+  fix.grid <- data.table(fix.grid)
+  
   # Title
   #
   # @param times 
@@ -182,7 +166,7 @@ PRD_indiv <- function(prd0, est.grid, fix.grid) {
   # @param fixed 
   # @param deriv 
   # @param conditions 
-  # @param FLAGbrowser 0: Don't debug, 1: Debug when there is an error, 2: always debug
+  # @param FLAGbrowserN 0: Don't debug, 1: Debug when there is an error, 2: always debug
   # @param FLAGverbose 
   # @param FLAGrenameDerivPars Needed for datapointL2_indiv, where I need derivs wrt the outer parameters
   #
@@ -191,24 +175,24 @@ PRD_indiv <- function(prd0, est.grid, fix.grid) {
   #
   # @examples
   prd <- function(times, pars, fixed = NULL, deriv = FALSE, conditions = est.grid$condition, 
-                  FLAGbrowser = 0, 
+                  FLAGbrowserN = 0, 
                   FLAGverbose = FALSE,
                   FLAGrenameDerivPars = FALSE
   ) {
     out <- lapply(setNames(nm = conditions), function(cn) {
-      if (FLAGbrowser == 2) browser()
-      ID <- est.grid$ID[est.grid$condition == cn]
+      if (FLAGbrowserN == 2) browser()
+      ID <- est.grid[condition == cn, ID]
       if (FLAGverbose) cat(ID, cn, "\n", sep = " ---- ")
       
       dummy <- make_pars(pars, fixed, est.grid, fix.grid, ID)
       pars_ <- dummy$pars
       fixed_ <- dummy$fixed
       
-      if (length(setdiff(getParameters(prd0), names(c(pars_, fixed_)))))
-        stop("The following parameters are missing: ", paste0(setdiff(getParameters(prd0), names(c(pars_, fixed_))), collapse = ", "))
+      if (length(missingPars <- setdiff(getParameters(prd0), c("time", names(c(pars_, fixed_))))))
+        stop("The following parameters are missing: ", paste0(missingPars, collapse = ", "))
       
       pred0 <-try(prd0(times, pars_, fixed = fixed_, deriv = deriv, conditions = NULL)[[1]])
-      if (inherits(pred0, "try-error") && FLAGbrowser == 1) {
+      if (inherits(pred0, "try-error") && FLAGbrowserN == 1) {
         browser()
         # Try this code to debug your model
         # 1 Parameters
@@ -239,13 +223,20 @@ PRD_indiv <- function(prd0, est.grid, fix.grid) {
 #' @examples
 P_indiv <- function(p0, est.grid, fix.grid) {
   
+  if (!is.data.table(est.grid)) warning("est.grid was coerced to data.table (was", class(est.grid), ")")
+  if (!is.data.table(fix.grid)) warning("fix.grid was coerced to data.table (was", class(fix.grid), ")")
+  
+  est.grid <- data.table(est.grid)
+  fix.grid <- data.table(fix.grid)
+  
+  
   # @param FLAGbrowser 0: Don't debug, >= 1: debug
   prd <- function(pars, fixed = NULL, deriv = FALSE, conditions = est.grid$condition, 
                   FLAGbrowser = FALSE, 
                   FLAGverbose = FALSE) {
     out <- lapply(setNames(nm = conditions), function(cn) {
       if (FLAGbrowser) browser()
-      ID <- est.grid$ID[est.grid$condition == cn]
+      ID <- est.grid[condition == cn, ID]
       if (FLAGverbose) cat(ID, cn, "\n", sep = " ---- ")
       dummy <- make_pars(pars, fixed, est.grid, fix.grid, ID)
       pars_ <- dummy$pars
@@ -277,6 +268,14 @@ P_indiv <- function(p0, est.grid, fix.grid) {
 #'
 #' @importFrom parallel mclapply
 normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times = NULL, attr.name = "data", fixed.conditions = NULL) {
+  
+  if (!is.data.table(est.grid)) warning("est.grid was coerced to data.table (was", class(est.grid), ")")
+  if (!is.data.table(fix.grid)) warning("fix.grid was coerced to data.table (was", class(fix.grid), ")")
+  
+  est.grid <- data.table(est.grid)
+  fix.grid <- data.table(fix.grid)
+  
+  
   timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))
   if (!is.null(times)) 
     timesD <- sort(union(times, timesD))
@@ -304,7 +303,7 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
       
       if (FLAGbrowser) browser()
       
-      ID <- est.grid$ID[est.grid$condition == cn]
+      ID <- est.grid[condition == cn, ID]
       if (FLAGverbose) cat(ID, cn, "\n", sep = " ---- ")
       dummy <- make_pars(pars, fixed, est.grid, fix.grid, ID)
       pars_ <- dummy$pars
@@ -599,5 +598,34 @@ getParametersToEstimate <- function(est.grid, trafo, reactions) {
   trNames <- names(trafo)[grep(reg, trafo)]
   odeNames <- intersect(getParameters(reactions), trNames)
   odeNames
+}
+
+
+#' Title
+#'
+#' @param x 
+#' @param ... 
+#'
+#' @return
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+#'
+#' @examples
+getParameters.data.table <- function(x,...) {
+  unique(unlist(x[,!c("condition", "ID")], use.names = FALSE))
+}
+
+#' Get Parameter mappings outer.estgrid - inner.estgrid
+#'
+#' @param x 
+#' @param ... 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+getParameters2.data.table <- function(x,...) {
+  nm <- setdiff(names(x),c("condition", "ID"))
+  do.call(c, lapply(nm, function(n) setNames(unique(x[[n]]), rep(n, length(unique(x[[n]]))))))
 }
 
