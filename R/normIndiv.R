@@ -579,6 +579,25 @@ timepointL2_indiv <- function(name, time, value, sigma = 1, attr.name = "timepoi
   return(myfn)
 }
 
+# -------------------------------------------------------------------------#
+# Other helper functions ----
+# -------------------------------------------------------------------------#
 
-
+#' Determine which parameters need sensitivities
+#'
+#' @param est.grid est.grid = data.table(condition, par1,...,parN)
+#' @param trafo symbolic base trafo
+#' @param reactions Object of class [eqnlist()]
+#'
+#' @return character, to go into the estimate-argument of odemodel
+#' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+getParametersToEstimate <- function(est.grid, trafo, reactions) {
+  egNames <- names(est.grid)[-1]
+  reg <- paste0("(", paste0(egNames, collapse = "|"), ")")
+  trNames <- names(trafo)[grep(reg, trafo)]
+  odeNames <- intersect(getParameters(reactions), trNames)
+  odeNames
+}
 
