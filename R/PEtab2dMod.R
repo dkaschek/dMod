@@ -586,6 +586,7 @@ testPEtabSBML <- function(models = c(
 #'   
 #' @export
 #' 
+#' @importFrom dplyr inner_join filter mutate 
 getConditionsSBML <- function(conditions,data){
   condition.grid_orig <- read.csv(file = conditions, sep = "\t")
   mydata <- read.csv(file = data, sep = "\t")
@@ -594,7 +595,7 @@ getConditionsSBML <- function(conditions,data){
   myCons <- condition.grid_orig$conditionId
   mypreeqCons <- NULL
   for (con in myCons){if(paste0("preeq_", con)%in%myCons) mypreeqCons <- c(mypreeqCons, con)}
-  condition.grid_orig <- filter(condition.grid_orig, !conditionId%in%mypreeqCons)
+  condition.grid_orig <- dplyr::filter(condition.grid_orig, !conditionId%in%mypreeqCons)
   condition.grid_orig$conditionId <- sub("preeq_", "", condition.grid_orig$conditionId)
   
   # check which conditions are observed
@@ -605,11 +606,11 @@ getConditionsSBML <- function(conditions,data){
   # replace "" by NA
   if(!is.null(mydata$observableParameters)){
     mydata$observableParameters <- mydata$observableParameters %>% as.character()
-    mydata <- mydata %>% mutate(observableParameters = ifelse(observableParameters == "",NA,observableParameters))
+    mydata <- mydata %>% dplyr::mutate(observableParameters = ifelse(observableParameters == "",NA,observableParameters))
   }
   if(!is.null(mydata$noiseParameters)){
     mydata$noiseParameters <- mydata$noiseParameters %>% as.character()
-    mydata <- mydata %>% mutate(noiseParameters = ifelse(noiseParameters == "",NA,noiseParameters))
+    mydata <- mydata %>% dplyr::mutate(noiseParameters = ifelse(noiseParameters == "",NA,noiseParameters))
   }
   # generate columns for observableParameters
   if(!is.numeric(mydata$observableParameters) & !is.null(mydata$observableParameters)){
@@ -652,7 +653,7 @@ getConditionsSBML <- function(conditions,data){
         }
       } 
     }
-    mycondition.grid <- suppressWarnings(inner_join(condition.grid_orig,condition.grid_obs, by = "conditionId"))
+    mycondition.grid <- suppressWarnings(dplyr::inner_join(condition.grid_orig,condition.grid_obs, by = "conditionId"))
     # avoid warning if not all conditions are observed
   } else mycondition.grid <- condition.grid_orig
   
@@ -686,7 +687,7 @@ getConditionsSBML <- function(conditions,data){
       } 
       
     }
-    mycondition.grid <- suppressWarnings(inner_join(condition.grid_orig,condition.grid_noise, by = "conditionId"))
+    mycondition.grid <- suppressWarnings(dplyr::inner_join(condition.grid_orig,condition.grid_noise, by = "conditionId"))
     # avoid warning if not all conditions are observed
   }
   
