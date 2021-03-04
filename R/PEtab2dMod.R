@@ -181,6 +181,7 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
     }
   }
   trafo <- replaceSymbols(names(myconstraints), myconstraints, trafo)
+  trafo <<- trafo
   
   # branch trafo for different conditions
   mytrafoL <- branch(trafo, table=mycondition.grid)
