@@ -76,19 +76,19 @@ is_symbolic_trafo <- function(trafo_string){
 #' @author Marcus Rosenblatt and Svenja Kemmer
 #'
 #' @export
-setwd(rstudioapi::getActiveProject())
-devtools::load_all()
-f <- list.files("BenchmarkModels")
-# modelname = f[1]
-# path2model = "BenchmarkModels/"
-# testCases = FALSE
-# path2TestCases = "PEtabTests/"
-# compile = TRUE
-# SBML_file = NULL
-# observable_file = NULL
-# condition_file = NULL
-# data_file = NULL
-# parameter_file = NULL
+#' # setwd(rstudioapi::getActiveProject())
+#' # devtools::load_all()
+#' # f <- list.files("BenchmarkModels")
+#' # modelname = f[1]
+#' # path2model = "BenchmarkModels/"
+#' # testCases = FALSE
+#' # path2TestCases = "PEtabTests/"
+#' # compile = TRUE
+#' # SBML_file = NULL
+#' # observable_file = NULL
+#' # condition_file = NULL
+#' # data_file = NULL
+#' # parameter_file = NULL
 importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
                             path2model = "BenchmarkModels/",
                             testCases = FALSE,
@@ -313,6 +313,7 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
   
 }
 
+
 petab <- importPEtabSBML(modelname = f[2],
                          path2model = "BenchmarkModels/",
                          testCases = FALSE,
@@ -329,9 +330,7 @@ p <- petab$fns$p0
 x <- petab$fns$x
 times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
 pred <- petab$prd(times, petab$pars, FLAGbrowserN = 1)
-# pred %>% plot
 plotCombined(pred, petab$data)
-# [ ] EGF_impulse???
 # prd(times, myfit_values, FLAGbrowser = 1)
 # prd(times, myfit_values, FLAGbrowser = 2)
 
