@@ -144,7 +144,7 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
                             condition_file = NULL,
                             data_file = NULL,
                             parameter_file = NULL
-)
+) 
 {
   ## Read previously imported files --------------------
   if(is.null(modelname)) modelname <- "mymodel"
@@ -382,11 +382,11 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
 # -------------------------------------------------------------------------#
 
 # setwd(rstudioapi::getActiveProject())
+setwd("..")
 devtools::load_all()
 f <- list.files("BenchmarkModels")
 
-
-petab <- importPEtabSBML(modelname = f[3],
+petab <- importPEtabSBML(modelname = f[1],
                          path2model = "BenchmarkModels/",
                          testCases = FALSE,
                          path2TestCases = "PEtabTests/",
