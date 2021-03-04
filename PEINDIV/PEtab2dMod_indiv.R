@@ -119,22 +119,21 @@ getTrafoType <- function(trafo_string) {
 #' # parameter_file = NULL
 
 # >>>> comment out <<<<<<<<<<< ----
-setwd(rstudioapi::getActiveProject())
-devtools::load_all()
-f <- list.files("PEtabTests/")
-i <- 5
-modelname = f[i]
-path2model = "BenchmarkModels/"
-testCases = TRUE
-path2TestCases = "PEtabTests/"
-compile = TRUE
-SBML_file = NULL
-observable_file = NULL
-condition_file = NULL
-data_file = NULL
-parameter_file = NULL
+# setwd(rstudioapi::getActiveProject())
+# devtools::load_all()
+# f <- list.files("PEtabTests/")
+# i <- 5
+# modelname = f[i]
+# path2model = "BenchmarkModels/"
+# testCases = TRUE
+# path2TestCases = "PEtabTests/"
+# compile = TRUE
+# SBML_file = NULL
+# observable_file = NULL
+# condition_file = NULL
+# data_file = NULL
+# parameter_file = NULL
 # >>>> comment out <<<<<<<<<<< ----
-
 importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
                             path2model = "BenchmarkModels/",
                             testCases = FALSE,
@@ -383,13 +382,41 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
 # -------------------------------------------------------------------------#
 
 # setwd(rstudioapi::getActiveProject())
+devtools::load_all()
+f <- list.files("BenchmarkModels")
+
+
+petab <- importPEtabSBML(modelname = f[3],
+                         path2model = "BenchmarkModels/",
+                         testCases = FALSE,
+                         path2TestCases = "PEtabTests/",
+                         compile = TRUE,
+                         SBML_file = NULL,
+                         observable_file = NULL,
+                         condition_file = NULL,
+                         data_file = NULL,
+                         parameter_file = NULL)
+# 
+# p <- petab$fns$p0
+# x <- petab$fns$x
+# times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
+# pred <- petab$prd(times, petab$pars, FLAGbrowserN = 1)
+# plotCombined(pred, petab$data)
+
+
+# -------------------------------------------------------------------------#
+# Test models ----
+# -------------------------------------------------------------------------#
+# setwd(rstudioapi::getActiveProject())
 # devtools::load_all()
-# f <- list.files("BenchmarkModels")
-# 
-# 
-# petab <- importPEtabSBML(modelname = f[3],
+# f <- list.files("PEtabTests/")
+# i <- 9 # problematic
+# i <- 10 # problematic
+# # ..  -----
+# # debugonce(importPEtabSBML_indiv)
+# petab <- importPEtabSBML_indiv(modelname = f[i],
 #                          path2model = "BenchmarkModels/",
-#                          testCases = FALSE,
+#                          testCases = TRUE,
 #                          path2TestCases = "PEtabTests/",
 #                          compile = TRUE,
 #                          SBML_file = NULL,
@@ -402,44 +429,17 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
 # x <- petab$fns$x
 # times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
 # pred <- petab$prd(times, petab$pars, FLAGbrowserN = 1)
-# plotCombined(pred, petab$data)
+# plotCombined(pred, petab$data) + labs(title = paste0("testmodel ", i))
+# 
+# sims <- fread(sprintf("PEtabTests/%04i/_simulations.tsv", i))
+# pred <- as.data.table(as.data.frame(pred))
+# predsim <- pred[sims, on = c("time", "name" = "observableId", condition = "simulationConditionId")]
+# 
+# dplyr::near(predsim$value, predsim$simulation)
+# predsim[,list(time, name, value,simulation)]
+# 
+# i <- i+1
 
-
-# -------------------------------------------------------------------------#
-# Test models ----
-# -------------------------------------------------------------------------#
-setwd(rstudioapi::getActiveProject())
-devtools::load_all()
-f <- list.files("PEtabTests/")
-i <- 9 # problematic
-i <- 10 # problematic
-# ..  -----
-# debugonce(importPEtabSBML_indiv)
-petab <- importPEtabSBML_indiv(modelname = f[i],
-                         path2model = "BenchmarkModels/",
-                         testCases = TRUE,
-                         path2TestCases = "PEtabTests/",
-                         compile = TRUE,
-                         SBML_file = NULL,
-                         observable_file = NULL,
-                         condition_file = NULL,
-                         data_file = NULL,
-                         parameter_file = NULL)
-
-p <- petab$fns$p0
-x <- petab$fns$x
-times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
-pred <- petab$prd(times, petab$pars, FLAGbrowserN = 1)
-plotCombined(pred, petab$data) + labs(title = paste0("testmodel ", i))
-
-sims <- fread(sprintf("PEtabTests/%04i/_simulations.tsv", i))
-pred <- as.data.table(as.data.frame(pred))
-predsim <- pred[sims, on = c("time", "name" = "observableId", condition = "simulationConditionId")]
-
-dplyr::near(predsim$value, predsim$simulation)
-predsim[,list(time, name, value,simulation)]
-
-i <- i+1
 # -------------------------------------------------------------------------#
 #  ----
 # -------------------------------------------------------------------------#
@@ -462,35 +462,27 @@ i <- i+1
 # pv <- profvis::profvis(prof_input = rp); htmlwidgets::saveWidget(pv, paste0(rp, ".html")); browseURL(paste0(rp, ".html"))
 
 # debugonce(obj_data)
-lapply(1:10,function(i)petab$obj_data(petab$pars))
-
-parallel::mclapply(1:12, function(i) obj_data(myfit_values), mc.cores = 4)
+# lapply(1:10,function(i) petab$obj_data(petab$pars))
+# 
+# parallel::mclapply(1:12, function(i) obj_data(myfit_values), mc.cores = 4)
 
 
 
 # obj_data(myfit_values, FLAGbrowser = T)
 
-b1 <- rbenchmark::benchmark(petab$obj_data(petab$pars), replications = 20)
+b1 <- rbenchmark::benchmark(petab$obj_data(petab$pars), replications = 100)
 
-b1.2 <- rbenchmark::benchmark(mclapply(1:36, function(i) petab$obj_data(petab$pars), mc.cores= 12, mc.preschedule = TRUE), 
-                              replications = 3)
+b1.2 <- rbenchmark::benchmark(mclapply(1:48, function(i) petab$obj_data(petab$pars), 
+                                       mc.cores= 24, mc.preschedule = TRUE), 
+                              replications = 5)
 
 
 
 importPEtabSBML(modelname, path2model)
-# debugonce(obj)
-# obj(pouter)
-# 
-# rp <- tempfile()
-# Rprof(rp)
-# obj(pouter)
-# Rprof(NULL)
-# summaryRprof(rp)
-# pv <- profvis::profvis(prof_input = rp); htmlwidgets::saveWidget(pv, paste0(rp, ".html")); browseURL(paste0(rp, ".html"))
 
-b2 <- rbenchmark::benchmark(obj(pouter), replications = 20)
-b2.2 <- rbenchmark::benchmark(mclapply(1:36, function(i) obj(pouter), mc.cores= 12), 
-                              replications = 3)
+b2 <- rbenchmark::benchmark(obj(pouter), replications = 100)
+b2.2 <- rbenchmark::benchmark(mclapply(1:48, function(i) obj(pouter), mc.cores= 24), 
+                              replications = 5)
 
 writeLines(capture.output(print(list(
   b1,
@@ -500,12 +492,5 @@ writeLines(capture.output(print(list(
 ))), "~/wup.txt")
 
 
-# -------------------------------------------------------------------------#
-# p in R ----
-# -------------------------------------------------------------------------#
-p <- P(c("a"  ="exp(b)"), compile = TRUE, modelname = "p")
-
-p(c(b = -1000))
-p(c(b = -1000)) %>% getDerivs()
 
 # Exit ----
