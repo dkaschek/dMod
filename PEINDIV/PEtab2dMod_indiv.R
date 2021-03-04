@@ -256,8 +256,8 @@ fns <- list(
 )
 
 # .. Generate high-level fns -----
-prd0 <- PRD_indiv(prd0 = Reduce("*", fns), est.grid = gridlist$est.grid, fix.grid = gridlist$fix.grid)
-obj_data <- normL2_indiv(mydata, prd0, errmodel = myerr,
+prd <- PRD_indiv(prd0 = Reduce("*", fns), est.grid = gridlist$est.grid, fix.grid = gridlist$fix.grid)
+obj_data <- normL2_indiv(mydata, Reduce("*", fns), errmodel = myerr,
                          est.grid = gridlist$est.grid, fix.grid = gridlist$fix.grid,
                          times = seq(0,max(as.data.frame(mydata)$time), len=501))
 # .. Collect final list -----
@@ -269,7 +269,7 @@ petab <- list(
   gridlist = gridlist,
   e = myerr,
   fns = fns,
-  prd = prd0,
+  prd = prd,
   obj_data = obj_data,
   pars = myfit_values
 )
@@ -288,20 +288,62 @@ p <- myp
 x <- myx
 g <- myg
 times <- seq(0,max(as.data.frame(mydata)$time), len=501)
-pred <- prd0(times, myfit_values)
-pred %>% plot
-plotCombined(pred, mydata)
+pred <- prd(times, myfit_values)
+# pred %>% plot
+# plotCombined(pred, mydata)
 # [ ] EGF_impulse???
-prd0(times, myfit_values, FLAGbrowser = 1)
-prd0(times, myfit_values, FLAGbrowser = 2)
+# prd(times, myfit_values, FLAGbrowser = 1)
+# prd(times, myfit_values, FLAGbrowser = 2)
 
-p <- P_indiv(myp, est.grid = gridlist$est.grid, fix.grid = gridlist$fix.grid)
-wup <- p(myfit_values)
-wup
-myfit_values
+# p <- P_indiv(myp, est.grid = gridlist$est.grid, fix.grid = gridlist$fix.grid)
+# wup <- p(myfit_values)
+# wup
+# myfit_values
 
-myp(myfit_values)
+# myp(myfit_values)
+# rp <- tempfile()
+# Rprof(rp)
+# obj_data(myfit_values) 
+# Rprof(NULL)
+# summaryRprof(rp)
+# pv <- profvis::profvis(prof_input = rp); htmlwidgets::saveWidget(pv, paste0(rp, ".html")); browseURL(paste0(rp, ".html"))
+
+# debugonce(obj_data)
 obj_data(myfit_values)
 
+parallel::mclapply(1:12, function(i) obj_data(myfit_values), mc.cores = 4)
+
+
+
+# obj_data(myfit_values, FLAGbrowser = T)
+
+b1 <- rbenchmark::benchmark(petab$obj_data(petab$pars), replications = 20)
+
+b1.2 <- rbenchmark::benchmark(mclapply(1:36, function(i) petab$obj_data(petab$pars), mc.cores= 12, mc.preschedule = TRUE), 
+                            replications = 3)
+
+
+
+importPEtabSBML(modelname, path2model)
+# debugonce(obj)
+# obj(pouter)
+# 
+# rp <- tempfile()
+# Rprof(rp)
+# obj(pouter)
+# Rprof(NULL)
+# summaryRprof(rp)
+# pv <- profvis::profvis(prof_input = rp); htmlwidgets::saveWidget(pv, paste0(rp, ".html")); browseURL(paste0(rp, ".html"))
+
+b2 <- rbenchmark::benchmark(obj(pouter), replications = 20)
+b2.2 <- rbenchmark::benchmark(mclapply(1:36, function(i) obj(pouter), mc.cores= 12), 
+                              replications = 3)
+
+writeLines(capture.output(print(list(
+b1,
+b1.2,
+b2,
+b2.2
+))), "~/wup.txt")
 
 # Exit ----
