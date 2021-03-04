@@ -31,26 +31,52 @@ updateParscalesToBaseTrafo <- function(parscales, est.grid) {
 
 
 
-#' Determine symbolic trafos in a vector
+#' #' Determine symbolic trafos in a vector
+#' #'
+#' #' @param trafo_string 
+#' #'
+#' #' @return vector TRUE/FALSE
+#' #' @export
+#' #' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' #' @md
+#' #'
+#' #' @examples
+#' #' trafo_string <- c(STAT5A = "207.6 * ratio", STAT5B = "207.6 - 207.6 * ratio", 
+#' #' pApB = "0", pApA = "0", pBpB = "0", nucpApA = "0", nucpApB = "0", 
+#' #' nucpBpB = "0")
+#' #' is_symbolic_trafo(trafo_string)
+#' is_symbolic_trafo <- function(trafo_string){
+#'   is_numeric <- !is.na(as.numeric(trafo_string))
+#'   is_character <- vapply(trafo_string, function(ts) identical(getSymbols(ts),names(ts)), TRUE)
+#'   is_symbolic <- !is_numeric & !is_character
+#' }
+
+
+#' Title
 #'
 #' @param trafo_string 
 #'
-#' @return vector TRUE/FALSE
+#' @return
 #' @export
-#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
-#' @md
 #'
 #' @examples
 #' trafo_string <- c(STAT5A = "207.6 * ratio", STAT5B = "207.6 - 207.6 * ratio", 
-#' pApB = "0", pApA = "0", pBpB = "0", nucpApA = "0", nucpApB = "0", 
-#' nucpBpB = "0")
-#' is_symbolic_trafo(trafo_string)
-is_symbolic_trafo <- function(trafo_string){
-  is_numeric <- !is.na(as.numeric(trafo_string))
-  is_character <- vapply(trafo_string, function(ts) identical(getSymbols(ts),ts), TRUE)
-  is_symbolic <- !is_numeric & !is_character
+#'                   pApB = "alpha", pApA = "beta", pBpB = "pBpB", nucpApA = "0.1", nucpApB = "0", 
+#'                   nucpBpB = "0")
+#' getTrafoType(trafo_string)
+getTrafoType <- function(trafo_string) {
+  vapply(names(trafo_string), function(nm) {
+    ts <- trafo_string[nm]
+    pd <- getParseData(parse(text = ts))
+    if (nrow(pd) > 2) return("TRAFO")
+    if (pd[1,"token"] == "SYMBOL") {
+      if (pd[1,"text"] == nm) return("SYMBOL")
+      else return("TRAFO")
+      }
+    if (pd[1,"token"] == "NUM_CONST") return("NUMBER")
+    stop("Unkown trafo type: ", ts)
+  }, FUN.VALUE = "TYPE")
 }
-
 
 #' Import an SBML model and corresponding PEtab objects
 #'
@@ -73,9 +99,11 @@ is_symbolic_trafo <- function(trafo_string){
 #'
 #' @return name of imported model
 #'
-#' @author Marcus Rosenblatt and Svenja Kemmer
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de) building on the original function of Marcus and Svenja
+#' @md
 #'
 #' @export
+#' 
 #' # setwd(rstudioapi::getActiveProject())
 #' # devtools::load_all()
 #' # f <- list.files("BenchmarkModels")
@@ -89,7 +117,24 @@ is_symbolic_trafo <- function(trafo_string){
 #' # condition_file = NULL
 #' # data_file = NULL
 #' # parameter_file = NULL
-importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
+
+setwd(rstudioapi::getActiveProject())
+devtools::load_all()
+f <- list.files("PEtabTests/")
+i <- 2
+
+modelname = f[i]
+path2model = "BenchmarkModels/"
+testCases = TRUE
+path2TestCases = "PEtabTests/"
+compile = TRUE
+SBML_file = NULL
+observable_file = NULL
+condition_file = NULL
+data_file = NULL
+parameter_file = NULL
+
+importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
                             path2model = "BenchmarkModels/",
                             testCases = FALSE,
                             path2TestCases = "PEtabTests/",
@@ -203,9 +248,11 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
   est.grid[,(names(est.grid)[-1]) := lapply(.SD, function(x) {replace(x, !is.na(as.numeric(x)), NA)}), .SDcols = -1]
   est.grid[,`:=`(ID = 1:.N)]
   gridlist <- list(est.grid = est.grid, fix.grid = fix.grid)
+  
   trafo <- setNames(nm = unique(c(getParameters(myreactions), getSymbols(myobservables), getSymbols(myerrors), getSymbols(as.character(myevents$value)))))
   trafo <- trafo[trafo != "time"]
   
+  # .. Fill values into grid and trafo -----
   parameterlist <- list(
     list(par = SBMLfixedpars, overwrite = FALSE),
     list(par = mycompartments, overwrite = FALSE),
@@ -216,11 +263,12 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
   )
   for (pl in parameterlist) {
     par <- pl$par
-    st <- is_symbolic_trafo(par)
-    par_grid <- par[!st]
-    par_traf <- par[ st]
-    if (any(!st)) gridlist <- add_pars_to_grids(pars = par_grid, gridlist = gridlist, FLAGoverwrite = pl$overwrite)
-    if (any( st)) trafo <- repar("x~y", trafo, x = names(par_traf), y = par_traf)
+    trafoType <- getTrafoType(par)
+    is_symbolic_trafo <- trafoType %in% c("TRAFO")
+    par_grid <- par[!is_symbolic_trafo]
+    par_traf <- par[ is_symbolic_trafo]
+    if (any(!is_symbolic_trafo)) gridlist <- add_pars_to_grids(pars = par_grid, gridlist = gridlist, FLAGoverwrite = pl$overwrite)
+    if (any( is_symbolic_trafo)) trafo <- repar("x~y", trafo, x = names(par_traf), y = par_traf)
   }
   
   # [ ] Pre-Equi Events
@@ -233,13 +281,24 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
   # [ ] Need example for preeqEvents
   
   # .. Parscales -----
-  # [ ] How are individualized parameters represented in PETab?
+  # adjust symbolic trafo
   parscales <- attr(myfit_values,"parscale")
   parscales <- updateParscalesToBaseTrafo(parscales, gridlist$est.grid)
-  if (length(nm <- setdiff(names(parscales), names(trafo)))) 
-    stop("undefined parameters in trafo: ", paste0(nm, collapse = ", "))
+  # if (length(nm <- setdiff(names(parscales), getSymbols(trafo)))) 
+  #   stop("undefined parameters in trafo: ", paste0(nm, collapse = ", "))
   trafo <- repar("x ~ 10**(x)", trafo = trafo, x = names(which(parscales=="log10")))
   trafo <- repar("x ~ exp(x)" , trafo = trafo, x = names(which(parscales=="log")))
+  
+  # Adjust fix.grid
+  fg <- gridlist$fix.grid
+  for (nm in intersect(names(fg), names(parscales))) {
+    scale <- parscales[nm]
+    if (scale == "log10") fg[[nm]] <- log10(fg[[nm]])
+    if (scale == "log") fg[[nm]] <- log(fg[[nm]])
+    fg[[nm]][!is.finite(fg[[nm]])] <- -1000
+  }
+  gridlist$fix.grid <- fg
+  
   
   # -------------------------------------------------------------------------#
   # Model Compilation ----
@@ -294,7 +353,7 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
   petab <- list(
     symbolicEquations = symbolicEquations,
     odemodel = myodemodel,
-    # [ ] complete data specification: data, gridlist, myerr
+    # [ ] complete data specification could be lumped: data, gridlist, myerr
     data = mydata,
     gridlist = gridlist,
     e = myerr,
@@ -313,10 +372,45 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
   
 }
 
+# -------------------------------------------------------------------------#
+# Testing ----
+# -------------------------------------------------------------------------#
 
-petab <- importPEtabSBML(modelname = f[2],
+# setwd(rstudioapi::getActiveProject())
+# devtools::load_all()
+# f <- list.files("BenchmarkModels")
+# 
+# 
+# petab <- importPEtabSBML(modelname = f[3],
+#                          path2model = "BenchmarkModels/",
+#                          testCases = FALSE,
+#                          path2TestCases = "PEtabTests/",
+#                          compile = TRUE,
+#                          SBML_file = NULL,
+#                          observable_file = NULL,
+#                          condition_file = NULL,
+#                          data_file = NULL,
+#                          parameter_file = NULL)
+# 
+# p <- petab$fns$p0
+# x <- petab$fns$x
+# times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
+# pred <- petab$prd(times, petab$pars, FLAGbrowserN = 1)
+# plotCombined(pred, petab$data)
+
+
+# -------------------------------------------------------------------------#
+# Test models ----
+# -------------------------------------------------------------------------#
+setwd(rstudioapi::getActiveProject())
+devtools::load_all()
+f <- list.files("PEtabTests/")
+i <- 2
+# ..  -----
+# debugonce(importPEtabSBML_indiv)
+petab <- importPEtabSBML_indiv(modelname = f[i],
                          path2model = "BenchmarkModels/",
-                         testCases = FALSE,
+                         testCases = TRUE,
                          path2TestCases = "PEtabTests/",
                          compile = TRUE,
                          SBML_file = NULL,
@@ -325,12 +419,18 @@ petab <- importPEtabSBML(modelname = f[2],
                          data_file = NULL,
                          parameter_file = NULL)
 
-# .. Testing -----
 p <- petab$fns$p0
 x <- petab$fns$x
 times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
 pred <- petab$prd(times, petab$pars, FLAGbrowserN = 1)
 plotCombined(pred, petab$data)
+i <- i+1
+
+# -------------------------------------------------------------------------#
+#  ----
+# -------------------------------------------------------------------------#
+
+
 # prd(times, myfit_values, FLAGbrowser = 1)
 # prd(times, myfit_values, FLAGbrowser = 2)
 
@@ -348,7 +448,7 @@ plotCombined(pred, petab$data)
 # pv <- profvis::profvis(prof_input = rp); htmlwidgets::saveWidget(pv, paste0(rp, ".html")); browseURL(paste0(rp, ".html"))
 
 # debugonce(obj_data)
-obj_data(myfit_values)
+lapply(1:10,function(i)petab$obj_data(petab$pars))
 
 parallel::mclapply(1:12, function(i) obj_data(myfit_values), mc.cores = 4)
 
@@ -384,5 +484,14 @@ writeLines(capture.output(print(list(
   b2,
   b2.2
 ))), "~/wup.txt")
+
+
+# -------------------------------------------------------------------------#
+# p in R ----
+# -------------------------------------------------------------------------#
+p <- P(c("a"  ="exp(b)"), compile = TRUE, modelname = "p")
+
+p(c(b = -1000))
+p(c(b = -1000)) %>% getDerivs()
 
 # Exit ----
