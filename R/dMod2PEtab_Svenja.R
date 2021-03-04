@@ -46,16 +46,46 @@ writeObservablesTSV <- function(observables, errors, modelname){
 #'
 #' @export
 #' 
-writeMeasurementsTSV <- function(data, errors){
-  mydata <- mydata %>% as.data.frame() %>% as.data.table()
+writeMeasurementsTSV <- function(mymodel){
+  # data
+  mydata <- mymodel$data %>% as.data.frame() %>% as.data.table()
+  # condition specific pars
+  est.grid <- mymodel$gridlist$est.grid
+  setnames(est.grid, "condition", "simulationConditionId")
+  errors <- data.table(observableId = names(mymodel$symbolicEquations$errors), noiseFormula = mymodel$symbolicEquations$errors)
+  observables <- data.table(observableId = names(mymodel$symbolicEquations$observables), obsFormula = mymodel$symbolicEquations$observables)
+  noisepars <- mymodel$symbolicEquations$errors %>% getSymbols()
+  obspars <- intersect(names(est.grid), observables %>% getSymbols())
+
+  noise.grid <- est.grid[,.SD, .SDcols = c("simulationConditionId", intersect(names(est.grid), noisepars))]
+  obs.grid <- est.grid[,.SD, .SDcols = c("simulationConditionId", intersect(names(est.grid), obspars))]
+  # one or more observable parameters per observable?
+  OB <- observables$observableId[1]
+  for(OB in observables$observableId){
+    OBpars <- str_extract(observables[observableId == OB]$obsFormula, obspars)
+    observables[observableId == OB, obsFormula := paste(OBpars, collapse = ";")]
+    # paste obspars together if several
+    if(str_detect(observables[observableId == OB]$obsFormula,";")) {
+      obs.grid[, (paste(OBpars, collapse = ";")) := paste(.SD, collapse = ";"), .SDcols = OBpars]
+      obs.grid[, (OBpars) := NULL]
+      obspars <- c(setdiff(obspars, OBpars), paste(OBpars, collapse = ";"))
+      }
+   }
+  noise.grid <- melt(noise.grid, id.vars = c("simulationConditionId"), variable.name = "noiseFormula", value.name = "noiseParameters", variable.factor = F)
+  noise.grid <- merge(noise.grid, errors, by = "noiseFormula") %>% .[, noiseFormula := NULL]
+  obs.grid <- melt(obs.grid, id.vars = c("simulationConditionId"), variable.name = "obsFormula", value.name = "observableParameters", variable.factor = F)
+  obs.grid <- merge(obs.grid, observables, by = "obsFormula") %>% .[, obsFormula := NULL]
+  
+  add.grid <- merge(obs.grid, noise.grid, by = c("simulationConditionId", "observableId"))
+
+  # paste together
   DT <- mydata[,list(observableId = name, 
                      simulationConditionId = condition,
                      measurement = value,
                      time = time)]
-  myobs <- read.csv(file = observables, sep = "\t") %>% as.data.frame()
-  obs <- myobs$observableId %>% as.character()
-  errors <- NULL
-  
+  DT.full <- merge(DT, add.grid, by = c("observableId", "simulationConditionId"))
+  fwrite(DT.full, file = file.path(.exportFolder, paste0("measurementData_", modelname, ".tsv")), sep = "\t")
+
 }
 
 #' Get est.grid and fixed.grid
