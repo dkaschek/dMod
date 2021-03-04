@@ -118,6 +118,7 @@ getTrafoType <- function(trafo_string) {
 #' # data_file = NULL
 #' # parameter_file = NULL
 
+# >>>> comment out <<<<<<<<<<< ----
 setwd(rstudioapi::getActiveProject())
 devtools::load_all()
 f <- list.files("PEtabTests/")
@@ -133,6 +134,7 @@ observable_file = NULL
 condition_file = NULL
 data_file = NULL
 parameter_file = NULL
+# >>>> comment out <<<<<<<<<<< ----
 
 importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
                             path2model = "BenchmarkModels/",
@@ -371,6 +373,8 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
   petab
   
 }
+
+# >>>> from here: comment out <<<<<<<<<<< ----
 
 # -------------------------------------------------------------------------#
 # Testing ----
