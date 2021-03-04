@@ -60,15 +60,16 @@ writeMeasurementsTSV <- function(data, errors){
 
 #' Get est.grid and fixed.grid
 #'
-#' @param jobname job name on cluster
-#' @param recover 
-#' @param nodetype 
+#' @param mytrafo base trafo
+#' @param mytrafoL condition specific branched trafo list
+#' @param mycondition.grid condition.grid
+#' @param SS_pars parameters determined by steady state
 #'
 #' @return
 #' @export
 #'
 #' @examples
-getParGrids <- function(mytrafo = trafo, mytrafoL = trafoL, mycondition.grid = condition.grid, SS_pars = names(mySS_eqns_est)){
+getParGrids <- function(mytrafo, mytrafoL, mycondition.grid, SS_pars = NULL){
   
   # .. condition.grid -----
   
