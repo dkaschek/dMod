@@ -6,3 +6,8 @@
 .f*
 CompiledObjects
 Test
+
+# Compiled objects
+*.c
+*.o
+*.so
