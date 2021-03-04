@@ -54,243 +54,242 @@ updateParscalesToBaseTrafo <- function(parscales, est.grid) {
 #' @author Marcus Rosenblatt and Svenja Kemmer
 #'
 #' @export
-try(setwd(dirname(rstudioapi::getSourceEditorContext()$path)))
-setwd("..")
-devtools::load_all()
-
-modelname = "Fujita_SciSignal2010"
-path2model = "BenchmarkModels/"
-testCases = FALSE
-path2TestCases = "PEtabTests/"
-compile = TRUE
-SBML_file = NULL
-observable_file = NULL
-condition_file = NULL
-data_file = NULL
-parameter_file = NULL
-# importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
-#                             path2model = "BenchmarkModels/",
-#                             testCases = FALSE,
-#                             path2TestCases = "PEtabTests/",
-#                             compile = TRUE,
-#                             SBML_file = NULL,
-#                             observable_file = NULL,
-#                             condition_file = NULL,
-#                             data_file = NULL,
-#                             parameter_file = NULL
-# )
-# {
-## Read previously imported files --------------------
-if(is.null(modelname)) modelname <- "mymodel"
-
-mywd <- getwd()
-dir.create(paste0(mywd,"/CompiledObjects/"), showWarnings = FALSE)
-
-setwd(paste0(mywd,"/CompiledObjects/"))
-if(compile == FALSE & file.exists(paste0(modelname,".rds"))){
-  petab <- readRDS(paste0(modelname,".rds"))
-  loadDLL(petab$obj_data)
-  return(petab)
-}
-setwd(mywd)
-
-## load required packages
-require(libSBML) # => Not very nice, better explicitly import the required functions
-
-## Define path to SBML and PEtab files --------------------
-if(testCases == FALSE){
-  if(is.null(SBML_file))       SBML_file       <- paste0(path2model, modelname, "/model_", modelname, ".xml")
-  if(is.null(observable_file)) observable_file <- paste0(path2model, modelname, "/observables_", modelname, ".tsv")
-  if(is.null(condition_file))  condition_file  <- paste0(path2model, modelname, "/experimentalCondition_", modelname, ".tsv")
-  if(is.null(data_file))       data_file       <- paste0(path2model, modelname, "/measurementData_", modelname, ".tsv")
-  if(is.null(parameter_file))  parameter_file  <- paste0(path2model, modelname, "/parameters_", modelname, ".tsv")
-} else{
-  SBML_file       <- paste0(path2TestCases, modelname, "/_model.xml")
-  observable_file <- paste0(path2TestCases, modelname, "/_observables.tsv")
-  condition_file  <- paste0(path2TestCases, modelname, "/_conditions.tsv")
-  data_file       <- paste0(path2TestCases, modelname, "/_measurements.tsv")
-  parameter_file  <- paste0(path2TestCases, modelname, "/_parameters.tsv")
-}
-if(!file.exists(SBML_file)){       cat(paste0("The file ",mywd,SBML_file, " does not exist. Please check spelling or provide the file name via the SBML_file argument.")); return(NULL)}
-if(!file.exists(observable_file)){ cat(paste0("The file ",mywd,observable_file, " does not exist. Please check spelling or provide the file name via the observable_file argument.")); return(NULL)}
-if(!file.exists(condition_file)){  cat(paste0("The file ",mywd,condition_file, " does not exist. Please check spelling or provide the file name via the condition_file argument.")); return(NULL)}
-if(!file.exists(data_file)){       cat(paste0("The file ",mywd,data_file, " does not exist. Please check spelling or provide the file name via the data_file argument.")); return(NULL)}
-if(!file.exists(parameter_file)){  cat(paste0("The file ",mywd,parameter_file, " does not exist. Please check spelling or provide the file name via the parameter_file argument.")); return(NULL)}
-
-# .. Read grids to see original fiile structure => Delete ----
-# tsv_observable <- fread(observable_file)
-# tsv_condition  <- fread(condition_file)
-# tsv_data       <- fread(data_file)
-# tsv_parameter  <- fread(parameter_file)
-
-## Model Definition - Equations --------------------
-mylist           <- getReactionsSBML(SBML_file, condition_file)
-myreactions      <- mylist$reactions
-myreactions_orig <- mylist$reactions_orig
-myevents         <- mylist$events
-mypreeqEvents    <- mylist$preeqEvents
-mystates         <- mylist$mystates
-myobservables    <- getObservablesSBML(observable_file)
-
-## Get Data ------------
-mydataSBML <- getDataPEtabSBML(data_file, observable_file)
-mydata     <- mydataSBML$data
-myerrors   <- mydataSBML$errors
-myerr <- NULL
-
-## Define constraints, initials, parameters and compartments --------------
-myparameters   <- getParametersSBML(parameter_file, SBML_file)
-# [ ] Check constraints
-myconstraints  <- myparameters$constraints
-SBMLfixedpars  <- myparameters$SBMLfixedpars
-myfit_values   <- myparameters$pouter
-myinitialsSBML <- getInitialsSBML(SBML_file, condition_file)
-mycompartments <- myinitialsSBML$compartments
-myinitials     <- myinitialsSBML$initials
-
-## Parameter transformations -----------
-# .. Generate condition.grid -----
-grid <- getConditionsSBML(conditions = condition_file, data = data_file)
-mypreeqCons      <- grid$preeqCons
-mycondition.grid <- grid$condition_grid
-attr(mydata, "condition.grid") <- mycondition.grid
-# .. Build fix.grid, est.grid and trafo -----
-
-# Copy condition.grid, take unique identifying column only
-cg <- data.table::data.table(mycondition.grid)
-cg <- cg[,!"conditionName"]
-data.table::setnames(cg, "conditionId", "condition")
-# Initialize fix.grid and est.grid
-# Determine which columns contain values and/or parameter names
-is_string  <- vapply(cg[,-1], function(x) any(is.na(as.numeric(x))), FUN.VALUE = TRUE)
-is_string  <- which(is_string) + 1
-is_numeric <- vapply(cg[,-1], function(x) any(!is.na(as.numeric(x))), FUN.VALUE = TRUE)
-is_numeric <- which(is_numeric) + 1
-# For mixed columns (string & numeric), need NA in the respective places
-fix.grid <- data.table::copy(cg)
-fix.grid <- fix.grid[,.SD,.SD = c(1, is_numeric)]
-fix.grid[,(names(fix.grid)[-1]) := lapply(.SD, as.numeric), .SDcols = -1]
-fix.grid[,`:=`(ID = 1:.N)]
-est.grid <- data.table::copy(cg)
-est.grid <- est.grid[,.SD,.SD = c(1, is_string)]
-est.grid[,(names(est.grid)[-1]) := lapply(.SD, function(x) {replace(x, !is.na(as.numeric(x)), NA)}), .SDcols = -1]
-est.grid[,`:=`(ID = 1:.N)]
-
-gridlist <- list(est.grid = est.grid, fix.grid = fix.grid)
-gridlist <- add_pars_to_grids(pars = SBMLfixedpars,  gridlist = gridlist, FLAGoverwrite = FALSE)
-gridlist <- add_pars_to_grids(pars = mycompartments, gridlist = gridlist, FLAGoverwrite = FALSE) # [ ] F or T?
-gridlist <- add_pars_to_grids(pars = myinitials    , gridlist = gridlist, FLAGoverwrite = FALSE) # [ ] only overwrite initial if it's not defined in condition.grid
-gridlist <- add_pars_to_grids(pars = myconstraints , gridlist = gridlist, FLAGoverwrite = TRUE ) # [ ] Was always TRUE
-# [ ] Pre-Equi Events
-# set remaining event initials to 0
-inits_events <- setdiff(unique(myevents$var), unique(mypreeqEvents$var))
-inits_events <- setNames(rep(0, length(inits_events)), inits_events)
-gridlist <- add_pars_to_grids(pars = inits_events , gridlist = gridlist, FLAGoverwrite = FALSE)
-# Add remaining estimation parameters
-pars_est <- setNames(nm = names(myfit_values))
-gridlist <- add_pars_to_grids(pars = pars_est     , gridlist = gridlist, FLAGoverwrite = FALSE)
-# [ ] Any remaining fixed parameters?
-
-# branch trafo for different conditions
-# # set preequilibration event initials to corresponding values
-# if(!is.null(mypreeqEvents)){
-#   mypreeqEvents2replace <- filter(mypreeqEvents, !var%in%mystates)
-#   mytrafoL <- repar("x~y", mytrafoL , x = unique(mypreeqEvents2replace$var), y = attr(mypreeqEvents2replace, "initials"))
-# }
-# [ ] Need example for preeqEvents
-
-# .. Symbolic Trafo -----
-trafo <- setNames(nm = unique(c(getParameters(myreactions), getSymbols(myobservables), getSymbols(myerrors), getSymbols(as.character(myevents$value)))))
-trafo <- trafo[trafo != "time"]
-# [ ] How are individualized parameters represented in PETab?
-# [ ] Scaling_pAkt_tot
-parscales <- attr(myfit_values,"parscale")
-parscales <- updateParscalesToBaseTrafo(parscales, gridlist$est.grid)
-if (length(nm <- setdiff(names(parscales), names(trafo)))) 
-  stop("undefined parameters in trafo: ", paste0(nm, collapse = ", "))
-trafo <- repar("x ~ 10**(x)", trafo = trafo, x = names(which(parscales=="log10")))
-trafo <- repar("x ~ exp(x)" , trafo = trafo, x = names(which(parscales=="log")))
-
-# -------------------------------------------------------------------------#
-# Model Compilation ----
-# -------------------------------------------------------------------------#
-setwd(paste0(mywd,"/CompiledObjects/"))
-myg <- Y(myobservables, myreactions, compile=TRUE, modelname=paste0("g_",modelname))
-
-myodemodel <- odemodel(myreactions, forcings = NULL, events = myevents, fixed=NULL,
-                       estimate = getParametersToEstimate(est.grid = gridlist$est.grid,
-                                                          trafo = trafo,
-                                                          reactions = myreactions),
-                       modelname = paste0("odemodel_", modelname),
-                       jacobian = "inz.lsodes", compile = TRUE)
-
-tolerances <- 1e-7
-myx <- Xs(myodemodel,
-          optionsOde = list(method = "lsoda", rtol = tolerances, atol = tolerances, maxsteps = 5000),
-          optionsSens = list(method = "lsodes", lrw=200000, rtol = tolerances, atol = tolerances))
-
-if(length(getSymbols(myerrors))){
+importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
+                            path2model = "BenchmarkModels/",
+                            testCases = FALSE,
+                            path2TestCases = "PEtabTests/",
+                            compile = TRUE,
+                            SBML_file = NULL,
+                            observable_file = NULL,
+                            condition_file = NULL,
+                            data_file = NULL,
+                            parameter_file = NULL
+)
+{
+  ## Read previously imported files --------------------
+  if(is.null(modelname)) modelname <- "mymodel"
+  
+  mywd <- getwd()
+  dir.create(paste0(mywd,"/CompiledObjects/"), showWarnings = FALSE)
+  
   setwd(paste0(mywd,"/CompiledObjects/"))
-  myerr <- Y(myerrors, f = c(as.eqnvec(myreactions), myobservables), states = names(myobservables), attach.input = FALSE, compile = TRUE, modelname = paste0("errfn_", modelname))
+  if(compile == FALSE & file.exists(paste0(modelname,".rds"))){
+    petab <- readRDS(paste0(modelname,".rds"))
+    loadDLL(petab$obj_data)
+    return(petab)
+  }
   setwd(mywd)
+  
+  ## load required packages
+  require(libSBML) # => Not very nice, better explicitly import the required functions
+  
+  ## Define path to SBML and PEtab files --------------------
+  if(testCases == FALSE){
+    if(is.null(SBML_file))       SBML_file       <- paste0(path2model, modelname, "/model_", modelname, ".xml")
+    if(is.null(observable_file)) observable_file <- paste0(path2model, modelname, "/observables_", modelname, ".tsv")
+    if(is.null(condition_file))  condition_file  <- paste0(path2model, modelname, "/experimentalCondition_", modelname, ".tsv")
+    if(is.null(data_file))       data_file       <- paste0(path2model, modelname, "/measurementData_", modelname, ".tsv")
+    if(is.null(parameter_file))  parameter_file  <- paste0(path2model, modelname, "/parameters_", modelname, ".tsv")
+  } else{
+    SBML_file       <- paste0(path2TestCases, modelname, "/_model.xml")
+    observable_file <- paste0(path2TestCases, modelname, "/_observables.tsv")
+    condition_file  <- paste0(path2TestCases, modelname, "/_conditions.tsv")
+    data_file       <- paste0(path2TestCases, modelname, "/_measurements.tsv")
+    parameter_file  <- paste0(path2TestCases, modelname, "/_parameters.tsv")
+  }
+  if(!file.exists(SBML_file)){       cat(paste0("The file ",mywd,SBML_file, " does not exist. Please check spelling or provide the file name via the SBML_file argument.")); return(NULL)}
+  if(!file.exists(observable_file)){ cat(paste0("The file ",mywd,observable_file, " does not exist. Please check spelling or provide the file name via the observable_file argument.")); return(NULL)}
+  if(!file.exists(condition_file)){  cat(paste0("The file ",mywd,condition_file, " does not exist. Please check spelling or provide the file name via the condition_file argument.")); return(NULL)}
+  if(!file.exists(data_file)){       cat(paste0("The file ",mywd,data_file, " does not exist. Please check spelling or provide the file name via the data_file argument.")); return(NULL)}
+  if(!file.exists(parameter_file)){  cat(paste0("The file ",mywd,parameter_file, " does not exist. Please check spelling or provide the file name via the parameter_file argument.")); return(NULL)}
+  
+  # .. Read grids to see original fiile structure => Delete ----
+  # tsv_observable <- fread(observable_file)
+  # tsv_condition  <- fread(condition_file)
+  # tsv_data       <- fread(data_file)
+  # tsv_parameter  <- fread(parameter_file)
+  
+  ## Model Definition - Equations --------------------
+  mylist           <- getReactionsSBML(SBML_file, condition_file)
+  myreactions      <- mylist$reactions
+  myreactions_orig <- mylist$reactions_orig
+  myevents         <- mylist$events
+  mypreeqEvents    <- mylist$preeqEvents
+  mystates         <- mylist$mystates
+  myobservables    <- getObservablesSBML(observable_file)
+  
+  ## Get Data ------------
+  mydataSBML <- getDataPEtabSBML(data_file, observable_file)
+  mydata     <- mydataSBML$data
+  myerrors   <- mydataSBML$errors
+  myerr <- NULL
+  
+  ## Define constraints, initials, parameters and compartments --------------
+  myparameters   <- getParametersSBML(parameter_file, SBML_file)
+  # [ ] Check constraints
+  myconstraints  <- myparameters$constraints
+  SBMLfixedpars  <- myparameters$SBMLfixedpars
+  myfit_values   <- myparameters$pouter
+  myinitialsSBML <- getInitialsSBML(SBML_file, condition_file)
+  mycompartments <- myinitialsSBML$compartments
+  myinitials     <- myinitialsSBML$initials
+  
+  ## Parameter transformations -----------
+  # .. Generate condition.grid -----
+  grid <- getConditionsSBML(conditions = condition_file, data = data_file)
+  mypreeqCons      <- grid$preeqCons
+  mycondition.grid <- grid$condition_grid
+  attr(mydata, "condition.grid") <- mycondition.grid
+  # .. Build fix.grid, est.grid and trafo -----
+  
+  # Copy condition.grid, take unique identifying column only
+  cg <- data.table::data.table(mycondition.grid)
+  cg <- cg[,!"conditionName"]
+  data.table::setnames(cg, "conditionId", "condition")
+  # Initialize fix.grid and est.grid
+  # Determine which columns contain values and/or parameter names
+  is_string  <- vapply(cg[,-1], function(x) any(is.na(as.numeric(x))), FUN.VALUE = TRUE)
+  is_string  <- which(is_string) + 1
+  is_numeric <- vapply(cg[,-1], function(x) any(!is.na(as.numeric(x))), FUN.VALUE = TRUE)
+  is_numeric <- which(is_numeric) + 1
+  # For mixed columns (string & numeric), need NA in the respective places
+  fix.grid <- data.table::copy(cg)
+  fix.grid <- fix.grid[,.SD,.SD = c(1, is_numeric)]
+  fix.grid[,(names(fix.grid)[-1]) := lapply(.SD, as.numeric), .SDcols = -1]
+  fix.grid[,`:=`(ID = 1:.N)]
+  est.grid <- data.table::copy(cg)
+  est.grid <- est.grid[,.SD,.SD = c(1, is_string)]
+  est.grid[,(names(est.grid)[-1]) := lapply(.SD, function(x) {replace(x, !is.na(as.numeric(x)), NA)}), .SDcols = -1]
+  est.grid[,`:=`(ID = 1:.N)]
+  
+  gridlist <- list(est.grid = est.grid, fix.grid = fix.grid)
+  gridlist <- add_pars_to_grids(pars = SBMLfixedpars,  gridlist = gridlist, FLAGoverwrite = FALSE)
+  gridlist <- add_pars_to_grids(pars = mycompartments, gridlist = gridlist, FLAGoverwrite = FALSE) # [ ] F or T?
+  gridlist <- add_pars_to_grids(pars = myinitials    , gridlist = gridlist, FLAGoverwrite = FALSE) # [ ] only overwrite initial if it's not defined in condition.grid
+  gridlist <- add_pars_to_grids(pars = myconstraints , gridlist = gridlist, FLAGoverwrite = TRUE ) # [ ] Was always TRUE
+  # [ ] Pre-Equi Events
+  # set remaining event initials to 0
+  inits_events <- setdiff(unique(myevents$var), unique(mypreeqEvents$var))
+  inits_events <- setNames(rep(0, length(inits_events)), inits_events)
+  gridlist <- add_pars_to_grids(pars = inits_events , gridlist = gridlist, FLAGoverwrite = FALSE)
+  # Add remaining estimation parameters
+  pars_est <- setNames(nm = names(myfit_values))
+  gridlist <- add_pars_to_grids(pars = pars_est     , gridlist = gridlist, FLAGoverwrite = FALSE)
+  # [ ] Any remaining fixed parameters?
+  
+  # branch trafo for different conditions
+  # # set preequilibration event initials to corresponding values
+  # if(!is.null(mypreeqEvents)){
+  #   mypreeqEvents2replace <- filter(mypreeqEvents, !var%in%mystates)
+  #   mytrafoL <- repar("x~y", mytrafoL , x = unique(mypreeqEvents2replace$var), y = attr(mypreeqEvents2replace, "initials"))
+  # }
+  # [ ] Need example for preeqEvents
+  
+  # .. Symbolic Trafo -----
+  trafo <- setNames(nm = unique(c(getParameters(myreactions), getSymbols(myobservables), getSymbols(myerrors), getSymbols(as.character(myevents$value)))))
+  trafo <- trafo[trafo != "time"]
+  # [ ] How are individualized parameters represented in PETab?
+  # [ ] Scaling_pAkt_tot
+  parscales <- attr(myfit_values,"parscale")
+  parscales <- updateParscalesToBaseTrafo(parscales, gridlist$est.grid)
+  if (length(nm <- setdiff(names(parscales), names(trafo)))) 
+    stop("undefined parameters in trafo: ", paste0(nm, collapse = ", "))
+  trafo <- repar("x ~ 10**(x)", trafo = trafo, x = names(which(parscales=="log10")))
+  trafo <- repar("x ~ exp(x)" , trafo = trafo, x = names(which(parscales=="log")))
+  
+  # -------------------------------------------------------------------------#
+  # Model Compilation ----
+  # -------------------------------------------------------------------------#
+  setwd(paste0(mywd,"/CompiledObjects/"))
+  myg <- Y(myobservables, myreactions, compile=TRUE, modelname=paste0("g_",modelname))
+  
+  myodemodel <- odemodel(myreactions, forcings = NULL, events = myevents, fixed=NULL,
+                         estimate = getParametersToEstimate(est.grid = gridlist$est.grid,
+                                                            trafo = trafo,
+                                                            reactions = myreactions),
+                         modelname = paste0("odemodel_", modelname),
+                         jacobian = "inz.lsodes", compile = TRUE)
+  
+  tolerances <- 1e-7
+  myx <- Xs(myodemodel,
+            optionsOde = list(method = "lsoda", rtol = tolerances, atol = tolerances, maxsteps = 5000),
+            optionsSens = list(method = "lsodes", lrw=200000, rtol = tolerances, atol = tolerances))
+  
+  if(length(getSymbols(myerrors))){
+    setwd(paste0(mywd,"/CompiledObjects/"))
+    myerr <- Y(myerrors, f = c(as.eqnvec(myreactions), myobservables), states = names(myobservables), attach.input = FALSE, compile = TRUE, modelname = paste0("errfn_", modelname))
+    setwd(mywd)
+  }
+  
+  # [ ] Pre-equilibration
+  mypSS <- Id()
+  
+  myp <- P(trafo, compile = TRUE, modelname = paste0("P_", modelname))
+  
+  setwd(mywd)
+  
+  # .. Collect lists -----
+  symbolicEquations <- list(
+    reactions = myreactions,
+    observables = myobservables,
+    errors  = myerrors,
+    trafo = trafo)
+  fns <- list(
+    g = myg,
+    x = myx,
+    p1 = mypSS, # [ ] Pre-Equilibration
+    p0 = myp
+  )
+  
+  # .. Generate high-level fns -----
+  prd <- PRD_indiv(prd0 = Reduce("*", fns), est.grid = gridlist$est.grid, fix.grid = gridlist$fix.grid)
+  obj_data <- normL2_indiv(mydata, Reduce("*", fns), errmodel = myerr,
+                           est.grid = gridlist$est.grid, fix.grid = gridlist$fix.grid,
+                           times = seq(0,max(as.data.frame(mydata)$time), len=501))
+  # .. Collect final list -----
+  petab <- list(
+    symbolicEquations = symbolicEquations,
+    odemodel = myodemodel,
+    # [ ] complete data specification: data, gridlist, myerr
+    data = mydata,
+    gridlist = gridlist,
+    e = myerr,
+    fns = fns,
+    prd = prd,
+    obj_data = obj_data,
+    pars = myfit_values
+  )
+  
+  # .. Save everything -----
+  setwd(paste0(mywd,"/CompiledObjects/"))
+  saveRDS(petab, paste0(modelname, ".rds"))
+  setwd(mywd)
+  
+  petab
+  
 }
-
-# [ ] Pre-equilibration
-mypSS <- Id()
-
-myp <- P(trafo, compile = TRUE, modelname = paste0("P_", modelname))
-
-setwd(mywd)
-
-# .. Collect lists -----
-symbolicEquations <- list(
-  reactions = myreactions,
-  observables = myobservables,
-  errors  = myerrors,
-  trafo = trafo)
-fns <- list(
-  g = myg,
-  x = myx,
-  p1 = mypSS, # [ ] Pre-Equilibration
-  p0 = myp
-)
-
-# .. Generate high-level fns -----
-prd <- PRD_indiv(prd0 = Reduce("*", fns), est.grid = gridlist$est.grid, fix.grid = gridlist$fix.grid)
-obj_data <- normL2_indiv(mydata, Reduce("*", fns), errmodel = myerr,
-                         est.grid = gridlist$est.grid, fix.grid = gridlist$fix.grid,
-                         times = seq(0,max(as.data.frame(mydata)$time), len=501))
-# .. Collect final list -----
-petab <- list(
-  symbolicEquations = symbolicEquations,
-  odemodel = myodemodel,
-  # [ ] complete data specification: data, gridlist, myerr
-  data = mydata,
-  gridlist = gridlist,
-  e = myerr,
-  fns = fns,
-  prd = prd,
-  obj_data = obj_data,
-  pars = myfit_values
-)
-
-# .. Save everything -----
-setwd(paste0(mywd,"/CompiledObjects/"))
-saveRDS(petab, paste0(modelname, ".rds"))
-setwd(mywd)
-
-petab
-
-# }
+setwd(rstudioapi::getActiveProject())
+devtools::load_all()
+f <- list.files("BenchmarkModels")
+debugonce(importPEtabSBML)
+petab <- importPEtabSBML(modelname = f[1],
+                            path2model = "BenchmarkModels/",
+                            testCases = FALSE,
+                            path2TestCases = "PEtabTests/",
+                            compile = TRUE,
+                            SBML_file = NULL,
+                            observable_file = NULL,
+                            condition_file = NULL,
+                            data_file = NULL,
+                            parameter_file = NULL)
 
 # .. Testing -----
-p <- myp
-x <- myx
-g <- myg
-times <- seq(0,max(as.data.frame(mydata)$time), len=501)
-pred <- prd(times, myfit_values)
-# pred %>% plot
-# plotCombined(pred, mydata)
+p <- petab$fns$p0
+x <- petab$fns$x
+times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
+pred <- petab$prd(times, petab$pars, FLAGbrowserN = 1)
+pred %>% plot
+plotCombined(pred, petab$data)
 # [ ] EGF_impulse???
 # prd(times, myfit_values, FLAGbrowser = 1)
 # prd(times, myfit_values, FLAGbrowser = 2)
@@ -320,7 +319,7 @@ parallel::mclapply(1:12, function(i) obj_data(myfit_values), mc.cores = 4)
 b1 <- rbenchmark::benchmark(petab$obj_data(petab$pars), replications = 20)
 
 b1.2 <- rbenchmark::benchmark(mclapply(1:36, function(i) petab$obj_data(petab$pars), mc.cores= 12, mc.preschedule = TRUE), 
-                            replications = 3)
+                              replications = 3)
 
 
 
@@ -340,10 +339,10 @@ b2.2 <- rbenchmark::benchmark(mclapply(1:36, function(i) obj(pouter), mc.cores= 
                               replications = 3)
 
 writeLines(capture.output(print(list(
-b1,
-b1.2,
-b2,
-b2.2
+  b1,
+  b1.2,
+  b2,
+  b2.2
 ))), "~/wup.txt")
 
 # Exit ----
