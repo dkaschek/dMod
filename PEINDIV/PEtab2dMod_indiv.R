@@ -30,6 +30,28 @@ updateParscalesToBaseTrafo <- function(parscales, est.grid) {
 }
 
 
+
+#' Determine symbolic trafos in a vector
+#'
+#' @param trafo_string 
+#'
+#' @return vector TRUE/FALSE
+#' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+#'
+#' @examples
+#' trafo_string <- c(STAT5A = "207.6 * ratio", STAT5B = "207.6 - 207.6 * ratio", 
+#' pApB = "0", pApA = "0", pBpB = "0", nucpApA = "0", nucpApB = "0", 
+#' nucpBpB = "0")
+#' is_symbolic_trafo(trafo_string)
+is_symbolic_trafo <- function(trafo_string){
+  is_numeric <- !is.na(as.numeric(trafo_string))
+  is_character <- vapply(trafo_string, function(ts) identical(getSymbols(ts),ts), TRUE)
+  is_symbolic <- !is_numeric & !is_character
+}
+
+
 #' Import an SBML model and corresponding PEtab objects
 #'
 #' @description This function imports an SBML model and corresponding PEtab files, e.g. from the Benchmark collection.
@@ -54,6 +76,19 @@ updateParscalesToBaseTrafo <- function(parscales, est.grid) {
 #' @author Marcus Rosenblatt and Svenja Kemmer
 #'
 #' @export
+setwd(rstudioapi::getActiveProject())
+devtools::load_all()
+f <- list.files("BenchmarkModels")
+# modelname = f[1]
+# path2model = "BenchmarkModels/"
+# testCases = FALSE
+# path2TestCases = "PEtabTests/"
+# compile = TRUE
+# SBML_file = NULL
+# observable_file = NULL
+# condition_file = NULL
+# data_file = NULL
+# parameter_file = NULL
 importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
                             path2model = "BenchmarkModels/",
                             testCases = FALSE,
@@ -133,6 +168,12 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
   myinitialsSBML <- getInitialsSBML(SBML_file, condition_file)
   mycompartments <- myinitialsSBML$compartments
   myinitials     <- myinitialsSBML$initials
+  # set remaining event initials to 0
+  inits_events <- setdiff(unique(myevents$var), unique(mypreeqEvents$var))
+  inits_events <- setNames(rep(0, length(inits_events)), inits_events)
+  pars_est <- setNames(nm = names(myfit_values))
+  
+  
   
   ## Parameter transformations -----------
   # .. Generate condition.grid -----
@@ -161,22 +202,28 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
   est.grid <- est.grid[,.SD,.SD = c(1, is_string)]
   est.grid[,(names(est.grid)[-1]) := lapply(.SD, function(x) {replace(x, !is.na(as.numeric(x)), NA)}), .SDcols = -1]
   est.grid[,`:=`(ID = 1:.N)]
-  
   gridlist <- list(est.grid = est.grid, fix.grid = fix.grid)
-  gridlist <- add_pars_to_grids(pars = SBMLfixedpars,  gridlist = gridlist, FLAGoverwrite = FALSE)
-  gridlist <- add_pars_to_grids(pars = mycompartments, gridlist = gridlist, FLAGoverwrite = FALSE) # [ ] F or T?
-  gridlist <- add_pars_to_grids(pars = myinitials    , gridlist = gridlist, FLAGoverwrite = FALSE) # [ ] only overwrite initial if it's not defined in condition.grid
-  gridlist <- add_pars_to_grids(pars = myconstraints , gridlist = gridlist, FLAGoverwrite = TRUE ) # [ ] Was always TRUE
-  # [ ] Pre-Equi Events
-  # set remaining event initials to 0
-  inits_events <- setdiff(unique(myevents$var), unique(mypreeqEvents$var))
-  inits_events <- setNames(rep(0, length(inits_events)), inits_events)
-  gridlist <- add_pars_to_grids(pars = inits_events , gridlist = gridlist, FLAGoverwrite = FALSE)
-  # Add remaining estimation parameters
-  pars_est <- setNames(nm = names(myfit_values))
-  gridlist <- add_pars_to_grids(pars = pars_est     , gridlist = gridlist, FLAGoverwrite = FALSE)
-  # [ ] Any remaining fixed parameters?
+  trafo <- setNames(nm = unique(c(getParameters(myreactions), getSymbols(myobservables), getSymbols(myerrors), getSymbols(as.character(myevents$value)))))
+  trafo <- trafo[trafo != "time"]
   
+  parameterlist <- list(
+    list(par = SBMLfixedpars, overwrite = FALSE),
+    list(par = mycompartments, overwrite = FALSE),
+    list(par = myinitials, overwrite = FALSE),
+    list(par = myconstraints, overwrite = FALSE),
+    list(par = inits_events, overwrite = FALSE),
+    list(par = pars_est, overwrite = FALSE)
+  )
+  for (pl in parameterlist) {
+    par <- pl$par
+    st <- is_symbolic_trafo(par)
+    par_grid <- par[!st]
+    par_traf <- par[ st]
+    if (any(!st)) gridlist <- add_pars_to_grids(pars = par_grid, gridlist = gridlist, FLAGoverwrite = pl$overwrite)
+    if (any( st)) trafo <- repar("x~y", trafo, x = names(par_traf), y = par_traf)
+  }
+  
+  # [ ] Pre-Equi Events
   # branch trafo for different conditions
   # # set preequilibration event initials to corresponding values
   # if(!is.null(mypreeqEvents)){
@@ -185,11 +232,8 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
   # }
   # [ ] Need example for preeqEvents
   
-  # .. Symbolic Trafo -----
-  trafo <- setNames(nm = unique(c(getParameters(myreactions), getSymbols(myobservables), getSymbols(myerrors), getSymbols(as.character(myevents$value)))))
-  trafo <- trafo[trafo != "time"]
+  # .. Parscales -----
   # [ ] How are individualized parameters represented in PETab?
-  # [ ] Scaling_pAkt_tot
   parscales <- attr(myfit_values,"parscale")
   parscales <- updateParscalesToBaseTrafo(parscales, gridlist$est.grid)
   if (length(nm <- setdiff(names(parscales), names(trafo)))) 
@@ -268,27 +312,24 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
   petab
   
 }
-setwd(rstudioapi::getActiveProject())
-devtools::load_all()
-f <- list.files("BenchmarkModels")
-debugonce(importPEtabSBML)
-petab <- importPEtabSBML(modelname = f[1],
-                            path2model = "BenchmarkModels/",
-                            testCases = FALSE,
-                            path2TestCases = "PEtabTests/",
-                            compile = TRUE,
-                            SBML_file = NULL,
-                            observable_file = NULL,
-                            condition_file = NULL,
-                            data_file = NULL,
-                            parameter_file = NULL)
+
+petab <- importPEtabSBML(modelname = f[2],
+                         path2model = "BenchmarkModels/",
+                         testCases = FALSE,
+                         path2TestCases = "PEtabTests/",
+                         compile = TRUE,
+                         SBML_file = NULL,
+                         observable_file = NULL,
+                         condition_file = NULL,
+                         data_file = NULL,
+                         parameter_file = NULL)
 
 # .. Testing -----
 p <- petab$fns$p0
 x <- petab$fns$x
 times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
 pred <- petab$prd(times, petab$pars, FLAGbrowserN = 1)
-pred %>% plot
+# pred %>% plot
 plotCombined(pred, petab$data)
 # [ ] EGF_impulse???
 # prd(times, myfit_values, FLAGbrowser = 1)
