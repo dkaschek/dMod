@@ -411,7 +411,8 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
 setwd(rstudioapi::getActiveProject())
 devtools::load_all()
 f <- list.files("PEtabTests/")
-i <- 4
+i <- 9 # problematic
+i <- 10 # problematic
 # ..  -----
 # debugonce(importPEtabSBML_indiv)
 petab <- importPEtabSBML_indiv(modelname = f[i],
@@ -430,8 +431,15 @@ x <- petab$fns$x
 times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
 pred <- petab$prd(times, petab$pars, FLAGbrowserN = 1)
 plotCombined(pred, petab$data) + labs(title = paste0("testmodel ", i))
-i <- i+1
 
+sims <- fread(sprintf("PEtabTests/%04i/_simulations.tsv", i))
+pred <- as.data.table(as.data.frame(pred))
+predsim <- pred[sims, on = c("time", "name" = "observableId", condition = "simulationConditionId")]
+
+dplyr::near(predsim$value, predsim$simulation)
+predsim[,list(time, name, value,simulation)]
+
+i <- i+1
 # -------------------------------------------------------------------------#
 #  ----
 # -------------------------------------------------------------------------#
