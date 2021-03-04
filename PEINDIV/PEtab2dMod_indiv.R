@@ -122,8 +122,7 @@ getTrafoType <- function(trafo_string) {
 setwd(rstudioapi::getActiveProject())
 devtools::load_all()
 f <- list.files("PEtabTests/")
-i <- 2
-
+i <- 5
 modelname = f[i]
 path2model = "BenchmarkModels/"
 testCases = TRUE
@@ -234,6 +233,9 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
   cg <- data.table::data.table(mycondition.grid)
   cg <- cg[,!"conditionName"]
   data.table::setnames(cg, "conditionId", "condition")
+  is_factor <- vapply(cg, is.factor, FALSE)
+  cg[,(names(cg)[is_factor]) := lapply(.SD, as.character), .SDcols = names(cg)[is_factor]]
+  
   # Initialize fix.grid and est.grid
   # Determine which columns contain values and/or parameter names
   is_string  <- vapply(cg[,-1], function(x) any(is.na(as.numeric(x))), FUN.VALUE = TRUE)
@@ -286,8 +288,8 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
   # adjust symbolic trafo
   parscales <- attr(myfit_values,"parscale")
   parscales <- updateParscalesToBaseTrafo(parscales, gridlist$est.grid)
-  # if (length(nm <- setdiff(names(parscales), getSymbols(trafo)))) 
-  #   stop("undefined parameters in trafo: ", paste0(nm, collapse = ", "))
+  if (length(nm <- setdiff(names(parscales), getSymbols(trafo))))
+    stop("undefined parameters in trafo: ", paste0(nm, collapse = ", "))
   trafo <- repar("x ~ 10**(x)", trafo = trafo, x = names(which(parscales=="log10")))
   trafo <- repar("x ~ exp(x)" , trafo = trafo, x = names(which(parscales=="log")))
   
@@ -409,7 +411,7 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
 setwd(rstudioapi::getActiveProject())
 devtools::load_all()
 f <- list.files("PEtabTests/")
-i <- 2
+i <- 4
 # ..  -----
 # debugonce(importPEtabSBML_indiv)
 petab <- importPEtabSBML_indiv(modelname = f[i],
@@ -427,7 +429,7 @@ p <- petab$fns$p0
 x <- petab$fns$x
 times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
 pred <- petab$prd(times, petab$pars, FLAGbrowserN = 1)
-plotCombined(pred, petab$data)
+plotCombined(pred, petab$data) + labs(title = paste0("testmodel ", i))
 i <- i+1
 
 # -------------------------------------------------------------------------#
