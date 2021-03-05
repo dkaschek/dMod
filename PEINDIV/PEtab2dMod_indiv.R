@@ -406,26 +406,27 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
 # # -------------------------------------------------------------------------#
 # # Test models ----
 # # -------------------------------------------------------------------------#
-# setwd(rstudioapi::getActiveProject())
-# devtools::load_all()
-# f <- list.files("PEtabTests/")
-# i <- 2
-# # ..  -----
-# # debugonce(importPEtabSBML_indiv)
-# petab <- importPEtabSBML_indiv(modelname = f[i],
-#                          path2model = "BenchmarkModels/",
-#                          testCases = TRUE,
-#                          path2TestCases = "PEtabTests/",
-#                          compile = TRUE,
-#                          SBML_file = NULL,
-#                          observable_file = NULL,
-#                          condition_file = NULL,
-#                          data_file = NULL,
-#                          parameter_file = NULL)
-# 
-# p <- petab$fns$p0
-# x <- petab$fns$x
-# times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
+# try(setwd(rstudioapi::getActiveProject()))
+setwd("..")
+devtools::load_all()
+f <- list.files("PEtabTests/")
+i <- 1
+# ..  -----
+# debugonce(importPEtabSBML_indiv)
+petab <- importPEtabSBML_indiv(modelname = f[i],
+                         path2model = "BenchmarkModels/",
+                         testCases = TRUE,
+                         path2TestCases = "PEtabTests/",
+                         compile = TRUE,
+                         SBML_file = NULL,
+                         observable_file = NULL,
+                         condition_file = NULL,
+                         data_file = NULL,
+                         parameter_file = NULL)
+
+p <- petab$fns$p0
+x <- petab$fns$x
+times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
 # pred <- petab$prd(times, petab$pars, FLAGbrowserN = 1)
 # plotCombined(pred, petab$data)
 # i <- i+1
