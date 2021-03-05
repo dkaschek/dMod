@@ -528,7 +528,7 @@ profile_pars_per_node <- function(parameters, fits_per_node) {
   # generate the lists which parameters are send to wich node
   pars_from <- fits_per_node
   pars_to_vec <- fits_per_node
-  while (pars_from <= (n_pars)) {
+  while (pars_from < (n_pars)) {
     pars_from <- pars_from + fits_per_node
     pars_to_vec <- c(pars_to_vec, pars_from)
   }
