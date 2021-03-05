@@ -379,43 +379,15 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
 # # -------------------------------------------------------------------------#
 # # Testing ----
 # # -------------------------------------------------------------------------#
-# 
-# # setwd(rstudioapi::getActiveProject())
-# # devtools::load_all()
-# # f <- list.files("BenchmarkModels")
-# # 
-# # 
-# # petab <- importPEtabSBML(modelname = f[3],
-# #                          path2model = "BenchmarkModels/",
-# #                          testCases = FALSE,
-# #                          path2TestCases = "PEtabTests/",
-# #                          compile = TRUE,
-# #                          SBML_file = NULL,
-# #                          observable_file = NULL,
-# #                          condition_file = NULL,
-# #                          data_file = NULL,
-# #                          parameter_file = NULL)
-# # 
-# # p <- petab$fns$p0
-# # x <- petab$fns$x
-# # times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
-# # pred <- petab$prd(times, petab$pars, FLAGbrowserN = 1)
-# # plotCombined(pred, petab$data)
-# 
-# 
-# # -------------------------------------------------------------------------#
-# # Test models ----
-# # -------------------------------------------------------------------------#
-# try(setwd(rstudioapi::getActiveProject()))
+try(setwd(dirname(rstudioapi::getSourceEditorContext()$path)))
 setwd("..")
 devtools::load_all()
-f <- list.files("PEtabTests/")
-i <- 1
-# ..  -----
-# debugonce(importPEtabSBML_indiv)
-petab <- importPEtabSBML_indiv(modelname = f[i],
+f <- list.files("BenchmarkModels")
+
+
+petab <- importPEtabSBML_indiv(modelname = f[1],
                          path2model = "BenchmarkModels/",
-                         testCases = TRUE,
+                         testCases = FALSE,
                          path2TestCases = "PEtabTests/",
                          compile = TRUE,
                          SBML_file = NULL,
@@ -427,6 +399,34 @@ petab <- importPEtabSBML_indiv(modelname = f[i],
 p <- petab$fns$p0
 x <- petab$fns$x
 times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
+pred <- petab$prd(times, petab$pars, FLAGbrowserN = 1)
+plotCombined(pred, petab$data)
+# 
+# 
+# # -------------------------------------------------------------------------#
+# # Test models ----
+# # -------------------------------------------------------------------------#
+# try(setwd(dirname(rstudioapi::getSourceEditorContext()$path)))
+# setwd("..")
+# devtools::load_all()
+# f <- list.files("PEtabTests/")
+# i <- 1
+# # ..  -----
+# # debugonce(importPEtabSBML_indiv)
+# petab <- importPEtabSBML_indiv(modelname = f[i],
+#                          path2model = "BenchmarkModels/",
+#                          testCases = TRUE,
+#                          path2TestCases = "PEtabTests/",
+#                          compile = TRUE,
+#                          SBML_file = NULL,
+#                          observable_file = NULL,
+#                          condition_file = NULL,
+#                          data_file = NULL,
+#                          parameter_file = NULL)
+# 
+# p <- petab$fns$p0
+# x <- petab$fns$x
+# times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
 # pred <- petab$prd(times, petab$pars, FLAGbrowserN = 1)
 # plotCombined(pred, petab$data)
 # i <- i+1
@@ -463,12 +463,13 @@ times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
 # 
 b1 <- rbenchmark::benchmark(petab$obj_data(petab$pars), replications = 20)
 
-b1.2 <- rbenchmark::benchmark(mclapply(1:36, function(i) petab$obj_data(petab$pars), mc.cores= 12, mc.preschedule = TRUE),
+b1.2 <- rbenchmark::benchmark(mclapply(1:36, function(i) petab$obj_data(petab$pars), 
+                                       mc.cores= 12, mc.preschedule = TRUE),
                               replications = 3)
 
 
 
-importPEtabSBML(modelname, path2model)
+importPEtabSBML(f[i])
 # debugonce(obj)
 # obj(pouter)
 #
