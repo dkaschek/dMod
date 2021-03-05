@@ -374,38 +374,38 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
   
 }
 
-# >>>> from here: comment out <<<<<<<<<<< ----
-
-# -------------------------------------------------------------------------#
-# Testing ----
-# -------------------------------------------------------------------------#
-
-setwd(rstudioapi::getActiveProject())
-devtools::load_all()
-f <- list.files("BenchmarkModels")
-
-
-petab <- importPEtabSBML(modelname = f[3],
-                         path2model = "BenchmarkModels/",
-                         testCases = FALSE,
-                         path2TestCases = "PEtabTests/",
-                         compile = TRUE,
-                         SBML_file = NULL,
-                         observable_file = NULL,
-                         condition_file = NULL,
-                         data_file = NULL,
-                         parameter_file = NULL)
-
-p <- petab$fns$p0
-x <- petab$fns$x
-times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
-pred <- petab$prd(times, petab$pars, FLAGbrowserN = 1)
-plotCombined(pred, petab$data)
-
-
-# -------------------------------------------------------------------------#
-# Test models ----
-# -------------------------------------------------------------------------#
+# # >>>> from here: comment out <<<<<<<<<<< ----
+# 
+# # -------------------------------------------------------------------------#
+# # Testing ----
+# # -------------------------------------------------------------------------#
+# 
+# # setwd(rstudioapi::getActiveProject())
+# # devtools::load_all()
+# # f <- list.files("BenchmarkModels")
+# # 
+# # 
+# # petab <- importPEtabSBML(modelname = f[3],
+# #                          path2model = "BenchmarkModels/",
+# #                          testCases = FALSE,
+# #                          path2TestCases = "PEtabTests/",
+# #                          compile = TRUE,
+# #                          SBML_file = NULL,
+# #                          observable_file = NULL,
+# #                          condition_file = NULL,
+# #                          data_file = NULL,
+# #                          parameter_file = NULL)
+# # 
+# # p <- petab$fns$p0
+# # x <- petab$fns$x
+# # times <- seq(0,max(as.data.frame(petab$data)$time), len=501)
+# # pred <- petab$prd(times, petab$pars, FLAGbrowserN = 1)
+# # plotCombined(pred, petab$data)
+# 
+# 
+# # -------------------------------------------------------------------------#
+# # Test models ----
+# # -------------------------------------------------------------------------#
 # setwd(rstudioapi::getActiveProject())
 # devtools::load_all()
 # f <- list.files("PEtabTests/")
