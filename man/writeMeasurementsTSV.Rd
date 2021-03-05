@@ -4,7 +4,7 @@
 \alias{writeMeasurementsTSV}
 \title{Export Measurement Data as .tsv}
 \usage{
-writeMeasurementsTSV(data, errors)
+writeMeasurementsTSV(mymodel)
 }
 \arguments{
 \item{data}{PEtab data file as .tsv}

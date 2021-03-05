@@ -17,3 +17,6 @@ Create an objlist with zeros as entries
 \examples{
 init_empty_objlist(setNames(rnorm(5), letters[1:5]))
 }
+\author{
+Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+}

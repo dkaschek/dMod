@@ -19,3 +19,6 @@ P_indiv(p0, est.grid, fix.grid)
 \description{
 Title
 }
+\author{
+Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+}

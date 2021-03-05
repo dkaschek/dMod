@@ -37,8 +37,8 @@ unclass_parvec <- function(x) {setNames(unclass(x)[1:length(x)], names(x))}
 make_pars <- function(pars, fixed = NULL, est.grid, fix.grid, ID){
   
   i <- ID
-  est.grid <- data.table(est.grid)
-  fix.grid <- data.table(fix.grid)
+  est.grid <- as.data.table(est.grid)
+  fix.grid <- as.data.table(fix.grid)
   
   pars        <- unclass_parvec(pars)
   fixed       <- unclass_parvec(fixed)
@@ -66,7 +66,8 @@ make_pars <- function(pars, fixed = NULL, est.grid, fix.grid, ID){
 }
 
 
-#' Title
+#' Update attr(prediction, "deriv") to correct par.grid.outer names
+#' 
 #'
 #' @param pred0 prd0(times,pars)[[1]]
 #' @param pars pars
@@ -74,9 +75,10 @@ make_pars <- function(pars, fixed = NULL, est.grid, fix.grid, ID){
 #' @param cn name of condition
 #'
 #' @return pred0 with updated deriv argument
+#' 
 #' @export
-#'
-#' @examples
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
 renameDerivPars <- function(pred0, pars, est.grid, cn) {
   der <- attr(pred0, "deriv")
   dernm <- setdiff(colnames(der), "time")
@@ -111,8 +113,6 @@ renameDerivPars <- function(pred0, pars, est.grid, cn) {
 #'
 #' @return gridlist
 #' @export
-#'
-#' @examples
 add_pars_to_grids <- function(pars, gridlist, FLAGoverwrite = FALSE) {
   # 1 Get grids
   est.grid <- gridlist$est.grid
@@ -139,6 +139,8 @@ add_pars_to_grids <- function(pars, gridlist, FLAGoverwrite = FALSE) {
 #' Create an objlist with zeros as entries
 #' @param pars named vector. Only names and length are used
 #' @param deriv TRUE or FALSE
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
 #' @examples
 #' init_empty_objlist(setNames(rnorm(5), letters[1:5]))
 init_empty_objlist <- function(pars, deriv = TRUE) {
@@ -168,8 +170,8 @@ init_empty_objlist <- function(pars, deriv = TRUE) {
 #'
 #' @return
 #' @export
-#'
-#' @examples
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
 PRD_indiv <- function(prd0, est.grid, fix.grid) {
   
   if (!is.data.table(est.grid)) warning("est.grid was coerced to data.table (was", class(est.grid), ")")
@@ -238,8 +240,8 @@ PRD_indiv <- function(prd0, est.grid, fix.grid) {
 #'
 #' @return
 #' @export
-#'
-#' @examples
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
 P_indiv <- function(p0, est.grid, fix.grid) {
   
   if (!is.data.table(est.grid)) warning("est.grid was coerced to data.table (was", class(est.grid), ")")
@@ -284,6 +286,8 @@ P_indiv <- function(p0, est.grid, fix.grid) {
 #'
 #' @return objective function
 #' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
 #'
 #' @importFrom parallel mclapply
 normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times = NULL, attr.name = "data", fixed.conditions = NULL) {
@@ -442,8 +446,8 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
 #'
 #' @return
 #' @export
-#'
-#' @examples
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
 datapointL2_indiv <- function (name, time, value, sigma = 1, attr.name = "validation", 
                             condition, prd_indiv) {
   controls <- list(mu = structure(name, names = value)[1], 
@@ -525,8 +529,8 @@ datapointL2_indiv <- function (name, time, value, sigma = 1, attr.name = "valida
 #'
 #' @return
 #' @export
-#'
-#' @examples
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
 timepointL2_indiv <- function(name, time, value, sigma = 1, attr.name = "timepointL2", 
                            condition, prd_indiv) {
   
@@ -628,22 +632,27 @@ getParametersToEstimate <- function(est.grid, trafo, reactions) {
 #' @return
 #' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
 #' @md
-#'
-#' @examples
 getParameters.data.table <- function(x,...) {
   unique(unlist(x[,!c("condition", "ID")], use.names = FALSE))
 }
 
 #' Get Parameter mappings outer.estgrid - inner.estgrid
 #'
-#' @param x 
-#' @param ... 
+#' @param x est.grid
 #'
-#' @return
+#' @return named character
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
 #' @export
-#'
-#' @examples
-getParameters2.data.table <- function(x,...) {
+#' est.grid <- data.frame(ID = 1:2,
+#'                        condition = c("A", "B"),
+#'                        k1 = c("k1_A", "k1_B"),
+#'                        k2 = c("k2_A", "k2_B"),
+#'                        k3 = c("k3", NA),
+#'                        k4 = c("k4", "k4"),
+#'                        stringsAsFactors = FALSE)
+#' getEstGridParameterMapping(est.grid)
+getEstGridParameterMapping <- function(x) {
   nm <- setdiff(names(x),c("condition", "ID"))
   do.call(c, lapply(nm, function(n) setNames(unique(x[[n]]), rep(n, length(unique(x[[n]]))))))
 }

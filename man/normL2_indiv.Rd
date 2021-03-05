@@ -36,3 +36,6 @@ objective function
 \description{
 Fast normL2
 }
+\author{
+Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+}

@@ -4,19 +4,16 @@
 \alias{getParGrids}
 \title{Get est.grid and fixed.grid}
 \usage{
-getParGrids(
-  mytrafo = trafo,
-  mytrafoL = trafoL,
-  mycondition.grid = condition.grid,
-  SS_pars = names(mySS_eqns_est)
-)
+getParGrids(mytrafo, mytrafoL, mycondition.grid, SS_pars = NULL)
 }
 \arguments{
-\item{jobname}{job name on cluster}
+\item{mytrafo}{base trafo}
 
-\item{recover}{}
+\item{mytrafoL}{condition specific branched trafo list}
 
-\item{nodetype}{}
+\item{mycondition.grid}{condition.grid}
+
+\item{SS_pars}{parameters determined by steady state}
 }
 \value{
 

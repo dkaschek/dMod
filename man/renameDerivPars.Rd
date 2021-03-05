@@ -2,12 +2,12 @@
 % Please edit documentation in R/normIndiv.R
 \name{renameDerivPars}
 \alias{renameDerivPars}
-\title{Title}
+\title{Update attr(prediction, "deriv") to correct par.grid.outer names}
 \usage{
 renameDerivPars(pred0, pars, est.grid, cn)
 }
 \arguments{
-\item{pred0}{prd0(times,pars)[[1]]}
+\item{pred0}{prd0(times,pars)[\link{1}]}
 
 \item{pars}{pars}
 
@@ -19,5 +19,8 @@ renameDerivPars(pred0, pars, est.grid, cn)
 pred0 with updated deriv argument
 }
 \description{
-Title
+Update attr(prediction, "deriv") to correct par.grid.outer names
+}
+\author{
+Daniel Lill (daniel.lill@physik.uni-freiburg.de)
 }

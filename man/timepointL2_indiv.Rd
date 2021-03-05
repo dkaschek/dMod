@@ -35,3 +35,6 @@ timepointL2_indiv(
 \description{
 DatapointL2 without env access
 }
+\author{
+Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+}

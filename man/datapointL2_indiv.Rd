@@ -35,3 +35,6 @@ datapointL2_indiv(
 \description{
 DatapointL2 without access to stored predictions
 }
+\author{
+Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+}

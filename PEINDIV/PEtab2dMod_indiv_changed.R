@@ -9,7 +9,7 @@
 #' @examples
 updateParscalesToBaseTrafo <- function(parscales, est.grid) {
   # Get name mapping between est.grid pars and outer pars
-  parseg_outer <- getParameters2.data.table(est.grid)
+  parseg_outer <- getEstGridParameterMapping(est.grid)
   parsouter_eg <- setNames(names(parseg_outer), parseg_outer)
   # Get scales for outer pars
   parscales_eg <- copy(parscales)
