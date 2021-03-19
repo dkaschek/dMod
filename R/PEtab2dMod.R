@@ -286,7 +286,36 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
   if(mytimediff > 3600) cat(paste0(modelname, " imported in ",as.character(format(as.numeric(difftime(endtime, starttime, unit="hours")), digits=3)), " hours.\n")) else
     if(mytimediff > 60) cat(paste0(modelname, " imported in ",as.character(format(as.numeric(difftime(endtime, starttime, unit="mins")), digits=3)), " minutes.\n")) else
       cat(paste0(modelname, " imported in ",as.character(format(as.numeric(difftime(endtime, starttime, unit="secs")), digits=3)), " seconds.\n"))
-  return(modelname)
+  # return(modelname)
+  
+  
+  
+  # ..  -----
+  symbolicEquations <- list(
+    reactions = myreactions,
+    observables = myobservables,
+    errors  = myerrors,
+    trafo = trafoL)
+  fns <- list(
+    g = myg,
+    x = myx,
+    p0 = myp0
+  )
+  prd <- (myg*myx*myp0)
+  obj_data <- normL2(mydata, prd, errmodel = myerr,
+                           times = seq(0,max(as.data.frame(mydata)$time), len=501))
+  
+  petab_dMod <- list(
+    symbolicEquations = symbolicEquations,
+    odemodel = myodemodel,
+    data = mydata,
+    e = myerr,
+    fns = fns,
+    prd = prd,
+    obj_data = obj_data,
+    pars = myfit_values
+  )
+  petab_dMod
 }
 
 
@@ -954,7 +983,7 @@ getParametersSBML <- function(parameters, model){
   n_pars <- model$getNumParameters()
   SBMLfixedpars <- NULL
   count <- 1
-  for (i in 0:(n_pars-1)) {
+  for (i in seq_len(n_pars)) {
     mypar <- model$getParameter(i)$getId()
     if(!mypar %in% names(pouter) & !mypar %in% names(constraints)){
       value <- model$getParameter(i)$getValue()
@@ -1443,16 +1472,11 @@ getTrafoType <- function(trafo_string) {
 #'
 #' @description This function imports an SBML model and corresponding PEtab files, e.g. from the Benchmark collection.
 #'
-#' @param modelname name of folder containing all PEtab files of the model to be imported. NULL if file paths are defined separately (see below).
-#' @param path2model path to model folder
+#' @param filename "path/to/modelname.petab". Will look for files like 
+#'        "path/to/modelname/model_modelname.xml"
 #' @param TestCases TRUE to load feature test cases
 #' @param path2TestCases path to feature test case folder
 #' @param compile if FALSE, g, ODEmodel and err are loaded from .RData (if present) and compilation time is saved
-#' @param SBML_file SBML model as .xml
-#' @param observable_file PEtab observable file as .tsv
-#' @param condition_file PEtab condition file as .tsv
-#' @param data_file PEtab data file as .tsv
-#' @param parameter_file PEtab parameter file as .tsv
 #'
 #' @details Objects such as model equations, parameters or data are automatically assigned to the following standard variables and written to your current working directory (via <<-):
 #' reactions, observables, errors, g, x, p0, err, obj, mydata, ODEmodel, condition.grid, trafoL, pouter, times.
@@ -1473,19 +1497,18 @@ getTrafoType <- function(trafo_string) {
 #' @md
 #'
 #' @export
-importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
-                                  path2model = "BenchmarkModels/",
+importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.petab",
                                   testCases = FALSE,
                                   path2TestCases = "PEtabTests/",
-                                  compile = TRUE,
-                                  SBML_file = NULL,
-                                  observable_file = NULL,
-                                  condition_file = NULL,
-                                  data_file = NULL,
-                                  parameter_file = NULL
+                                  compile = TRUE
 )
 {
-  ## Read previously imported files --------------------
+  # .. ## Define path to SBML and PEtab files -------------------- ----- #
+  path      <- petab_modelname_path(filename)$path
+  modelname <- petab_modelname_path(filename)$modelname
+  files <- petab_files(filename, FLAGTestCase = testCases, FLAGreturnList = TRUE)
+  
+  # .. ## Read previously imported files -------------------- ----- #
   if(is.null(modelname)) modelname <- "mymodel"
   
   mywd <- getwd()
@@ -1502,48 +1525,29 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
   ## load required packages
   require(libSBML) # => Not very nice, better explicitly import the required functions
   
-  ## Define path to SBML and PEtab files --------------------
-  if(testCases == FALSE){
-    if(is.null(SBML_file))       SBML_file       <- paste0(path2model, modelname, "/model_", modelname, ".xml")
-    if(is.null(observable_file)) observable_file <- paste0(path2model, modelname, "/observables_", modelname, ".tsv")
-    if(is.null(condition_file))  condition_file  <- paste0(path2model, modelname, "/experimentalCondition_", modelname, ".tsv")
-    if(is.null(data_file))       data_file       <- paste0(path2model, modelname, "/measurementData_", modelname, ".tsv")
-    if(is.null(parameter_file))  parameter_file  <- paste0(path2model, modelname, "/parameters_", modelname, ".tsv")
-  } else{
-    SBML_file       <- paste0(path2TestCases, modelname, "/_model.xml")
-    observable_file <- paste0(path2TestCases, modelname, "/_observables.tsv")
-    condition_file  <- paste0(path2TestCases, modelname, "/_conditions.tsv")
-    data_file       <- paste0(path2TestCases, modelname, "/_measurements.tsv")
-    parameter_file  <- paste0(path2TestCases, modelname, "/_parameters.tsv")
-  }
-  if(!file.exists(SBML_file)){       cat(paste0("The file ",mywd,SBML_file, " does not exist. Please check spelling or provide the file name via the SBML_file argument.")); return(NULL)}
-  if(!file.exists(observable_file)){ cat(paste0("The file ",mywd,observable_file, " does not exist. Please check spelling or provide the file name via the observable_file argument.")); return(NULL)}
-  if(!file.exists(condition_file)){  cat(paste0("The file ",mywd,condition_file, " does not exist. Please check spelling or provide the file name via the condition_file argument.")); return(NULL)}
-  if(!file.exists(data_file)){       cat(paste0("The file ",mywd,data_file, " does not exist. Please check spelling or provide the file name via the data_file argument.")); return(NULL)}
-  if(!file.exists(parameter_file)){  cat(paste0("The file ",mywd,parameter_file, " does not exist. Please check spelling or provide the file name via the parameter_file argument.")); return(NULL)}
   
-  ## Model Definition - Equations --------------------
-  mylist           <- getReactionsSBML(SBML_file, condition_file)
+  # .. ## Model Definition - Equations -------------------- ----- #
+  mylist           <- getReactionsSBML(files$modelXML, files$experimentalCondition)
   myreactions      <- mylist$reactions
   myreactions_orig <- mylist$reactions_orig
   myevents         <- mylist$events
   mypreeqEvents    <- mylist$preeqEvents
   mystates         <- mylist$mystates
-  myobservables    <- getObservablesSBML(observable_file)
+  myobservables    <- getObservablesSBML(files$observables)
   
-  ## Get Data ------------
-  mydataSBML <- getDataPEtabSBML(data_file, observable_file)
+  # .. ## Get Data ------------ ----- #
+  mydataSBML <- getDataPEtabSBML(files$measurementData, files$observables)
   mydata     <- mydataSBML$data
   myerrors   <- mydataSBML$errors
   myerr <- NULL
   
-  ## Define constraints, initials, parameters and compartments --------------
-  myparameters   <- getParametersSBML(parameter_file, SBML_file)
+  # .. ## Define constraints, initials, parameters and compartments -------------- ----- #
+  myparameters   <- getParametersSBML(files$parameters, files$modelXML)
   # [ ] Check constraints
   myconstraints  <- myparameters$constraints
   SBMLfixedpars  <- myparameters$SBMLfixedpars
   myfit_values   <- myparameters$pouter
-  myinitialsSBML <- getInitialsSBML(SBML_file, condition_file)
+  myinitialsSBML <- getInitialsSBML(files$modelXML, files$experimentalCondition)
   mycompartments <- myinitialsSBML$compartments
   myinitials     <- myinitialsSBML$initials
   # set remaining event initials to 0
@@ -1551,13 +1555,13 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
   inits_events <- setNames(rep(0, length(inits_events)), inits_events)
   pars_est <- setNames(nm = names(myfit_values))
   
-  ## Parameter transformations -----------
-  # .. Generate condition.grid -----
-  grid <- getConditionsSBML(conditions = condition_file, data = data_file)
+  # .. ## Parameter transformations ----------- ----- #
+  # .. Generate condition.grid ----- #
+  grid <- getConditionsSBML(conditions = files$experimentalCondition, data = files$measurementData)
   mypreeqCons      <- grid$preeqCons
   mycondition.grid <- grid$condition_grid
   attr(mydata, "condition.grid") <- mycondition.grid
-  # .. Build fix.grid, est.grid and trafo -----
+  # .. Build fix.grid, est.grid and trafo ----- #
   
   # Copy condition.grid, take unique identifying column only
   cg <- data.table::data.table(mycondition.grid)
@@ -1580,15 +1584,16 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
   est.grid[,`:=`(ID = 1:.N)]
   gridlist <- list(est.grid = est.grid, fix.grid = fix.grid)
   
-  trafo <- setNames(nm = unique(c(getParameters(myreactions), getSymbols(myobservables), getSymbols(myerrors), getSymbols(as.character(myevents$value)))))
+  trafo <- setNames(nm = unique(c(getParameters(myreactions), getSymbols(myobservables), 
+                                  getSymbols(myerrors), getSymbols(as.character(myevents$value)))))
   trafo <- trafo[trafo != "time"]
   
-  # .. Fill values into grid and trafo -----
+  # .. Fill values into grid and trafo ----- #
   parameterlist <- list(
-    list(par = SBMLfixedpars, overwrite = FALSE),
-    list(par = mycompartments, overwrite = FALSE),
-    list(par = myinitials, overwrite = FALSE),
-    list(par = myconstraints, overwrite = FALSE),
+    list(par = SBMLfixedpars[setdiff(names(SBMLfixedpars), names(pars_est))],  overwrite = FALSE),
+    list(par = mycompartments[setdiff(names(mycompartments), names(pars_est))], overwrite = FALSE),
+    list(par = myinitials[setdiff(names(myinitials), names(pars_est))],    overwrite = FALSE),
+    list(par = myconstraints[setdiff(names(myconstraints), c(names(pars_est), names(myinitials)))], overwrite = FALSE),
     list(par = inits_events, overwrite = FALSE),
     list(par = pars_est, overwrite = FALSE)
   )
@@ -1612,7 +1617,7 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
   }
   # [ ] Need example for preeqEvents
   
-  # .. Parscales -----
+  # .. Parscales ----- #
   # 1 adjust symbolic trafo
   parscales <- attr(myfit_values,"parscale")
   parscales <- updateParscalesToBaseTrafo(parscales, gridlist$est.grid)
@@ -1632,7 +1637,7 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
   gridlist$fix.grid <- fg
   
   # -------------------------------------------------------------------------#
-  # Model Compilation ----
+  # .. Model Compilation ---- ----- #
   # -------------------------------------------------------------------------#
   setwd(paste0(mywd,"/CompiledObjects/"))
   myg <- Y(myobservables, myreactions, compile=TRUE, modelname=paste0("g_",modelname))
@@ -1662,7 +1667,7 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
   
   setwd(mywd)
   
-  # .. Collect lists -----
+  # .. Collect lists ----- #
   symbolicEquations <- list(
     reactions = myreactions,
     observables = myobservables,
@@ -1675,12 +1680,12 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
     p0 = myp
   )
   
-  # .. Generate high-level fns -----
+  # .. Generate high-level fns ----- #
   prd <- PRD_indiv(prd0 = Reduce("*", fns), est.grid = gridlist$est.grid, fix.grid = gridlist$fix.grid)
   obj_data <- normL2_indiv(mydata, Reduce("*", fns), errmodel = myerr,
                            est.grid = gridlist$est.grid, fix.grid = gridlist$fix.grid,
                            times = seq(0,max(as.data.frame(mydata)$time), len=501))
-  # .. Collect final list -----
+  # .. Collect final list ----- #
   petab <- list(
     symbolicEquations = symbolicEquations,
     odemodel = myodemodel,
@@ -1694,7 +1699,7 @@ importPEtabSBML_indiv <- function(modelname = "Boehm_JProteomeRes2014",
     pars = myfit_values
   )
   # -------------------------------------------------------------------------#
-  # Save and return ----
+  # .. Save and return ---- ----- #
   # -------------------------------------------------------------------------#
   setwd(paste0(mywd,"/CompiledObjects/"))
   saveRDS(petab, paste0(modelname, ".rds"))
