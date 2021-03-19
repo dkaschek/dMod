@@ -367,8 +367,9 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
         nm <- colnames(prediction)[whichcols]
         
         if (length(intersect(data[[cn]]$name, nm)))
-          stop("Prediction is infinite for observables present in data in condition ", cn, "\n",
-               "The following observables are affected: ", paste0(intersect(data[[cn]]$name, nm), collapse = ", "))
+          warning("Prediction is infinite for observables present in data in condition ", cn, "\n",
+               "The following observables are affected: ", paste0(intersect(data[[cn]]$name, nm), collapse = ", "),
+               "These values are set to zero")
         
         if (FLAGNaNInfwarnings)
           warning("Inf in condition ", cn , " for the following names: ", paste0(nm, collapse = ", "))

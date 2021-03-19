@@ -1052,8 +1052,9 @@ getReactionsSBML <- function(model, conditions){
     #rate <- replaceOperation("pow", "**", eq$getKineticLaw()$getFormula())
     if(!is.null(compartments)){
       if(Reduce("|", str_detect(rate, unique(compartments)))){
-        pos <- which(strsplit(rate, "")[[1]]=="*")[1]
-        rate <- substr(rate,pos+1,length(strsplit(rate, "")[[1]]=="*"))
+        rate <- gsub(paste0(unique(compartments), collapse = "|"), "1", rate)
+        # pos <- which(strsplit(rate, "")[[1]]=="*")[1]                   # Fixed by DanielL: compartment is not always at beginning
+        # rate <- substr(rate,pos+1,length(strsplit(rate, "")[[1]]=="*")) # Fixed by DanielL: compartment is not always at beginning
       }
     }
     reactions <- reactions %>% addReaction(Reactantstring, Productstring, rate)
@@ -1540,7 +1541,6 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   mydata     <- mydataSBML$data
   myerrors   <- mydataSBML$errors
   myerr <- NULL
-  
   # .. ## Define constraints, initials, parameters and compartments -------------- ----- #
   myparameters   <- getParametersSBML(files$parameters, files$modelXML)
   # [ ] Check constraints

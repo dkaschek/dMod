@@ -5,36 +5,19 @@
 \title{Import an SBML model and corresponding PEtab objects}
 \usage{
 importPEtabSBML_indiv(
-  modelname = "Boehm_JProteomeRes2014",
-  path2model = "BenchmarkModels/",
+  filename = "enzymeKinetics/enzymeKinetics.petab",
   testCases = FALSE,
   path2TestCases = "PEtabTests/",
-  compile = TRUE,
-  SBML_file = NULL,
-  observable_file = NULL,
-  condition_file = NULL,
-  data_file = NULL,
-  parameter_file = NULL
+  compile = TRUE
 )
 }
 \arguments{
-\item{modelname}{name of folder containing all PEtab files of the model to be imported. NULL if file paths are defined separately (see below).}
-
-\item{path2model}{path to model folder}
+\item{filename}{"path/to/modelname.petab". Will look for files like
+"path/to/modelname/model_modelname.xml"}
 
 \item{path2TestCases}{path to feature test case folder}
 
 \item{compile}{if FALSE, g, ODEmodel and err are loaded from .RData (if present) and compilation time is saved}
-
-\item{SBML_file}{SBML model as .xml}
-
-\item{observable_file}{PEtab observable file as .tsv}
-
-\item{condition_file}{PEtab condition file as .tsv}
-
-\item{data_file}{PEtab data file as .tsv}
-
-\item{parameter_file}{PEtab parameter file as .tsv}
 
 \item{TestCases}{TRUE to load feature test cases}
 }
