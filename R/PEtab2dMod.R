@@ -616,9 +616,10 @@ testPEtabSBML <- function(models = c(
 #' @export
 #' 
 #' @importFrom dplyr inner_join filter mutate 
-getConditionsSBML <- function(conditions,data){
+getConditionsSBML <- function(conditions,data, observables_file){
   condition.grid_orig <- read.csv(file = conditions, sep = "\t")
   mydata <- read.csv(file = data, sep = "\t")
+  myobservables <- read.csv(file = observables_file, sep = "\t")
   
   # handle preequilibration conditions
   myCons <- condition.grid_orig$conditionId
@@ -686,12 +687,22 @@ getConditionsSBML <- function(conditions,data){
     # avoid warning if not all conditions are observed
   } else mycondition.grid <- condition.grid_orig
   
+  
+  # Error parameters: Need to cover the four cases
+  # 1. err = noiseParameter1_obs, noiseParameter1_obs = c(1)              => No columns in condition.grid
+  # 2. err = noiseParameter1_obs, noiseParameter1_obs = c("sigma1")       => Need Column in condition.grid
+  # 3. err = noiseParameter1_obs * obs, noiseParameter1_obs = c(1)        => Need Column in condition.grid
+  # 4. err = noiseParameter1_obs * obs, noiseParameter1_obs = c("sigma1") => Need Column in condition.grid
+  # Check if noise parameters need to be generated or the error model is simply "sigma"
+  err_simple <- !is.na(as.numeric(myobservables$noiseFormula)) | myobservables$noiseFormula == paste0("noiseParameter1_", myobservables$observableId)
+  # Check if there are any symbolic error parameters
+  err_symbols <- getSymbols(mydata$noiseParameters)
   # generate columns for noiseParameters
-  if(!is.numeric(mydata$noiseParameters) & !is.null(mydata$noiseParameters)) 
+  if((any(!err_simple) | length(err_symbols) > 0) & !is.null(mydata$noiseParameters))
   {
     if(exists("mycondition.grid")) {condition.grid_orig <- mycondition.grid}
     condition.grid_noise <- data.frame(conditionId = condis_obs)
-    for (obs in observables) 
+    for (obs in observables[!err_simple]) 
     {
       data_obs <- subset(mydata, observableId == obs)
       for (condition in condis_obs) 
@@ -983,7 +994,7 @@ getParametersSBML <- function(parameters, model){
   n_pars <- model$getNumParameters()
   SBMLfixedpars <- NULL
   count <- 1
-  for (i in seq_len(n_pars)) {
+  for (i in (seq_len(n_pars)-1)) {
     mypar <- model$getParameter(i)$getId()
     if(!mypar %in% names(pouter) & !mypar %in% names(constraints)){
       value <- model$getParameter(i)$getValue()
@@ -1052,7 +1063,7 @@ getReactionsSBML <- function(model, conditions){
     #rate <- replaceOperation("pow", "**", eq$getKineticLaw()$getFormula())
     if(!is.null(compartments)){
       if(Reduce("|", str_detect(rate, unique(compartments)))){
-        rate <- gsub(paste0(unique(compartments), collapse = "|"), "1", rate)
+        rate <- cOde::replaceSymbols(unique(compartments), rep("1", length(unique(compartments))), rate)
         # pos <- which(strsplit(rate, "")[[1]]=="*")[1]                   # Fixed by DanielL: compartment is not always at beginning
         # rate <- substr(rate,pos+1,length(strsplit(rate, "")[[1]]=="*")) # Fixed by DanielL: compartment is not always at beginning
       }
@@ -1224,72 +1235,6 @@ function_def_to_string <- function(fun)
   return (result)
   
 }
-
-#' Import Data from PEtab 
-#' 
-#' @description This function imports data from the PEtab data file as a data list and defines errors if an error model is required.
-#'  
-#' @param data PEtab data file as .tsv
-#' @param observables observables as eqnvec
-#'   
-#' @return data as data list and errors (if required) as eqnvec.
-#'   
-#' @author Marcus Rosenblatt and Svenja Kemmer
-#'
-#' @export
-#' 
-getDataPEtabSBML <- function(data, observables){
-  mydata <- read.csv(file = data, sep = "\t")
-  myobs <- read.csv(file = observables, sep = "\t") %>% as.data.frame()
-  obs <- myobs$observableId %>% as.character()
-  errors <- NULL
-  
-  # if(!is.null(mydata$noiseParameters) & !is.null(myobs$noiseFormula)) cat(red("Warning: errors specified in data and observable file.\n"))
-  if(!mydata$noiseParameters %>% is.numeric) {
-    # define errors
-    errors <- myobs$noiseFormula %>% as.character()
-    which_err <- c(1:length(obs))
-    if(length(errors) != length(obs)) errors <- rep(errors,length(obs))
-    names(errors) <- obs[which_err]
-    errors <- as.eqnvec(errors)
-    # set fixed sigmas 
-    if(is.null(mydata$noiseParameters)){
-      mydata$noiseParameters <- errors %>% as.numeric()
-    } else mydata$noiseParameters <- NA
-  }
-  
-  # # rename observables with _obs
-  # obs <- mydata$observableId %>% as.character() %>% paste0("_obs")
-  # mydata$observableId <- obs
-  # if(!is.null(errors)) names(errors) <- paste0(names(errors), "_obs")
-  mydata$simulationConditionId <- as.character(mydata$simulationConditionId)
-  if(!is.null(mydata$observableParameters)){
-    for (observable in unique(mydata$observableId)){
-      for(condition in unique(mydata$simulationConditionId)){
-        sub <- subset(mydata, simulationConditionId==condition & observableId==observable)
-        if(nrow(sub) > 0){
-          if(length(unique(sub$observableParameters)) > 1){
-            index <- which(mydata$simulationConditionId==condition & mydata$observableId==observable)
-            mydata$simulationConditionId[index] <- paste0(mydata$simulationConditionId[index], "_",mydata$observableParameters[index])
-          }
-        }
-      }
-    }
-  }
-  
-  # select necessary data columns
-  data <- data.frame(name = mydata$observableId, time = mydata$time, 
-                     value = mydata$measurement, sigma = mydata$noiseParameters,
-                     condition = mydata$simulationConditionId) 
-  obs2log <- myobs$observableId[which(myobs$observableTransformation=="log")]
-  data$value[which(data$name%in%obs2log)] <- log(data$value[which(data$name%in%obs2log)])
-  obs2log10 <- myobs$observableId[which(myobs$observableTransformation=="log10")]
-  data$value[which(data$name%in%obs2log10)] <- log10(data$value[which(data$name%in%obs2log10)])
-  data <- data %>% as.datalist()
-  
-  return(list(data=data,errors=errors))
-}
-
 
 #' Import Data from PEtab 
 #' 
@@ -1557,7 +1502,9 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   
   # .. ## Parameter transformations ----------- ----- #
   # .. Generate condition.grid ----- #
-  grid <- getConditionsSBML(conditions = files$experimentalCondition, data = files$measurementData)
+  grid <- getConditionsSBML(conditions = files$experimentalCondition, 
+                            data = files$measurementData,
+                            observables_file = files$observables)
   mypreeqCons      <- grid$preeqCons
   mycondition.grid <- grid$condition_grid
   attr(mydata, "condition.grid") <- mycondition.grid
