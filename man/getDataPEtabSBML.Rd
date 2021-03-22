@@ -5,8 +5,6 @@
 \title{Import Data from PEtab}
 \usage{
 getDataPEtabSBML(data, observables)
-
-getDataPEtabSBML(data, observables)
 }
 \arguments{
 \item{data}{PEtab data file as .tsv}
@@ -15,16 +13,10 @@ getDataPEtabSBML(data, observables)
 }
 \value{
 data as data list and errors (if required) as eqnvec.
-
-data as data list and errors (if required) as eqnvec.
 }
 \description{
 This function imports data from the PEtab data file as a data list and defines errors if an error model is required.
-
-This function imports data from the PEtab data file as a data list and defines errors if an error model is required.
 }
 \author{
-Marcus Rosenblatt and Svenja Kemmer
-
 Marcus Rosenblatt and Svenja Kemmer
 }

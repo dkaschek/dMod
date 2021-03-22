@@ -616,7 +616,7 @@ testPEtabSBML <- function(models = c(
 #' @export
 #' 
 #' @importFrom dplyr inner_join filter mutate 
-getConditionsSBML <- function(conditions,data, observables_file){
+getConditionsSBML <- function(conditions,data, observables_file, FLAGnormalImport = TRUE){
   condition.grid_orig <- read.csv(file = conditions, sep = "\t")
   mydata <- read.csv(file = data, sep = "\t")
   myobservables <- read.csv(file = observables_file, sep = "\t")
@@ -698,7 +698,7 @@ getConditionsSBML <- function(conditions,data, observables_file){
   # Check if there are any symbolic error parameters
   err_symbols <- getSymbols(mydata$noiseParameters)
   # generate columns for noiseParameters
-  if((any(!err_simple) | length(err_symbols) > 0) & !is.null(mydata$noiseParameters))
+  if((FLAGnormalImport && is.character(mydata$noiseParameters)) | (any(!err_simple) | length(err_symbols) > 0) & !is.null(mydata$noiseParameters))
   {
     if(exists("mycondition.grid")) {condition.grid_orig <- mycondition.grid}
     condition.grid_noise <- data.frame(conditionId = condis_obs)
@@ -1471,6 +1471,8 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   ## load required packages
   require(libSBML) # => Not very nice, better explicitly import the required functions
   
+  # .. Read PEtab tables -----
+  pe <- readPetab(filename)
   
   # .. ## Model Definition - Equations -------------------- ----- #
   mylist           <- getReactionsSBML(files$modelXML, files$experimentalCondition)
@@ -1504,7 +1506,8 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   # .. Generate condition.grid ----- #
   grid <- getConditionsSBML(conditions = files$experimentalCondition, 
                             data = files$measurementData,
-                            observables_file = files$observables)
+                            observables_file = files$observables,
+                            FLAGnormalImport = FALSE)
   mypreeqCons      <- grid$preeqCons
   mycondition.grid <- grid$condition_grid
   attr(mydata, "condition.grid") <- mycondition.grid
@@ -1529,11 +1532,18 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   est.grid <- est.grid[,.SD,.SD = c(1, is_string)]
   est.grid[,(names(est.grid)[-1]) := lapply(.SD, function(x) {replace(x, !is.na(as.numeric(x)), NA)}), .SDcols = -1]
   est.grid[,`:=`(ID = 1:.N)]
-  gridlist <- list(est.grid = est.grid, fix.grid = fix.grid)
+  gl <- list(est.grid = est.grid, fix.grid = fix.grid)
   
-  trafo <- setNames(nm = unique(c(getParameters(myreactions), getSymbols(myobservables), 
-                                  getSymbols(myerrors), getSymbols(as.character(myevents$value)))))
-  trafo <- trafo[trafo != "time"]
+  # .. MeasurementParameter mappings  -----
+  obsParMapping <- petab_getMeasurementParsMapping(observableId = pe$measurementData$observableId,
+                                                   simulationConditionId = pe$measurementData$simulationConditionId,
+                                                   noiseOrObsParameters = pe$measurementData$observableParameters)
+  errParMapping <- petab_getMeasurementParsMapping(observableId = pe$measurementData$observableId,
+                                                   simulationConditionId = pe$measurementData$simulationConditionId,
+                                                   noiseOrObsParameters = pe$measurementData$noiseParameters)
+  
+  
+  
   
   # .. Fill values into grid and trafo ----- #
   parameterlist <- list(
@@ -1544,13 +1554,18 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
     list(par = inits_events, overwrite = FALSE),
     list(par = pars_est, overwrite = FALSE)
   )
+  
+  
+  trafo <- setNames(nm = unique(c(getParameters(myreactions), getSymbols(myobservables), 
+                                  getSymbols(myerrors), getSymbols(as.character(myevents$value)))))
+  trafo <- trafo[trafo != "time"]
   for (pl in parameterlist) {
     par <- pl$par
     trafoType <- getTrafoType(par)
     is_symbolic_trafo <- trafoType %in% c("TRAFO")
     par_grid <- par[!is_symbolic_trafo]
     par_traf <- par[ is_symbolic_trafo]
-    if (any(!is_symbolic_trafo)) gridlist <- add_pars_to_grids(pars = par_grid, gridlist = gridlist, FLAGoverwrite = pl$overwrite)
+    if (any(!is_symbolic_trafo)) gl <- indiv_addGlobalParsToGridlist(pars = par_grid, gridlist = gl, FLAGoverwrite = pl$overwrite)
     if (any( is_symbolic_trafo)) trafo <- repar("x~y", trafo, x = names(par_traf), y = par_traf)
   }
   
@@ -1567,21 +1582,21 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   # .. Parscales ----- #
   # 1 adjust symbolic trafo
   parscales <- attr(myfit_values,"parscale")
-  parscales <- updateParscalesToBaseTrafo(parscales, gridlist$est.grid)
+  parscales <- updateParscalesToBaseTrafo(parscales, gl$est.grid)
   # if (length(nm <- setdiff(names(parscales), getSymbols(trafo)))) 
   #   stop("undefined parameters in trafo: ", paste0(nm, collapse = ", "))
   trafo <- repar("x ~ 10**(x)", trafo = trafo, x = names(which(parscales=="log10")))
   trafo <- repar("x ~ exp(x)" , trafo = trafo, x = names(which(parscales=="log")))
   
   # 2 Adjust fix.grid
-  fg <- gridlist$fix.grid
+  fg <- gl$fix.grid
   for (nm in intersect(names(fg), names(parscales))) {
     scale <- parscales[nm]
     if (scale == "log10") fg[[nm]] <- log10(fg[[nm]])
     if (scale == "log") fg[[nm]] <- log(fg[[nm]])
     fg[[nm]][!is.finite(fg[[nm]])] <- -1000
   }
-  gridlist$fix.grid <- fg
+  gl$fix.grid <- fg
   
   # -------------------------------------------------------------------------#
   # .. Model Compilation ---- ----- #
@@ -1590,7 +1605,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   myg <- Y(myobservables, myreactions, compile=TRUE, modelname=paste0("g_",modelname))
   
   myodemodel <- odemodel(myreactions, forcings = NULL, events = myevents, fixed=NULL,
-                         estimate = getParametersToEstimate(est.grid = gridlist$est.grid,
+                         estimate = getParametersToEstimate(est.grid = gl$est.grid,
                                                             trafo = trafo,
                                                             reactions = myreactions),
                          modelname = paste0("odemodel_", modelname),
@@ -1628,9 +1643,9 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   )
   
   # .. Generate high-level fns ----- #
-  prd <- PRD_indiv(prd0 = Reduce("*", fns), est.grid = gridlist$est.grid, fix.grid = gridlist$fix.grid)
+  prd <- PRD_indiv(prd0 = Reduce("*", fns), est.grid = gl$est.grid, fix.grid = gl$fix.grid)
   obj_data <- normL2_indiv(mydata, Reduce("*", fns), errmodel = myerr,
-                           est.grid = gridlist$est.grid, fix.grid = gridlist$fix.grid,
+                           est.grid = gl$est.grid, fix.grid = gl$fix.grid,
                            times = seq(0,max(as.data.frame(mydata)$time), len=501))
   # .. Collect final list ----- #
   petab <- list(
@@ -1638,7 +1653,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
     odemodel = myodemodel,
     # [ ] complete data specification could be lumped: data, gridlist, myerr
     data = mydata,
-    gridlist = gridlist,
+    gridlist = gl,
     e = myerr,
     fns = fns,
     prd = prd,

@@ -4,7 +4,7 @@
 \alias{getConditionsSBML}
 \title{Import condition.grid from PEtab}
 \usage{
-getConditionsSBML(conditions, data)
+getConditionsSBML(conditions, data, observables_file, FLAGnormalImport = TRUE)
 }
 \arguments{
 \item{conditions}{PEtab condition file as .tsv}
