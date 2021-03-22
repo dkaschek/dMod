@@ -4,7 +4,7 @@
 \alias{indiv_addLocalParsToGridList}
 \title{Add individualized parameters to grids}
 \usage{
-indiv_addLocalParsToGridList(pars, gridlist)
+indiv_addLocalParsToGridList(pars, gridlist, FLAGoverwrite = FALSE)
 }
 \arguments{
 \item{pars}{data.table(ID, condition, pars...) Only one of ID, condition must be present}

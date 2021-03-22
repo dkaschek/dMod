@@ -182,7 +182,7 @@ indiv_addGlobalParsToGridlist <- function(pars, gridlist, FLAGoverwrite = FALSE)
 #'                        stringsAsFactors = FALSE)
 #' gl <- gridlist(est.grid = est.grid, fix.grid = fix.grid)
 #' indiv_addLocalParsToGridList(pars, gl)
-indiv_addLocalParsToGridList <- function(pars, gridlist) {
+indiv_addLocalParsToGridList <- function(pars, gridlist, FLAGoverwrite = FALSE) {
   est.grid <- gridlist$est.grid
   fix.grid <- gridlist$fix.grid
   
@@ -191,6 +191,16 @@ indiv_addLocalParsToGridList <- function(pars, gridlist) {
   parscols <- setdiff(names(pars), joincols)
   setcolorder(pars, joincols)
   
+  # 2 Determine overwriting action: Cut down grids or pars
+  if (FLAGoverwrite) {
+    est.grid <- est.grid[,.SD,.SDcols = c(joincols, setdiff(names(est.grid), names(pars)))]
+    fix.grid <- fix.grid[,.SD,.SDcols = c(joincols, setdiff(names(fix.grid), names(pars)))]
+  } else {
+    pars <- pars[,.SD,.SDcols = c(joincols, setdiff(names(pars), names(est.grid)))]
+    pars <- pars[,.SD,.SDcols = c(joincols, setdiff(names(pars), names(fix.grid)))]
+  }
+  
+  # Split pars into fix and est, introduce NAs for mixed parameters
   pars_fix <- copy(pars)
   # power move: delete all symbolic columns, replace symbols with NA in remaining cols
   pars_fix[,(parscols) := lapply(.SD, function(x) {
