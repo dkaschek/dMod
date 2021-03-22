@@ -157,7 +157,7 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
   ## Parameter transformations -----------
   
   # Generate condition.grid
-  grid <- getConditionsSBML(conditions = condition_file, data = data_file) 
+  grid <- getConditionsSBML(conditions = condition_file, data = data_file, observables_file = observable_file) 
   mypreeqCons <- grid$preeqCons
   mycondition.grid <- grid$condition_grid
   
