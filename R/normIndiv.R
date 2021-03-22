@@ -127,9 +127,9 @@ renameDerivPars <- function(pred0, pars, est.grid, cn) {
 #'                        k5 = c(5.1,5.2),
 #'                        k6 = c(6,6),
 #'                        stringsAsFactors = FALSE)
-#' indiv_addGlobalParsToGridlist(c(NewParSymbolic = "NewParSymbolic", NewParFixed = 1), list(est.grid = est.grid, fix.grid = fix.grid))
-#' indiv_addGlobalParsToGridlist(c(k1 = 1), list(est.grid = est.grid, fix.grid = fix.grid), FLAGoverwrite = FALSE) # nothing happens
-#' indiv_addGlobalParsToGridlist(c(k1 = 1), list(est.grid = est.grid, fix.grid = fix.grid), FLAGoverwrite = TRUE) # k1 is replaced and moved to fix.grid
+#' indiv_addGlobalParsToGridlist(c(NewParSymbolic = "NewParSymbolic", NewParFixed = 1), gridlist(est.grid = est.grid, fix.grid = fix.grid))
+#' indiv_addGlobalParsToGridlist(c(k1 = 1), gridlist(est.grid = est.grid, fix.grid = fix.grid), FLAGoverwrite = FALSE) # nothing happens
+#' indiv_addGlobalParsToGridlist(c(k1 = 1), gridlist(est.grid = est.grid, fix.grid = fix.grid), FLAGoverwrite = TRUE) # k1 is replaced and moved to fix.grid
 indiv_addGlobalParsToGridlist <- function(pars, gridlist, FLAGoverwrite = FALSE) {
   # 1 Get grids
   est.grid <- gridlist$est.grid
@@ -152,6 +152,66 @@ indiv_addGlobalParsToGridlist <- function(pars, gridlist, FLAGoverwrite = FALSE)
 }
 
 
+#' Add individualized parameters to grids
+#' 
+#' Can only add parameters, cannot update existing parameters
+#'
+#' @param pars data.table(ID, condition, pars...) Only one of ID, condition must be present
+#' @param gridlist [dMod::gridlist()]
+#'
+#' @return modified gridlist
+#' 
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+#' @export
+#'
+#' @examples
+#' pars <- data.table(ID = 1:2, newFix = c(1,2), newEst = c("a", "b"), newMix = c("a", 1))
+#' est.grid <- data.table(ID = 1:2,
+#'                        condition = c("A", "B"),
+#'                        k1 = c("k1_A", "k1_B"),
+#'                        k2 = c("k2_A", "k2_B"),
+#'                        k3 = c("k3", NA),
+#'                        k4 = c("k4", "k4"),
+#'                        stringsAsFactors = FALSE)
+#' fix.grid <- data.table(ID = 1:2,
+#'                        condition = c("A", "B"),
+#'                        k3 = c(NA, 3.5),
+#'                        k5 = c(5.1,5.2),
+#'                        k6 = c(6,6),
+#'                        stringsAsFactors = FALSE)
+#' gl <- gridlist(est.grid = est.grid, fix.grid = fix.grid)
+#' indiv_addLocalParsToGridList(pars, gl)
+indiv_addLocalParsToGridList <- function(pars, gridlist) {
+  est.grid <- gridlist$est.grid
+  fix.grid <- gridlist$fix.grid
+  
+  # Determine which cols to join on. Assuming ID and condition are present in fix.grid and est.grid
+  joincols <- intersect(c("ID", "condition"), names(pars))
+  parscols <- setdiff(names(pars), joincols)
+  setcolorder(pars, joincols)
+  
+  pars_fix <- copy(pars)
+  # power move: delete all symbolic columns, replace symbols with NA in remaining cols
+  pars_fix[,(parscols) := lapply(.SD, function(x) {
+    x <- as.numeric(x)
+  if (all(is.na(x))) {
+    return(NULL)
+    } else x}), .SDcols = parscols]
+  fix.grid <- pars_fix[fix.grid, on = joincols]
+  
+  pars_est <- copy(pars)
+  # power move: delete all numeric columns, replace numbers with NA in remaining cols
+  pars_est[,(parscols) := lapply(.SD, function(x) {
+    numidx <- !is.na(as.numeric(x)); 
+    if (all(numidx)) {
+      return(NULL)
+      } else replace(x, numidx, NA_character_)}), .SDcols = parscols]
+  est.grid <- pars_est[est.grid, on = joincols]
+  
+  gridlist(est.grid = est.grid, fix.grid = fix.grid)
+}
+
 
 #' Create an objlist with zeros as entries
 #' @param pars named vector. Only names and length are used
@@ -173,8 +233,10 @@ init_empty_objlist <- function(pars, deriv = TRUE) {
 
 
 
-#' Title
-#'
+#' Collect grids in list
+#' 
+#' Ensure all tables are data.tables
+#' 
 #' @param est.grid 
 #' @param fix.grid 
 #'
@@ -183,6 +245,8 @@ init_empty_objlist <- function(pars, deriv = TRUE) {
 #'
 #' @examples
 gridlist <- function(est.grid, fix.grid) {
+  est.grid <- as.data.table(est.grid)
+  fix.grid <- as.data.table(fix.grid)
   list(est.grid = est.grid, fix.grid = fix.grid)
 }
 
