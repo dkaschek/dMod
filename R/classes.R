@@ -486,7 +486,7 @@ obsfn <- function(X2Y, parameters = NULL, condition = NULL) {
     problematicIndices <- is.na(out) | is.infinite(out)
     if (any(problematicIndices)) {
       arrayIndices <- arrayInd(which(problematicIndices), dim(out))
-      problematicSubset <- paste0(capture.output(print(out[arrayIndices[,1], arrayIndices[,2]])), collapse = "\n")
+      problematicSubset <- paste0(capture.output(print(out[arrayIndices[,1], c(1,arrayIndices[,2])])), collapse = "\n")
       stop("Prediction is NA or Inf in condition ", paste0(conditions, collapse = ","), ".\n", 
            "Subset of the prediction causing trouble:\n", problematicSubset)
     }
