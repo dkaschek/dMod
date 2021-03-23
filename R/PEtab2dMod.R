@@ -702,7 +702,7 @@ getConditionsSBML <- function(conditions,data, observables_file, FLAGnormalImpor
   {
     if(exists("mycondition.grid")) {condition.grid_orig <- mycondition.grid}
     condition.grid_noise <- data.frame(conditionId = condis_obs)
-    for (obs in observables[!err_simple]) 
+    for (obs in observables[!err_simple | FLAGnormalImport]) # `| FLAGnormalImport` for backwards compatibility
     {
       data_obs <- subset(mydata, observableId == obs)
       for (condition in condis_obs) 
@@ -1534,16 +1534,17 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   est.grid[,`:=`(ID = 1:.N)]
   gl <- list(est.grid = est.grid, fix.grid = fix.grid)
   
+  # .. Initialize Trafo -----
+  trafo <- setNames(nm = unique(c(getParameters(myreactions), getSymbols(myobservables), 
+                                  getSymbols(myerrors), getSymbols(as.character(myevents$value)))))
+  trafo <- trafo[trafo != "time"]
+  
   # .. MeasurementParameter mappings  -----
-  obsParMapping <- petab_getMeasurementParsMapping(observableId = pe$measurementData$observableId,
-                                                   simulationConditionId = pe$measurementData$simulationConditionId,
-                                                   noiseOrObsParameters = pe$measurementData$observableParameters)
-  errParMapping <- petab_getMeasurementParsMapping(observableId = pe$measurementData$observableId,
-                                                   simulationConditionId = pe$measurementData$simulationConditionId,
-                                                   noiseOrObsParameters = pe$measurementData$noiseParameters)
+  obsParMapping <- petab_getMeasurementParsMapping(pe$measurementData, column = "observableParameters")
+  errParMapping <- petab_getMeasurementParsMapping(pe$measurementData, column = "noiseParameters")
   
-  
-  
+  gl <- indiv_addLocalParsToGridList(pars = obsParMapping, gridlist = gl, FLAGoverwrite = TRUE)
+  gl <- indiv_addLocalParsToGridList(pars = errParMapping, gridlist = gl, FLAGoverwrite = TRUE)
   
   # .. Fill values into grid and trafo ----- #
   parameterlist <- list(
@@ -1555,10 +1556,14 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
     list(par = pars_est, overwrite = FALSE)
   )
   
+  # Ugly solution, but need to remove the measurementPars from the parameterlist. 
+  #   They were dealt with in the step before
+  parameterlist <- lapply(parameterlist, function(x) {
+    alreadyAvailable <- union(getParameters(gl$est.grid), names(gl$fix.grid))
+    x$par <- x$par[setdiff(names(x$par), alreadyAvailable)]
+    x
+  })
   
-  trafo <- setNames(nm = unique(c(getParameters(myreactions), getSymbols(myobservables), 
-                                  getSymbols(myerrors), getSymbols(as.character(myevents$value)))))
-  trafo <- trafo[trafo != "time"]
   for (pl in parameterlist) {
     par <- pl$par
     trafoType <- getTrafoType(par)
