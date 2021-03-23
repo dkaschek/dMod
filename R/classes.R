@@ -482,6 +482,14 @@ obsfn <- function(X2Y, parameters = NULL, condition = NULL) {
     out <- arglist[[1]]
     pars <- arglist[[2]]
 
+    # Check sanity of prediction
+    problematicIndices <- is.na(out) | is.infinite(out)
+    if (any(problematicIndices)) {
+      arrayIndices <- arrayInd(which(problematicIndices), dim(out))
+      problematicSubset <- paste0(capture.output(print(out[arrayIndices[,1], arrayIndices[,2]])), collapse = "\n")
+      stop("NA or Inf in prediction. Subset of the prediction causing trouble:\n", problematicSubset)
+    }
+    
     # yields derivatives for all parameters in pars but not in fixed
     pars <- c(as.parvec(pars[setdiff(names(pars), names(fixed))]),
               fixed)
