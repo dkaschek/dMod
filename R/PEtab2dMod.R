@@ -1483,12 +1483,12 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   mystates         <- mylist$mystates
   myobservables    <- getObservablesSBML(files$observables)
   
-  # .. Get Data ------------ -----
+  # .. Get Data -----
   mydataSBML <- getDataPEtabSBML(files$measurementData, files$observables)
   mydata     <- mydataSBML$data
   myerrors   <- mydataSBML$errors
   myerr <- NULL
-  # .. Define constraints, initials, parameters and compartments -------------- -----
+  # .. Define constraints, initials, parameters and compartments -----
   myparameters   <- getParametersSBML(files$parameters, files$modelXML)
   # [ ] Check constraints
   myconstraints  <- myparameters$constraints
@@ -1502,7 +1502,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   inits_events <- setNames(rep(0, length(inits_events)), inits_events)
   pars_est <- setNames(nm = names(myfit_values))
   
-  # .. Parameter transformations ----------- -----
+  # .. Parameter transformations -----
   # .. Generate condition.grid -----
   grid <- getConditionsSBML(conditions = files$experimentalCondition, 
                             data = files$measurementData,
@@ -1599,7 +1599,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
     scale <- parscales[nm]
     if (scale == "log10") fg[[nm]] <- log10(fg[[nm]])
     if (scale == "log") fg[[nm]] <- log(fg[[nm]])
-    fg[[nm]][!is.finite(fg[[nm]])] <- -1000
+    fg[[nm]][!is.finite(fg[[nm]]) & !is.na(fg[[nm]])] <- -1000
   }
   gl$fix.grid <- fg
   
