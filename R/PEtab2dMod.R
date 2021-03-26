@@ -1446,7 +1446,7 @@ getTrafoType <- function(trafo_string) {
 importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.petab",
                                   testCases = FALSE,
                                   path2TestCases = "PEtabTests/",
-                                  NFLAGcompile = c(Recompile = 0, RebuildGrids = 1, LoadPrevious = 2)[2]
+                                  NFLAGcompile = c(Recompile = 0, RebuildGrids = 1, LoadPrevious = 2)[3]
 )
 {
   # .. Define path to SBML and PEtab files -----
@@ -1634,7 +1634,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   } else if (NFLAGcompile == 1) {
     myg        <- pd$fns$g
     myx        <- pd$fns$x
-    myp0       <- pd$fns$p0
+    myp       <- pd$fns$p0
     myodemodel <- pd$odemodel
     myerr      <- pd$e
   }
@@ -1654,6 +1654,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
     trafo = trafo)
   
   # .. Generate high-level fns -----
+  p   <- P_indiv(p0 = fns$p0, est.grid = gl$est.grid, fix.grid = gl$fix.grid)
   prd <- PRD_indiv(prd0 = Reduce("*", fns), est.grid = gl$est.grid, fix.grid = gl$fix.grid)
   obj_data <- normL2_indiv(mydata, Reduce("*", fns), errmodel = myerr,
                            est.grid = gl$est.grid, fix.grid = gl$fix.grid,
@@ -1667,6 +1668,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
     gridlist          = gl,
     e                 = myerr,
     fns               = fns,
+    p                 = p,
     prd               = prd,
     obj_data          = obj_data,
     pars              = myfit_values
