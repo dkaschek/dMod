@@ -1474,7 +1474,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   # .. Read PEtab tables -----
   pe <- readPetab(filename)
   
-  # .. Model Definition - Equations -------------------- -----
+  # .. Model Definition - Equations -----
   mylist           <- getReactionsSBML(files$modelXML, files$experimentalCondition)
   myreactions      <- mylist$reactions
   myreactions_orig <- mylist$reactions_orig
@@ -1608,38 +1608,38 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   # -------------------------------------------------------------------------#
   if (NFLAGcompile == 0) {
   setwd(paste0(mywd,"/CompiledObjects/"))
-  myg <- Y(myobservables, myreactions, compile=FALSE, modelname=paste0("g_",modelname))
+  myg <- Y(myobservables, myreactions, compile=TRUE, modelname=paste0("g_",modelname))
   
   myodemodel <- odemodel(myreactions, forcings = NULL, events = myevents, fixed=NULL,
                          estimate = getParametersToEstimate(est.grid = gl$est.grid,
                                                             trafo = trafo,
                                                             reactions = myreactions),
                          modelname = paste0("odemodel_", modelname),
-                         jacobian = "inz.lsodes", compile = FALSE)
+                         jacobian = "inz.lsodes", compile = TRUE)
   
-  tolerances <- 1e-7
   myx <- Xs(myodemodel,
-            optionsOde = list(method = "lsoda", rtol = tolerances, atol = tolerances, maxsteps = 5000),
-            optionsSens = list(method = "lsodes", lrw=200000, rtol = tolerances, atol = tolerances))
+            optionsOde = list(method = "lsoda", rtol = 1e-7, atol = 1e-7, maxsteps = 5000),
+            optionsSens = list(method = "lsodes", lrw=200000, rtol = 1e-7, atol = 1e-7))
   
-  if(length(getSymbols(myerrors))){
-    setwd(paste0(mywd,"/CompiledObjects/"))
+  if(length(getSymbols(myerrors)))
     myerr <- Y(myerrors, f = c(as.eqnvec(myreactions), myobservables), states = names(myobservables), 
-               attach.input = FALSE, compile = FALSE, modelname = paste0("errfn_", modelname))
-    setwd(mywd)
-  }
+               attach.input = FALSE, compile = TRUE, modelname = paste0("errfn_", modelname))
   
   # [ ] Pre-equilibration
   # mypSS <- Id()
   
-  myp <- P(trafo, compile = FALSE, modelname = paste0("P_", modelname))
-  
-  compile(myg,myodemodel,myerr,myp, 
-          output = paste0("modelname"),
-          cores = detectFreeCores()-1)
-  
+  myp <- P(trafo, compile = TRUE, modelname = paste0("P_", modelname))
   setwd(mywd)
   
+  } else if (NFLAGcompile == 1) {
+    myg        <- pd$fns$g
+    myx        <- pd$fns$x
+    myp0       <- pd$fns$p0
+    myodemodel <- pd$odemodel
+    myerr      <- pd$e
+  }
+  
+  # .. Collect lists -----
   # Collect list
   fns <- list(
     g = myg,
@@ -1647,14 +1647,6 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
     # p1 = mypSS, # [ ] Pre-Equilibration
     p0 = myp
   )
-  
-  } else if (NFLAGcompile == 1) {
-    fns <- pd$fns
-    myodemodel <- pd$odemodel
-    myerr <- pd$e
-  }
-  
-  # .. Collect lists -----
   symbolicEquations <- list(
     reactions = myreactions,
     observables = myobservables,
@@ -1669,15 +1661,15 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   # .. Collect final list -----
   petab <- list(
     symbolicEquations = symbolicEquations,
-    odemodel = myodemodel,
+    odemodel          = myodemodel,
     # [ ] complete data specification could be lumped: data, gridlist, myerr
-    data = mydata,
-    gridlist = gl,
-    e = myerr,
-    fns = fns,
-    prd = prd,
-    obj_data = obj_data,
-    pars = myfit_values
+    data              = mydata,
+    gridlist          = gl,
+    e                 = myerr,
+    fns               = fns,
+    prd               = prd,
+    obj_data          = obj_data,
+    pars              = myfit_values
   )
   # -------------------------------------------------------------------------#
   # .. Save and return ---- -----
