@@ -1446,25 +1446,25 @@ getTrafoType <- function(trafo_string) {
 importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.petab",
                                   testCases = FALSE,
                                   path2TestCases = "PEtabTests/",
-                                  compile = TRUE
+                                  NFLAGcompile = c(Recompile = 0, RebuildGrids = 1, LoadPrevious = 2)[2]
 )
 {
-  # .. ## Define path to SBML and PEtab files -------------------- ----- #
+  # .. Define path to SBML and PEtab files -----
   path      <- petab_modelname_path(filename)$path
   modelname <- petab_modelname_path(filename)$modelname
   files <- petab_files(filename, FLAGTestCase = testCases, FLAGreturnList = TRUE)
   
-  # .. ## Read previously imported files -------------------- ----- #
-  if(is.null(modelname)) modelname <- "mymodel"
-  
+  # .. Read previously imported files -----
   mywd <- getwd()
   dir.create(paste0(mywd,"/CompiledObjects/"), showWarnings = FALSE)
   
   setwd(paste0(mywd,"/CompiledObjects/"))
-  if(compile == FALSE & file.exists(paste0(modelname,".rds"))){
-    petab <- readRDS(paste0(modelname,".rds"))
-    loadDLL(petab$obj_data)
-    return(petab)
+  if (!file.exists(paste0(modelname,".rds"))) NFLAGcompile <- 0
+  
+  if(NFLAGcompile > 0){
+    pd <- readRDS(paste0(modelname,".rds"))
+    loadDLL(pd$obj_data)
+    if (NFLAGcompile == 2) return(pd)
   }
   setwd(mywd)
   
@@ -1474,7 +1474,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   # .. Read PEtab tables -----
   pe <- readPetab(filename)
   
-  # .. ## Model Definition - Equations -------------------- ----- #
+  # .. Model Definition - Equations -------------------- -----
   mylist           <- getReactionsSBML(files$modelXML, files$experimentalCondition)
   myreactions      <- mylist$reactions
   myreactions_orig <- mylist$reactions_orig
@@ -1483,12 +1483,12 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   mystates         <- mylist$mystates
   myobservables    <- getObservablesSBML(files$observables)
   
-  # .. ## Get Data ------------ ----- #
+  # .. Get Data ------------ -----
   mydataSBML <- getDataPEtabSBML(files$measurementData, files$observables)
   mydata     <- mydataSBML$data
   myerrors   <- mydataSBML$errors
   myerr <- NULL
-  # .. ## Define constraints, initials, parameters and compartments -------------- ----- #
+  # .. Define constraints, initials, parameters and compartments -------------- -----
   myparameters   <- getParametersSBML(files$parameters, files$modelXML)
   # [ ] Check constraints
   myconstraints  <- myparameters$constraints
@@ -1502,8 +1502,8 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   inits_events <- setNames(rep(0, length(inits_events)), inits_events)
   pars_est <- setNames(nm = names(myfit_values))
   
-  # .. ## Parameter transformations ----------- ----- #
-  # .. Generate condition.grid ----- #
+  # .. Parameter transformations ----------- -----
+  # .. Generate condition.grid -----
   grid <- getConditionsSBML(conditions = files$experimentalCondition, 
                             data = files$measurementData,
                             observables_file = files$observables,
@@ -1511,7 +1511,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   mypreeqCons      <- grid$preeqCons
   mycondition.grid <- grid$condition_grid
   attr(mydata, "condition.grid") <- mycondition.grid
-  # .. Build fix.grid, est.grid and trafo ----- #
+  # .. Build fix.grid, est.grid and trafo -----
   
   # Copy condition.grid, take unique identifying column only
   cg <- data.table::data.table(mycondition.grid)
@@ -1546,7 +1546,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   gl <- indiv_addLocalParsToGridList(pars = obsParMapping, gridlist = gl, FLAGoverwrite = TRUE)
   gl <- indiv_addLocalParsToGridList(pars = errParMapping, gridlist = gl, FLAGoverwrite = TRUE)
   
-  # .. Fill values into grid and trafo ----- #
+  # .. Fill values into grid and trafo -----
   parameterlist <- list(
     list(par = SBMLfixedpars[setdiff(names(SBMLfixedpars), names(pars_est))],  overwrite = FALSE),
     list(par = mycompartments[setdiff(names(mycompartments), names(pars_est))], overwrite = FALSE),
@@ -1584,7 +1584,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   }
   # [ ] Need example for preeqEvents
   
-  # .. Parscales ----- #
+  # .. Parscales -----
   # 1 adjust symbolic trafo
   parscales <- attr(myfit_values,"parscale")
   parscales <- updateParscalesToBaseTrafo(parscales, gl$est.grid)
@@ -1604,17 +1604,18 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   gl$fix.grid <- fg
   
   # -------------------------------------------------------------------------#
-  # .. Model Compilation ---- ----- #
+  # .. Model Compilation ---- -----
   # -------------------------------------------------------------------------#
+  if (NFLAGcompile == 0) {
   setwd(paste0(mywd,"/CompiledObjects/"))
-  myg <- Y(myobservables, myreactions, compile=TRUE, modelname=paste0("g_",modelname))
+  myg <- Y(myobservables, myreactions, compile=FALSE, modelname=paste0("g_",modelname))
   
   myodemodel <- odemodel(myreactions, forcings = NULL, events = myevents, fixed=NULL,
                          estimate = getParametersToEstimate(est.grid = gl$est.grid,
                                                             trafo = trafo,
                                                             reactions = myreactions),
                          modelname = paste0("odemodel_", modelname),
-                         jacobian = "inz.lsodes", compile = TRUE)
+                         jacobian = "inz.lsodes", compile = FALSE)
   
   tolerances <- 1e-7
   myx <- Xs(myodemodel,
@@ -1623,23 +1624,23 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   
   if(length(getSymbols(myerrors))){
     setwd(paste0(mywd,"/CompiledObjects/"))
-    myerr <- Y(myerrors, f = c(as.eqnvec(myreactions), myobservables), states = names(myobservables), attach.input = FALSE, compile = TRUE, modelname = paste0("errfn_", modelname))
+    myerr <- Y(myerrors, f = c(as.eqnvec(myreactions), myobservables), states = names(myobservables), 
+               attach.input = FALSE, compile = FALSE, modelname = paste0("errfn_", modelname))
     setwd(mywd)
   }
   
   # [ ] Pre-equilibration
   # mypSS <- Id()
   
-  myp <- P(trafo, compile = TRUE, modelname = paste0("P_", modelname))
+  myp <- P(trafo, compile = FALSE, modelname = paste0("P_", modelname))
+  
+  compile(myg,myodemodel,myerr,myp, 
+          output = paste0("modelname"),
+          cores = detectFreeCores()-1)
   
   setwd(mywd)
   
-  # .. Collect lists ----- #
-  symbolicEquations <- list(
-    reactions = myreactions,
-    observables = myobservables,
-    errors  = myerrors,
-    trafo = trafo)
+  # Collect list
   fns <- list(
     g = myg,
     x = myx,
@@ -1647,12 +1648,25 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
     p0 = myp
   )
   
-  # .. Generate high-level fns ----- #
+  } else if (NFLAGcompile == 1) {
+    fns <- pd$fns
+    myodemodel <- pd$odemodel
+    myerr <- pd$e
+  }
+  
+  # .. Collect lists -----
+  symbolicEquations <- list(
+    reactions = myreactions,
+    observables = myobservables,
+    errors  = myerrors,
+    trafo = trafo)
+  
+  # .. Generate high-level fns -----
   prd <- PRD_indiv(prd0 = Reduce("*", fns), est.grid = gl$est.grid, fix.grid = gl$fix.grid)
   obj_data <- normL2_indiv(mydata, Reduce("*", fns), errmodel = myerr,
                            est.grid = gl$est.grid, fix.grid = gl$fix.grid,
                            times = seq(0,max(as.data.frame(mydata)$time), len=501))
-  # .. Collect final list ----- #
+  # .. Collect final list -----
   petab <- list(
     symbolicEquations = symbolicEquations,
     odemodel = myodemodel,
@@ -1666,7 +1680,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
     pars = myfit_values
   )
   # -------------------------------------------------------------------------#
-  # .. Save and return ---- ----- #
+  # .. Save and return ---- -----
   # -------------------------------------------------------------------------#
   setwd(paste0(mywd,"/CompiledObjects/"))
   saveRDS(petab, paste0(modelname, ".rds"))
