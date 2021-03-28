@@ -1449,24 +1449,28 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
                                   NFLAGcompile = c(Recompile = 0, RebuildGrids = 1, LoadPrevious = 2)[3]
 )
 {
+  # .. Set exit behaviour -----
+  mywd <- getwd()
+  on.exit({setwd(mywd)})
+  
   # .. Define path to SBML and PEtab files -----
   path      <- petab_modelname_path(filename)$path
   modelname <- petab_modelname_path(filename)$modelname
   files <- petab_files(filename, FLAGTestCase = testCases, FLAGreturnList = TRUE)
   
   # .. Read previously imported files -----
-  mywd <- getwd()
-  dir.create(paste0(mywd,"/CompiledObjects/"), showWarnings = FALSE)
+  CompiledFolder <- file.path("CompiledObjects")
+  dir.create(CompiledFolder, showWarnings = FALSE)
+  if (!file.exists(file.path(CompiledFolder, paste0(modelname,".rds")))) 
+    NFLAGcompile <- 0
   
-  setwd(paste0(mywd,"/CompiledObjects/"))
-  if (!file.exists(paste0(modelname,".rds"))) NFLAGcompile <- 0
-  
-  if(NFLAGcompile > 0){
+  if(NFLAGcompile > 0) {
+    setwd(CompiledFolder)
     pd <- readRDS(paste0(modelname,".rds"))
     loadDLL(pd$obj_data)
+    setwd(mywd)
     if (NFLAGcompile == 2) return(pd)
   }
-  setwd(mywd)
   
   ## load required packages
   require(libSBML) # => Not very nice, better explicitly import the required functions
@@ -1488,6 +1492,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   mydata     <- mydataSBML$data
   myerrors   <- mydataSBML$errors
   myerr <- NULL
+  
   # .. Define constraints, initials, parameters and compartments -----
   myparameters   <- getParametersSBML(files$parameters, files$modelXML)
   # [ ] Check constraints
@@ -1575,21 +1580,14 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   }
   
   # [ ] Pre-Equi Events
-  # branch trafo for different conditions
-  # # set preequilibration event initials to corresponding values
-  if(!is.null(mypreeqEvents)){
+  if(!is.null(mypreeqEvents))
     warning("Pre-Equilibration is not yet implemented")
-    #   mypreeqEvents2replace <- filter(mypreeqEvents, !var%in%mystates)
-    #   mytrafoL <- repar("x~y", mytrafoL , x = unique(mypreeqEvents2replace$var), y = attr(mypreeqEvents2replace, "initials"))
-  }
   # [ ] Need example for preeqEvents
   
   # .. Parscales -----
   # 1 adjust symbolic trafo
   parscales <- attr(myfit_values,"parscale")
   parscales <- updateParscalesToBaseTrafo(parscales, gl$est.grid)
-  # if (length(nm <- setdiff(names(parscales), getSymbols(trafo)))) 
-  #   stop("undefined parameters in trafo: ", paste0(nm, collapse = ", "))
   trafo <- repar("x ~ 10**(x)", trafo = trafo, x = names(which(parscales=="log10")))
   trafo <- repar("x ~ exp(x)" , trafo = trafo, x = names(which(parscales=="log")))
   
