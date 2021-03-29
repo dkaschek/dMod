@@ -1516,10 +1516,12 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   mypreeqCons      <- grid$preeqCons
   mycondition.grid <- grid$condition_grid
   attr(mydata, "condition.grid") <- mycondition.grid
-  # .. Build fix.grid, est.grid and trafo -----
   
+  # .. Build fix.grid, est.grid and trafo -----
   # Copy condition.grid, take unique identifying column only
-  cg <- data.table::data.table(mycondition.grid)
+  cg <- copy(mycondition.grid)
+  cg <- lapply(cg, as.character)
+  cg <- data.table::as.data.table(cg)
   cg <- cg[,!"conditionName"]
   data.table::setnames(cg, "conditionId", "condition")
   # Initialize fix.grid and est.grid
