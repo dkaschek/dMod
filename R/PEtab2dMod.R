@@ -1447,10 +1447,10 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
                                   testCases = FALSE,
                                   path2TestCases = "PEtabTests/",
                                   NFLAGcompile = c(Recompile = 0, RebuildGrids = 1, LoadPrevious = 2)[3],
-                                  SFLAGbrowser = c("None", "Beginning", "BuildGrids", "Compilation", "CollectList")[1]
+                                  SFLAGbrowser = c("0None", "1Beginning", "2BuildGrids", "3Compilation", "4CollectList")[1]
 )
 {
-  if (SFLAGbrowser == "Beginning") browser()
+  if (grepl(SFLAGbrowser,"1Beginning")) browser()
   # .. Set exit behaviour -----
   mywd <- getwd()
   on.exit({setwd(mywd)})
@@ -1520,7 +1520,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   attr(mydata, "condition.grid") <- mycondition.grid
   
   # .. Build fix.grid, est.grid and trafo -----
-  if (SFLAGbrowser == "BuildGrids") browser()
+  if (grepl(SFLAGbrowser, "2BuildGrids")) browser()
   # Copy condition.grid, take unique identifying column only
   cg <- copy(mycondition.grid)
   cg <- lapply(cg, as.character)
@@ -1610,7 +1610,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   # -------------------------------------------------------------------------#
   # .. Model Compilation ---- -----
   # -------------------------------------------------------------------------#
-  if (SFLAGbrowser == "Compilation") browser()
+  if (grepl(SFLAGbrowser, "3Compilation")) browser()
   if (NFLAGcompile == 0) {
     setwd(paste0(mywd,"/CompiledObjects/"))
     cat("Compiling g\n")
@@ -1651,7 +1651,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   # -------------------------------------------------------------------------#
   # Collect list ----
   # -------------------------------------------------------------------------#
-  if (SFLAGbrowser == "CollectList") browser()
+  if (grepl(SFLAGbrowser, "4CollectList")) browser()
   fns <- list(
     g = myg,
     x = myx,
