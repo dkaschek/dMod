@@ -112,7 +112,9 @@ renameDerivPars <- function(pred0, pars, est.grid, cn) {
 #' @md
 #'
 #' @return gridlist
-#' @expor 
+#' @export 
+#' 
+#' @examples 
 #' pars <- c(NewParSymbolic = "NewParSymbolic", NewParFixed = 1)
 #' est.grid <- data.table(ID = 1:2,
 #'                        condition = c("A", "B"),
@@ -247,13 +249,10 @@ init_empty_objlist <- function(pars, deriv = TRUE) {
 #' 
 #' Ensure all tables are data.tables
 #' 
-#' @param est.grid 
-#' @param fix.grid 
+#' @param est.grid,fix.grid data.tables, will be coerced to one
 #'
-#' @return
+#' @return list of the grid
 #' @export
-#'
-#' @examples
 gridlist <- function(est.grid, fix.grid) {
   est.grid <- as.data.table(est.grid)
   fix.grid <- as.data.table(fix.grid)
@@ -750,6 +749,8 @@ getParameters.data.table <- function(x,...) {
 #' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
 #' @md
 #' @export
+#' 
+#' @examples 
 #' est.grid <- data.frame(ID = 1:2,
 #'                        condition = c("A", "B"),
 #'                        k1 = c("k1_A", "k1_B"),

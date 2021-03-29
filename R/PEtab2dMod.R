@@ -303,7 +303,7 @@ importPEtabSBML <- function(modelname = "Boehm_JProteomeRes2014",
   )
   prd <- (myg*myx*myp0)
   obj_data <- normL2(mydata, prd, errmodel = myerr,
-                           times = seq(0,max(as.data.frame(mydata)$time), len=501))
+                     times = seq(0,max(as.data.frame(mydata)$time), len=501))
   
   petab_dMod <- list(
     symbolicEquations = symbolicEquations,
@@ -1446,9 +1446,11 @@ getTrafoType <- function(trafo_string) {
 importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.petab",
                                   testCases = FALSE,
                                   path2TestCases = "PEtabTests/",
-                                  NFLAGcompile = c(Recompile = 0, RebuildGrids = 1, LoadPrevious = 2)[3]
+                                  NFLAGcompile = c(Recompile = 0, RebuildGrids = 1, LoadPrevious = 2)[3],
+                                  SFLAGbrowser = c(NA, "Beginning", "BuildGrids", "Compilation", "CollectList")[1]
 )
 {
+  if (SFLAGbrowser == "Beginning") browser()
   # .. Set exit behaviour -----
   mywd <- getwd()
   on.exit({setwd(mywd)})
@@ -1518,12 +1520,14 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   attr(mydata, "condition.grid") <- mycondition.grid
   
   # .. Build fix.grid, est.grid and trafo -----
+  if (SFLAGbrowser == "BuildGrids") browser()
   # Copy condition.grid, take unique identifying column only
   cg <- copy(mycondition.grid)
   cg <- lapply(cg, as.character)
   cg <- data.table::as.data.table(cg)
   cg <- cg[,!"conditionName"]
   data.table::setnames(cg, "conditionId", "condition")
+  data.table::setcolorder(cg, "condition")
   # Initialize fix.grid and est.grid
   # Determine which columns contain values and/or parameter names
   is_string  <- vapply(cg[,-1], function(x) any(is.na(as.numeric(x))), FUN.VALUE = TRUE)
@@ -1606,42 +1610,48 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   # -------------------------------------------------------------------------#
   # .. Model Compilation ---- -----
   # -------------------------------------------------------------------------#
+  if (SFLAGbrowser == "Compilation") browser()
   if (NFLAGcompile == 0) {
-  setwd(paste0(mywd,"/CompiledObjects/"))
-  myg <- Y(myobservables, myreactions, compile=TRUE, modelname=paste0("g_",modelname))
-  
-  myodemodel <- odemodel(myreactions, forcings = NULL, events = myevents, fixed=NULL,
-                         estimate = getParametersToEstimate(est.grid = gl$est.grid,
-                                                            trafo = trafo,
-                                                            reactions = myreactions),
-                         modelname = paste0("odemodel_", modelname),
-                         jacobian = "inz.lsodes", compile = TRUE)
-  
-  myx <- Xs(myodemodel,
-            optionsOde = list(method = "lsoda", rtol = 1e-7, atol = 1e-7, maxsteps = 5000),
-            optionsSens = list(method = "lsodes", lrw=200000, rtol = 1e-7, atol = 1e-7))
-  
-  if(length(getSymbols(myerrors)))
-    myerr <- Y(myerrors, f = c(as.eqnvec(myreactions), myobservables), states = names(myobservables), 
-               attach.input = FALSE, compile = TRUE, modelname = paste0("errfn_", modelname))
-  
-  # [ ] Pre-equilibration
-  # mypSS <- Id()
-  
-  myp <- P(trafo, compile = TRUE, modelname = paste0("P_", modelname))
-  setwd(mywd)
-  
+    setwd(paste0(mywd,"/CompiledObjects/"))
+    cat("Compiling g\n")
+    myg <- Y(myobservables, myreactions, compile=TRUE, modelname=paste0("g_",modelname))
+    
+    cat("Compiling odemodel\n")
+    myodemodel <- odemodel(myreactions, forcings = NULL, events = myevents, fixed=NULL,
+                           estimate = getParametersToEstimate(est.grid = gl$est.grid,
+                                                              trafo = trafo,
+                                                              reactions = myreactions),
+                           modelname = paste0("odemodel_", modelname),
+                           jacobian = "inz.lsodes", compile = TRUE)
+    
+    myx <- Xs(myodemodel,
+              optionsOde = list(method = "lsoda", rtol = 1e-7, atol = 1e-7, maxsteps = 5000),
+              optionsSens = list(method = "lsodes", lrw=200000, rtol = 1e-7, atol = 1e-7))
+    
+    cat("Compiling errormodel\n")
+    if(length(getSymbols(myerrors)))
+      myerr <- Y(myerrors, f = c(as.eqnvec(myreactions), myobservables), states = names(myobservables), 
+                 attach.input = FALSE, compile = TRUE, modelname = paste0("errfn_", modelname))
+    
+    # [ ] Pre-equilibration
+    # mypSS <- Id()
+    
+    cat("Compiling p\n")
+    myp <- P(trafo, compile = TRUE, modelname = paste0("P_", modelname))
+    setwd(mywd)
+    
   } else if (NFLAGcompile == 1) {
-    myg        <- pd$fns$g
-    myx        <- pd$fns$x
-    myp       <- pd$fns$p0
-    myodemodel <- pd$odemodel
-    myerr      <- pd$e
+    myg        <- pd$dModAtoms$fns$g
+    myx        <- pd$dModAtoms$fns$x
+    myp        <- pd$dModAtoms$fns$p0
+    myodemodel <- pd$dModAtoms$odemodel
+    myerr      <- pd$dModAtoms$e
   }
   
   # -------------------------------------------------------------------------#
   # Collect list ----
   # -------------------------------------------------------------------------#
+  if (SFLAGbrowser == "CollectList") browser()
   fns <- list(
     g = myg,
     x = myx,

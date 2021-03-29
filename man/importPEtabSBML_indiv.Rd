@@ -8,7 +8,8 @@ importPEtabSBML_indiv(
   filename = "enzymeKinetics/enzymeKinetics.petab",
   testCases = FALSE,
   path2TestCases = "PEtabTests/",
-  compile = TRUE
+  NFLAGcompile = c(Recompile = 0, RebuildGrids = 1, LoadPrevious = 2)[3],
+  SFLAGbrowser = c(NA, "Beginning", "BuildGrids", "Compilation", "CollectList")[1]
 )
 }
 \arguments{
@@ -17,9 +18,9 @@ importPEtabSBML_indiv(
 
 \item{path2TestCases}{path to feature test case folder}
 
-\item{compile}{if FALSE, g, ODEmodel and err are loaded from .RData (if present) and compilation time is saved}
-
 \item{TestCases}{TRUE to load feature test cases}
+
+\item{compile}{if FALSE, g, ODEmodel and err are loaded from .RData (if present) and compilation time is saved}
 }
 \value{
 list of dMod model objects with entries

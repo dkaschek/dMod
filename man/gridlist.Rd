@@ -7,12 +7,10 @@
 gridlist(est.grid, fix.grid)
 }
 \arguments{
-\item{est.grid}{}
-
-\item{fix.grid}{}
+\item{est.grid, fix.grid}{data.tables, will be coerced to one}
 }
 \value{
-
+list of the grid
 }
 \description{
 Ensure all tables are data.tables

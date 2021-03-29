@@ -19,6 +19,25 @@ gridlist
 \description{
 Add single-valued parameters to the pargrids
 }
+\examples{
+pars <- c(NewParSymbolic = "NewParSymbolic", NewParFixed = 1)
+est.grid <- data.table(ID = 1:2,
+                       condition = c("A", "B"),
+                       k1 = c("k1_A", "k1_B"),
+                       k2 = c("k2_A", "k2_B"),
+                       k3 = c("k3", NA),
+                       k4 = c("k4", "k4"),
+                       stringsAsFactors = FALSE)
+fix.grid <- data.table(ID = 1:2,
+                       condition = c("A", "B"),
+                       k3 = c(NA, 3.5),
+                       k5 = c(5.1,5.2),
+                       k6 = c(6,6),
+                       stringsAsFactors = FALSE)
+indiv_addGlobalParsToGridlist(c(NewParSymbolic = "NewParSymbolic", NewParFixed = 1), gridlist(est.grid = est.grid, fix.grid = fix.grid))
+indiv_addGlobalParsToGridlist(c(k1 = 1), gridlist(est.grid = est.grid, fix.grid = fix.grid), FLAGoverwrite = FALSE) # nothing happens
+indiv_addGlobalParsToGridlist(c(k1 = 1), gridlist(est.grid = est.grid, fix.grid = fix.grid), FLAGoverwrite = TRUE) # k1 is replaced and moved to fix.grid
+}
 \author{
 Daniel Lill (daniel.lill@physik.uni-freiburg.de)
 }
