@@ -1683,6 +1683,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   # .. Generate high-level fns -----
   p   <- P_indiv(p0 = fns$p0, est.grid = gl$est.grid, fix.grid = gl$fix.grid)
   prd <- PRD_indiv(prd0 = Reduce("*", fns), est.grid = gl$est.grid, fix.grid = gl$fix.grid)
+  
   obj_data <- normL2_indiv(mydata, Reduce("*", fns), errmodel = myerr,
                            est.grid = gl$est.grid, fix.grid = gl$fix.grid,
                            times = seq(0,max(as.data.frame(mydata)$time), len=501))

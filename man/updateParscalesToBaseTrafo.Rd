@@ -4,18 +4,28 @@
 \alias{updateParscalesToBaseTrafo}
 \title{Rename parscales to the names needed in the base trafo}
 \usage{
-updateParscalesToBaseTrafo(parscales, est.grid)
+updateParscalesToBaseTrafo(scales_outer, est.grid)
 }
 \arguments{
-\item{parscales}{setNames(PETABPars$parameterScale, PETABPars$parameterId)}
-
 \item{est.grid}{data.table}
+
+\item{parscales}{setNames(PETABPars$parameterScale, PETABPars$parameterId)}
 }
 \value{
 
 }
 \description{
 Rename parscales to the names needed in the base trafo
+}
+\examples{
+est.grid <- data.frame(ID = 1:2,
+                       condition = c("A", "B"),
+                       k1 = c("k1_A", "k1_B"),
+                       k1DUPE = c("k1_A", "k1_B"),
+                       k3 = c("k3outer", NA),
+                       stringsAsFactors = FALSE)
+scales_outer <- c(k1_A = "log", k1_B = "log", k3outer = "lin")
+updateParscalesToBaseTrafo(scales_outer, est.grid)
 }
 \author{
 Daniel Lill (daniel.lill@physik.uni-freiburg.de)

@@ -504,10 +504,13 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
       return(mywrss)
     }
     
-    if (simcores == 1)
-      objlists <- lapply(setNames(nm = conditions), calc_objval)
-    if (simcores > 1)
-      objlists <- parallel::mclapply(setNames(nm = conditions), calc_objval, mc.cores = simcores)
+    objlists <- list()
+    for (cn in conditions) objlists <- c(objlists, list(calc_objval(cn)))
+    
+    # if (simcores == 1)
+    #   objlists <- lapply(setNames(nm = conditions), calc_objval)
+    # if (simcores > 1)
+    #   objlists <- parallel::mclapply(setNames(nm = conditions), calc_objval, mc.cores = simcores)
     
     # Sum all objlists
     out <- objlist(value = 0, 

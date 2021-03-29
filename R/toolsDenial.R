@@ -120,3 +120,28 @@ getSteps <- function(myparframe, nsteps = 5, tol = 1) {
 
 
 
+#' Get vector of logarithmically spaced time points
+#'
+#' @param datatimes times present in data
+#' @param eventtimes times present in events (not yet implemented)
+#'
+#' @return vector of times, including datatimes
+#' @export
+#'
+#' @examples
+#' objtimes(c(0,30,60,90,600))
+objtimes <- function(datatimes, eventtimes = NULL) {
+  mint <- min(min(datatimes), 0)
+  maxt <- max(datatimes)
+  
+  tbefore0 <- if (mint < 0) seq(mint, 0, length.out = 20) else 0
+  tafter0 <- exp(seq(0, maxt, length.out = 20))
+  
+  # [ ] eventtimes
+  
+  sort(unique(c(0, tbefore0, tafter0, pd$pe$measurementData$time)))
+}
+
+
+
+
