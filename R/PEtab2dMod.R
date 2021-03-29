@@ -1361,26 +1361,41 @@ plotPEtabSBML <- function(..., g1 = g,
 #' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
 #' @md
 #' @export
-updateParscalesToBaseTrafo <- function(parscales, est.grid) {
+#' 
+#' @examples 
+#' est.grid <- data.frame(ID = 1:2,
+#'                        condition = c("A", "B"),
+#'                        k1 = c("k1_A", "k1_B"),
+#'                        k1DUPE = c("k1_A", "k1_B"),
+#'                        k3 = c("k3outer", NA),
+#'                        stringsAsFactors = FALSE)
+#' scales_outer <- c(k1_A = "log", k1_B = "log", k3outer = "lin")
+#' updateParscalesToBaseTrafo(scales_outer, est.grid)
+updateParscalesToBaseTrafo <- function(scales_outer, est.grid) {
+  # parscales = c(outer = scaleouter)
+  
   # Get name mapping between est.grid pars and outer pars
-  parseg_outer <- getEstGridParameterMapping(est.grid)
-  parsouter_eg <- setNames(names(parseg_outer), parseg_outer)
-  # Get scales for outer pars
-  parscales_eg <- copy(parscales)
-  names(parscales_eg) <- parsouter_eg[names(parscales)]
+  pars_inner_outer <- getEstGridParameterMapping(est.grid) # c(inner = outer)
+  pars_inner_outer <- pars_inner_outer[!is.na(pars_inner_outer)]
+  pars_outer_inner <- setNames(names(pars_inner_outer), pars_inner_outer) # c(outer = inner)
+  
+  # Get scales for inner pars
+  scales_inner <- setNames(scales_outer[pars_inner_outer], names(pars_inner_outer))
   
   # Determine if there are any duplicated outer pars with different scales.
-  dupes <- names(parscales_eg)[duplicated(names(parscales_eg))]
+  dupes <- names(scales_inner)[duplicated(names(scales_inner))]
   dupes <- unique(dupes)
-  for (d in dupes) if (length(unique(parscales_eg[d])) > 1) 
-    stop("The following parameter refers to the same structural model parameter, but has different ",
-         "scales in different conditions. This is not allowed. \n",
-         "Parameter: ", d , "\n",
-         "Outer pars: ", paste0(names(unique(parscales_eg[d])), collapse = ", "))
+  for (d in dupes) {
+    if (length(unique(scales_inner[d])) > 1) 
+      stop("The following parameter refers to the same structural model parameter, but has different ",
+           "scales in different conditions. This is not allowed. \n",
+           "Parameter: ", d , "\n",
+           "Outer pars: ", paste0(names(unique(scales_inner[d])), collapse = ", "))
+  }
   
   # If all went fine, remove the duplicates and return updated parscales
-  parscales_eg[!duplicated(names(parscales_eg))]
-  parscales_eg
+  scales_inner <- scales_inner[!duplicated(names(scales_inner))]
+  scales_inner
 }
 
 #' Determine the type of trafo for each element of a vector
@@ -1591,9 +1606,10 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   # [ ] Need example for preeqEvents
   
   # .. Parscales -----
+  if (grepl(SFLAGbrowser, "5Scales")) browser()
   # 1 adjust symbolic trafo
   parscales <- attr(myfit_values,"parscale")
-  parscales <- updateParscalesToBaseTrafo(parscales, gl$est.grid)
+  parscales <- updateParscalesToBaseTrafo(scales_outer = parscales, est.grid = gl$est.grid)
   trafo <- repar("x ~ 10**(x)", trafo = trafo, x = names(which(parscales=="log10")))
   trafo <- repar("x ~ exp(x)" , trafo = trafo, x = names(which(parscales=="log")))
   
