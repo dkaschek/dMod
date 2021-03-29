@@ -1447,7 +1447,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
                                   testCases = FALSE,
                                   path2TestCases = "PEtabTests/",
                                   NFLAGcompile = c(Recompile = 0, RebuildGrids = 1, LoadPrevious = 2)[3],
-                                  SFLAGbrowser = c(NA, "Beginning", "BuildGrids", "Compilation", "CollectList")[1]
+                                  SFLAGbrowser = c("None", "Beginning", "BuildGrids", "Compilation", "CollectList")[1]
 )
 {
   if (SFLAGbrowser == "Beginning") browser()

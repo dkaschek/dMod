@@ -366,8 +366,9 @@ P_indiv <- function(p0, est.grid, fix.grid) {
       pars_ <- dummy$pars
       fixed_ <- dummy$fixed
       
-      if (length(setdiff(getParameters(p0), names(c(pars_, fixed_)))))
-        stop("The following parameters are missing: ", paste0(setdiff(getParameters(prd0), names(c(pars_, fixed_))), collapse = ", "))
+      missingPars <- setdiff(getParameters(p0), names(c(pars_, fixed_)))
+      if (length(missingPars))
+        stop("The following parameters are missing: ", paste0(missingPars, collapse = ", "))
       p0(pars_, fixed = fixed_, deriv = deriv)[[1]]
     })
     out
