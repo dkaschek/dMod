@@ -1459,13 +1459,13 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   files <- petab_files(filename, FLAGTestCase = testCases, FLAGreturnList = TRUE)
   
   # .. Read previously imported files -----
-  CompiledFolder <- file.path("CompiledObjects")
-  dir.create(CompiledFolder, showWarnings = FALSE)
-  if (!file.exists(file.path(CompiledFolder, paste0(modelname,".rds")))) 
+  .compiledFolder <- file.path("CompiledObjects")
+  dir.create(.compiledFolder, showWarnings = FALSE)
+  if (!file.exists(file.path(.compiledFolder, paste0(modelname,".rds")))) 
     NFLAGcompile <- 0
   
   if(NFLAGcompile > 0) {
-    setwd(CompiledFolder)
+    setwd(.compiledFolder)
     pd <- readRDS(paste0(modelname,".rds"))
     loadDLL(pd$obj_data)
     setwd(mywd)
@@ -1637,8 +1637,9 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
     myerr      <- pd$e
   }
   
-  # .. Collect lists -----
-  # Collect list
+  # -------------------------------------------------------------------------#
+  # Collect list ----
+  # -------------------------------------------------------------------------#
   fns <- list(
     g = myg,
     x = myx,
@@ -1658,26 +1659,27 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
                            est.grid = gl$est.grid, fix.grid = gl$fix.grid,
                            times = seq(0,max(as.data.frame(mydata)$time), len=501))
   # .. Collect final list -----
-  petab <- list(
-    symbolicEquations = symbolicEquations,
-    odemodel          = myodemodel,
-    # [ ] complete data specification could be lumped: data, gridlist, myerr
-    data              = mydata,
-    gridlist          = gl,
-    e                 = myerr,
-    fns               = fns,
-    p                 = p,
-    prd               = prd,
-    obj_data          = obj_data,
-    pars              = myfit_values
+  pd <- list(
+    # petab
+    pe                 = pe,
+    # Basic dMod elements
+    dModAtoms          = list(
+      symbolicEquations  = symbolicEquations,
+      odemodel           = myodemodel,
+      data               = mydata,
+      gridlist           = gl,
+      e                  = myerr,
+      fns                = fns),
+    # High level prediction and objective functions
+    p                  = p,
+    prd                = prd,
+    obj_data           = obj_data,
+    pars               = myfit_values
   )
-  # -------------------------------------------------------------------------#
-  # .. Save and return ---- -----
-  # -------------------------------------------------------------------------#
-  setwd(paste0(mywd,"/CompiledObjects/"))
-  saveRDS(petab, paste0(modelname, ".rds"))
-  setwd(mywd)
   
-  petab
+  # .. Save and return -----
+  saveRDS(pd, file.path(.compiledFolder, paste0(modelname, ".rds")))
+  
+  pd
 }
 
