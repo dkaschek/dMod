@@ -433,11 +433,10 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
                    FixedConditions = fixed.conditions) {
     arglist <- list(...)
     arglist <- arglist[match.fnargs(arglist, "pars")]
-    
-    
     pars <- arglist[[1]]
-    calc_objval <- function(cn) {
-      
+    
+    objlists <- list()
+    for (cn in conditions) {
       if (FLAGbrowser) browser()
       
       ID <- est.grid[condition == cn, ID]
@@ -504,17 +503,14 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
         if (FLAGbrowser2) browser()
         mywrss$gradient <- mywrss$gradient[names(dummy$parnames)]
         names(mywrss$gradient) <- unname(dummy$parnames)
-        
+
         mywrss$hessian <- mywrss$hessian[names(dummy$parnames),names(dummy$parnames)]
         dimnames(mywrss$hessian) <- list(unname(dummy$parnames), unname(dummy$parnames))
       }
-      
+
       # [] catch conditions with NA value, don't include them in obj-calculation and print out warning
-      return(mywrss)
+      objlists <- c(objlists, list(mywrss))
     }
-    
-    objlists <- list()
-    for (cn in conditions) objlists <- c(objlists, list(calc_objval(cn)))
     
     # if (simcores == 1)
     #   objlists <- lapply(setNames(nm = conditions), calc_objval)
