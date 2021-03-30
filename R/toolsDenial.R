@@ -139,7 +139,7 @@ objtimes <- function(datatimes, eventtimes = NULL) {
   
   # [ ] eventtimes
   
-  sort(unique(c(0, tbefore0, tafter0, pd$pe$measurementData$time)))
+  sort(unique(c(0, tbefore0, tafter0, datatimes)))
 }
 
 

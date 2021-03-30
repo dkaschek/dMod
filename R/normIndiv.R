@@ -48,12 +48,14 @@ make_pars <- function(pars, fixed = NULL, est.grid, fix.grid, ID){
   
   # Match parameters to est.grid: Need to consider supplied "fixed" as well!s
   pars <- c(pars, fixed)
-  parnames  <- unlist(est.grid[ID == i, .SD,.SDcols = setdiff(names(est.grid), c("ID", "condition"))])
+  parnames  <- unlist(est.grid[ID == i])
+  parnames <- parnames[setdiff(names(parnames), c("ID", "condition"))]
   parnames <- parnames[!is.na(parnames)]
   pars <- setNames(pars[parnames], names(parnames))
   
   # Get Parameters from fix.grid
-  fixed <- unlist(fix.grid[ID == i, .SD,.SDcols = setdiff(names(fix.grid), c("ID", "condition"))])
+  fixed <- unlist(fix.grid[ID == i])
+  fixed <- fixed[setdiff(names(fixed), c("ID", "condition"))]
   # remove NAs
   fixed <- fixed[!is.na(fixed)]
   
@@ -283,6 +285,9 @@ PRD_indiv <- function(prd0, est.grid, fix.grid) {
   est.grid <- data.table(est.grid)
   fix.grid <- data.table(fix.grid)
   
+  setkeyv(est.grid, c("ID", "condition"))
+  setkeyv(fix.grid, c("ID", "condition"))
+  
   # Title
   #
   # @param times 
@@ -352,6 +357,8 @@ P_indiv <- function(p0, est.grid, fix.grid) {
   
   est.grid <- data.table(est.grid)
   fix.grid <- data.table(fix.grid)
+  setkeyv(est.grid, c("ID", "condition"))
+  setkeyv(fix.grid, c("ID", "condition"))
   
   
   # @param FLAGbrowser 0: Don't debug, >= 1: debug
@@ -402,6 +409,8 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
   
   est.grid <- data.table(est.grid)
   fix.grid <- data.table(fix.grid)
+  setkeyv(est.grid, c("ID", "condition"))
+  setkeyv(fix.grid, c("ID", "condition"))
   
   
   timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))

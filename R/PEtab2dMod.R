@@ -1686,7 +1686,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   
   obj_data <- normL2_indiv(mydata, Reduce("*", fns), errmodel = myerr,
                            est.grid = gl$est.grid, fix.grid = gl$fix.grid,
-                           times = objtimes(datatimes = pe$measurementData$times))
+                           times = objtimes(datatimes = pe$measurementData$time))
   # .. Collect final list -----
   pd <- list(
     # petab
