@@ -1468,6 +1468,8 @@ getTrafoType <- function(trafo_string) {
 importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.petab",
                                   testCases = FALSE,
                                   path2TestCases = "PEtabTests/",
+                                  .compiledFolder = file.path("CompiledObjects"),
+                                  Nobjtimes = 50,
                                   NFLAGcompile = c(Recompile = 0, RebuildGrids = 1, LoadPrevious = 2)[3],
                                   SFLAGbrowser = c("0None", "1Beginning", "2BuildGrids", "3Compilation", "4CollectList")[1]
 )
@@ -1483,7 +1485,6 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   files <- petab_files(filename, FLAGTestCase = testCases, FLAGreturnList = TRUE)
   
   # .. Read previously imported files -----
-  .compiledFolder <- file.path("CompiledObjects")
   dir.create(.compiledFolder, showWarnings = FALSE)
   if (!file.exists(file.path(.compiledFolder, paste0(modelname,".rds")))) 
     NFLAGcompile <- 0
@@ -1638,7 +1639,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   # -------------------------------------------------------------------------#
   if (grepl(SFLAGbrowser, "3Compilation")) browser()
   if (NFLAGcompile == 0) {
-    setwd(paste0(mywd,"/CompiledObjects/"))
+    setwd(.compiledFolder)
     cat("Compiling g\n")
     myg <- Y(myobservables, myreactions, compile=TRUE, modelname=paste0("g_",modelname))
     
@@ -1696,7 +1697,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   
   obj_data <- normL2_indiv(mydata, Reduce("*", fns), errmodel = myerr,
                            est.grid = gl$est.grid, fix.grid = gl$fix.grid,
-                           times = objtimes(datatimes = pe$measurementData$time))
+                           times = objtimes(datatimes = pe$measurementData$time, Nobjtimes = Nobjtimes))
   # .. Collect final list -----
   pd <- list(
     # petab
@@ -1721,4 +1722,107 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   
   pd
 }
+
+
+# -------------------------------------------------------------------------#
+# indiv2Classic ----
+# -------------------------------------------------------------------------#
+
+
+#' Title
+#'
+#' @param eg est.grid
+#' @param fg fix.grid
+#'
+#' @return condition.grid(condition, parsMixedCols...)
+#' @export
+#'
+#' @examples
+indiv2Classic_merge_grids <- function(eg,fg) {
+  cg <- copy(eg)
+  cg <- cbind(cg, fg[,.SD,.SDcols = setdiff(names(fg), names(eg))])
+  mixed <- intersect(names(fg), names(eg))
+  mixed <- setdiff(mixed, c("condition", "ID"))
+  for (m in mixed) cg[[m]][is.na(cg[[m]])] <- fg[[m]][is.na(cg[[m]])]
+  cg
+}
+
+#' Title
+#'
+#' @param gridlist gridlist
+#'
+#' @return
+#' @export
+#'
+#' @examples
+indiv2Classic_gridlist2cond.grid <- function(gridlist) {
+  cg <- indiv2Classic_merge_grids(gridlist$est.grid,gridlist$fix.grid)
+  cg[,`:=`(ID = NULL)]
+  cg <- as.data.frame(cg)
+  rownames(cg) <- cg$condition
+  cg 
+}
+
+#' Title
+#'
+#' @param trafo base trafo
+#' @param cg output of [indiv2Classic_gridlist2cond.grid()]
+#'
+#' @return
+#' @export
+#'
+#' @examples
+classic2Indiv_trafo <- function(trafo, cg) {
+  trafoL <- branch(trafo, cg)
+  pars_to_insert <- setdiff(names(cg), "condition")
+  trafoL <- insert(trafoL, "name ~ value", value = unlist(mget(pars_to_insert)), name = pars_to_insert)
+  trafoL
+}
+
+#' Compile classic trafo
+#'
+#' @param trafoL output of [classic2Indiv_trafo]
+#' @param .compiledFolder Folder for compiled objects
+#'
+#' @return
+#' @export
+#'
+#' @examples
+indiv2Classic_compileTrafo <- function(trafoL, .compiledFolder = file.path("CompiledObjects")) {
+  w <- getwd()
+  on.exit({setwd(w)})
+  setwd(.compiledFolder)
+  p <- P(trafoL, compile = TRUE, modelname = "pClassic")
+  setwd(w)
+  p
+}
+
+#' Title
+#'
+#' @param pd 
+#' @param .compiledFolder 
+#'
+#' @return a `pd` object but with classic fns instead of indiv fns
+#' @export
+#'
+#' @examples
+indiv2Classic <- function(pd, .compiledFolder = file.path("CompiledObjects"), Nobjtimes = 50) {
+  
+  cg <- gridlist2cond.grid(pd$dModAtoms$gridlist)
+  
+  trafoL   <- classic2Indiv_trafo(trafo = pd$dModAtoms$symbolicEquations$trafo, cg = cg)
+  p        <- indiv2Classic_compileTrafo(trafoL = trafoL, .compiledFolder = .compiledFolder)
+  prd      <- (pd$dModAtoms$fns$g * pd$dModAtoms$fns$x * p)
+  obj_data <- normL2(pd$dModAtoms$data, prd, pd$dModAtoms$e, objtimes(pd$pe$measurementData$time, Nobjtimes = Nobjtimes))
+  
+  pd$dModAtoms$symbolicEquations$trafo <- trafoL
+  pd$dModAtoms$fns$p0                  <- p
+  pd$prd                               <- prd
+  pd$obj_data                          <- obj_data
+  
+  pd
+}
+
+
+
 

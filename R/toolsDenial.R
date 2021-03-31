@@ -130,12 +130,12 @@ getSteps <- function(myparframe, nsteps = 5, tol = 1) {
 #'
 #' @examples
 #' objtimes(c(0,30,60,90,600))
-objtimes <- function(datatimes, eventtimes = NULL, N = 25) {
+objtimes <- function(datatimes, eventtimes = NULL, Nobjtimes = 25) {
   mint <- min(min(datatimes), 0)
   maxt <- max(datatimes)
   
-  tbefore0 <- if (mint < 0) seq(mint, 0, length.out = 20) else 0
-  tafter0 <- exp(seq(0, log(maxt), length.out = 20))
+  tbefore0 <- if (mint < 0) seq(mint, 0, length.out = Nobjtimes) else 0
+  tafter0 <- exp(seq(0, log(maxt), length.out = Nobjtimes))
   
   # [ ] eventtimes
   

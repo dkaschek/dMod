@@ -4,7 +4,7 @@
 \alias{objtimes}
 \title{Get vector of logarithmically spaced time points}
 \usage{
-objtimes(datatimes, eventtimes = NULL)
+objtimes(datatimes, eventtimes = NULL, Nobjtimes = 25)
 }
 \arguments{
 \item{datatimes}{times present in data}
