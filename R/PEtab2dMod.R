@@ -1490,10 +1490,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
     NFLAGcompile <- 0
   
   if(NFLAGcompile > 0) {
-    setwd(.compiledFolder)
-    pd <- readRDS(paste0(modelname,".rds"))
-    loadDLL(pd$obj_data)
-    setwd(mywd)
+    pd <- readPd(modelname = modelname, .compiledFolder = .compiledFolder, type = "indiv")
     if (NFLAGcompile == 2) return(pd)
   }
   
@@ -1709,7 +1706,14 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
       data               = mydata,
       gridlist           = gl,
       e                  = myerr,
-      fns                = fns),
+      fns                = fns
+      ),
+    # other components: Dump your stuff here
+    other = list(
+      modelname       = modelname,
+      currentFolder   = mywd,
+      .compiledFolder = .compiledFolder
+      ),
     # High level prediction and objective functions
     p                  = p,
     prd                = prd,
@@ -1718,7 +1722,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   )
   
   # .. Save and return -----
-  saveRDS(pd, file.path(.compiledFolder, paste0(modelname, ".rds")))
+  saveRDS(pd, pd_rdsName(modelname = modelname, .compiledFolder = .compiledFolder, type = "indiv"))
   
   pd
 }
@@ -1727,6 +1731,20 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
 # -------------------------------------------------------------------------#
 # indiv2Classic ----
 # -------------------------------------------------------------------------#
+
+readPd <- function(modelname, .compiledFolder, type = c("indiv", "classic")[1]) {
+  pd <- readRDS(pd_rdsName(modelname, .compiledFolder, type))
+  wd <- getwd()
+  on.exit({setwd(wd)})
+  setwd(.compiledFolder)
+  loadDLL(pd$obj_data)
+  setwd(wd)
+  pd
+}
+
+pd_rdsName <- function(modelname, .compiledFolder, type = c("indiv", "classic")[1]) {
+  file.path(.compiledFolder, paste0(modelname, "_", type, ".rds"))
+}
 
 
 #' Title
@@ -1806,22 +1824,29 @@ indiv2Classic_compileTrafo <- function(trafoL, .compiledFolder = file.path("Comp
 #' @export
 #'
 #' @examples
-indiv2Classic <- function(pd, .compiledFolder = file.path("CompiledObjects"), Nobjtimes = 50) {
+indiv2Classic <- function(pd, Nobjtimes = 50) {
   
   cg <- indiv2Classic_gridlist2cond.grid(pd$dModAtoms$gridlist)
+  .compiledFolder <- file.path(pd$other$currentFolder, pd$other$.compiledFolder)
   
+  # Calculate objects
   trafoL   <- indiv2Classic_trafo(trafo = pd$dModAtoms$symbolicEquations$trafo, cg = cg)
   p        <- indiv2Classic_compileTrafo(trafoL = trafoL, .compiledFolder = .compiledFolder)
   prd      <- (pd$dModAtoms$fns$g * pd$dModAtoms$fns$x * p)
   obj_data <- normL2(pd$dModAtoms$data, prd, pd$dModAtoms$e, objtimes(pd$pe$measurementData$time, Nobjtimes = Nobjtimes))
   
+  # Re-populate pd
   pd$dModAtoms$symbolicEquations$trafo <- trafoL
   pd$dModAtoms$fns$p0                  <- p
   pd$prd                               <- prd
   pd$obj_data                          <- obj_data
   
+  # Save and return
+  saveRDS(pd, pd_rdsName(modelname = pd$other$modelname, .compiledFolder = .compiledFolder, "classic"))
+  
   pd
 }
+
 
 
 
