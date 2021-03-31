@@ -1416,7 +1416,10 @@ updateParscalesToBaseTrafo <- function(scales_outer, est.grid) {
 #'                   nucpBpB = "0")
 #' getTrafoType(trafo_string)
 getTrafoType <- function(trafo_string) {
-  vapply(names(trafo_string), function(nm) {
+  opt.keep.source <- getOption("keep.source") # important for Rscript --vanilla
+  options(keep.source = TRUE)
+  
+  out <- vapply(names(trafo_string), function(nm) {
     ts <- trafo_string[nm]
     pd <- getParseData(parse(text = ts))
     if (nrow(pd) > 2) return("TRAFO")
@@ -1427,6 +1430,10 @@ getTrafoType <- function(trafo_string) {
     if (pd[1,"token"] == "NUM_CONST") return("NUMBER")
     stop("Unkown trafo type: ", ts)
   }, FUN.VALUE = "TYPE")
+  
+  options(keep.source = opt.keep.source)
+
+  out
 }
 
 #' Import an SBML model and corresponding PEtab objects
@@ -1589,6 +1596,9 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
     x$par <- x$par[setdiff(names(x$par), alreadyAvailable)]
     x
   })
+  
+  # Only keep elements in the list which have at least one parameter
+  parameterlist <- parameterlist[vapply(parameterlist, function(pl) as.logical(length(pl$par)), TRUE)]
   
   for (pl in parameterlist) {
     par <- pl$par
