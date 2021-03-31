@@ -163,7 +163,7 @@ profiles_distributed_computing <- distributed_computing(
   cores = 16,
   nodes = 1,
   walltime = "02:00:00",
-  ssh_passwd = "domain-possiblyA1",
+  ssh_passwd = "password",
   machine = "cluster",
   var_values = var_list,
   no_rep = NULL,
