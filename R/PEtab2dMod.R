@@ -1479,18 +1479,18 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   mywd <- getwd()
   on.exit({setwd(mywd)})
   
-  # .. Define path to SBML and PEtab files -----
+  # .. Define path to SBML, PEtab and pd files -----
   path      <- petab_modelname_path(filename)$path
   modelname <- petab_modelname_path(filename)$modelname
   files <- petab_files(filename, FLAGTestCase = testCases, FLAGreturnList = TRUE)
+  rdsfile <- pd_file(modelname = modelname, .compiledFolder = .compiledFolder, type = "indiv")
   
   # .. Read previously imported files -----
   dir.create(.compiledFolder, showWarnings = FALSE)
-  if (!file.exists(file.path(.compiledFolder, paste0(modelname,".rds")))) 
-    NFLAGcompile <- 0
+  if (!file.exists(rdsfile)) NFLAGcompile <- 0 # Need to do it like this for now to have the option NFLAGcompile=1
   
   if(NFLAGcompile > 0) {
-    pd <- readPd(modelname = modelname, .compiledFolder = .compiledFolder, type = "indiv")
+    pd <- readPd(rdsfile)
     if (NFLAGcompile == 2) return(pd)
   }
   
@@ -1722,7 +1722,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   )
   
   # .. Save and return -----
-  saveRDS(pd, pd_rdsName(modelname = modelname, .compiledFolder = .compiledFolder, type = "indiv"))
+  saveRDS(pd, rdsfile)
   
   pd
 }
@@ -1732,17 +1732,35 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
 # indiv2Classic ----
 # -------------------------------------------------------------------------#
 
-readPd <- function(modelname, .compiledFolder, type = c("indiv", "classic")[1]) {
-  pd <- readRDS(pd_rdsName(modelname, .compiledFolder, type))
+#' Title
+#'
+#' @param filename 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+readPd <- function(filename) {
+  pd <- readRDS(filename)
   wd <- getwd()
   on.exit({setwd(wd)})
-  setwd(.compiledFolder)
+  setwd(dirname(filename))
   loadDLL(pd$obj_data)
   setwd(wd)
   pd
 }
 
-pd_rdsName <- function(modelname, .compiledFolder, type = c("indiv", "classic")[1]) {
+#' Title
+#'
+#' @param modelname 
+#' @param .compiledFolder 
+#' @param type 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pd_file <- function(modelname, .compiledFolder, type = c("indiv", "classic")[1]) {
   file.path(.compiledFolder, paste0(modelname, "_", type, ".rds"))
 }
 
@@ -1818,16 +1836,22 @@ indiv2Classic_compileTrafo <- function(trafoL, .compiledFolder = file.path("Comp
 #' Title
 #'
 #' @param pd 
-#' @param .compiledFolder 
 #'
 #' @return a `pd` object but with classic fns instead of indiv fns
 #' @export
 #'
 #' @examples
-indiv2Classic <- function(pd, Nobjtimes = 50) {
+indiv2Classic <- function(pd, 
+                          NFLAGcompile = c(Recompile = 0, LoadPrevious = 1)[3], 
+                          Nobjtimes = 50) {
+  
+  .compiledFolder <- file.path(pd$other$currentFolder, pd$other$.compiledFolder)
+  rdsfile <- pd_file(modelname = pd$other$modelname, .compiledFolder = .compiledFolder, "classic")
+  
+  if (NFLAGcompile > 0 && file.exists(rdsfile))
+    return(readPd(rdsfile))
   
   cg <- indiv2Classic_gridlist2cond.grid(pd$dModAtoms$gridlist)
-  .compiledFolder <- file.path(pd$other$currentFolder, pd$other$.compiledFolder)
   
   # Calculate objects
   trafoL   <- indiv2Classic_trafo(trafo = pd$dModAtoms$symbolicEquations$trafo, cg = cg)
@@ -1842,7 +1866,7 @@ indiv2Classic <- function(pd, Nobjtimes = 50) {
   pd$obj_data                          <- obj_data
   
   # Save and return
-  saveRDS(pd, pd_rdsName(modelname = pd$other$modelname, .compiledFolder = .compiledFolder, "classic"))
+  saveRDS(pd, rdsfile)
   
   pd
 }
