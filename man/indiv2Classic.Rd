@@ -6,14 +6,12 @@
 \usage{
 indiv2Classic(
   pd,
-  .compiledFolder = file.path("CompiledObjects"),
+  NFLAGcompile = c(Recompile = 0, LoadPrevious = 1)[3],
   Nobjtimes = 50
 )
 }
 \arguments{
 \item{pd}{}
-
-\item{.compiledFolder}{}
 }
 \value{
 a `pd` object but with classic fns instead of indiv fns
