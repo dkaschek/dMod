@@ -1772,7 +1772,7 @@ indiv2Classic_gridlist2cond.grid <- function(gridlist) {
 #' @export
 #'
 #' @examples
-classic2Indiv_trafo <- function(trafo, cg) {
+indiv2Classic_trafo <- function(trafo, cg) {
   trafoL <- branch(trafo, cg)
   pars_to_insert <- setdiff(names(cg), "condition")
   trafoL <- insert(trafoL, "name ~ value", value = unlist(mget(pars_to_insert)), name = pars_to_insert)
@@ -1781,7 +1781,7 @@ classic2Indiv_trafo <- function(trafo, cg) {
 
 #' Compile classic trafo
 #'
-#' @param trafoL output of [classic2Indiv_trafo]
+#' @param trafoL output of [indiv2Classic_trafo]
 #' @param .compiledFolder Folder for compiled objects
 #'
 #' @return
@@ -1810,7 +1810,7 @@ indiv2Classic <- function(pd, .compiledFolder = file.path("CompiledObjects"), No
   
   cg <- gridlist2cond.grid(pd$dModAtoms$gridlist)
   
-  trafoL   <- classic2Indiv_trafo(trafo = pd$dModAtoms$symbolicEquations$trafo, cg = cg)
+  trafoL   <- indiv2Classic_trafo(trafo = pd$dModAtoms$symbolicEquations$trafo, cg = cg)
   p        <- indiv2Classic_compileTrafo(trafoL = trafoL, .compiledFolder = .compiledFolder)
   prd      <- (pd$dModAtoms$fns$g * pd$dModAtoms$fns$x * p)
   obj_data <- normL2(pd$dModAtoms$data, prd, pd$dModAtoms$e, objtimes(pd$pe$measurementData$time, Nobjtimes = Nobjtimes))

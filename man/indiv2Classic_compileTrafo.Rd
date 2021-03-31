@@ -10,7 +10,7 @@ indiv2Classic_compileTrafo(
 )
 }
 \arguments{
-\item{trafoL}{output of [classic2Indiv_trafo]}
+\item{trafoL}{output of [indiv2Classic_trafo]}
 
 \item{.compiledFolder}{Folder for compiled objects}
 }
