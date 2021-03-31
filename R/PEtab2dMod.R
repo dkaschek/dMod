@@ -1774,8 +1774,8 @@ indiv2Classic_gridlist2cond.grid <- function(gridlist) {
 #' @examples
 indiv2Classic_trafo <- function(trafo, cg) {
   trafoL <- branch(trafo, cg)
-  pars_to_insert <- setdiff(names(cg), "condition")
-  trafoL <- insert(trafoL, "name ~ value", value = unlist(mget(pars_to_insert)), name = pars_to_insert)
+  assign(".pars_to_insert", setdiff(names(cg), "condition"), .GlobalEnv) # hacky
+  trafoL <- insert(trafoL, "name ~ value", value = unlist(mget(.pars_to_insert)), name = .pars_to_insert)
   trafoL
 }
 
@@ -1808,7 +1808,7 @@ indiv2Classic_compileTrafo <- function(trafoL, .compiledFolder = file.path("Comp
 #' @examples
 indiv2Classic <- function(pd, .compiledFolder = file.path("CompiledObjects"), Nobjtimes = 50) {
   
-  cg <- gridlist2cond.grid(pd$dModAtoms$gridlist)
+  cg <- indiv2Classic_gridlist2cond.grid(pd$dModAtoms$gridlist)
   
   trafoL   <- indiv2Classic_trafo(trafo = pd$dModAtoms$symbolicEquations$trafo, cg = cg)
   p        <- indiv2Classic_compileTrafo(trafoL = trafoL, .compiledFolder = .compiledFolder)
