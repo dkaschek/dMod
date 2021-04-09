@@ -1696,6 +1696,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
                            est.grid = gl$est.grid, fix.grid = gl$fix.grid,
                            times = objtimes(datatimes = pe$measurementData$time, Nobjtimes = Nobjtimes))
   # .. Collect final list -----
+  
   pd <- list(
     # petab
     pe                 = pe,
@@ -1729,10 +1730,14 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
 
 
 # -------------------------------------------------------------------------#
-# indiv2Classic ----
+# pd "class" ----
 # -------------------------------------------------------------------------#
 
-#' Title
+# [ ] pd should be its own "class"
+# pd <- function()
+
+
+#' Read a pd and load dlls
 #'
 #' @param filename 
 #'
@@ -1764,6 +1769,10 @@ pd_file <- function(modelname, .compiledFolder, type = c("indiv", "classic")[1])
   file.path(.compiledFolder, paste0(modelname, "_", type, ".rds"))
 }
 
+
+# -------------------------------------------------------------------------#
+# indiv2Classic ----
+# -------------------------------------------------------------------------#
 
 #' Title
 #'
