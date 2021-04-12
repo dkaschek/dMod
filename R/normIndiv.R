@@ -536,6 +536,8 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
     
     attr(out, controls$attr.name) <- out$value
     attributes(out) <- c(attributes(out), lapply(setNames(objlists, conditions), function(.x) .x$value))
+    # attr(out, "AIC") <- out$value + length(pars) * 2
+    # attr(out, "BIC") <- out$value + length(pars) * log(nrow(as.data.frame(data)))
     return(out)
   }
   
