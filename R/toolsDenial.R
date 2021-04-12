@@ -135,7 +135,7 @@ objtimes <- function(datatimes, eventtimes = NULL, Nobjtimes = 25) {
   maxt <- max(datatimes)
   
   tbefore0 <- if (mint < 0) seq(mint, 0, length.out = Nobjtimes) else 0
-  tafter0 <- exp(seq(0, log(maxt), length.out = Nobjtimes))
+  tafter0 <- exp(seq(-3, log(maxt), length.out = Nobjtimes))
   
   # [ ] eventtimes
   

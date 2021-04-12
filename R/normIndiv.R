@@ -535,9 +535,7 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
     out$hessian <- out$hessian[names(pars), names(pars)]
     
     attr(out, controls$attr.name) <- out$value
-    attr(out, "condition_obj") <- vapply(objlists, function(.x) .x$value, 1)
-    attr(out, "AIC") <- out$value + length(pars) * 2
-    attr(out, "BIC") <- out$value + length(pars) * log(nrow(as.data.frame(data)))
+    attributes(out) <- c(attributes(out), lapply(setNames(objlists, conditions), function(.x) .x$value))
     return(out)
   }
   
