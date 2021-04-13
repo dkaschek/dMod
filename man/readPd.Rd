@@ -2,7 +2,7 @@
 % Please edit documentation in R/PEtab2dMod.R
 \name{readPd}
 \alias{readPd}
-\title{Title}
+\title{Read a pd and load dlls}
 \usage{
 readPd(filename)
 }
@@ -13,5 +13,5 @@ readPd(filename)
 
 }
 \description{
-Title
+Read a pd and load dlls
 }

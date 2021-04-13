@@ -535,7 +535,13 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
     out$hessian <- out$hessian[names(pars), names(pars)]
     
     attr(out, controls$attr.name) <- out$value
-    attributes(out) <- c(attributes(out), lapply(setNames(objlists, conditions), function(.x) .x$value))
+    ll_conditions <- data.frame(
+      logl = vapply(setNames(objlists, conditions), function(.x) .x$value, 1),
+      chi2 = vapply(setNames(objlists, conditions), function(.x) attr(.x, "chisquare"), 1))
+    ll_sum <- data.frame(logl = sum(ll_conditions$logl),
+                         chi2 = sum(ll_conditions$chi2))
+    attributes(out) <- c(attributes(out), list(ll_cond_df = ll_conditions))
+    attributes(out) <- c(attributes(out), list(ll_sum_df = ll_sum))
     # attr(out, "AIC") <- out$value + length(pars) * 2
     # attr(out, "BIC") <- out$value + length(pars) * log(nrow(as.data.frame(data)))
     return(out)

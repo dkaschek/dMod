@@ -9,11 +9,14 @@ indiv2Classic_trafo(trafo, cg)
 \arguments{
 \item{trafo}{base trafo}
 
-\item{cg}{output of [indiv2Classic_gridlist2cond.grid()]}
+\item{cg}{output of \code{\link[=indiv2Classic_gridlist2cond.grid]{indiv2Classic_gridlist2cond.grid()}}}
 }
 \value{
 
 }
 \description{
 Title
+}
+\author{
+Daniel Lill (daniel.lill@physik.uni-freiburg.de)
 }

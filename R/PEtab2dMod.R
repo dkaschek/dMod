@@ -1719,7 +1719,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
     p                  = p,
     prd                = prd,
     obj_data           = obj_data,
-    pars               = myfit_values
+    pars               = unclass_parvec(myfit_values)
   )
   
   # .. Save and return -----
@@ -1769,6 +1769,47 @@ pd_file <- function(modelname, .compiledFolder, type = c("indiv", "classic")[1])
   file.path(.compiledFolder, paste0(modelname, "_", type, ".rds"))
 }
 
+#' Quickly set "controls" amd update all high-level functions
+#'
+#' @param pd 
+#' @param rtol 
+#' @param atol 
+#' @param maxsteps 
+#' @param objtimes 
+#'
+#' @return
+#' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+#'
+#' @examples
+pdIndiv_updateControls <- function(pd, rtol = 1e-5, atol = 1e-5, maxsteps = 5000, objtimes = NULL) {
+  
+  # Set integrator controls
+  controls(pd$dModAtoms$fns$x, name = "optionsOde") <- 
+    list(method = "lsoda", rtol = rtol, atol = atol, maxsteps = maxsteps)
+  controls(pd$dModAtoms$fns$x, name = "optionsSens") <- 
+    list(method = "lsodes", rtol = rtol, atol = atol, maxsteps = maxsteps)
+  
+  # Rebuild high-level prediction function
+  prd0 <- Reduce("*", pd$dModAtoms$fns)
+  prd <- PRD_indiv(prd0, pd$dModAtoms$gridlist$est.grid, pd$dModAtoms$gridlist$fix.grid)
+  
+  # Rebuild obj_data
+  objtimes <- if (is.null(objtimes)) controls(pd$obj_data, name = "times") else objtimes
+  obj_data <- normL2_indiv(pd$dModAtoms$data, prd0, 
+                           pd$dModAtoms$e,
+                           est.grid = pd$dModAtoms$gridlist$est.grid, 
+                           fix.grid = pd$dModAtoms$gridlist$fix.grid,
+                           times = objtimes)
+  
+  # Update prd and obj_data
+  pd$prd <- prd
+  pd$obj_data <- obj_data
+  
+  pd
+}
+
 
 # -------------------------------------------------------------------------#
 # indiv2Classic ----
@@ -1781,6 +1822,8 @@ pd_file <- function(modelname, .compiledFolder, type = c("indiv", "classic")[1])
 #'
 #' @return condition.grid(condition, parsMixedCols...)
 #' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
 #'
 #' @examples
 indiv2Classic_merge_grids <- function(eg,fg) {
@@ -1798,6 +1841,8 @@ indiv2Classic_merge_grids <- function(eg,fg) {
 #'
 #' @return
 #' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
 #'
 #' @examples
 indiv2Classic_gridlist2cond.grid <- function(gridlist) {
@@ -1815,6 +1860,8 @@ indiv2Classic_gridlist2cond.grid <- function(gridlist) {
 #'
 #' @return
 #' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
 #'
 #' @examples
 indiv2Classic_trafo <- function(trafo, cg) {
@@ -1831,6 +1878,8 @@ indiv2Classic_trafo <- function(trafo, cg) {
 #'
 #' @return
 #' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
 #'
 #' @examples
 indiv2Classic_compileTrafo <- function(trafoL, .compiledFolder = file.path("CompiledObjects")) {
@@ -1848,6 +1897,8 @@ indiv2Classic_compileTrafo <- function(trafoL, .compiledFolder = file.path("Comp
 #'
 #' @return a `pd` object but with classic fns instead of indiv fns
 #' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
 #'
 #' @examples
 indiv2Classic <- function(pd, 
@@ -1881,6 +1932,35 @@ indiv2Classic <- function(pd,
 }
 
 
+
+#' Get the faster version of classic and indiv
+#'
+#' @param pd pd_indiv
+#' @param NFLAGcompile recompile the parameter trafo of pdc?
+#'
+#' @return
+#' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+#'
+#' @examples
+indiv2classic_getFasterVersion <- function(pd, NFLAGcompile = 1) {
+  
+  # build classic with comparable objtimes
+  objtimes <- controls(pd$obj_data, name = "times")
+  pdc <- indiv2Classic(pd, NFLAGcompile = NFLAGcompile)
+  controls(pdc$obj_data, name = "times") <- objtimes
+  
+  # compare 
+  t1 <- system.time(pd$obj_data(pd$pars))
+  t2 <- system.time(pdc$obj_data(pd$pars))
+  cat("indiv: ", round(t1,3), "\n")
+  cat("classic: ", round(t2,3), "\n")
+  
+  # return faster version
+  if (t1 < t2) return(pd)
+  pdc
+}
 
 
 

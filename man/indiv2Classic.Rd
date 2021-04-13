@@ -14,8 +14,11 @@ indiv2Classic(
 \item{pd}{}
 }
 \value{
-a `pd` object but with classic fns instead of indiv fns
+a \code{pd} object but with classic fns instead of indiv fns
 }
 \description{
 Title
+}
+\author{
+Daniel Lill (daniel.lill@physik.uni-freiburg.de)
 }

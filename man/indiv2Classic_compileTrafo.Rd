@@ -10,7 +10,7 @@ indiv2Classic_compileTrafo(
 )
 }
 \arguments{
-\item{trafoL}{output of [indiv2Classic_trafo]}
+\item{trafoL}{output of \link{indiv2Classic_trafo}}
 
 \item{.compiledFolder}{Folder for compiled objects}
 }
@@ -19,4 +19,7 @@ indiv2Classic_compileTrafo(
 }
 \description{
 Compile classic trafo
+}
+\author{
+Daniel Lill (daniel.lill@physik.uni-freiburg.de)
 }

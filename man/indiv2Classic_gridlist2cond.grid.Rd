@@ -15,3 +15,6 @@ indiv2Classic_gridlist2cond.grid(gridlist)
 \description{
 Title
 }
+\author{
+Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+}
