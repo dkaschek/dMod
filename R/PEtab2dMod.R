@@ -1432,7 +1432,7 @@ getTrafoType <- function(trafo_string) {
   }, FUN.VALUE = "TYPE")
   
   options(keep.source = opt.keep.source)
-
+  
   out
 }
 
@@ -1469,7 +1469,6 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
                                   testCases = FALSE,
                                   path2TestCases = "PEtabTests/",
                                   .compiledFolder = file.path("CompiledObjects"),
-                                  Nobjtimes = 50,
                                   NFLAGcompile = c(Auto = 3, Recompile = 0, RebuildGrids = 1, LoadPrevious = 2)[3],
                                   SFLAGbrowser = c("0None", "1Beginning", "2BuildGrids", "3Compilation", "4CollectList")[1]
 )
@@ -1633,7 +1632,7 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   gl$fix.grid <- fg
   
   # -------------------------------------------------------------------------#
-  # .. Model Compilation ---- -----
+  # .. Model Compilation -----
   # -------------------------------------------------------------------------#
   if (grepl(SFLAGbrowser, "3Compilation")) browser()
   if (NFLAGcompile == 0) {
@@ -1689,39 +1688,31 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
     errors  = myerrors,
     trafo = trafo)
   
-  # .. Generate high-level fns -----
-  p   <- P_indiv(p0 = fns$p0, est.grid = gl$est.grid, fix.grid = gl$fix.grid)
-  prd <- PRD_indiv(prd0 = Reduce("*", fns), est.grid = gl$est.grid, fix.grid = gl$fix.grid)
-  
-  obj_data <- normL2_indiv(mydata, Reduce("*", fns), errmodel = myerr,
-                           est.grid = gl$est.grid, fix.grid = gl$fix.grid,
-                           times = objtimes(datatimes = pe$measurementData$time, Nobjtimes = Nobjtimes))
   # .. Collect final list -----
-  
   pd <- list(
     # petab
     pe                 = pe,
     # Basic dMod elements
     dModAtoms          = list(
+      # [ ] add events!
       symbolicEquations  = symbolicEquations,
       odemodel           = myodemodel,
       data               = mydata,
       gridlist           = gl,
       e                  = myerr,
       fns                = fns
-      ),
+    ),
     # other components: Dump your stuff here
     other = list(
       modelname       = modelname,
       currentFolder   = mywd,
       .compiledFolder = .compiledFolder
-      ),
-    # High level prediction and objective functions
-    p                  = p,
-    prd                = prd,
-    obj_data           = obj_data,
+    ),
+    # Parameters
     pars               = unclass_parvec(myfit_values)
   )
+  # High level prediction function
+  pd <- pdIndiv_rebuildPrdObj(pd = pd,Nobjtimes = 100)
   
   # .. Save and return -----
   saveRDS(pd, rdsfile)
@@ -1784,31 +1775,73 @@ pd_file <- function(modelname, .compiledFolder, type = c("indiv", "classic")[1])
 #' @md
 #'
 #' @examples
-pdIndiv_updateControls <- function(pd, rtol = 1e-5, atol = 1e-5, maxsteps = 5000, objtimes = NULL) {
+#' optionsOde <- list(method = "lsoda", rtol = rtol, atol = atol, maxsteps = maxsteps)
+#' optionsSens <- list(method = "lsodes", rtol = rtol, atol = atol, maxsteps = maxsteps)
+pdIndiv_updateControls <- function(pd, 
+                                   optionsOde = NULL,
+                                   optionsSens = NULL,
+                                   objtimes = NULL) {
   
   # Set integrator controls
-  controls(pd$dModAtoms$fns$x, name = "optionsOde") <- 
-    list(method = "lsoda", rtol = rtol, atol = atol, maxsteps = maxsteps)
-  controls(pd$dModAtoms$fns$x, name = "optionsSens") <- 
-    list(method = "lsodes", rtol = rtol, atol = atol, maxsteps = maxsteps)
+  if (!is.null(optionsOde))  controls(pd$dModAtoms$fns$x, name = "optionsOde") <- optionsOde
+  if (!is.null(optionsSens)) controls(pd$dModAtoms$fns$x, name = "optionsSens") <- optionsSens
+  if (!is.null(objtimes)) controls(pd$obj_data, "times") <- objtimes
+  
+  pdIndiv_rebuildPrdObj(pd)
+  
+}
+
+#' Rebuild the high-level prediction and objective function
+#'
+#' @param pd pd_indiv
+#'
+#' @return pd with updated p, prd and obj_data
+#' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+#'
+#' @examples
+pdIndiv_rebuildPrdObj <- function(pd, Nobjtimes = 100) {
+  
+  # Rebuild p
+  p <- P_indiv(pd$dModAtoms$fns$p0, pd$dModAtoms$gridlist$est.grid, pd$dModAtoms$gridlist$fix.grid)
   
   # Rebuild high-level prediction function
   prd0 <- Reduce("*", pd$dModAtoms$fns)
   prd <- PRD_indiv(prd0, pd$dModAtoms$gridlist$est.grid, pd$dModAtoms$gridlist$fix.grid)
   
   # Rebuild obj_data
-  objtimes <- if (is.null(objtimes)) controls(pd$obj_data, name = "times") else objtimes
+  tobj <- if (!is.null(pd$obj_data)) controls(pd$obj_data, name = "times") else objtimes(pd$pe$measurementData$time, Nobjtimes = Nobjtimes)
   obj_data <- normL2_indiv(pd$dModAtoms$data, prd0, 
                            pd$dModAtoms$e,
                            est.grid = pd$dModAtoms$gridlist$est.grid, 
                            fix.grid = pd$dModAtoms$gridlist$fix.grid,
-                           times = objtimes)
+                           times = tobj)
   
-  # Update prd and obj_data
+  # Update p, prd and obj_data
+  pd$p <- p
   pd$prd <- prd
   pd$obj_data <- obj_data
   
   pd
+}
+
+
+
+
+#' Wrapper around predtimes
+#'
+#' @param pd 
+#' @param N 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pd_predtimes <- function(pd, N = 100) {
+  datatimes <- unique(sort(pd$pe$measurementData$time))
+  # [ ] eventtimes <- NULL
+  predtimes(datatimes,eventtimes,N)
 }
 
 
@@ -1962,6 +1995,5 @@ indiv2classic_getFasterVersion <- function(pd, NFLAGcompile = 1) {
   if (t1 < t2) return(pd)
   pdc
 }
-
 
 

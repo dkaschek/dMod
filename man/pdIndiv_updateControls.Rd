@@ -6,28 +6,31 @@
 \usage{
 pdIndiv_updateControls(
   pd,
-  rtol = 1e-05,
-  atol = 1e-05,
-  maxsteps = 5000,
+  optionsOde = NULL,
+  optionsSens = NULL,
   objtimes = NULL
 )
 }
 \arguments{
 \item{pd}{}
 
+\item{objtimes}{}
+
 \item{rtol}{}
 
 \item{atol}{}
 
 \item{maxsteps}{}
-
-\item{objtimes}{}
 }
 \value{
 
 }
 \description{
 Quickly set "controls" amd update all high-level functions
+}
+\examples{
+optionsOde <- list(method = "lsoda", rtol = rtol, atol = atol, maxsteps = maxsteps)
+optionsSens <- list(method = "lsodes", rtol = rtol, atol = atol, maxsteps = maxsteps)
 }
 \author{
 Daniel Lill (daniel.lill@physik.uni-freiburg.de)

@@ -15,7 +15,7 @@ objtimes(datatimes, eventtimes = NULL, Nobjtimes = 25)
 vector of times, including datatimes
 }
 \description{
-Get vector of logarithmically spaced time points
+to help the objective function integrator
 }
 \examples{
 objtimes(c(0,30,60,90,600))

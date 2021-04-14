@@ -122,6 +122,8 @@ getSteps <- function(myparframe, nsteps = 5, tol = 1) {
 
 #' Get vector of logarithmically spaced time points
 #'
+#' to help the objective function integrator
+#'
 #' @param datatimes times present in data
 #' @param eventtimes times present in events (not yet implemented)
 #'
@@ -136,6 +138,31 @@ objtimes <- function(datatimes, eventtimes = NULL, Nobjtimes = 25) {
   
   tbefore0 <- if (mint < 0) seq(mint, 0, length.out = Nobjtimes) else 0
   tafter0 <- exp(seq(-3, log(maxt), length.out = Nobjtimes))
+  
+  # [ ] eventtimes
+  
+  sort(unique(c(0, tbefore0, tafter0, datatimes)))
+}
+
+
+#' Get a vector of linearly spaced time points for prediction
+#' 
+#' for nice plots
+#' 
+#' @param datatimes 
+#' @param eventtimes 
+#' @param Nobjtimes 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+predtimes <- function(datatimes, eventtimes = NULL, Nobjtimes = 100) {
+  mint <- min(min(datatimes), 0)
+  maxt <- max(datatimes)
+  
+  tbefore0 <- if (mint < 0) seq(mint, 0, length.out = Nobjtimes) else 0
+  tafter0 <- seq(0, maxt, length.out = Nobjtimes)
   
   # [ ] eventtimes
   
