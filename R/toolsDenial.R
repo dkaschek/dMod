@@ -193,3 +193,43 @@ inputFileChanged <- function(filename_input, filename_output) {
 }
 
 
+
+#' Get default arguments for integrators
+#'
+#' @return List of arguments
+#' @export
+optionsLSODES <- function(rtol = 1e-6, atol = 1e-6, 
+                          jacvec = NULL, sparsetype = "sparseint", nnz = NULL,
+                          inz = NULL,  rootfunc = NULL,
+                          verbose = FALSE, nroot = 0, tcrit = NULL, hmin = 0,
+                          hmax = NULL, hini = 0, ynames = TRUE, maxord = NULL,
+                          maxsteps = 5000, lrw = NULL, liw = NULL) {
+  args <- as.list(environment())
+  c(list(method = "lsodes"), args)
+}
+
+#' @rdname optionsLSODES
+#' @export
+optionsLSODE <- function(rtol = 1e-6, atol = 1e-6,  
+                         jacfunc = NULL, jactype = "fullint", mf = NULL, rootfunc = NULL,
+                         verbose = FALSE, nroot = 0, tcrit = NULL, hmin = 0, hmax = NULL, 
+                         hini = 0, ynames = TRUE, maxord = NULL, bandup = NULL, banddown = NULL,
+                         maxsteps = 5000, rpar = NULL, ipar = NULL, nout = 0,
+                         outnames = NULL) {
+  args <- as.list(environment())
+  c(list(method = "lsode"), args)
+}
+
+#' @rdname optionsLSODES
+#' @export
+optionsLSODA <- function(rtol = 1e-6, atol = 1e-6,
+                         jacfunc = NULL, jactype = "fullint", rootfunc = NULL,
+                         verbose = FALSE, nroot = 0, tcrit = NULL,
+                         hmin = 0, hmax = NULL, hini = 0, ynames = TRUE,
+                         maxordn = 12, maxords = 5, bandup = NULL, banddown = NULL,
+                         maxsteps = 5000) {
+  args <- as.list(environment())
+  c(list(method = "lsoda"), args)
+}
+
+
