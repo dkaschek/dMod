@@ -1845,6 +1845,39 @@ pd_predtimes <- function(pd, N = 100) {
 }
 
 
+#' Some tests
+#'
+#' @param pd 
+#' @param page 
+#' @param cn 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pd_tests <- function(pd, page = 1, cn = 1) {
+  
+  # .. Test prediction without derivs -----
+  prediction <- pd$prd(objtimes(pd$pe$measurementData$time, 200), pd$pars)
+  pl <- plotPrediction(prediction, name %in% pd$pe$observables$observableId) + 
+    facet_wrap_paginate(~name, nrow = 4, ncol = 4, scales = "free", page = page)
+  print(pl)
+  
+  # .. Test obj -----
+  pd$obj_data(pd$pars)
+  
+  # .. Test x for one condition  -----
+  pars <- pd$p(pd$pars)
+  pars <- pars[[cn]]
+  pred <- pd$dModAtoms$fns$x(objtimes(pd$pe$measurementData$time), pars)
+  # Look at derivs
+  derivs <- getDerivs(pred)
+  derivs[[1]][1:10, 1:30]
+  
+  
+}
+
+
 # -------------------------------------------------------------------------#
 # indiv2Classic ----
 # -------------------------------------------------------------------------#

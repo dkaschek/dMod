@@ -960,6 +960,24 @@ nll_BLOQ <- function(nout.bloq,
   return(out12)
 }
 
+
+#' @export
+print.objlist <- function(x, n1 = 20, n2 = 6, ...) {
+  
+  cat("value\n", "==================\n",x$value, "\n")
+  cat("gradient[1:",n1,"] (full length = ",length(x$gradient),")\n", "==================\n", sep = "")
+  print(x$gradient[1:n1])
+  cat("\n")
+  cat("hessian[1:",n2,",1:",n2,"]","\n", "==================\n", sep = "")
+  print(x$hessian[1:n2,1:n2])
+  cat("\n\n")
+  cat("attributes\n", "==================\n")
+  cat(capture.output(str(attributes(x), max.level = 1)), sep = "\n")
+  
+}
+
+
+
 #' @export
 print.objfn <- function(x, ...) {
  
