@@ -1571,9 +1571,13 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
   trafo <- trafo[trafo != "time"]
   
   # .. MeasurementParameter mappings  -----
-  obsParMapping <- petab_getMeasurementParsMapping(pe$measurementData, column = "observableParameters")
-  errParMapping <- petab_getMeasurementParsMapping(pe$measurementData, column = "noiseParameters")
+  obsParMapping <- petab_getMeasurementParsMapping(pe, column = "observableParameters")
+  errParMapping <- petab_getMeasurementParsMapping(pe, column = "noiseParameters")
   
+  # Can't remember why I put FLAGoverwrite to TRUE here. 
+  # For my TGFB model, FLAGoverwrite FALSE would actually work. 
+  # The condition.grid is correct from the beginning.
+  # Todo: Test for several benchmark models, if FLAGoverwrite should be TRUE or can be FALSE
   gl <- indiv_addLocalParsToGridList(pars = obsParMapping, gridlist = gl, FLAGoverwrite = TRUE)
   gl <- indiv_addLocalParsToGridList(pars = errParMapping, gridlist = gl, FLAGoverwrite = TRUE)
   
@@ -1840,8 +1844,23 @@ pdIndiv_rebuildPrdObj <- function(pd, Nobjtimes = 100) {
 #' @examples
 pd_predtimes <- function(pd, N = 100) {
   datatimes <- unique(sort(pd$pe$measurementData$time))
-  # [ ] eventtimes <- NULL
+  eventtimes <- NULL
   predtimes(datatimes,eventtimes,N)
+}
+
+#' Wrapper around predtimes
+#'
+#' @param pd 
+#' @param N 
+#'
+#' @return
+#' @export
+#'
+#' @examples
+pd_objtimes <- function(pd, N = 100) {
+  datatimes <- unique(sort(pd$pe$measurementData$time))
+  eventtimes <- NULL
+  objtimes(datatimes,eventtimes,N)
 }
 
 
@@ -1861,10 +1880,17 @@ pd_tests <- function(pd, page = 1, cn = 1) {
   prediction <- pd$prd(objtimes(pd$pe$measurementData$time, 200), pd$pars)
   pl <- plotPrediction(prediction, name %in% pd$pe$observables$observableId) + 
     facet_wrap_paginate(~name, nrow = 4, ncol = 4, scales = "free", page = page)
+  cat("\n===================================================", "\n")
+  cat("Plotting prediction page ", page, " / ", n_pages(pl), "\n")
+  cat("===================================================", "\n")
   print(pl)
   
   # .. Test obj -----
-  pd$obj_data(pd$pars)
+  objval <- pd$obj_data(pd$pars)
+  cat("\n===================================================\n")
+  cat("Objective function\n")
+  cat("===================================================\n")
+  print(objval)
   
   # .. Test x for one condition  -----
   pars <- pd$p(pd$pars)
@@ -1872,7 +1898,10 @@ pd_tests <- function(pd, page = 1, cn = 1) {
   pred <- pd$dModAtoms$fns$x(objtimes(pd$pe$measurementData$time), pars)
   # Look at derivs
   derivs <- getDerivs(pred)
-  derivs[[1]][1:10, 1:30]
+  cat("\n===================================================\n")
+  cat("Derivs of x[", cn, "]\n")
+  cat("===================================================\n")
+  print(derivs[[1]][1:10, 1:10])
   
   
 }
