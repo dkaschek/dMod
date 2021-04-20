@@ -751,6 +751,7 @@ getParametersToEstimate <- function(est.grid, trafo, reactions) {
 #'
 #' @return
 #' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @export
 #' @md
 getParameters.data.table <- function(x,...) {
   unique(unlist(x[,!c("condition", "ID")], use.names = FALSE))

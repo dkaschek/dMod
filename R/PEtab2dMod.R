@@ -1712,8 +1712,9 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
       currentFolder   = mywd,
       .compiledFolder = .compiledFolder
     ),
-    # Parameters
-    pars               = unclass_parvec(myfit_values)
+    # Parameters + Time
+    pars               = unclass_parvec(myfit_values),
+    times              = predtimes(pe$measurementData$time, Nobjtimes = 200)
   )
   # High level prediction function
   pd <- pdIndiv_rebuildPrdObj(pd = pd,Nobjtimes = 100)
@@ -1731,7 +1732,6 @@ importPEtabSBML_indiv <- function(filename = "enzymeKinetics/enzymeKinetics.peta
 
 # [ ] pd should be its own "class"
 # pd <- function()
-
 
 #' Read a pd and load dlls
 #'
