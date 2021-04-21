@@ -171,27 +171,6 @@ predtimes <- function(datatimes, eventtimes = NULL, Nobjtimes = 100) {
 
 
 
-#' Title
-#'
-#' @param filename_input 
-#' @param filename_output 
-#'
-#' @return TRUE if inputfile is newer than outputfile or outputfile does not exist
-#' @export
-#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
-#' @md
-#'
-#' @examples
-inputFileChanged <- function(filename_input, filename_output) {
-  
-  if (!file.exists(filename_output)) return(TRUE)
-  
-  outputFileTimeChanged <- file.info(filename_output)[,"mtime"]
-  inputFileTimeChanged  <- file.info(filename_input)[,"mtime"]
-  
-  inputFileTimeChanged > outputFileTimeChanged
-}
-
 
 
 #' Get default arguments for integrators
