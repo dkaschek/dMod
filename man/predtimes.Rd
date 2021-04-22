@@ -11,11 +11,15 @@ predtimes(datatimes, eventtimes = NULL, Nobjtimes = 100)
 
 \item{eventtimes}{}
 
-\item{Nobjtimes}{}
+\item{Nobjtimes}{number of time points in total}
 }
 \value{
-
+vector of time points
 }
 \description{
 for nice plots
+}
+\examples{
+predtimes(c(30,60,60,90))
+predtimes(c(-30,60,60,90))
 }

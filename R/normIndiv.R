@@ -101,6 +101,28 @@ renameDerivPars <- function(pred0, pars, est.grid, cn) {
 }
 
 
+#' Rename the gradient and hessian of an objlist
+#'
+#' @param objlist an objlist with grid.inner parnames 
+#' @param parnames vector(grid.inner = grid.outer), e.g. as the `parnames` element from the result of [make_pars()]
+#'
+#' @return objlist with new names
+#' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+#'
+#' @examples
+#' ol <- dMod:::init_empty_objlist(c(a = 1, b = 2))
+#' parnames <- c(a = "c", b = "d")
+#' renameDerivParsInObjlist(ol, parnames)
+renameDerivParsInObjlist <- function(objlist, parnames) {
+  objlist$gradient <- objlist$gradient[names(parnames)]
+  names(objlist$gradient) <- unname(parnames)
+  
+  objlist$hessian <- objlist$hessian[names(parnames),names(parnames)]
+  dimnames(objlist$hessian) <- list(unname(parnames), unname(parnames))
+  objlist
+}
 
 
 
@@ -234,15 +256,15 @@ indiv_addLocalParsToGridList <- function(pars, gridlist, FLAGoverwrite = FALSE) 
 #' @md
 #' @examples
 #' init_empty_objlist(setNames(rnorm(5), letters[1:5]))
-init_empty_objlist <- function(pars, deriv = TRUE) {
-
-  if (!deriv)
-    return(dMod::objlist(0,NULL,NULL))
-
-  dMod::objlist(value = 0,
-                gradient = setNames(rep(0, length(pars)), names(pars)),
-                hessian = matrix(0, nrow = length(pars), ncol = length(pars),
-                                 dimnames = list(names(pars), names(pars))))
+#' init_empty_objlist(setNames(rnorm(5), letters[1:5]), FLAGchisquare = TRUE)
+init_empty_objlist <- function(pars, deriv = TRUE, FLAGchisquare = FALSE) {
+  
+  gr <- if (deriv) setNames(rep(0, length(pars)), names(pars)) else NULL
+  he <- if (deriv) matrix(0, nrow = length(pars), ncol = length(pars), dimnames = list(names(pars), names(pars))) else NULL
+  
+  out <- dMod::objlist(value = 0, gradient = gr, hessian = he)
+  if (FLAGchisquare) attr(out, "chisquare") <- 0
+  out
 }
 
 
@@ -402,7 +424,7 @@ P_indiv <- function(p0, est.grid, fix.grid) {
 #' @md
 #'
 #' @importFrom parallel mclapply
-normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times = NULL, attr.name = "data", fixed.conditions = NULL) {
+normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times = NULL, attr.name = "data") {
   
   if (!is.data.table(est.grid)) warning("est.grid was coerced to data.table (was", class(est.grid), ")")
   if (!is.data.table(fix.grid)) warning("fix.grid was coerced to data.table (was", class(fix.grid), ")")
@@ -435,8 +457,7 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
     arglist <- arglist[match.fnargs(arglist, "pars")]
     pars <- arglist[[1]]
     
-    objlists <- list()
-    for (cn in conditions) {
+    objlists <- lapply(setNames(nm = conditions), function(cn) {
       if (FLAGbrowser) browser()
       
       ID <- est.grid[condition == cn, ID]
@@ -445,95 +466,37 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
       pars_ <- dummy$pars
       fixed_ <- dummy$fixed
       
-      timesD <- controls$times
-      attr.name <- controls$attr.name
+      if (!length(pars_)) return(init_empty_objlist(pars, deriv = deriv, FLAGchisquare = TRUE)) # No pars_ can happen if one fits only condition specific parameters and in this condition there are none
       
-      myderiv <- deriv
-      if (!is.null(FixedConditions) && cn %in% FixedConditions) myderiv <- FALSE
+      prediction <- try(prd0(times = controls$times, pars = pars_, fixed = fixed_, deriv = deriv))
       
-      prediction <- try(prd0(times = timesD, pars = pars_, fixed = fixed_, deriv = myderiv))
-      
-      if (inherits(prediction, "try-error"))
-        stop("Prediction failed in condition = ", cn, ", ID = ", ID, ".
-             Try iterating p(pars), (x*p)(pars), ... to find the problem.")
+      if (inherits(prediction, "try-error")) 
+        stop("Prediction failed in \n>>>condition = ", cn, "\n>>>ID = ", ID, "\n\nTry iterating p(pars), (x*p)(pars), ... to find the problem.")
       
       prediction <- prediction[[1]]
-      
-      # [] refactor: put the following stuff into own function catch_nonproblematicNanInfs(prediciton, data, cn, FLAGNaNInfWarnings)
-      whichcols <- nm <- NULL
-      if (any(is.na(prediction))){
-        whichcols <- unique(which(is.na(prediction), arr.ind = TRUE)[,2])
-        nm <- colnames(prediction)[whichcols]
-        
-        if (length(intersect(data[[cn]]$name, nm)))
-          stop("Prediction is.na for observables present in data in condition ", cn, "\n",
-               "The following observables are affected: ", paste0(intersect(data[[cn]]$name, nm), collapse = ", "))
-        
-        if (FLAGNaNInfwarnings)
-          warning("NaN in condition ", cn , " for the following names: ", paste0(nm, collapse = ", "))
-        prediction[is.na(prediction)] <- 0
-        attr(prediction, "deriv")[is.infinite(attr(prediction, "deriv"))|is.na(attr(prediction, "deriv"))] <- 0
-        attr(prediction, "sensitivities")[is.infinite(attr(prediction, "sensitivities"))|is.na(attr(prediction, "sensitivities"))] <- 0
-      }
-      if (any(is.infinite(prediction))){
-        whichcols <- unique(which(is.infinite(prediction), arr.ind = TRUE)[,2])
-        nm <- colnames(prediction)[whichcols]
-        
-        if (length(intersect(data[[cn]]$name, nm)))
-          warning("Prediction is infinite for observables present in data in condition ", cn, "\n",
-               "The following observables are affected: ", paste0(intersect(data[[cn]]$name, nm), collapse = ", "),
-               "These values are set to zero")
-        
-        if (FLAGNaNInfwarnings)
-          warning("Inf in condition ", cn , " for the following names: ", paste0(nm, collapse = ", "))
-        
-        prediction[is.infinite(prediction)] <- 0
-        attr(prediction, "deriv")[is.infinite(attr(prediction, "deriv"))|is.na(attr(prediction, "deriv"))] <- 0
-        attr(prediction, "sensitivities")[is.infinite(attr(prediction, "sensitivities"))|is.na(attr(prediction, "sensitivities"))] <- 0
-      }
+      prediction <- check_and_sanitize_prediction(prediction, data, cn, FLAGNaNInfwarnings)
       
       err <- NULL
       if (any(is.na(data[[cn]]$sigma))) {
-        err <- errmodel(out = prediction, pars = getParameters(prediction), conditions = cn, deriv=myderiv)
+        err <- errmodel(out = prediction, pars = getParameters(prediction), conditions = cn, deriv=deriv)
         mywrss <- nll(res(data[[cn]], prediction, err[[1]]), deriv = deriv, pars = pars)
       } else {
         mywrss <- nll(res(data[[cn]], prediction), deriv = deriv, pars = pars)
       }
-      if (myderiv) {
-        if (FLAGbrowser2) browser()
-        mywrss$gradient <- mywrss$gradient[names(dummy$parnames)]
-        names(mywrss$gradient) <- unname(dummy$parnames)
+      
+      if (deriv) mywrss <- renameDerivParsInObjlist(mywrss, dummy$parnames) 
 
-        mywrss$hessian <- mywrss$hessian[names(dummy$parnames),names(dummy$parnames)]
-        dimnames(mywrss$hessian) <- list(unname(dummy$parnames), unname(dummy$parnames))
-      }
-
-      # [] catch conditions with NA value, don't include them in obj-calculation and print out warning
-      objlists <- c(objlists, list(mywrss))
-    }
-    
-    # if (simcores == 1)
-    #   objlists <- lapply(setNames(nm = conditions), calc_objval)
-    # if (simcores > 1)
-    #   objlists <- parallel::mclapply(setNames(nm = conditions), calc_objval, mc.cores = simcores)
+      mywrss
+    })
     
     # Sum all objlists
-    out <- objlist(value = 0, 
-                   gradient = structure(rep(0, length(names(pars))), names = names(pars)), 
-                   hessian = matrix(0, nrow = length(names(pars)), ncol = length(names(pars)), 
-                                    dimnames = list(names(pars), names(pars))))
-    out$value <- do.call(sum, lapply(objlists, function(.x) .x$value))
-    if (deriv) {
-      for (gr in lapply(objlists, function(.x) .x$gradient))
-        out$gradient[names(gr)] <- out$gradient[names(gr)] + gr
-      for (hs in lapply(objlists, function(.x) .x$hessian))
-        out$hessian[rownames(hs), colnames(hs)] <- out$hessian[rownames(hs), colnames(hs)] + hs
-    }
+    out <- Reduce("+", objlists)
     
-    # consider fixed: return only derivs wrt pouter
+    # Consider fixed: return only derivs wrt pouter
     out$gradient <- out$gradient[names(pars)]
     out$hessian <- out$hessian[names(pars), names(pars)]
     
+    # Populate attributes
     attr(out, controls$attr.name) <- out$value
     ll_conditions <- data.frame(
       logl = vapply(setNames(objlists, conditions), function(.x) .x$value, 1),
@@ -780,3 +743,50 @@ getEstGridParameterMapping <- function(x) {
   do.call(c, lapply(nm, function(n) setNames(unique(x[[n]]), rep(n, length(unique(x[[n]]))))))
 }
 
+
+#' Run some checks on the prediction in normL2_indiv
+#' 
+#' If prediction is NA for observables which are not observed in a condition, they don't matter.
+#' In this case, replace NA by 0, such that the error model can be evaluated.
+#' 
+#' @param prediction prediction for condition cn
+#' @param data datalist
+#' @param cn condition name for which the prediction was made
+#' @param FLAGNaNInfwarnings print warnings?
+#'
+#' @return the prediction with harmless NA's replaced by 0
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+check_and_sanitize_prediction <- function(prediction, data, cn, FLAGNaNInfwarnings) {
+  if (any(is.na(prediction))){
+    whichcols <- unique(which(is.na(prediction), arr.ind = TRUE)[,2])
+    nm <- colnames(prediction)[whichcols]
+    
+    if (length(intersect(data[[cn]]$name, nm)))
+      stop("Prediction is.na for observables present in data in condition ", cn, "\n",
+           "The following observables are affected: ", paste0(intersect(data[[cn]]$name, nm), collapse = ", "))
+    
+    if (FLAGNaNInfwarnings)
+      warning("NaN in condition ", cn , " for the following names: ", paste0(nm, collapse = ", "))
+    prediction[is.na(prediction)] <- 0
+    attr(prediction, "deriv")[is.infinite(attr(prediction, "deriv"))|is.na(attr(prediction, "deriv"))] <- 0
+    attr(prediction, "sensitivities")[is.infinite(attr(prediction, "sensitivities"))|is.na(attr(prediction, "sensitivities"))] <- 0
+  }
+  if (any(is.infinite(prediction))){
+    whichcols <- unique(which(is.infinite(prediction), arr.ind = TRUE)[,2])
+    nm <- colnames(prediction)[whichcols]
+    
+    if (length(intersect(data[[cn]]$name, nm)))
+      warning("Prediction is infinite for observables present in data in condition ", cn, "\n",
+              "The following observables are affected: ", paste0(intersect(data[[cn]]$name, nm), collapse = ", "),
+              "These values are set to zero")
+    
+    if (FLAGNaNInfwarnings)
+      warning("Inf in condition ", cn , " for the following names: ", paste0(nm, collapse = ", "))
+    
+    prediction[is.infinite(prediction)] <- 0
+    attr(prediction, "deriv")[is.infinite(attr(prediction, "deriv"))|is.na(attr(prediction, "deriv"))] <- 0
+    attr(prediction, "sensitivities")[is.infinite(attr(prediction, "sensitivities"))|is.na(attr(prediction, "sensitivities"))] <- 0
+  }
+  prediction
+}

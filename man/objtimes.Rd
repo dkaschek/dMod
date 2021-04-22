@@ -19,4 +19,6 @@ to help the objective function integrator
 }
 \examples{
 objtimes(c(0,30,60,90,600))
+objtimes(c(30,60,90,600))
+objtimes(c(-30,60,90,600))
 }

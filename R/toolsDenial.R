@@ -132,6 +132,8 @@ getSteps <- function(myparframe, nsteps = 5, tol = 1) {
 #'
 #' @examples
 #' objtimes(c(0,30,60,90,600))
+#' objtimes(c(30,60,90,600))
+#' objtimes(c(-30,60,90,600))
 objtimes <- function(datatimes, eventtimes = NULL, Nobjtimes = 25) {
   mint <- min(min(datatimes), 0)
   maxt <- max(datatimes)
@@ -151,12 +153,14 @@ objtimes <- function(datatimes, eventtimes = NULL, Nobjtimes = 25) {
 #' 
 #' @param datatimes 
 #' @param eventtimes 
-#' @param Nobjtimes 
+#' @param Nobjtimes number of time points in total
 #'
-#' @return
+#' @return vector of time points
 #' @export
 #'
 #' @examples
+#' predtimes(c(30,60,60,90))
+#' predtimes(c(-30,60,60,90))
 predtimes <- function(datatimes, eventtimes = NULL, Nobjtimes = 100) {
   mint <- min(min(datatimes), 0)
   maxt <- max(datatimes)

@@ -11,8 +11,7 @@ normL2_indiv(
   est.grid,
   fix.grid,
   times = NULL,
-  attr.name = "data",
-  fixed.conditions = NULL
+  attr.name = "data"
 )
 }
 \arguments{
