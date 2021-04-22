@@ -46,25 +46,25 @@ make_pars <- function(pars, fixed = NULL, est.grid, fix.grid, ID){
   pars_outer  <- pars
   fixed_outer <- fixed
   
-  # Match parameters to est.grid: Need to consider supplied "fixed" as well!s
-  pars <- c(pars, fixed)
-  parnames  <- unlist(est.grid[ID == i])
-  parnames <- parnames[setdiff(names(parnames), c("ID", "condition"))]
+  # Lookup table for supplied grid.outer (entries in grid) to grid.inner (names of grid)
+  parnames  <- unlist(est.grid[ID == i, !c("ID", "condition")])
   parnames <- parnames[!is.na(parnames)]
-  pars <- setNames(pars[parnames], names(parnames))
   
-  # Get Parameters from fix.grid
-  fixed <- unlist(fix.grid[ID == i])
-  fixed <- fixed[setdiff(names(fixed), c("ID", "condition"))]
-  # remove NAs
+  # Get Parameters from grids
+  # Look up names of all supplied
+  supplied <- c(pars, fixed)
+  supplied <- setNames(supplied[parnames], names(parnames))
+  # Get fixed
+  fixed <- unlist(fix.grid[ID == i, !c("ID", "condition")])
   fixed <- fixed[!is.na(fixed)]
   
   # Sort supplied "fixed" parameters back to fixed
-  fixed <- c(fixed, pars[parnames %in% names(fixed_outer)])
-  pars <- pars[!parnames %in% names(fixed_outer)]
+  fixed <- c(fixed, supplied[parnames %in% names(fixed_outer)])
+  pars <- supplied[!parnames %in% names(fixed_outer)]
+  parnames_full <- parnames
   parnames <- parnames[!parnames %in% names(fixed_outer)]
   
-  return(list(pars = unlist(pars), fixed = unlist(fixed), parnames = parnames))
+  return(list(pars = unlist(pars), fixed = unlist(fixed), parnames = parnames, parnames_full = parnames_full))
 }
 
 
