@@ -963,7 +963,8 @@ nll_BLOQ <- function(nout.bloq,
 
 #' @export
 print.objlist <- function(x, n1 = 20, n2 = 6, ...) {
-  
+  n1 <- min(n1,length(x$gradient))
+  n2 <- min(n2,length(x$gradient))
   cat("value\n", "==================\n",x$value, "\n")
   cat("gradient[1:",n1,"] (full length = ",length(x$gradient),")\n", "==================\n", sep = "")
   print(x$gradient[1:n1])
