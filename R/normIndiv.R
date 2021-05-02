@@ -96,8 +96,32 @@ renameDerivPars <- function(pred0, pars, est.grid, cn) {
   derpars[,`:=`(dernmnew = paste0(y, ".", parouter))]
   
   colnames(der) <- c("time", derpars$dernmnew)
+  der <- sumDuplicatedParsInDeriv(der)
+  
   attr(pred0, "deriv") <- der
   pred0
+}
+
+#' Sum redundant columns
+#'
+#' Remove redundancies (happens when a parameter is duplicated and mapped to the same outer parameter). 
+#' For example in est.grid = data.table(ID = 1, init_A = "Atot", Atot= "Atot", ...)
+#'
+#' @param der deriv of a single condition, as used in [renameDerivPars]
+#'
+#' @return der with redundant columns summed and duplicates removed
+sumDuplicatedParsInDeriv <- function(der) {
+  nm <- colnames(der)
+  isDupe <- duplicated(nm)
+  if (!any(isDupe)) {
+    return(der)
+  }
+  nmDupe <- nm[isDupe]
+  for (nmx in nmDupe) {
+    for (i in 1:nrow(der))
+      der[i,nmx] <- sum(der[i,nm == nmx])
+  }
+  der[, !isDupe, drop = FALSE]
 }
 
 
@@ -121,10 +145,50 @@ renameDerivParsInObjlist <- function(objlist, parnames) {
   
   objlist$hessian <- objlist$hessian[names(parnames),names(parnames)]
   dimnames(objlist$hessian) <- list(unname(parnames), unname(parnames))
+  
+  objlist <- sumDuplicatedParsInObjlist(objlist)
+  
   objlist
 }
 
-
+#' Remove redundant outer names
+#'
+#' Remove redundancies (happens when a parameter is duplicated and mapped to the same outer parameter). 
+#' For example in est.grid = data.table(ID = 1, init_A = "Atot", Atot= "Atot", ...)
+#' 
+#' @param objlist objlist with potentially duplicated names
+#'
+#' @return objlist with duplicated gradient and hessian elements summed and redundancies removed
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+#'
+#' @examples
+#' ol <- dMod:::init_empty_objlist(c("S2" = 2, "S3" = 3, S2 = 3))
+#' ol$gradient <- ol$gradient + 1:3
+#' ol$hessian <- ol$hessian + 1:9
+#' sumDuplicatedParsInObjlist(ol)
+sumDuplicatedParsInObjlist <- function(ol) {
+  attrs0 <- attributes(ol)
+  attrs0 <- attrs0[setdiff(names(attrs0), c("names", "class"))]
+  
+  nm <- names(ol$gradient)
+  isDupe <- duplicated(nm)
+  if (!any(isDupe)) {
+    return(ol)
+  }
+  nmDupe <- nm[isDupe]
+  for (nmx in nmDupe) {
+    ol$gradient[nmx] <- sum(ol$gradient[nm == nmx])
+    for (i in 1:ncol(ol$hessian))
+      ol$hessian[nmx,i] <- sum(ol$hessian[nm == nmx,i])
+    for (i in 1:nrow(ol$hessian))
+      ol$hessian[i,nmx] <- sum(ol$hessian[i,nm == nmx])
+  }
+  ol <- objlist(ol$value, ol$gradient[!isDupe], ol$hessian[!isDupe, !isDupe, drop = FALSE])
+  
+  attributes(ol) <- c(attributes(ol), attrs0)
+  ol
+}
 
 #' Add single-valued parameters to the pargrids
 #'
@@ -231,8 +295,8 @@ indiv_addLocalParsToGridList <- function(pars, gridlist, FLAGoverwrite = FALSE) 
   # power move: delete all symbolic columns, replace symbols with NA in remaining cols
   pars_fix[,(parscols) := lapply(.SD, function(x) {
     x <- as.numeric(x)
-  if (all(is.na(x))) {
-    return(NULL)
+    if (all(is.na(x))) {
+      return(NULL)
     } else x}), .SDcols = parscols]
   fix.grid <- pars_fix[fix.grid, on = joincols]
   
@@ -242,7 +306,7 @@ indiv_addLocalParsToGridList <- function(pars, gridlist, FLAGoverwrite = FALSE) 
     numidx <- !is.na(as.numeric(x)); 
     if (all(numidx)) {
       return(NULL)
-      } else replace(x, numidx, NA_character_)}), .SDcols = parscols]
+    } else replace(x, numidx, NA_character_)}), .SDcols = parscols]
   est.grid <- pars_est[est.grid, on = joincols]
   
   gridlist(est.grid = est.grid, fix.grid = fix.grid)
@@ -319,7 +383,7 @@ PRD_indiv <- function(prd0, est.grid, fix.grid) {
   # @param conditions 
   # @param FLAGbrowserN 0: Don't debug, 1: Debug when there is an error, 2: always debug
   # @param FLAGverbose 
-  # @param FLAGrenameDerivPars Needed for datapointL2_indiv, where I need derivs wrt the outer parameters
+  # @param FLAGrenameDerivPars Needed for datapointL2_indiv, where I need derivs wrt the outer parameters. Don't remember what this FLAG could ever be used for except for being TRUE
   #
   # @return
   # @export
@@ -328,7 +392,7 @@ PRD_indiv <- function(prd0, est.grid, fix.grid) {
   prd <- function(times, pars, fixed = NULL, deriv = FALSE, conditions = est.grid$condition, 
                   FLAGbrowserN = 0, 
                   FLAGverbose = FALSE,
-                  FLAGrenameDerivPars = FALSE
+                  FLAGrenameDerivPars = TRUE
   ) {
     out <- lapply(setNames(nm = conditions), function(cn) {
       if (FLAGbrowserN == 2) browser()
@@ -485,7 +549,7 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
       }
       
       if (deriv) mywrss <- renameDerivParsInObjlist(mywrss, dummy$parnames) 
-
+      
       mywrss
     })
     
@@ -532,7 +596,7 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
 #' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
 #' @md
 datapointL2_indiv <- function (name, time, value, sigma = 1, attr.name = "validation", 
-                            condition, prd_indiv) {
+                               condition, prd_indiv) {
   controls <- list(mu = structure(name, names = value)[1], 
                    time = time[1], sigma = sigma[1], attr.name = attr.name)
   
@@ -615,7 +679,7 @@ datapointL2_indiv <- function (name, time, value, sigma = 1, attr.name = "valida
 #' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
 #' @md
 timepointL2_indiv <- function(name, time, value, sigma = 1, attr.name = "timepointL2", 
-                           condition, prd_indiv) {
+                              condition, prd_indiv) {
   
   # [] mu needs to be numeric and time needs tocharacter
   controls <- list(mu = structure(name, names = value)[1], 
