@@ -91,8 +91,8 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   
   # Create interRes folder for cautiousMode
   if (cautiousMode){
-    profiles_interResFolder <- "profiles-interRes"
-    dir.create(profiles_interResFolder,showWarnings = FALSE)
+    interResFolder <- "profiles-interRes"
+    dir.create(interResFolder,showWarnings = FALSE)
   }
   
   
@@ -415,6 +415,15 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                                              y))
                               
                               if(cautiousMode) {
+                                outCautious <- as.data.frame(out)
+                                outCautious$whichPar <- whichPar.name
+                                outCautious <- parframe(
+                                  outCautious,
+                                  parameters = names(pars),
+                                  metanames = c("value", "constraint", "stepsize", "gamma", "whichPar"),
+                                  obj.attributes = names(out.attributes)
+                                )
+                                dput(outCautious, file = file.path(interResFolder, paste0(whichPar.name, "-right.R")))
                               }
                               
                               value <- lagrange.out[[sControl$stop]]
@@ -476,6 +485,19 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                                              out.attributes,
                                              y), 
                                            out)
+                              
+                              if(cautiousMode) {
+                                outCautious <- as.data.frame(out)
+                                outCautious$whichPar <- whichPar.name
+                                outCautious <- parframe(
+                                  outCautious,
+                                  parameters = names(pars),
+                                  metanames = c("value", "constraint", "stepsize", "gamma", "whichPar"),
+                                  obj.attributes = names(out.attributes)
+                                )
+                                dput(outCautious, file = file.path(interResFolder, paste0(whichPar.name, "-left.R")))
+                              }
+                              
                               
                               value <- lagrange.out[[sControl$stop]]
                               if (value > threshold | constraint.out$value < limits[1]) break
