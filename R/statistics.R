@@ -958,7 +958,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     # Write current fit to disk
     if (output) {
       saveRDS(fit, file = file.path(interResultFolder, paste0("fit-", i, ".Rda")))
-      
+      dput(fit, file = file.path(interResultFolder, paste0("fit-", i, ".R")))
       # Reporting
       # With concurent jobs and everyone reporting, this is a classic race
       # condition. Assembling the message beforhand lowers the risk of interleaved
