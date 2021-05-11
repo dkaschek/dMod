@@ -633,6 +633,13 @@ datapointL2_indiv <- function (name, time, value, sigma = 1, attr.name = "valida
     if (withDeriv) 
       deriv <- attr(prediction[[condition]], "deriv")[time.index, ]
     pred <- pred[mu]
+    
+    # prd_indiv doesn't return the same derivpars in all conditions 
+    derivnm_split <- strsplit(names(deriv), "\\.")
+    derivnm_split <- lapply(derivnm_split, function(x) x[2])
+    derivnm_split <- do.call(c, derivnm_split)
+    parapar <- parapar[parapar %in% derivnm_split]
+    
     if (withDeriv) {
       mu.para <- intersect(paste(mu, parapar, sep = "."), 
                            names(deriv))
@@ -642,14 +649,16 @@ datapointL2_indiv <- function (name, time, value, sigma = 1, attr.name = "valida
     val <- as.numeric((res/sigma)^2)
     gr <- NULL
     hs <- NULL
+    
+
     if (withDeriv) {
       dres.dp <- structure(rep(0, length(pouter)), names = names(pouter))
       if (length(parapar) > 0) 
         dres.dp[parapar] <- as.numeric(deriv)
       if (length(datapar) > 0) 
         dres.dp[datapar] <- -1
-      gr <- 2 * res * dres.dp/sigma^2
-      hs <- 2 * outer(dres.dp, dres.dp, "*")/sigma^2
+      gr[names(parapar)] <- 2 * res * dres.dp/sigma^2
+      hs[names(parapar), names(parapar)] <- 2 * outer(dres.dp, dres.dp, "*")/sigma^2
       colnames(hs) <- rownames(hs) <- names(pouter)
     }
     out <- objlist(value = val, gradient = gr, hessian = hs)
