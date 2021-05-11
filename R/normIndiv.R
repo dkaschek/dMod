@@ -657,8 +657,8 @@ datapointL2_indiv <- function (name, time, value, sigma = 1, attr.name = "valida
         dres.dp[parapar] <- as.numeric(deriv)
       if (length(datapar) > 0) 
         dres.dp[datapar] <- -1
-      gr[names(parapar)] <- 2 * res * dres.dp/sigma^2
-      hs[names(parapar), names(parapar)] <- 2 * outer(dres.dp, dres.dp, "*")/sigma^2
+      gr <- 2 * res * dres.dp/sigma^2
+      hs <- 2 * outer(dres.dp, dres.dp, "*")/sigma^2
       colnames(hs) <- rownames(hs) <- names(pouter)
     }
     out <- objlist(value = val, gradient = gr, hessian = hs)
