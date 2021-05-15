@@ -58,6 +58,9 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                     cores = 1,
                     cautiousMode = FALSE,
                     ...) {
+  # Ensure that obj is defined in this environment such that it is copied to the parallel workers
+  force(obj)
+  
   
   # Guarantee that pars is named numeric without deriv attribute
   dotArgs <- list(...)
@@ -808,20 +811,13 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   # Gather all function arguments
   varargslist <- list(...)
   
-  argslist <- as.list(formals())
-  argslist <- argslist[names(argslist) != "..."]
-  
-  argsmatch <- as.list(match.call(expand.dots = TRUE))
-  namesinter <- intersect(names(argslist), names(argsmatch))
-  
-  argslist[namesinter] <- argsmatch[namesinter]
+  argslist <- list(
+    objfun = objfun, center = center, studyname = studyname,
+    rinit = rinit, rmax = rmax, fits = fits, 
+    cores = cores, optmethod = optmethod, samplefun = samplefun, 
+    resultPath = resultPath, stats = stats, output = output, 
+    cautiousMode = cautiousMode)
   argslist <- c(argslist, varargslist)
-  
-  # 
-  argslist[["objfun"]] <- force(objfun)
-  argslist[["center"]] <- force(center)
-  argslist[["rinit"]] <- force(rinit)
-  argslist[["rmax"]] <- force(rmax)
   
   # Add extra arguments
   argslist$n <- length(center) # How many inital values do we need?
@@ -869,7 +865,6 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   resultFolder <- file.path(resultFolderBase, paste0(m_trial, "-", m_timeStamp))
   
   interResultFolder <- file.path(resultFolder, "interRes")
-  writeLines(interResultFolder, "interResultFolder.txt")
   dir.create(path = interResultFolder, showWarnings = FALSE, recursive = TRUE)
   
   # Files
