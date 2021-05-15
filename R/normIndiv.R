@@ -554,8 +554,7 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
     })
     
     # Sum all objlists
-    objlists <- c(list(init_empty_objlist(c(pars, fixed), deriv = deriv)), objlists)
-    out <- Reduce("+", objlists)
+    out <- Reduce("+", c(list(init_empty_objlist(c(pars, fixed), deriv = deriv)), objlists))
     
     # Consider fixed: return only derivs wrt pouter
     out$gradient <- out$gradient[names(pars)]

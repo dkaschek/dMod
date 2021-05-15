@@ -869,6 +869,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   resultFolder <- file.path(resultFolderBase, paste0(m_trial, "-", m_timeStamp))
   
   interResultFolder <- file.path(resultFolder, "interRes")
+  writeLines(interResultFolder, "interResultFolder.txt")
   dir.create(path = interResultFolder, showWarnings = FALSE, recursive = TRUE)
   
   # Files
