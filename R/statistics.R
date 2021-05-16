@@ -1056,8 +1056,11 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
   if (output) saveRDS(m_parlist, file = fileParList)
   
   # Remove temporary files
-  if (!cautiousMode) unlink(interResultFolder, recursive = TRUE)
-  
+  if (!cautiousMode) {
+    unlink(interResultFolder, recursive = TRUE)
+  } else {
+    for (f in list.files(interResultFolder, "Rda$")) unlink(f)
+  }
   
   # Show summary
   sum.error <- sum(idxStatus == m_trustFlags.error)
