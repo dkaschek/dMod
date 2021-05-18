@@ -8,7 +8,7 @@
 #' @param file Name of the file to which the steady-state equations are saved.
 #' @param rates Character vector, flux vector of the system
 #' @param forcings Character vector with the names of the forcings
-#' @param givenCQs Character vector with conserved quantities. Use the format c("A + pA = totA", "B + pB = totB"). If NULL, conserved quantities are automatically calculated.
+#' @param givenCQs (Unnamed) Character vector with conserved quantities. Use the format c("A + pA = totA", "B + pB = totB"). The format c("A + pA", "B + pB") works also. If NULL, conserved quantities are automatically calculated.
 #' @param neglect Character vector with names of states and parameters that must not be used for solving the steady-state equations
 #' @param sparsifyLevel numeric, Upper bound for length of linear combinations used for simplifying the stoichiometric matrix
 #' @param outputFormat Define the output format. By default "R" generating dMod 
