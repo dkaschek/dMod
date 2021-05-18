@@ -40,6 +40,10 @@ steadyStates <- function(model, file=NULL, rates = NULL, forcings = NULL, givenC
     model <- paste0(file, "_model.csv")    
   }
 
+  if (!is.null(givenCQs) && length(names(givenCQs)) > 0) 
+    stop("givenCQs must not have names. Please unname() them.")
+  
+  
   # Calculate steady states.
   source_python(system.file("code/AlyssaPetit_ver1.0.py", package = "dMod"))
   m_ss <- Alyssa(model, as.list(forcings), as.list(givenCQs), as.list(neglect), sparsifyLevel, outputFormat)
