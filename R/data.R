@@ -31,6 +31,7 @@ res <- function(data, out, err = NULL) {
   # Match unique times/names in out times/names
   out.time <- match.num(times, out[,1])
   out.name <- match(names, colnames(out))
+  if (any(is.na(out.name))) stop("The following observable in data does not have a prediction: ", paste0(setdiff(names, colnames(out)), collapse = ","))
   # Match data times/names in out times/names
   timeIndex <- out.time[data.time]
   nameIndex <- out.name[data.name]
