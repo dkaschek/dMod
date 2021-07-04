@@ -143,7 +143,7 @@ renameDerivParsInObjlist <- function(objlist, parnames) {
   objlist$gradient <- objlist$gradient[names(parnames)]
   names(objlist$gradient) <- unname(parnames)
   
-  objlist$hessian <- objlist$hessian[names(parnames),names(parnames)]
+  objlist$hessian <- objlist$hessian[names(parnames),names(parnames), drop = FALSE]
   dimnames(objlist$hessian) <- list(unname(parnames), unname(parnames))
   
   objlist <- sumDuplicatedParsInObjlist(objlist)
