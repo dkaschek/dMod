@@ -24,7 +24,7 @@ steadyStates(
 
 \item{forcings}{Character vector with the names of the forcings}
 
-\item{givenCQs}{Character vector with conserved quantities. Use the format c("A + pA = totA", "B + pB = totB"). If NULL, conserved quantities are automatically calculated.}
+\item{givenCQs}{(Unnamed) Character vector with conserved quantities. Use the format c("A + pA = totA", "B + pB = totB"). The format c("A + pA", "B + pB") works also. If NULL, conserved quantities are automatically calculated.}
 
 \item{neglect}{Character vector with names of states and parameters that must not be used for solving the steady-state equations}
 
