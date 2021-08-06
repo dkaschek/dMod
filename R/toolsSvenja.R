@@ -34,15 +34,18 @@ plotArray <- function (par, profs, prd, times, direction = c("up", "down"), covt
   partable <- mysubF[seq(1, nrow(mysubF), (round(nrow(mysubF)/nsimus)))]
   
   # remove non_parameter names
-  no_pars <- c("value", "constraint", "stepsize", "gamma", "whichPar", "data", "condition_obj", "AIC", "BIC", "prior", "ID")
+  no_pars <- c("value", "constraint", "stepsize", "gamma", "whichPar", "data", "condition_obj", "AIC", "BIC", "prior", "ID", "chisquare")
   partable %>% .[, (no_pars) := NULL]
   
   # make predictions
-  predictionDT <- predict_array(prd, times, pars = partable, whichpar = par)
+  predictionDT <- predict_array_mod(prd, times, pars = partable, whichpar = par)
   out_plot <- copy(predictionDT)
   
   # use covtable for subsetting of the plot
   if(!is.null(covtable)) {
+    if(!"condition" %in% names(covtable)){
+      covtable <- as.data.table(covtable, keep.rownames = "condition")
+    } else covtable <- as.data.table(covtable)
     out_plot <- merge(out_plot, covtable, by = "condition")
     out_plot <- out_plot[...]
   }
