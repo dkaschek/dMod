@@ -129,7 +129,7 @@ as.parframe.parlist <- function(x, sort.by = "value", ...) {
                            iterations = vapply(x[m_idx], function(.x) as.integer(.x$iterations), 1L))
   
   parameters <- lapply(x[m_idx], function(x) data.table::as.data.table(as.list(x$argument)))
-  parameters <- data.table::rbindlist(parameters)
+  parameters <- data.table::rbindlist(parameters, use.names = TRUE)
   m_parframe <- cbind(m_parframe, parameters)
   
   # Sort by value
