@@ -118,7 +118,9 @@ Pexpl <- function(trafo, parameters=NULL, attach.input = FALSE, condition = NULL
     if(deriv) {
       
       jac.matrix <- matrix(0, nrow = length(pinner), ncol = length(args), dimnames = list(names(pinner), names(args)))
-      jac.matrix[1:length(pinner), match(parameters, names(args))] <- dPEval(p = args)[1,]
+      col.idx <- match(parameters, names(args))
+      if(any(is.na(col.idx))) stop("Parameters are not found in input arguments:\n", paste0(parameters[is.na(col.idx)], collapse = ", "), "\n=========Input parameters were:\n", paste0(names(args), ", "))
+      jac.matrix[1:length(pinner), col.idx] <- dPEval(p = args)[1,]
       jac.matrix <- jac.matrix[, names(p), drop = FALSE] # delete fixed
   
       dP <- attr(p, "deriv", exact = TRUE)

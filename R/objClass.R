@@ -901,6 +901,13 @@ nll_BLOQ <- function(nout.bloq,
 #' @aliases sumobjlist
 #' @export "+.objlist"
 #' @export
+#' 
+#' @examples 
+#' objlist1 <- dMod:::init_empty_objlist(c(a = 1, b = 2))
+#' objlist1$value  = 1; objlist1$gradient[1:2] <- 1; objlist1$hessian[1:4] <- 1
+#' objlist2 <- dMod:::init_empty_objlist(c(a = 1, d = 2))
+#' objlist2$value  = 1; objlist2$gradient[1:2] <- 1; objlist2$hessian[1:4] <- 1
+#' objlist1 + objlist2
 "+.objlist" <- function(out1, out2) {
   
   if (is.null(out1)) return(out2)
@@ -959,6 +966,25 @@ nll_BLOQ <- function(nout.bloq,
   class(out12) <- "objlist"
   return(out12)
 }
+
+
+#' @export
+print.objlist <- function(x, n1 = 20, n2 = 6, ...) {
+  n1 <- min(n1,length(x$gradient))
+  n2 <- min(n2,length(x$gradient))
+  cat("value\n", "==================\n",x$value, "\n")
+  cat("gradient[1:",n1,"] (full length = ",length(x$gradient),")\n", "==================\n", sep = "")
+  print(x$gradient[1:n1])
+  cat("\n")
+  cat("hessian[1:",n2,",1:",n2,"]","\n", "==================\n", sep = "")
+  print(x$hessian[1:n2,1:n2])
+  cat("\n\n")
+  cat("attributes\n", "==================\n")
+  cat(capture.output(str(attributes(x), max.level = 1)), sep = "\n")
+  
+}
+
+
 
 #' @export
 print.objfn <- function(x, ...) {

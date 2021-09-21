@@ -1,484 +1,865 @@
-
-# normIndiv ----
+# -------------------------------------------------------------------------#
+# normIndiv - internals ----
+# -------------------------------------------------------------------------#
 
 #' @export
-#' @rdname normL2
-normIndiv <- function(data,
-                      prd0,
-                      errmodel = NULL,
-                      forcings = NULL,
-                      iiv = NULL,
-                      conditional = NULL,
-                      fixed.grid,
-                      nauxtimes = 500,
-                      cores = 1,
-                      deriv = TRUE,
-                      attr.name = "data"
-) {
-  
-  # .. 1 Conditions ----- #
-  x.conditions <- names(fixed.grid)[-(1:2)]
-  e.conditions <- names(attr(errmodel, "mappings"))
-  prd0.conditions <- dMod::getConditions(prd0)
-  data.conditions <- names(data)
-  
-  
-  if (!all(data.conditions %in% x.conditions))
-    stop("The prediction function does not provide predictions for all conditions in the data.")
-  
-  cn_prd <- NULL
-  if (length(prd0.conditions) > 0) {
-    cn_prd <- prd0.conditions[1]
-    warning("prd0 contains named conditions. Only ", cn_prd, "will be used.\n",
-            "Preferably, use a general prediction function with no specific conditions.")
-  }
-  
-  # .. 2 Simulation times ----- #
-  timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))
-  timesD <- sort(union(timesD, seq(min(timesD), max(timesD), length.out = nauxtimes)))
-  
-  # .. 3 Optimization options ----- #
-  if (Sys.info()["sysname"] == "Windows" & cores > 1) {
-    warning("Parallelization of conditions on Windows not yet implemented. Unsing only 1 core.")
-    cores <- 1
-  }
-  # [] If more optizers come, one might want to define global variable with derivative-based/free optimizers
-  useDerivs <- deriv
-  
-  # .. 4 BLOQ options ----- #
-  opt.BLOQ = c("M3", "M4NM", "M4BEAL", "M1")
-  opt.hessian = c(
-    ALOQ_part1 = TRUE, ALOQ_part2 = TRUE, ALOQ_part3 = TRUE,
-    BLOQ_part1 = TRUE, BLOQ_part2 = TRUE, BLOQ_part3 = TRUE,
-    PD = TRUE  # enforce Hessian to be positive semidefinite, by setting nearest negative eigenvalues to zero
-  )
-  
-  # .. 5 Construct est.grid ----- #
-  est.grid <- build_est.grid(prd0 = prd0, fixed.grid = fixed.grid, conditional = conditional, condition.grid = attr(data, "condition.grid"), iiv = iiv)
-  parameters <- getParameters_est.grid(est.grid)
-  
-  # .. 6 Controls ----- #
-  controls <- list(timesD = timesD, attr.name = attr.name,
-                   conditions = x.conditions,
-                   opt.BLOQ = opt.BLOQ, opt.hessian = opt.hessian)
-  
-  # -------------------------------------------------------------------------#
-  # Objective Function ---- #
-  # -------------------------------------------------------------------------#
-  myfn <- function(...,
-                   fixed = NULL,
-                   deriv=useDerivs,
-                   conditions = controls$conditions,
-                   # env = NULL,
-                   opt.BLOQ    = controls$opt.BLOQ,
-                   opt.hessian = controls$opt.hessian,
-                   returnResiduals = FALSE) {
-    
-    # .. 1 BLOQ options ----- #
-    opt.hessian <- c(opt.hessian, controls$opt.hessian[setdiff(names(controls$opt.hessian), names(opt.hessian))])
-    opt.BLOQ    <- opt.BLOQ[1]
-    
-    # .. 2 Passed parameters ----- #
-    arglist    <- list(...)
-    arglist    <- arglist[dMod::match.fnargs(arglist, "pars")]
-    parsouter  <- arglist[[1]]
-    fixedouter <- fixed
-    
-    if (!is.null(attr(parsouter, "deriv"))){
-      parsouter <- unclass(parsouter)
-      attr(parsouter, "deriv") <- NULL
-      # TODO
-      # Implement chain rule for this function to allow function concatenation with to the right:
-      # obj_indiv*p(pars) does not work
-      # warning("The 'deriv' attribute of the pars-argument to obj_data has been set to NULL")
-    }
-    
-    # .. 3 Evaluate norm ----- #
-    outlist <- parallel::mclapply(conditions, function(cn) {
-      # outlist <- lapply(conditions, function(cn) {
-      
-      # .... 1 Parameters ------ #
-      # Fill general pars with individual values
-      dummy  <- make_pars(parsouter = parsouter, fixedouter = fixedouter, condition = cn, est.grid = est.grid,  fixed.grid = fixed.grid)
-      pars0  <- dummy$pars
-      fixed0 <- dummy$fixed
-      
-      
-      # .... 2 Prediction ------ #
-      prediction <- prd0(times = controls$timesD, pars = pars0, fixed = fixed0, deriv = deriv, conditions = cn_prd)
-      
-      if (nrow(prediction[[1]]) < length(timesD))
-        warning("Integrator has problems reaching tmax. Try increasing nauxtimes")
-      
-      
-      # .... 3 Calculate residuals ------ #
-      
-      # Skip condition if the data does not provide any observation for the prediction of the prd function.
-      if (length(intersect(data[[cn]][["name"]], colnames(prediction[[1]]))) == 0){
-        mywrss <- init_empty_objlist(pars0, deriv = deriv)
-        mywrss <- rename_objlist(mywrss, cn, est.grid)
-        return(mywrss)
-      }
-      err <- NULL
-      if (!is.null(errmodel) && (is.null(e.conditions) | (cn %in% e.conditions)))
-        err <- errmodel(out = prediction[[1]], pars = dMod::getParameters(prediction[[1]]), conditions = cn) 
-      nout <- res(data[[cn]], prediction[[1]], err[[cn]])
-      mywrss <- nll(nout = nout, pars = pars0, deriv = deriv)
-      chisquare <- attr(mywrss, "chisquare")
-      # .... 4 Rename general parnames into individual parnames ------ #
-      mywrss <- rename_objlist(mywrss, cn, est.grid)
-      if (returnResiduals) attr(mywrss, "residuals") <- cbind(condition = cn, nout)
-      return(mywrss)
-      # })
-    }, mc.cores = cores)
-    
-    # Remove list elements which could not be evaluated
-    failed <- vapply(outlist, is.character, FUN.VALUE = FALSE)
-    if (any(failed))
-      warning("Objective function could not be evaluated for conditions", paste0(conditions[failed], collapse = ", "))
-    outlist <- outlist[!failed]
-    if (length(outlist) == 0)
-      stop("Objective function could not be evaluated for any of the conditions.")
-    
-    # Extract values, gradients and hessians
-    values    <- lapply(outlist, function(x) x[["value"]]+1e6*sum(failed))
-    gradients <- lapply(outlist, function(x) x[["gradient"]])
-    hessians  <- lapply(outlist, function(x) x[["hessian"]])
-    residuals <- do.call(rbind, lapply(outlist, function(x) attr(x, "residuals")))
-    
-    # Generate output list with combined value, gradient and hessian
-    out <- init_empty_objlist(parsouter, deriv = deriv)
-    out[["value"]] <- Reduce("+", values)
-    if (deriv) {
-      for (grad in gradients) out$gradient[names(grad)]                 <- out$gradient[names(grad)] + grad
-      for (hes in hessians)   out$hessian[rownames(hes), colnames(hes)] <- out$hessian[rownames(hes), colnames(hes)] + hes
-    }
-    
-    
-    nearPD2 <- function (x, corr = FALSE){
-      # Ensure symmetry
-      X <- 0.5*(x+t(x))
-      # Eigenvalue decomposition
-      e <- eigen(X)
-      # Determine eigenvalues
-      # If all >0 then do nothing
-      # If minimum smaller than -1e-4 then do nothing
-      # If minimum larger than -1e-4 then do the algorithm
-      eV <- e$values
-      if (min(eV) > 0) return(X)
-      # Adjust negative eigenvalues to 0
-      eV[eV<0] <- 0
-      Xout <- e$vectors %*% diag(eV) %*% ginv(e$vectors)
-      if (corr) diag(Xout) <- 1
-      return(Xout)
-    }
-    
-    if (opt.hessian["PD"] & deriv) {
-      dn <- dimnames(out$hessian)
-      out$hessian <- nearPD2(out$hessian)
-      dimnames(out$hessian) <- dn
-    }
-    
-    # Combine contributions and attach attributes
-    attr(out, controls$attr.name) <- out$value
-    
-    # Add residuals if available
-    out[["residuals"]] <- residuals
-    
-    # Add chisquare to outputs
-    attr(out, "chisquare") <- Reduce("+", c(0, do.call(c,lapply(outlist, attr, which = "chisquare"))))
-    
-    return(out)
-  }
-  
-  
-  # -------------------------------------------------------------------------#
-  # Other Indiv functions ---- #
-  # -------------------------------------------------------------------------#
-  myparfn <- Reduce("+", lapply(controls$conditions, function(cn) {
-    parfn(
-      p2p = function(pars, fixed, deriv) {
-        dummy <- make_pars(parsouter = pars, fixedouter = fixed, condition = cn, est.grid = est.grid,  fixed.grid = fixed.grid)
-        pars0  <- dummy$pars
-        fixed0 <- dummy$fixed
-        as.parvec(c(pars0, fixed0))
-      },
-      parameters = parameters,
-      condition = cn
-    )
-  }))
-  
-  class(myfn) <- c("objfn", "fn")
-  attr(myfn, "conditions") <- data.conditions
-  attr(myfn, "parameters") <- parameters
-  attr(myfn, "modelname")  <- dMod::modelname(prd0, errmodel)
-  attr(myfn, "p_indiv")    <- myparfn
-  
-  return(myfn)
-  
-  
-}
+unclass_parvec <- function(x) {setNames(unclass(x)[1:length(x)], names(x))}
 
-
-# Grid-related functions ----
-
-#' Build the est.grid from prd, fixed.grid, conditional and condition.grid
+#' Extract pars, fixed and parnames from grids for a given condition
 #'
-#' Performs indiviudalization and localization of parameters
+#' @param est.vec 
+#' @param est.grid needs condition and ID
+#' @param fix.grid 
+#' @param ID 
 #'
-#' @param prd0 prdfn for 1 condition. Extracts parameters via dMod::getParameters
-#' @param fixed.grid As specified in template_project_sysfit.R: data.frame(parname, partask, ids...)
-#' @param conditional As specified in template_project_sysfit.R: data.frame(parname, covname, covvalue)
-#' @param condition.grid from datalist
-#'
-#' @return est.grid data.frame(parname, ids...)
+#' @return
+#' @export
 #'
 #' @examples
-#' prd0 <- dMod::P(c(a = "exp(a + ETA_a)", "b" = "b", d = "d"))
-#' fixed.grid <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = 1, "2" = NA, "3" = NA, stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
-#' conditional <- data.frame(parname = c("b", "b", "d"), covname = "SEX", covvalue = c("male", "female", "male"), stringsAsFactors = FALSE)
-#' condition.grid <- data.frame(ID = 1:3, SEX = c("female", "male", "male"), stringsAsFactors = FALSE)
-#' iiv <- "ETA_a"
-#' build_est.grid(prd0, fixed.grid, conditional, condition.grid, iiv)
-build_est.grid <- function(prd0, fixed.grid, conditional, condition.grid, iiv = NULL) {
-  # [] unit test?
-  check_cond(conditional, condition.grid)
+#' pars <- c("k1_A" = 1, "k1_B" = 1, "k2_A" = 2, "k3" = 3, "k4" = 4)
+#' fixed <- c("k2_B" = 2.5)
+#' 
+#' est.grid <- data.frame(ID = 1:2,
+#'                        condition = c("A", "B"),
+#'                        k1 = c("k1_A", "k1_B"),
+#'                        k2 = c("k2_A", "k2_B"),
+#'                        k3 = c("k3", NA),
+#'                        k4 = c("k4", "k4"),
+#'                        stringsAsFactors = FALSE)
+#' fix.grid <- data.frame(ID = 1:2,
+#'                        condition = c("A", "B"),
+#'                        k3 = c(NA, 3.5),
+#'                        k5 = c(5.1,5.2),
+#'                        k6 = c(6,6),
+#'                        stringsAsFactors = FALSE)
+#' make_pars(pars, fixed, est.grid, fix.grid, 1)
+#' make_pars(pars, fixed, est.grid, fix.grid, 2)
+make_pars <- function(pars, fixed = NULL, est.grid, fix.grid, ID){
   
-  parameters     <- dMod::getParameters(prd0)
-  parameters_est <- setdiff(parameters, fixed.grid$parname)
-  parameters_est <- union(parameters_est, conditional$parname)
-  ids            <- condition.grid$condition
+  i <- ID
+  est.grid <- as.data.table(est.grid)
+  fix.grid <- as.data.table(fix.grid)
   
-  est.grid <- matrix(parameters_est, nrow = length(parameters_est), ncol = nrow(condition.grid), dimnames = list(parameters_est, ids))
-  # 1 ETAs - iiv
-  if (length(iiv))
-    est.grid[iiv,] <- matrix(paste0(t(est.grid[iiv,,drop = FALSE]), "_", ids), ncol = length(ids), byrow = TRUE)
-  # 2 LOCmodel
-  if (length(conditional$parname)){
-    for (x in seq_along(conditional$parname)) {
-      # 1 Replace est pars by localized pars
-      cn      <- conditional[x,, drop = FALSE]
-      ids_est <- as.character(condition.grid$condition[as.character(condition.grid[[cn$covname]]) == as.character(cn$covvalue)])
-      est.grid[cn$parname,ids_est] <- paste0(est.grid[cn$parname,ids_est], "_", cn$covname, "_", cn$covvalue)
-      
-      if (length(intersect(cn$parname, fixed.grid$parname))){
-        # 2 Replace fixed localized pars by NA
-        ids_fix <- vapply(fixed.grid[fixed.grid$parname == cn$parname, -c(1:2)], function(y) !is.na(y), TRUE)
-        ids_fix <- names(ids_fix)[ids_fix]
-        est.grid[cn$parname,ids_fix] <- NA
-      }
-    }
-  }
-  # 3 Output data.frame
-  # [] Handle partask properly
-  est.grid <- cbind(data.frame(parname = parameters_est, partask = parameters_est, stringsAsFactors = FALSE),
-                    est.grid, stringsAsFactors = FALSE)
-  rownames(est.grid) <- NULL
+  pars        <- unclass_parvec(pars)
+  fixed       <- unclass_parvec(fixed)
   
-  check_grids(fixed.grid, est.grid)
+  pars_outer  <- pars
+  fixed_outer <- fixed
   
-  est.grid
+  # Lookup table for supplied grid.outer (entries in grid) to grid.inner (names of grid)
+  parnames  <- unlist(est.grid[ID == i, !c("ID", "condition")])
+  parnames <- parnames[!is.na(parnames)]
+  
+  # Get Parameters from grids
+  # Look up names of all supplied
+  supplied <- c(pars, fixed)
+  supplied <- setNames(supplied[parnames], names(parnames))
+  # Get fixed
+  fixed <- unlist(fix.grid[ID == i, !c("ID", "condition")])
+  fixed <- fixed[!is.na(fixed)]
+  
+  # Sort supplied "fixed" parameters back to fixed
+  fixed <- c(fixed, supplied[parnames %in% names(fixed_outer)])
+  pars <- supplied[!parnames %in% names(fixed_outer)]
+  parnames_full <- parnames
+  parnames <- parnames[!parnames %in% names(fixed_outer)]
+  
+  return(list(pars = unlist(pars), fixed = unlist(fixed), parnames = parnames, parnames_full = parnames_full))
 }
 
 
-#' Extract parameter names from est.grid
-#'
-#' @param est.grid data.frame(parname, partask, ids...)
-#'
-#' @return character of outer parameter names
-#'
-#' @examples
-#' eg_good <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = NA, "2" = "dummy", "3" = "dummy", stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
-#' getParameters_est.grid(eg_good)
-getParameters_est.grid <- function(est.grid) {
-  parameters <- unique(unlist(est.grid[-(1:2)], use.names = FALSE))
-  parameters <- parameters[!is.na(parameters)]
-  parameters <- sort(parameters)
-  parameters
-}
-
-
-
-
-#' Extract individualized parameters for one ID 
+#' Update attr(prediction, "deriv") to correct par.grid.outer names
 #' 
-#' From the outer individualized parsouter and fixedouter, get the generalized parsouter0, fixedouter0 to supply to prd0
-#' 
-#' Catch the following two cases:
-#' * Entry in est.grid is NA                 => Parameter value present in fixed.grid
-#' * Parameter name not present in parsouter => Parameter value present in fixed_outer
-#' 
-#' @param parsouter,fixedouter Arguments which are passed to the function returned by [normIndiv]
-#' @param condition The specific condition for which the parameters should be extracted
-#' @param est.grid,fixed.grid Lookup tables.
 #'
+#' @param pred0 prd0(times,pars)[[1]]
+#' @param pars pars
+#' @param est.grid est.grid
+#' @param cn name of condition
+#'
+#' @return pred0 with updated deriv argument
+#' 
+#' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
 #' @md
-#' @return list(pars, fixed) to put into prd0
+renameDerivPars <- function(pred0, pars, est.grid, cn) {
+  der <- attr(pred0, "deriv")
+  dernm <- setdiff(colnames(der), "time")
+  derpars <- do.call(rbind,strsplit(dernm, ".", fixed = TRUE))
+  derpars <- data.table(derpars)
+  setnames(derpars, c("y", "parinner"))
+  
+  eg <- data.table(est.grid)[condition == cn, !c("condition", "ID")]
+  eg <- data.table(t(eg), keep.rownames = "parinner")
+  setnames(eg, "V1", "parouter")
+  
+  derpars <- eg[derpars, on ="parinner"]
+  derpars[,`:=`(dernmnew = paste0(y, ".", parouter))]
+  
+  colnames(der) <- c("time", derpars$dernmnew)
+  der <- sumDuplicatedParsInDeriv(der)
+  
+  attr(pred0, "deriv") <- der
+  pred0
+}
+
+#' Sum redundant columns
 #'
-#' @importFrom stats setNames
-make_pars <- function(parsouter, fixedouter, condition, est.grid,  fixed.grid) {
-  
-  # 1 Generate lookup for outer parameters
-  outer_lookup <- stats::setNames(est.grid[[condition]], est.grid[["parname"]])
-  outer_lookup <- outer_lookup[!is.na(outer_lookup)]
-  
-  # 2 Generate vector of all supplied "outer pars" to look things up
-  outer.vec <- c(parsouter, fixedouter)
-  
-  # 3.1 Look up est parameters
-  pars_lookup <- outer_lookup[outer_lookup %in% names(parsouter)]
-  pars0 <- NULL
-  if (length(pars_lookup))
-    pars0 <- stats::setNames(parsouter[pars_lookup], names(pars_lookup))
-  
-  # 3.2 Look up fixed parameters
-  fixed_lookup <- outer_lookup[outer_lookup %in% names(fixedouter)]
-  fixedouter <- NULL
-  if (length(fixed_lookup))
-    fixedouter <- stats::setNames(fixedouter[fixed_lookup], names(fixed_lookup))
-  
-  # 4 Get fixed parameters from fixed.grid and combine with fixedouter
-  fixed0 <- NULL
-  if (nrow(fixed.grid)){
-    fixed0 <- stats::setNames(fixed.grid[[condition]], fixed.grid[["parname"]])
-    fixed0 <- fixed0[!is.na(fixed0)]
+#' Remove redundancies (happens when a parameter is duplicated and mapped to the same outer parameter). 
+#' For example in est.grid = data.table(ID = 1, init_A = "Atot", Atot= "Atot", ...)
+#'
+#' @param der deriv of a single condition, as used in [renameDerivPars]
+#'
+#' @return der with redundant columns summed and duplicates removed
+sumDuplicatedParsInDeriv <- function(der) {
+  nm <- colnames(der)
+  isDupe <- duplicated(nm)
+  if (!any(isDupe)) {
+    return(der)
   }
-  fixed0 <- c(fixed0, fixedouter)
-  
-  # 5 Output
-  list(pars = pars0, fixed = fixed0)
+  nmDupe <- nm[isDupe]
+  for (nmx in nmDupe) {
+    for (i in 1:nrow(der))
+      der[i,nmx] <- sum(der[i,nm == nmx])
+  }
+  der[, !isDupe, drop = FALSE]
 }
 
 
-#' Do some consistency checks on conditional and condition.grid
+#' Rename the gradient and hessian of an objlist
 #'
-#' @param conditional see [normL2]
-#' @param condition.grid condition.grid from data
+#' @param objlist an objlist with grid.inner parnames 
+#' @param parnames vector(grid.inner = grid.outer), e.g. as the `parnames` element from the result of [make_pars()]
+#'
+#' @return objlist with new names
+#' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
 #' @md
-check_cond <- function(conditional, condition.grid) {
-  if (length(setdiff(conditional$covname, names(condition.grid))))
-    stop("The following covariates to individualize parameters are not available: ", paste0(setdiff(conditional$covname, names(condition.grid)), collapse = ", "))
-  
-  cov_values <- unique(unlist(condition.grid[conditional$covname], use.names = FALSE))
-  if (length(setdiff(conditional$covvalue, cov_values)))
-    stop("The following covariate values to individualize parameters are not available: ", paste0(setdiff(conditional$covvalue, cov_values), collapse = ", "))
-}
-
-
-
-#' Some consistency checks for fixed.grid and est.grid
-#'
-#' * Checks for localized parameters appearing in both grids that exactly one NA is in either of the grids
-#' * More to come ...
-#'
-#' @param fixed.grid,est.grid data.frame(parname, partask, ids...)
-#'
-#' @return TRUE: All tests passed, else an error is thrown
 #'
 #' @examples
-#' fg <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = 1, "2" = NA, "3" = NA, stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
-#' eg_good <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = NA, "2" = "dummy", "3" = "dummy", stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
-#' eg_bad1 <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = NA, "2" = NA, "3" = "dummy", stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
-#' eg_bad2 <- stats::setNames(data.frame(parname = "d", partask = "Cond_specific", "1" = "dummy", "2" = "dummy", "3" = "dummy", stringsAsFactors = FALSE), c("parname", "partask", as.character(1:3)))
+#' ol <- dMod:::init_empty_objlist(c(a = 1, b = 2))
+#' parnames <- c(a = "c", b = "d")
+#' renameDerivParsInObjlist(ol, parnames)
+renameDerivParsInObjlist <- function(objlist, parnames) {
+  objlist$gradient <- objlist$gradient[names(parnames)]
+  names(objlist$gradient) <- unname(parnames)
+  
+  objlist$hessian <- objlist$hessian[names(parnames),names(parnames), drop = FALSE]
+  dimnames(objlist$hessian) <- list(unname(parnames), unname(parnames))
+  
+  objlist <- sumDuplicatedParsInObjlist(objlist)
+  
+  objlist
+}
+
+#' Remove redundant outer names
 #'
-#' check_grids(fg, eg_good)
-#' check_grids(fg, eg_bad1)
-#' check_grids(fg, eg_bad2)
-check_grids <- function(fixed.grid, est.grid) {
-  par_overlap <- intersect(fixed.grid$parname, est.grid$parname)
-  if (length(par_overlap)){
-    # NA in both grids
-    both_na_check <- lapply(stats::setNames(nm = par_overlap), function(x) {
-      f <- fixed.grid[fixed.grid$parname == x, -(1:2)]
-      e <- est.grid[est.grid$parname == x, -(1:2)]
-      two_nas <- c(names(f)[is.na(f)], names(e)[is.na(e)])
-      two_nas[duplicated(two_nas)]
-    })
-    both_na_check <- do.call(c, both_na_check)
-    if (length(both_na_check)) stop("Parameter is NA in both fixed.grid and est.grid. The following parameters and conditions are affected", "\n", "\n", deparse(both_na_check))
-    
-    # Not NA in both grids
-    none_na_check <- lapply(stats::setNames(nm = par_overlap), function(x) {
-      f <- fixed.grid[fixed.grid$parname == x, -(1:2)]
-      e <- est.grid[est.grid$parname == x, -(1:2)]
-      no_nas <- c(names(f)[!is.na(f)], names(e)[!is.na(e)])
-      no_nas[duplicated(no_nas)]
-    })
-    none_na_check <- do.call(c, none_na_check)
-    if (length(none_na_check)) stop("Parameter is not NA in both fixed.grid and est.grid. The following parameters and conditions affected", "\n", "\n", deparse(none_na_check))
+#' Remove redundancies (happens when a parameter is duplicated and mapped to the same outer parameter). 
+#' For example in est.grid = data.table(ID = 1, init_A = "Atot", Atot= "Atot", ...)
+#' 
+#' @param objlist objlist with potentially duplicated names
+#'
+#' @return objlist with duplicated gradient and hessian elements summed and redundancies removed
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+#'
+#' @examples
+#' ol <- dMod:::init_empty_objlist(c("S2" = 2, "S3" = 3, S2 = 3))
+#' ol$gradient <- ol$gradient + 1:3
+#' ol$hessian <- ol$hessian + 1:9
+#' sumDuplicatedParsInObjlist(ol)
+sumDuplicatedParsInObjlist <- function(ol) {
+  attrs0 <- attributes(ol)
+  attrs0 <- attrs0[setdiff(names(attrs0), c("names", "class"))]
+  
+  nm <- names(ol$gradient)
+  isDupe <- duplicated(nm)
+  if (!any(isDupe)) {
+    return(ol)
   }
+  nmDupe <- nm[isDupe]
+  for (nmx in nmDupe) {
+    ol$gradient[nmx] <- sum(ol$gradient[nm == nmx])
+    for (i in 1:ncol(ol$hessian))
+      ol$hessian[nmx,i] <- sum(ol$hessian[nm == nmx,i])
+    for (i in 1:nrow(ol$hessian))
+      ol$hessian[i,nmx] <- sum(ol$hessian[i,nm == nmx])
+  }
+  ol <- objlist(ol$value, ol$gradient[!isDupe], ol$hessian[!isDupe, !isDupe, drop = FALSE])
+  
+  attributes(ol) <- c(attributes(ol), attrs0)
+  ol
+}
+
+#' Add single-valued parameters to the pargrids
+#'
+#' @param pars character or numeric
+#' @param gridlist list(fix.grid, est.grid)
+#' @param FLAGoverwrite Overwrite existing parameters in fix.grid or est.grid?
+#' 
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+#'
+#' @return gridlist
+#' @export 
+#' 
+#' @examples 
+#' pars <- c(NewParSymbolic = "NewParSymbolic", NewParFixed = 1)
+#' est.grid <- data.table(ID = 1:2,
+#'                        condition = c("A", "B"),
+#'                        k1 = c("k1_A", "k1_B"),
+#'                        k2 = c("k2_A", "k2_B"),
+#'                        k3 = c("k3", NA),
+#'                        k4 = c("k4", "k4"),
+#'                        stringsAsFactors = FALSE)
+#' fix.grid <- data.table(ID = 1:2,
+#'                        condition = c("A", "B"),
+#'                        k3 = c(NA, 3.5),
+#'                        k5 = c(5.1,5.2),
+#'                        k6 = c(6,6),
+#'                        stringsAsFactors = FALSE)
+#' indiv_addGlobalParsToGridlist(c(NewParSymbolic = "NewParSymbolic", NewParFixed = 1), gridlist(est.grid = est.grid, fix.grid = fix.grid))
+#' indiv_addGlobalParsToGridlist(c(k1 = 1), gridlist(est.grid = est.grid, fix.grid = fix.grid), FLAGoverwrite = FALSE) # nothing happens
+#' indiv_addGlobalParsToGridlist(c(k1 = 1), gridlist(est.grid = est.grid, fix.grid = fix.grid), FLAGoverwrite = TRUE) # k1 is replaced and moved to fix.grid
+indiv_addGlobalParsToGridlist <- function(pars, gridlist, FLAGoverwrite = FALSE) {
+  # 1 Get grids
+  est.grid <- gridlist$est.grid
+  fix.grid <- gridlist$fix.grid
+  # 2 Determine overwriting action: Cut down grids or pars
+  if (FLAGoverwrite) {
+    est.grid <- est.grid[,.SD,.SDcols = setdiff(names(est.grid), names(pars))]
+    fix.grid <- fix.grid[,.SD,.SDcols = setdiff(names(fix.grid), names(pars))]
+  } else {
+    pars <- pars[setdiff(names(pars), names(est.grid))]
+    pars <- pars[setdiff(names(pars), names(fix.grid))]
+  }
+  # 3 determine where to add the parameters to
+  is_num  <- !is.na(as.numeric(pars))
+  # 4 Add parameters to grid
+  if (sum(!is_num)) est.grid <- data.table(est.grid, as.data.table(t(pars[!is_num])))
+  if (sum( is_num)) fix.grid <- data.table(fix.grid, as.data.table(t(setNames(as.numeric(pars[ is_num]), names(pars[ is_num])))))
+  
+  list(est.grid = est.grid, fix.grid = fix.grid)
 }
 
 
-
-
-# Indiv-objlist related functions ----
-
-
-
-#' Rename the derivatives of an objective function according to a lookup table
+#' Add individualized parameters to grids
+#' 
+#' Can only add parameters, cannot update existing parameters
 #'
-#' @param myobjlist dMod objective list
-#' @param condition a specific condition (ID)
-#' @param est.grid  estimation grid
+#' @param pars data.table(ID, condition, pars...) Only one of ID, condition must be present
+#' @param gridlist [dMod::gridlist()]
 #'
-#' @return objective list
+#' @return modified gridlist
+#' 
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+#' @export
 #'
-#' @author Daniel Lill
-rename_objlist <- function(myobjlist, condition, est.grid) {
-  est_lookup <- stats::setNames(est.grid[[condition]], est.grid[["parname"]])
+#' @examples
+#' pars <- data.table(ID = 1:2, newFix = c(1,2), newEst = c("a", "b"), newMix = c("a", 1))
+#' est.grid <- data.table(ID = 1:2,
+#'                        condition = c("A", "B"),
+#'                        k1 = c("k1_A", "k1_B"),
+#'                        k2 = c("k2_A", "k2_B"),
+#'                        k3 = c("k3", NA),
+#'                        k4 = c("k4", "k4"),
+#'                        stringsAsFactors = FALSE)
+#' fix.grid <- data.table(ID = 1:2,
+#'                        condition = c("A", "B"),
+#'                        k3 = c(NA, 3.5),
+#'                        k5 = c(5.1,5.2),
+#'                        k6 = c(6,6),
+#'                        stringsAsFactors = FALSE)
+#' gl <- gridlist(est.grid = est.grid, fix.grid = fix.grid)
+#' indiv_addLocalParsToGridList(pars, gl)
+indiv_addLocalParsToGridList <- function(pars, gridlist, FLAGoverwrite = FALSE) {
+  est.grid <- gridlist$est.grid
+  fix.grid <- gridlist$fix.grid
   
-  if (!is.null(myobjlist$gradient)){
-    grad_names <- stats::setNames(names(myobjlist$gradient), names(myobjlist$gradient))
-    
-    est_lookup_used <- names(est_lookup)[names(est_lookup) %in% grad_names]
-    grad_names[est_lookup_used] <- est_lookup[est_lookup_used]
-    
-    names(myobjlist$gradient) <- grad_names
+  # Determine which cols to join on. Assuming ID and condition are present in fix.grid and est.grid
+  joincols <- intersect(c("ID", "condition"), names(pars))
+  parscols <- setdiff(names(pars), joincols)
+  setcolorder(pars, joincols)
+  
+  # 2 Determine overwriting action: Cut down grids or pars
+  if (FLAGoverwrite) {
+    est.grid <- est.grid[,.SD,.SDcols = c(joincols, setdiff(names(est.grid), names(pars)))]
+    fix.grid <- fix.grid[,.SD,.SDcols = c(joincols, setdiff(names(fix.grid), names(pars)))]
+  } else {
+    pars <- pars[,.SD,.SDcols = c(joincols, setdiff(names(pars), names(est.grid)))]
+    pars <- pars[,.SD,.SDcols = c(joincols, setdiff(names(pars), names(fix.grid)))]
   }
-  if (!is.null(myobjlist$hessian))
-    dimnames(myobjlist$hessian) <- list(grad_names, grad_names)
   
-  return(myobjlist)
+  # Split pars into fix and est, introduce NAs for mixed parameters
+  pars_fix <- copy(pars)
+  # power move: delete all symbolic columns, replace symbols with NA in remaining cols
+  pars_fix[,(parscols) := lapply(.SD, function(x) {
+    x <- as.numeric(x)
+    if (all(is.na(x))) {
+      return(NULL)
+    } else x}), .SDcols = parscols]
+  fix.grid <- pars_fix[fix.grid, on = joincols]
+  
+  pars_est <- copy(pars)
+  # power move: delete all numeric columns, replace numbers with NA in remaining cols
+  pars_est[,(parscols) := lapply(.SD, function(x) {
+    numidx <- !is.na(as.numeric(x)); 
+    if (all(numidx)) {
+      return(NULL)
+    } else replace(x, numidx, NA_character_)}), .SDcols = parscols]
+  est.grid <- pars_est[est.grid, on = joincols]
+  
+  gridlist(est.grid = est.grid, fix.grid = fix.grid)
 }
-
 
 
 #' Create an objlist with zeros as entries
 #' @param pars named vector. Only names and length are used
 #' @param deriv TRUE or FALSE
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
 #' @examples
 #' init_empty_objlist(setNames(rnorm(5), letters[1:5]))
-init_empty_objlist <- function(pars, deriv = TRUE) {
+#' init_empty_objlist(setNames(rnorm(5), letters[1:5]), FLAGchisquare = TRUE)
+init_empty_objlist <- function(pars, deriv = TRUE, FLAGchisquare = FALSE) {
   
-  if (!deriv)
-    return(dMod::objlist(0,NULL,NULL))
+  gr <- if (deriv) setNames(rep(0, length(pars)), names(pars)) else NULL
+  he <- if (deriv) matrix(0, nrow = length(pars), ncol = length(pars), dimnames = list(names(pars), names(pars))) else NULL
   
-  dMod::objlist(value = 0,
-                gradient = setNames(rep(0, length(pars)), names(pars)),
-                hessian = matrix(0, nrow = length(pars), ncol = length(pars),
-                                 dimnames = list(names(pars), names(pars))))
+  out <- dMod::objlist(value = 0, gradient = gr, hessian = he)
+  if (FLAGchisquare) attr(out, "chisquare") <- 0
+  out
 }
 
 
 
-#' Generalized Inverse of a Matrix
+#' Collect grids in list
+#' 
+#' Ensure all tables are data.tables
+#' 
+#' @param est.grid,fix.grid data.tables, will be coerced to one
 #'
-#' Calculates the Moore-Penrose generalized inverse of a matrix X.
-#'
-#' @param X Matrix for which the Moore-Penrose inverse is required.
-#' @param tol A relative tolerance to detect zero singular values.
-#' @return A MP generalized inverse matrix for X.
-#' @family Auxiliary
+#' @return list of the grid
 #' @export
-ginv <- function(X, tol = sqrt(.Machine$double.eps)) {
-  if(length(dim(X)) > 2L || !(is.numeric(X) || is.complex(X)))
-    stop("'X' must be a numeric or complex matrix")
-  if(!is.matrix(X)) X <- as.matrix(X)
-  Xsvd <- svd(X)
-  if(is.complex(X)) Xsvd$u <- Conj(Xsvd$u)
-  Positive <- Xsvd$d > max(tol * Xsvd$d[1L], 0)
-  if (all(Positive)) Xsvd$v %*% (1/Xsvd$d * t(Xsvd$u))
-  else if(!any(Positive)) array(0, dim(X)[2L:1L])
-  else Xsvd$v[, Positive, drop=FALSE] %*% ((1/Xsvd$d[Positive]) * t(Xsvd$u[, Positive, drop=FALSE]))
+gridlist <- function(est.grid, fix.grid) {
+  est.grid <- as.data.table(est.grid)
+  fix.grid <- as.data.table(fix.grid)
+  list(est.grid = est.grid, fix.grid = fix.grid)
+}
+
+
+
+# -------------------------------------------------------------------------#
+# normIndiv - externals ----
+# -------------------------------------------------------------------------#
+
+#' Title
+#'
+#' @param prd0 
+#' @param est.grid 
+#' @param fix.grid 
+#'
+#' @return
+#' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+PRD_indiv <- function(prd0, est.grid, fix.grid) {
+  
+  if (!is.data.table(est.grid)) warning("est.grid was coerced to data.table (was", class(est.grid), ")")
+  if (!is.data.table(fix.grid)) warning("fix.grid was coerced to data.table (was", class(fix.grid), ")")
+  
+  est.grid <- data.table(est.grid)
+  fix.grid <- data.table(fix.grid)
+  
+  setkeyv(est.grid, c("ID", "condition"))
+  setkeyv(fix.grid, c("ID", "condition"))
+  
+  # Title
+  #
+  # @param times 
+  # @param pars 
+  # @param fixed 
+  # @param deriv 
+  # @param conditions 
+  # @param FLAGbrowserN 0: Don't debug, 1: Debug when there is an error, 2: always debug
+  # @param FLAGverbose 
+  # @param FLAGrenameDerivPars Needed for datapointL2_indiv, where I need derivs wrt the outer parameters. Don't remember what this FLAG could ever be used for except for being TRUE
+  #
+  # @return
+  # @export
+  #
+  # @examples
+  prd <- function(times, pars, fixed = NULL, deriv = FALSE, conditions = est.grid$condition, 
+                  FLAGbrowserN = 0, 
+                  FLAGverbose = FALSE,
+                  FLAGrenameDerivPars = TRUE
+  ) {
+    out <- lapply(setNames(nm = conditions), function(cn) {
+      if (FLAGbrowserN == 2) browser()
+      ID <- est.grid[condition == cn, ID]
+      if (FLAGverbose) cat(ID, cn, "\n", sep = " ---- ")
+      
+      dummy <- make_pars(pars, fixed, est.grid, fix.grid, ID)
+      pars_ <- dummy$pars
+      fixed_ <- dummy$fixed
+      
+      if (length(missingPars <- setdiff(getParameters(prd0), c("time", names(c(pars_, fixed_))))))
+        stop("The following parameters are missing: ", paste0(missingPars, collapse = ", "))
+      
+      pred0 <-try(prd0(times, pars_, fixed = fixed_, deriv = deriv, conditions = NULL)[[1]])
+      if (inherits(pred0, "try-error") && FLAGbrowserN == 1) {
+        browser()
+        # Try this code to debug your model
+        # 1 Parameters
+        pinner <- p(pars_, fixed = fixed_)
+        compare(names(pinner[[1]]), getParameters(x)) #setdiff(y,x) should be empty!
+        # 2 ode-model
+        pinner_test <- setNames(runif(length(getParameters(x))),getParameters(x))
+        x(times, pinner_test, deriv = FALSE)
+      }
+      if (deriv && FLAGrenameDerivPars) pred0 <- renameDerivPars(pred0, pars, est.grid, cn)
+      pred0
+    })
+    as.prdlist(out)
+  }
+  class(prd) <- c("prdfn", "fn")
+  prd
+}
+
+#' Title
+#'
+#' @param p0 
+#' @param est.grid 
+#' @param fix.grid 
+#'
+#' @return
+#' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+P_indiv <- function(p0, est.grid, fix.grid) {
+  
+  if (!is.data.table(est.grid)) warning("est.grid was coerced to data.table (was", class(est.grid), ")")
+  if (!is.data.table(fix.grid)) warning("fix.grid was coerced to data.table (was", class(fix.grid), ")")
+  
+  est.grid <- data.table(est.grid)
+  fix.grid <- data.table(fix.grid)
+  setkeyv(est.grid, c("ID", "condition"))
+  setkeyv(fix.grid, c("ID", "condition"))
+  
+  
+  # @param FLAGbrowser 0: Don't debug, >= 1: debug
+  prd <- function(pars, fixed = NULL, deriv = FALSE, conditions = est.grid$condition, 
+                  FLAGbrowser = FALSE, 
+                  FLAGverbose = FALSE) {
+    out <- lapply(setNames(nm = conditions), function(cn) {
+      if (FLAGbrowser) browser()
+      ID <- est.grid[condition == cn, ID]
+      if (FLAGverbose) cat(ID, cn, "\n", sep = " ---- ")
+      dummy <- make_pars(pars, fixed, est.grid, fix.grid, ID)
+      pars_ <- dummy$pars
+      fixed_ <- dummy$fixed
+      
+      missingPars <- setdiff(getParameters(p0), names(c(pars_, fixed_)))
+      if (length(missingPars))
+        stop("The following parameters are missing: ", paste0(missingPars, collapse = ", "))
+      p0(pars_, fixed = fixed_, deriv = deriv)[[1]]
+    })
+    out
+  }
+  class(prd) <- c("parfn", "fn")
+  prd
+}
+
+
+
+#' Fast normL2 
+#'
+#' @param data 
+#' @param prd0 
+#' @param errmodel 
+#' @param est.grid 
+#' @param fix.grid 
+#' @param times 
+#' @param attr.name 
+#'
+#' @return objective function
+#' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+#'
+#' @importFrom parallel mclapply
+normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times = NULL, attr.name = "data") {
+  
+  if (!is.data.table(est.grid)) warning("est.grid was coerced to data.table (was", class(est.grid), ")")
+  if (!is.data.table(fix.grid)) warning("fix.grid was coerced to data.table (was", class(fix.grid), ")")
+  
+  est.grid <- data.table(est.grid)
+  fix.grid <- data.table(fix.grid)
+  setkeyv(est.grid, c("ID", "condition"))
+  setkeyv(fix.grid, c("ID", "condition"))
+  
+  
+  timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))
+  if (!is.null(times)) 
+    timesD <- sort(union(times, timesD))
+  x.conditions <- est.grid$condition
+  data.conditions <- names(data)
+  e.conditions <- names(attr(errmodel, "mappings"))
+  controls <- list(times = timesD, attr.name = attr.name, conditions = intersect(x.conditions, 
+                                                                                 data.conditions))
+  force(errmodel)
+  force(fix.grid)
+  force(est.grid)
+  
+  myfn <- function(..., fixed = NULL, deriv = TRUE, conditions = controls$conditions, simcores = 1, 
+                   FLAGbrowser = FALSE, 
+                   FLAGbrowser2 = FALSE, 
+                   FLAGverbose = FALSE,
+                   FLAGNaNInfwarnings = FALSE,
+                   FixedConditions = fixed.conditions) {
+    arglist <- list(...)
+    arglist <- arglist[match.fnargs(arglist, "pars")]
+    pars <- arglist[[1]]
+    
+    objlists <- lapply(setNames(nm = conditions), function(cn) {
+      if (FLAGbrowser) browser()
+      
+      ID <- est.grid[condition == cn, ID]
+      if (FLAGverbose) cat(ID, cn, "\n", sep = " ---- ")
+      dummy <- make_pars(pars, fixed, est.grid, fix.grid, ID)
+      pars_ <- dummy$pars
+      fixed_ <- dummy$fixed
+      
+      if (!length(pars_)) return(init_empty_objlist(pars, deriv = deriv, FLAGchisquare = TRUE)) # No pars_ can happen if one fits only condition specific parameters and in this condition there are none
+      
+      prediction <- try(prd0(times = controls$times, pars = pars_, fixed = fixed_, deriv = deriv))
+      
+      if (inherits(prediction, "try-error")) 
+        stop("Prediction failed in \n>>>condition = ", cn, "\n>>>ID = ", ID, "\n\nTry iterating p(pars), (x*p)(pars), ... to find the problem.")
+      
+      prediction <- prediction[[1]]
+      prediction <- check_and_sanitize_prediction(prediction, data, cn, FLAGNaNInfwarnings)
+      
+      err <- NULL
+      if (any(is.na(data[[cn]]$sigma))) {
+        err <- errmodel(out = prediction, pars = getParameters(prediction), conditions = cn, deriv=deriv)
+        mywrss <- nll(res(data[[cn]], prediction, err[[1]]), deriv = deriv, pars = pars)
+      } else {
+        mywrss <- nll(res(data[[cn]], prediction), deriv = deriv, pars = pars)
+      }
+      
+      if (deriv) mywrss <- renameDerivParsInObjlist(mywrss, dummy$parnames) 
+      
+      mywrss
+    })
+    
+    # Sum all objlists
+    out <- Reduce("+", c(list(init_empty_objlist(c(pars, fixed), deriv = deriv)), objlists))
+    
+    # Consider fixed: return only derivs wrt pouter
+    out$gradient <- out$gradient[names(pars)]
+    out$hessian <- out$hessian[names(pars), names(pars)]
+    
+    # Populate attributes
+    attr(out, controls$attr.name) <- out$value
+    ll_conditions <- data.frame(
+      logl = vapply(setNames(objlists, conditions), function(.x) .x$value, 1),
+      chi2 = vapply(setNames(objlists, conditions), function(.x) attr(.x, "chisquare"), 1))
+    ll_sum <- data.frame(logl = sum(ll_conditions$logl),
+                         chi2 = sum(ll_conditions$chi2))
+    attributes(out) <- c(attributes(out), list(ll_cond_df = ll_conditions))
+    attributes(out) <- c(attributes(out), list(ll_sum_df = ll_sum))
+    # attr(out, "AIC") <- out$value + length(pars) * 2
+    # attr(out, "BIC") <- out$value + length(pars) * log(nrow(as.data.frame(data)))
+    return(out)
+  }
+  
+  class(myfn) <- c("objfn", "fn")
+  attr(myfn, "conditions") <- data.conditions
+  attr(myfn, "parameters") <- attr(prd0, "parameters")
+  attr(myfn, "modelname") <- modelname(prd0, errmodel)
+  return(myfn)
+}
+
+#' DatapointL2 without access to stored predictions
+#'
+#' @param name 
+#' @param time 
+#' @param value 
+#' @param sigma 
+#' @param attr.name 
+#' @param condition 
+#' @param prd_indiv 
+#'
+#' @return
+#' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+datapointL2_indiv <- function (name, time, value, sigma = 1, attr.name = "validation", 
+                               condition, prd_indiv) {
+  controls <- list(mu = structure(name, names = value)[1], 
+                   time = time[1], sigma = sigma[1], attr.name = attr.name)
+  
+  myfn <- function(..., fixed = NULL, deriv = TRUE, conditions = NULL, FLAGbrowser = FALSE, SIMOPT.times = seq(0,time, length.out = 100)) {
+    
+    if (FLAGbrowser)
+      browser()
+    
+    mu <- controls$mu
+    time <- controls$time
+    sigma <- controls$sigma
+    attr.name <- controls$attr.name
+    arglist <- list(...)
+    arglist <- arglist[match.fnargs(arglist, c("pars"))]
+    
+    times <- sort(c(unique(SIMOPT.times, time)))
+    pouter <- arglist[[1]]
+    prediction <- prd_indiv(times, pouter, fixed = fixed, condition = condition, deriv = deriv, FLAGrenameDeriv = TRUE)
+    if (!is.null(conditions) && !condition %in% conditions) 
+      return()
+    
+    if (is.null(conditions) && !condition %in% names(prediction)) 
+      stop("datapointL2 requests unavailable condition. Call the objective function explicitly stating the conditions argument.")
+    
+    datapar <- setdiff(names(mu), names(fixed))
+    parapar <- setdiff(names(pouter), c(datapar, names(fixed)))
+    time.index <- which(prediction[[condition]][, "time"] == time)
+    if (length(time.index) == 0) 
+      stop("datapointL2() requests time point for which no prediction is available. Please add missing time point by the times argument in normL2()")
+    withDeriv <- !is.null(attr(prediction[[condition]], 
+                               "deriv"))
+    pred <- prediction[[condition]][time.index, ]
+    deriv <- NULL
+    if (withDeriv) 
+      deriv <- attr(prediction[[condition]], "deriv")[time.index, ]
+    pred <- pred[mu]
+    
+    # prd_indiv doesn't return the same derivpars in all conditions 
+    derivnm_split <- strsplit(names(deriv), "\\.")
+    derivnm_split <- lapply(derivnm_split, function(x) x[2])
+    derivnm_split <- do.call(c, derivnm_split)
+    parapar <- parapar[parapar %in% derivnm_split]
+    
+    if (withDeriv) {
+      mu.para <- intersect(paste(mu, parapar, sep = "."), 
+                           names(deriv))
+      deriv <- deriv[mu.para]
+    }
+    res <- as.numeric(pred - c(fixed, pouter)[names(mu)])
+    val <- as.numeric((res/sigma)^2)
+    gr <- NULL
+    hs <- NULL
+    
+
+    if (withDeriv) {
+      dres.dp <- structure(rep(0, length(pouter)), names = names(pouter))
+      if (length(parapar) > 0) 
+        dres.dp[parapar] <- as.numeric(deriv)
+      if (length(datapar) > 0) 
+        dres.dp[datapar] <- -1
+      gr <- 2 * res * dres.dp/sigma^2
+      hs <- 2 * outer(dres.dp, dres.dp, "*")/sigma^2
+      colnames(hs) <- rownames(hs) <- names(pouter)
+    }
+    out <- objlist(value = val, gradient = gr, hessian = hs)
+    attr(out, controls$attr.name) <- out$value
+    # attr(out, "prediction") <- pred
+    return(out)
+  }
+  class(myfn) <- c("objfn", "fn")
+  attr(myfn, "conditions") <- condition
+  attr(myfn, "parameters") <- value[1]
+  return(myfn)
+}
+
+
+#' DatapointL2 without env access
+#'
+#' @param name 
+#' @param time 
+#' @param value 
+#' @param sigma 
+#' @param attr.name 
+#' @param condition 
+#' @param prd_indiv 
+#'
+#' @return
+#' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+timepointL2_indiv <- function(name, time, value, sigma = 1, attr.name = "timepointL2", 
+                              condition, prd_indiv) {
+  
+  # [] mu needs to be numeric and time needs tocharacter
+  controls <- list(mu = structure(name, names = value)[1], 
+                   time = time[1], sigma = sigma[1], attr.name = attr.name)
+  
+  myfn <- function(..., fixed = NULL, deriv = TRUE, conditions = NULL, env = NULL) {
+    
+    mu        <- controls$mu
+    time      <- controls$time
+    timepar <- 
+      sigma     <- controls$sigma
+    attr.name <- controls$attr.name
+    
+    arglist <- list(...)
+    arglist <- arglist[match.fnargs(arglist, c("times", "pars"))]
+    # ensure time point has prediction
+    times      <- arglist[[1]]
+    times      <- sort(c(unique(times, time)))
+    pouter     <- arglist[[2]]
+    prediction <- prd_indiv(times, pouter, condition = condition, deriv = deriv)
+    if (!is.null(conditions) && !condition %in% conditions) 
+      return()
+    
+    if (is.null(conditions) && !condition %in% names(prediction)) 
+      stop("datapointL2 requests unavailable condition. Call the objective function explicitly stating the conditions argument.")
+    
+    datapar    <- setdiff(names(mu), names(fixed))
+    parapar    <- setdiff(names(pouter), c(datapar, names(fixed)))
+    time.index <- which(prediction[[condition]][, "time"] == time)
+    
+    withDeriv <- !is.null(attr(prediction[[condition]], "deriv"))
+    pred      <- prediction[[condition]][time.index, ]
+    deriv     <- NULL
+    if (withDeriv) 
+      deriv <- attr(prediction[[condition]], "deriv")[time.index,]
+    
+    pred <- pred[mu]
+    if (withDeriv) {
+      mu.para <- intersect(paste(mu, parapar, sep = "."), names(deriv))
+      deriv <- deriv[mu.para]
+    }
+    
+    res <- as.numeric(pred - c(fixed, pouter)[names(mu)])
+    val <- as.numeric((res/sigma)^2)
+    gr <- NULL
+    hs <- NULL
+    if (withDeriv) {
+      dres.dp <- structure(rep(0, length(pouter)), names = names(pouter))
+      if (length(parapar) > 0) 
+        dres.dp[parapar] <- as.numeric(deriv)
+      if (length(datapar) > 0) 
+        dres.dp[datapar] <- -1
+      gr <- 2 * res * dres.dp/sigma^2
+      hs <- 2 * outer(dres.dp, dres.dp, "*")/sigma^2
+      colnames(hs) <- rownames(hs) <- names(pouter)
+    }
+    out <- objlist(value = val, gradient = gr, hessian = hs)
+    attr(out, controls$attr.name) <- out$value
+    attr(out, "prediction") <- pred
+    attr(out, "env") <- env
+    return(out)
+  }
+  class(myfn) <- c("objfn", "fn")
+  attr(myfn, "conditions") <- condition
+  attr(myfn, "parameters") <- value[1]
+  return(myfn)
+}
+
+# -------------------------------------------------------------------------#
+# Other helper functions ----
+# -------------------------------------------------------------------------#
+
+#' Determine which parameters need sensitivities
+#'
+#' @param est.grid est.grid = data.table(condition, par1,...,parN)
+#' @param trafo symbolic base trafo
+#' @param reactions Object of class [eqnlist()]
+#'
+#' @return character, to go into the estimate-argument of odemodel
+#' @export
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+getParametersToEstimate <- function(est.grid, trafo, reactions) {
+  egNames <- names(est.grid)[-1]
+  reg <- paste0("(", paste0(egNames, collapse = "|"), ")")
+  trNames <- names(trafo)[grep(reg, trafo)]
+  odeNames <- intersect(getParameters(reactions), trNames)
+  odeNames
+}
+
+
+#' Title
+#'
+#' @param x 
+#' @param ... 
+#'
+#' @return
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @export
+#' @md
+getParameters.data.table <- function(x,...) {
+  unique(unlist(x[,!c("condition", "ID")], use.names = FALSE))
+}
+
+#' Get Parameter mappings outer.estgrid - inner.estgrid
+#'
+#' @param x est.grid
+#'
+#' @return named character
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+#' @export
+#' 
+#' @examples 
+#' est.grid <- data.frame(ID = 1:2,
+#'                        condition = c("A", "B"),
+#'                        k1 = c("k1_A", "k1_B"),
+#'                        k2 = c("k2_A", "k2_B"),
+#'                        k3 = c("k3", NA),
+#'                        k4 = c("k4", "k4"),
+#'                        stringsAsFactors = FALSE)
+#' getEstGridParameterMapping(est.grid)
+getEstGridParameterMapping <- function(x) {
+  nm <- setdiff(names(x),c("condition", "ID"))
+  do.call(c, lapply(nm, function(n) setNames(unique(x[[n]]), rep(n, length(unique(x[[n]]))))))
+}
+
+
+#' Run some checks on the prediction in normL2_indiv
+#' 
+#' If prediction is NA for observables which are not observed in a condition, they don't matter.
+#' In this case, replace NA by 0, such that the error model can be evaluated.
+#' 
+#' @param prediction prediction for condition cn
+#' @param data datalist
+#' @param cn condition name for which the prediction was made
+#' @param FLAGNaNInfwarnings print warnings?
+#'
+#' @return the prediction with harmless NA's replaced by 0
+#' @author Daniel Lill (daniel.lill@physik.uni-freiburg.de)
+#' @md
+check_and_sanitize_prediction <- function(prediction, data, cn, FLAGNaNInfwarnings) {
+  if (any(is.na(prediction))){
+    whichcols <- unique(which(is.na(prediction), arr.ind = TRUE)[,2])
+    nm <- colnames(prediction)[whichcols]
+    
+    if (length(intersect(data[[cn]]$name, nm)))
+      stop("Prediction is.na for observables present in data in condition ", cn, "\n",
+           "The following observables are affected: ", paste0(intersect(data[[cn]]$name, nm), collapse = ", "))
+    
+    if (FLAGNaNInfwarnings)
+      warning("NaN in condition ", cn , " for the following names: ", paste0(nm, collapse = ", "))
+    prediction[is.na(prediction)] <- 0
+    attr(prediction, "deriv")[is.infinite(attr(prediction, "deriv"))|is.na(attr(prediction, "deriv"))] <- 0
+    attr(prediction, "sensitivities")[is.infinite(attr(prediction, "sensitivities"))|is.na(attr(prediction, "sensitivities"))] <- 0
+  }
+  if (any(is.infinite(prediction))){
+    whichcols <- unique(which(is.infinite(prediction), arr.ind = TRUE)[,2])
+    nm <- colnames(prediction)[whichcols]
+    
+    if (length(intersect(data[[cn]]$name, nm)))
+      warning("Prediction is infinite for observables present in data in condition ", cn, "\n",
+              "The following observables are affected: ", paste0(intersect(data[[cn]]$name, nm), collapse = ", "),
+              "These values are set to zero")
+    
+    if (FLAGNaNInfwarnings)
+      warning("Inf in condition ", cn , " for the following names: ", paste0(nm, collapse = ", "))
+    
+    prediction[is.infinite(prediction)] <- 0
+    attr(prediction, "deriv")[is.infinite(attr(prediction, "deriv"))|is.na(attr(prediction, "deriv"))] <- 0
+    attr(prediction, "sensitivities")[is.infinite(attr(prediction, "sensitivities"))|is.na(attr(prediction, "sensitivities"))] <- 0
+  }
+  prediction
 }

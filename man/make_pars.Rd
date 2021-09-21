@@ -2,27 +2,42 @@
 % Please edit documentation in R/normIndiv.R
 \name{make_pars}
 \alias{make_pars}
-\title{Extract individualized parameters for one ID}
+\title{Extract pars, fixed and parnames from grids for a given condition}
 \usage{
-make_pars(parsouter, fixedouter, condition, est.grid, fixed.grid)
+make_pars(pars, fixed = NULL, est.grid, fix.grid, ID)
 }
 \arguments{
-\item{parsouter, fixedouter}{Arguments which are passed to the function returned by \link{normIndiv}}
+\item{est.grid}{needs condition and ID}
 
-\item{condition}{The specific condition for which the parameters should be extracted}
+\item{fix.grid}{}
 
-\item{est.grid, fixed.grid}{Lookup tables.}
+\item{ID}{}
+
+\item{est.vec}{}
 }
 \value{
-list(pars, fixed) to put into prd0
+
 }
 \description{
-From the outer individualized parsouter and fixedouter, get the generalized parsouter0, fixedouter0 to supply to prd0
+Extract pars, fixed and parnames from grids for a given condition
 }
-\details{
-Catch the following two cases:
-\itemize{
-\item Entry in est.grid is NA                 => Parameter value present in fixed.grid
-\item Parameter name not present in parsouter => Parameter value present in fixed_outer
-}
+\examples{
+pars <- c("k1_A" = 1, "k1_B" = 1, "k2_A" = 2, "k3" = 3, "k4" = 4)
+fixed <- c("k2_B" = 2.5)
+
+est.grid <- data.frame(ID = 1:2,
+                       condition = c("A", "B"),
+                       k1 = c("k1_A", "k1_B"),
+                       k2 = c("k2_A", "k2_B"),
+                       k3 = c("k3", NA),
+                       k4 = c("k4", "k4"),
+                       stringsAsFactors = FALSE)
+fix.grid <- data.frame(ID = 1:2,
+                       condition = c("A", "B"),
+                       k3 = c(NA, 3.5),
+                       k5 = c(5.1,5.2),
+                       k6 = c(6,6),
+                       stringsAsFactors = FALSE)
+make_pars(pars, fixed, est.grid, fix.grid, 1)
+make_pars(pars, fixed, est.grid, fix.grid, 2)
 }

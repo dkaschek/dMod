@@ -97,7 +97,7 @@
 #' 
 #' 
 #' # calculate profiles
-#' var_list <- profile_pars_node_list(best_fit, 4)
+#' var_list <- profile_pars_per_node(best_fit, 4)
 #' profile_jobname <- paste0(fit_filename,"_profiles_opt")
 #' method <- "optimize"
 #' profiles_distributed_computing <- distributed_computing(
@@ -514,7 +514,8 @@ distributed_computing <- function(
 #' per node.
 #' @examples
 #' \dontrun{
-#' var_list <- profile_pars_node_list(parameter_list, 4)
+#' parameter_list <- setNames(1:10, letters[1:10])
+#' var_list <- profile_pars_per_node(parameter_list, 4)
 #' }
 #' 
 #' @export

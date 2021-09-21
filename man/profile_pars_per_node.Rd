@@ -26,7 +26,8 @@ on the different nodes.
 }
 \examples{
 \dontrun{
-var_list <- profile_pars_node_list(parameter_list, 4)
+parameter_list <- setNames(1:10, letters[1:10])
+var_list <- profile_pars_per_node(parameter_list, 4)
 }
 
 }

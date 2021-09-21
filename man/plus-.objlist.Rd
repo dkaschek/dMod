@@ -24,3 +24,10 @@ is inspected. If it has a \code{names} attributed, it is used to do a matching b
 The same holds for the attributed \code{dimnames}. In all other cases, the "+" operator is applied
 the corresponding elements of out1 and out2 as they are.
 }
+\examples{
+objlist1 <- dMod:::init_empty_objlist(c(a = 1, b = 2))
+objlist1$value  = 1; objlist1$gradient[1:2] <- 1; objlist1$hessian[1:4] <- 1
+objlist2 <- dMod:::init_empty_objlist(c(a = 1, d = 2))
+objlist2$value  = 1; objlist2$gradient[1:2] <- 1; objlist2$hessian[1:4] <- 1
+objlist1 + objlist2
+}

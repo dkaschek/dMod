@@ -135,7 +135,7 @@ print(result)
 
 
 # calculate profiles
-var_list <- profile_pars_node_list(best_fit, 4)
+var_list <- profile_pars_per_node(best_fit, 4)
 profile_jobname <- paste0(fit_filename,"_profiles_opt")
 method <- "optimize"
 profiles_distributed_computing <- distributed_computing(

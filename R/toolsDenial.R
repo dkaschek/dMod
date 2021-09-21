@@ -120,3 +120,99 @@ getSteps <- function(myparframe, nsteps = 5, tol = 1) {
 
 
 
+#' Get vector of logarithmically spaced time points
+#'
+#' to help the objective function integrator
+#'
+#' @param datatimes times present in data
+#' @param eventtimes times present in events (not yet implemented)
+#'
+#' @return vector of times, including datatimes
+#' @export
+#'
+#' @examples
+#' objtimes(c(0,30,60,90,600))
+#' objtimes(c(30,60,90,600))
+#' objtimes(c(-30,60,90,600))
+objtimes <- function(datatimes, eventtimes = NULL, Nobjtimes = 25) {
+  mint <- min(min(datatimes), 0)
+  maxt <- max(datatimes)
+  
+  tbefore0 <- if (mint < 0) seq(mint, 0, length.out = Nobjtimes) else 0
+  tafter0 <- exp(seq(-3, log(maxt), length.out = Nobjtimes))
+  
+  # [ ] eventtimes
+  
+  sort(unique(c(0, tbefore0, tafter0, datatimes)))
+}
+
+
+#' Get a vector of linearly spaced time points for prediction
+#' 
+#' for nice plots
+#' 
+#' @param datatimes 
+#' @param eventtimes 
+#' @param Nobjtimes number of time points in total
+#'
+#' @return vector of time points
+#' @export
+#'
+#' @examples
+#' predtimes(c(30,60,60,90))
+#' predtimes(c(-30,60,60,90))
+predtimes <- function(datatimes, eventtimes = NULL, Nobjtimes = 100) {
+  mint <- min(min(datatimes), 0)
+  maxt <- max(datatimes)
+  
+  tbefore0 <- if (mint < 0) seq(mint, 0, length.out = Nobjtimes) else 0
+  tafter0 <- seq(0, maxt, length.out = Nobjtimes)
+  
+  # [ ] eventtimes
+  
+  sort(unique(c(0, tbefore0, tafter0, datatimes)))
+}
+
+
+
+
+
+#' Get default arguments for integrators
+#'
+#' @return List of arguments
+#' @export
+optionsLSODES <- function(rtol = 1e-6, atol = 1e-6, 
+                          jacvec = NULL, sparsetype = "sparseint", nnz = NULL,
+                          inz = NULL,  rootfunc = NULL,
+                          verbose = FALSE, nroot = 0, tcrit = NULL, hmin = 0,
+                          hmax = NULL, hini = 0, ynames = TRUE, maxord = NULL,
+                          maxsteps = 5000, lrw = NULL, liw = NULL) {
+  args <- as.list(environment())
+  c(list(method = "lsodes"), args)
+}
+
+#' @rdname optionsLSODES
+#' @export
+optionsLSODE <- function(rtol = 1e-6, atol = 1e-6,  
+                         jacfunc = NULL, jactype = "fullint", mf = NULL, rootfunc = NULL,
+                         verbose = FALSE, nroot = 0, tcrit = NULL, hmin = 0, hmax = NULL, 
+                         hini = 0, ynames = TRUE, maxord = NULL, bandup = NULL, banddown = NULL,
+                         maxsteps = 5000, rpar = NULL, ipar = NULL, nout = 0,
+                         outnames = NULL) {
+  args <- as.list(environment())
+  c(list(method = "lsode"), args)
+}
+
+#' @rdname optionsLSODES
+#' @export
+optionsLSODA <- function(rtol = 1e-6, atol = 1e-6,
+                         jacfunc = NULL, jactype = "fullint", rootfunc = NULL,
+                         verbose = FALSE, nroot = 0, tcrit = NULL,
+                         hmin = 0, hmax = NULL, hini = 0, ynames = TRUE,
+                         maxordn = 12, maxords = 5, bandup = NULL, banddown = NULL,
+                         maxsteps = 5000) {
+  args <- as.list(environment())
+  c(list(method = "lsoda"), args)
+}
+
+

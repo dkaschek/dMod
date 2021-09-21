@@ -540,7 +540,7 @@ as.eqnvec.character <- function(x = NULL, names = NULL, ...) {
   if (is.null(names)) stop("equations need names")
   if (length(names) != length(equations)) stop("Length of names and equations do not coincide")
   try.parse <- try(parse(text = equations), silent = TRUE)
-  if (inherits(try.parse, "try-error")) stop("equations cannot be parsed")
+  if (inherits(try.parse, "try-error")) stop("equations cannot be parsed: ", try.parse)
   
   out <- structure(equations, names = names)
   class(out) <- c("eqnvec", "character")

@@ -16,6 +16,7 @@ profile(
   optControl = NULL,
   verbose = FALSE,
   cores = 1,
+  cautiousMode = FALSE,
   ...
 )
 }
@@ -49,6 +50,8 @@ See \link{trust} for more details.}
 
 \item{cores}{number of cores used when computing profiles for several
 parameters.}
+
+\item{cautiousMode}{Logical, write every step to disk and don't delete intermediate results}
 
 \item{...}{Arguments going to obj()}
 }

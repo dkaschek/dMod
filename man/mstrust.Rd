@@ -17,6 +17,7 @@ mstrust(
   resultPath = ".",
   stats = FALSE,
   output = FALSE,
+  cautiousMode = FALSE,
   ...
 )
 }
@@ -57,6 +58,8 @@ be stored. Defaults to ".".}
 printed to command line on mstrust completion.}
 
 \item{output}{logical. If true, writes output to the disc.}
+
+\item{cautiousMode}{Logical, write every fit to disk in deparsed form (avoids the RDA incompatibility trap) and don't delete intermediate results}
 
 \item{...}{Additional parameters handed to trust(), samplefun(), or the 
 objective function by matching parameter names. All unmatched parameters 
