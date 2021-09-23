@@ -98,7 +98,6 @@ writeMeasurementsTSV <- function(mymodel){
 #' @return
 #' @export
 #'
-#' @examples
 getParGrids <- function(mytrafo, mytrafoL, mycondition.grid, SS_pars = NULL){
   
   # .. condition.grid -----
