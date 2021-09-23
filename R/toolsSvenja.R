@@ -38,7 +38,7 @@ plotArray <- function (par, profs, prd, times, direction = c("up", "down"), covt
   partable %>% .[, (no_pars) := NULL]
   
   # make predictions
-  predictionDT <- predict_array_mod(prd, times, pars = partable, whichpar = par)
+  predictionDT <- predict_array(prd, times, pars = partable, whichpar = par)
   out_plot <- copy(predictionDT)
   
   # use covtable for subsetting of the plot
