@@ -11,7 +11,7 @@
 #' @param nsimus Number of trajectories/ simulation to be calculated.
 #' 
 #' @return A plot object of class \code{ggplot}.
-#' @author Svenja Kemmer
+#' @author Svenja Kemmer, \email{svenja.kemmer@@fdm.uni-freiburg.de}
 #' @examples
 #' \dontrun{
 #'  plotArray("myparameter", myprofiles, g*x*p, seq(0, 250, 1), 
@@ -38,7 +38,7 @@ plotArray <- function (par, profs, prd, times, direction = c("up", "down"), covt
   partable %>% .[, (no_pars) := NULL]
   
   # make predictions
-  predictionDT <- predict_array_mod(prd, times, pars = partable, whichpar = par)
+  predictionDT <- predict_array(prd, times, pars = partable, whichpar = par)
   out_plot <- copy(predictionDT)
   
   # use covtable for subsetting of the plot
@@ -92,4 +92,181 @@ predict_array <- function (prd, times, pars = partable, whichpar = par, keep_nam
   if (FLAGverbose2) cat("postprocessing", "\n")
   out <- rbindlist(out[!is.null(out)])
   out
+}
+
+
+PlotPaths <- function(profs=myprofiles, ..., whichPar, sort = FALSE, relative = TRUE, scales = "fixed", multi = TRUE, n_pars = 5) {
+  
+  if ("parframe" %in% class(profs)) {
+    arglist <- list(profs)
+  } else {
+    arglist <- as.list(profs)
+  }
+  
+  if (is.null(names(arglist))) {
+    profnames <- 1:length(arglist)
+  } else {
+    profnames <- names(arglist)
+  }
+  
+  
+  data <- do.call(rbind, lapply(1:length(arglist), function(i) {
+    # choose a proflist
+    proflist <- as.data.frame(arglist[[i]])
+    parameters <- attr(arglist[[i]], "parameters")
+    
+    if (is.data.frame(proflist)) {
+      whichPars <- unique(proflist$whichPar)
+      proflist <- lapply(whichPars, function(n) {
+        with(proflist, proflist[whichPar == n, ])
+      })
+      names(proflist) <- whichPars
+    }
+    
+    if (is.null(whichPar)) whichPar <- names(proflist)
+    if (is.numeric(whichPar)) whichPar <- names(proflist)[whichPar]
+    
+    subdata <- do.call(rbind, lapply(whichPar, function(n) {
+      # matirx
+      paths <- as.matrix(proflist[[n]][, parameters])
+      values <- proflist[[n]][, "value"]
+      origin <- which.min(abs(proflist[[n]][, "constraint"]))
+      if (relative) 
+        for(j in 1:ncol(paths)) paths[, j] <- paths[, j] - paths[origin, j]
+      
+      combinations <- expand.grid.alt(whichPar, colnames(paths))
+      if (sort) combinations <- apply(combinations, 1, sort) else combinations <- apply(combinations, 1, identity)
+      combinations <- submatrix(combinations, cols = -which(combinations[1,] == combinations[2,]))
+      combinations <- submatrix(combinations, cols = !duplicated(paste(combinations[1,], combinations[2,])))
+      
+      
+      
+      
+      path.data <- do.call(rbind, lapply(1:dim(combinations)[2], function(j) {
+        data.frame(chisquare = values, 
+                   name = n,
+                   proflist = profnames[i],
+                   combination = paste(combinations[,j], collapse = " - \n"),
+                   x = paths[, combinations[1,j]],
+                   y = paths[, combinations[2,j]])
+      }))
+      
+      if(multi) path.data <- path.data %>% as.data.table %>% .[, partner := tstrsplit(as.character(combination), "\n", fixed=TRUE, keep = 2)]
+      
+      
+      return(path.data)
+      
+    }))
+    
+    return(subdata)
+    
+  }))
+  
+  data$proflist <- as.factor(data$proflist)
+  
+  if (relative){
+    axis.labels <- c(expression(paste(Delta, "parameter 1")), expression(paste(Delta, "parameter 2")))  
+  } else {
+    axis.labels <- c("parameter 1", "parameter 2")
+  }
+  
+  data <- droplevels(subset(data, ...))
+  
+  suppressMessages(
+    p <- ggplot(data, aes(x = x, y = y, group = interaction(name, proflist), color = name, lty = proflist)) + 
+      facet_wrap(~combination, scales = scales) + 
+      geom_path() + #geom_point(aes=aes(size=1), alpha=1/3) +
+      xlab(axis.labels[1]) + ylab(axis.labels[2]) +
+      scale_linetype_discrete(name = "profile\nlist") +
+      scale_color_manual(name = "profiled\nparameter", values = dMod_colors)
+  )
+  if(multi){
+    
+    # determine strength of change
+    data[, max.dev := max(c(abs(max(y)), abs(min(y)))), by = "partner"]
+    setorder(data, name, -max.dev)
+    # max.devis <- unique(data$max.dev)[1:n_pars]
+    data[!(max.dev %in% unique(max.dev)[1:n_pars]), partner := "others"]
+    
+    data$combination <- as.factor(data$combination)
+    data$partner <- factor(data$partner, levels = unique(data$partner))
+    
+    suppressMessages(
+      p <- ggplot(data, aes(x = x, y = y, color = partner)) + 
+        geom_path() + #geom_point(aes=aes(size=1), alpha=1/3) +
+        xlab(paste0("log(", whichPar, ")")) + ylab("change of other paramters") +
+        scale_linetype_discrete(name = "profile\nlist") +
+        scale_color_manual(values = c(dMod_colors[2:(n_pars+1)], rep("gray", 100))) + theme_dMod() +
+        theme(legend.position="bottom",
+              legend.title = element_blank(),
+              legend.box.background = element_rect(colour = "black"),
+              legend.key.size = unit(0.4, "cm"))
+    )
+  }
+  
+  attr(p, "data") <- data
+  return(p)
+  
+}
+
+#' Profile likelihood: plot all parameter paths belonging to one profile in one plot
+#' 
+#' @param profs Lists of profiles as being returned by \link{profile}. 
+#' @param whichpars Character vector of parameter names for which the profile paths should be generated.
+#' @param npars Numeric vector of number of colored and named parameter paths.
+#' 
+#' @return A plot object of class \code{ggplot}.
+#' @author Svenja Kemmer, \email{svenja.kemmer@@fdm.uni-freiburg.de}
+#' @examples
+#' \dontrun{
+#'  plotPathsMulti(myprofiles, c("mypar1", "mypar2"), npars = 5) 
+#' }
+#' @export
+#' @import data.table
+plotPathsMulti <- function(profs, whichpars, npars = 5) {
+  PlotList <- NULL
+  for(i in 1:length(whichpars)){
+    par <- whichpars[i]
+    p <- PlotPaths(profs=profs, whichPar = par, n_pars = npars)
+    PlotList[[i]] <- p
+  }
+  cowplot::plot_grid(plotlist = PlotList)
+}
+
+expand.grid.alt <- function(seq1, seq2) {
+  cbind(Var1=rep.int(seq1, length(seq2)), Var2=rep(seq2, each=length(seq1)))
+}
+
+#' Profile likelihood: plot profiles along with their parameter paths
+#' 
+#' @param profs Lists of profiles as being returned by \link{profile}. 
+#' @param whichpars Character vector of parameter names for which the profile paths should be generated.
+#' @param npars Numeric vector of colored and named parameter paths.
+#' 
+#' @return A plot object of class \code{ggplot}.
+#' @author Svenja Kemmer, \email{svenja.kemmer@@fdm.uni-freiburg.de}
+#' @examples
+#' \dontrun{
+#'  plotProfilesAndPaths(myprofiles, c("mypar1", "mypar2"), npars = 5) 
+#' }
+#' @export
+#' @import data.table
+plotProfilesAndPaths <- function(profs, whichpars, npars = 5){
+  if(length(whichpars)<2) {
+    profs <- profs[profs$whichPar %in% whichpars]
+    pl1 <- plotProfile(profs, mode == "data")
+    pl2 <- plotPathsMulti(profs, whichpars, npars)
+    pl <- cowplot::plot_grid(pl1,cowplot::plot_grid(NULL,pl2, nrow = 1, rel_widths = c(0.2,1)),nrow = 2, rel_heights = c(1,0.7))
+  } else{
+    plotList <- NULL
+    for(z in 1:length(whichpars)){
+      prof_sub <- profs[profs$whichPar == whichpars[z]]
+      pl1 <- plotProfile(prof_sub, mode == "data") + theme(legend.position = "none")
+      pl2 <- plotPathsMulti(prof_sub, whichpars[z], npars)
+      pl <- cowplot::plot_grid(pl1,cowplot::plot_grid(NULL,pl2, nrow = 1, rel_widths = c(0.2,1)),nrow = 2, rel_heights = c(1,0.7))
+      plotList[[z]] <- pl
+    }
+    plot <- cowplot::plot_grid(plotlist = plotList, nrow = 1)
+    print(plot)
+  }
 }

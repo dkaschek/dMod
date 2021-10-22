@@ -46,5 +46,5 @@ Plot an array of trajectories along the profile of a parameter
 }
 }
 \author{
-Svenja Kemmer
+Svenja Kemmer, \email{svenja.kemmer@fdm.uni-freiburg.de}
 }
