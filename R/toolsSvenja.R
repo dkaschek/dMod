@@ -94,7 +94,6 @@ predict_array <- function (prd, times, pars = partable, whichpar = par, keep_nam
   out
 }
 
-
 PlotPaths <- function(profs=myprofiles, ..., whichPar, sort = FALSE, relative = TRUE, scales = "fixed", multi = TRUE, n_pars = 5) {
   
   if ("parframe" %in% class(profs)) {
@@ -194,7 +193,7 @@ PlotPaths <- function(profs=myprofiles, ..., whichPar, sort = FALSE, relative = 
     suppressMessages(
       p <- ggplot(data, aes(x = x, y = y, color = partner)) + 
         geom_path() + #geom_point(aes=aes(size=1), alpha=1/3) +
-        xlab(paste0("log(", whichPar, ")")) + ylab("change of other paramters") +
+        xlab(paste0("log(", whichPar, ")")) + ylab("relative change of\n other paramters") +
         scale_linetype_discrete(name = "profile\nlist") +
         scale_color_manual(values = c(dMod_colors[2:(n_pars+1)], rep("gray", 100))) + theme_dMod() +
         theme(legend.position="bottom",
@@ -215,7 +214,7 @@ PlotPaths <- function(profs=myprofiles, ..., whichPar, sort = FALSE, relative = 
 #' @param whichpars Character vector of parameter names for which the profile paths should be generated.
 #' @param npars Numeric vector of number of colored and named parameter paths.
 #' 
-#' @return A plot object of class \code{ggplot}.
+#' @return A plot object of class \code{ggplot} for length(whichpars) = 1 and otherwise an object of class \code{cowplot}.
 #' @author Svenja Kemmer, \email{svenja.kemmer@@fdm.uni-freiburg.de}
 #' @examples
 #' \dontrun{
@@ -224,14 +223,22 @@ PlotPaths <- function(profs=myprofiles, ..., whichPar, sort = FALSE, relative = 
 #' @export
 #' @import data.table
 plotPathsMulti <- function(profs, whichpars, npars = 5) {
-  PlotList <- NULL
-  for(i in 1:length(whichpars)){
-    par <- whichpars[i]
-    p <- PlotPaths(profs=profs, whichPar = par, n_pars = npars)
-    PlotList[[i]] <- p
+  if(length(whichpars) == 1){
+    p <- PlotPaths(profs=profs, whichPar = whichpars, n_pars = npars)
+    return(p)
+  } else {
+    PlotList <- NULL
+    for(i in 1:length(whichpars)){
+      par <- whichpars[i]
+      p <- PlotPaths(profs=profs, whichPar = par, n_pars = npars)
+      PlotList[[i]] <- p
+    }
+    pl <- cowplot::plot_grid(plotlist = PlotList)
+    return(pl)
   }
-  cowplot::plot_grid(plotlist = PlotList)
 }
+
+
 
 expand.grid.alt <- function(seq1, seq2) {
   cbind(Var1=rep.int(seq1, length(seq2)), Var2=rep(seq2, each=length(seq1)))

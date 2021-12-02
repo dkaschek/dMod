@@ -14,7 +14,7 @@ plotPathsMulti(profs, whichpars, npars = 5)
 \item{npars}{Numeric vector of number of colored and named parameter paths.}
 }
 \value{
-A plot object of class \code{ggplot}.
+A plot object of class \code{ggplot} for length(whichpars) = 1 and otherwise an object of class \code{cowplot}.
 }
 \description{
 Profile likelihood: plot all parameter paths belonging to one profile in one plot
