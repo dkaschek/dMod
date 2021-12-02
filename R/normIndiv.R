@@ -582,14 +582,9 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
 }
 
 #' DatapointL2 without access to stored predictions
-#'
-#' @param name 
-#' @param time 
-#' @param value 
-#' @param sigma 
-#' @param attr.name 
-#' @param condition 
-#' @param prd_indiv 
+#' 
+#' @inheritParams datapointL2
+#' @param prd_indiv a prediction function
 #'
 #' @return
 #' @export

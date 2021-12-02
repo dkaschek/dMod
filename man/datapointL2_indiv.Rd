@@ -15,19 +15,21 @@ datapointL2_indiv(
 )
 }
 \arguments{
-\item{name}{}
+\item{name}{character, the name of the prediction, e.g. a state name.}
 
-\item{time}{}
+\item{time}{numeric, the time-point associated to the prediction}
 
-\item{value}{}
+\item{value}{character, the name of the parameter which contains the
+prediction value.}
 
-\item{sigma}{}
+\item{sigma}{numeric, the uncertainty of the introduced test data point}
 
-\item{attr.name}{}
+\item{attr.name}{character. The constraint value is additionally returned in an 
+attributed with this name}
 
-\item{condition}{}
+\item{condition}{character, the condition for which the prediction is made.}
 
-\item{prd_indiv}{}
+\item{prd_indiv}{a prediction function}
 }
 \value{
 
