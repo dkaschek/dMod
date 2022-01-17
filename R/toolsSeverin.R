@@ -238,7 +238,7 @@ distributed_computing <- function(
       cat("Result from", result_length, "out of", (num_nodes +1), "nodes are ready.")
       return(FALSE)
     }
-    
+    setwd(original_wd)
     
   }
   
@@ -273,7 +273,7 @@ distributed_computing <- function(
     if (length(result_files) != num_nodes +1) {
       cat("\n\tNot all results ready\n")
     }
-    
+    setwd(original_wd)
     # results_cluster <- Sys.glob(paste0(wd_path, "*.RData")) %>% map_dfr(load)
     .GlobalEnv$cluster_result <- result_list
   }
@@ -294,10 +294,14 @@ distributed_computing <- function(
         paste0("rm -rf ", output_folder_abs, "/", jobname,"_folder")
       )
     }
+    setwd(original_wd)
   }
   
   # if recover == T, stop here
-  if(recover) return(out)
+  if(recover) {
+    setwd(original_wd)
+    return(out)
+  } 
   
   
   
