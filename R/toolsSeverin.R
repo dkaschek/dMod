@@ -188,7 +188,7 @@ distributed_computing <- function(
     setwd(tmp_folder)
   }
   
-  
+  on.exit(setwd(original_wd))
   
   # - definitions - #
   
