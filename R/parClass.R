@@ -211,7 +211,7 @@ as.parvec.parframe <- function(x, index = 1, ...) {
   m_order <- 1:nrow(x)
   metanames <- attr(parframe, "metanames")
   if ("value" %in% metanames) m_order <- order(parframe$value)
-  best <- as.parvec(unlist(parframe[m_order[index], attr(parframe, "parameters")]))
+  best <- as.parvec(unlist(as.data.frame(parframe)[m_order[index], attr(parframe, "parameters"), drop = FALSE]))
   if ("converged" %in% metanames && !parframe[m_order[index],]$converged) {
     warning("Parameter vector of an unconverged fit is selected.", call. = FALSE)
   }

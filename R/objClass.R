@@ -637,7 +637,8 @@ nll <- function(nout, pars, deriv, opt.BLOQ = "M3", opt.hessian = c(
   if (any(is.bloq) && (!opt.BLOQ == "M1"))
     mywrss <- mywrss + nll_BLOQ(nout.bloq, derivs.bloq, derivs.err.bloq, opt.BLOQ = opt.BLOQ, opt.hessian = opt.hessian)
   
-  attr(mywrss, "chisquare") <- attr(nll_ALOQ_result, "chisquare")
+  chisquare <- attr(nll_ALOQ_result, "chisquare")
+  attr(mywrss, "chisquare") <- if (length(chisquare)) chisquare else 0
   
   mywrss
 }

@@ -17,7 +17,8 @@ distributed_computing(
   no_rep = NULL,
   recover = T,
   purge_local = F,
-  compile = F
+  compile = F,
+  custom_folders = NULL
 )
 }
 \arguments{
@@ -67,6 +68,15 @@ local files.}
 \item{compile}{Logical, if set to \code{TRUE} the source files are transferred
 to remote and compiled there. If set to \code{FALSE}, the local shared objects
 are transferred and used instead.}
+
+\item{custom_folders}{named vector with exact three entries named 'compiled',
+'output' and 'tmp'. The values are strings with relative paths from the current
+working directory to the respective directory of the compiled files, the temporary
+folder from which files will be copied to the cluster and the output folder in
+which the calculated result from the cluster will be saved.\n
+The default is \code{NULL}, then everything is done from the currend working directory.
+If only a subset of the folders should be changed, all other need to be set to
+\code{./}.}
 }
 \value{
 List of functions \code{check()}, \code{get()} and \code{purge()}. 

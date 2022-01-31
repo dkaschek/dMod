@@ -543,7 +543,7 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
       err <- NULL
       if (any(is.na(data[[cn]]$sigma))) {
         err <- errmodel(out = prediction, pars = getParameters(prediction), conditions = cn, deriv=deriv)
-        mywrss <- nll(res(data[[cn]], prediction, err[[1]]), deriv = deriv, pars = pars)
+        mywrss <- nll(res(data[[cn]], prediction, err[[1]]), deriv = deriv, pars = pars) #should maybe be pars_, but it is magically covered in renameDerivParsInObjlist
       } else {
         mywrss <- nll(res(data[[cn]], prediction), deriv = deriv, pars = pars)
       }
@@ -558,7 +558,7 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
     
     # Consider fixed: return only derivs wrt pouter
     out$gradient <- out$gradient[names(pars)]
-    out$hessian <- out$hessian[names(pars), names(pars)]
+    out$hessian <- out$hessian[names(pars), names(pars), drop = FALSE]
     
     # Populate attributes
     attr(out, controls$attr.name) <- out$value

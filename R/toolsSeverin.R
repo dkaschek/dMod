@@ -52,6 +52,14 @@
 #' @param compile Logical, if set to \code{TRUE} the source files are transferred
 #' to remote and compiled there. If set to \code{FALSE}, the local shared objects
 #' are transferred and used instead.
+#' @param custom_folders named vector with exact three entries named 'compiled',
+#' 'output' and 'tmp'. The values are strings with relative paths from the current
+#' working directory to the respective directory of the compiled files, the temporary
+#' folder from which files will be copied to the cluster and the output folder in
+#' which the calculated result from the cluster will be saved.\n
+#' The default is \code{NULL}, then everything is done from the currend working directory.
+#' If only a subset of the folders should be changed, all other need to be set to
+#' \code{./}.
 #' 
 #' @return List of functions \code{check()}, \code{get()} and \code{purge()}. 
 #' \code{check()} checks, if the result is ready. 
@@ -155,13 +163,37 @@ distributed_computing <- function(
   no_rep = NULL,
   recover = T,
   purge_local = F,
-  compile = F
+  compile = F,
+  custom_folders = NULL
   # called_function = "func(a = var_1, b = var_1, name = jobname,id = 01)",
 ) {
+  original_wd <- getwd()
+  if (is.null(custom_folders)) {
+    output_folder_abs <- "./"
+  } else if(!is.null(custom_folders) & !all(length(custom_folders) == 3 & sort(names(custom_folders)) == c("compiled", "output", "tmp"))) {
+    warning("'custom_folders' must be named vector with exact three elements:\n
+            'compiled', 'output', 'tmp', containing relative paths to the resp folders\n
+            input is wrong, ignored.\n")
+  } else {
+    compiled_folder <- custom_folders["compiled"]
+    output_folder <- custom_folders["output"]
+    tmp_folder <- custom_folders["tmp"]
+    
+    system(paste0("cp ", compiled_folder, "* ", tmp_folder))
+    
+    setwd(output_folder)
+    output_folder_abs <- getwd()
+    
+    setwd(original_wd)
+    setwd(tmp_folder)
+  }
+  
+  on.exit(setwd(original_wd))
   
   # - definitions - #
   
   # relative path to the working directory, will now allways be used
+  
   wd_path <- paste0("./",jobname, "_folder/")
   data_path <- paste0(getwd(),"/",jobname, "_folder/")
   
@@ -206,7 +238,7 @@ distributed_computing <- function(
       cat("Result from", result_length, "out of", (num_nodes +1), "nodes are ready.")
       return(FALSE)
     }
-    
+    setwd(original_wd)
     
   }
   
@@ -215,33 +247,33 @@ distributed_computing <- function(
     # copy all files back
     system(
       paste0(
-        "mkdir -p ", jobname,"_folder/results/; ",
+        "mkdir -p ", output_folder_abs, "/", jobname,"_folder/results/; ",
         ssh_command, "-n ", machine, # go to remote
         " 'tar -C ", jobname, "_folder", " -jcf - ./'", # compress all files on remote
         " | ", # pipe to local
         "",
-        "tar -C ", data_path,"/results/ -jxf -"
+        "tar -C ", output_folder_abs, "/", jobname,"_folder/results/ -jxf -"
       )
     )
     
     # get list of all currently available output files
     # setwd(paste0(jobname,"_folder/results"))
     result_list <- structure(vector(mode = "list", length = num_nodes+1))
-    result_files <- list.files(path=paste0(jobname,"_folder/results/"),pattern = glob2rx("*result.RData"))
+    result_files <- list.files(path=paste0(output_folder_abs,"/",jobname,"_folder/results/"),pattern = glob2rx("*result.RData"))
     # setwd("../../")
     
     # result_files <- Sys.glob(file.path(paste0(wd_path, "/results/*RData")))
     
     for (i in seq(1, length(result_files))) {
       cluster_result <- NULL
-      check <- try(load(file = paste0(wd_path,"results/",result_files[i])), silent = TRUE) 
+      check <- try(load(file = paste0(output_folder_abs,"/",jobname,"_folder/results/",result_files[i])), silent = TRUE) 
       if (!inherits("try-error", check)) result_list[[i]] <- cluster_result
     }
     
     if (length(result_files) != num_nodes +1) {
       cat("\n\tNot all results ready\n")
     }
-    
+    setwd(original_wd)
     # results_cluster <- Sys.glob(paste0(wd_path, "*.RData")) %>% map_dfr(load)
     .GlobalEnv$cluster_result <- result_list
   }
@@ -259,13 +291,17 @@ distributed_computing <- function(
     # also remove local files if want so
     if (purge_local) {
       system(
-        paste0("rm -rf ", jobname,"_folder")
+        paste0("rm -rf ", output_folder_abs, "/", jobname,"_folder")
       )
     }
+    setwd(original_wd)
   }
   
   # if recover == T, stop here
-  if(recover) return(out)
+  if(recover) {
+    setwd(original_wd)
+    return(out)
+  } 
   
   
   
@@ -276,9 +312,6 @@ distributed_computing <- function(
   
   
   # - calculation - #
-  # get current wd
-  orig_wd <- getwd()
-  
   # create wd for this run
   system(
     paste0("rm -rf ",jobname,"_folder")
@@ -494,6 +527,7 @@ distributed_computing <- function(
     )
   )
   
+  setwd(original_wd)
   return(out)
 }
 
