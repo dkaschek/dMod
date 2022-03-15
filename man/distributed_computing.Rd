@@ -73,7 +73,7 @@ are transferred and used instead.}
 'output' and 'tmp'. The values are strings with relative paths from the current
 working directory to the respective directory of the compiled files, the temporary
 folder from which files will be copied to the cluster and the output folder in
-which the calculated result from the cluster will be saved.\n
+which the calculated result from the cluster will be saved.
 The default is \code{NULL}, then everything is done from the currend working directory.
 If only a subset of the folders should be changed, all other need to be set to
 \code{./}.}
