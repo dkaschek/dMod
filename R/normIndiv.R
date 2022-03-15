@@ -645,7 +645,7 @@ datapointL2_indiv <- function (name, time, value, sigma = 1, attr.name = "valida
     gr <- NULL
     hs <- NULL
     
-
+    
     if (withDeriv) {
       dres.dp <- structure(rep(0, length(pouter)), names = names(pouter))
       if (length(parapar) > 0) 
@@ -863,7 +863,7 @@ check_and_sanitize_prediction <- function(prediction, data, cn, FLAGNaNInfwarnin
 #'
 #' @param mytrafo base trafo
 #' @param mytrafoL condition specific branched trafo list
-#' @param mycondition.grid condition.grid
+#' @param mycondition.grid condition.grid with condition names as rownames e.g. as output from attr(datalist, "condition.grid")
 #' @param SS_pars parameters determined by steady state
 #'
 #' @return
@@ -873,9 +873,7 @@ check_and_sanitize_prediction <- function(prediction, data, cn, FLAGNaNInfwarnin
 getParGrids <- function(mytrafo, mytrafoL, mycondition.grid, SS_pars = NULL){
   
   # .. condition.grid -----
-  
-  myconditions <- mycondition.grid$condition
-  rownames(mycondition.grid) <- myconditions
+  myconditions <- rownames(mycondition.grid)
   
   # .. fixed.grid - all conditions fixed -----
   
@@ -883,11 +881,12 @@ getParGrids <- function(mytrafo, mytrafoL, mycondition.grid, SS_pars = NULL){
   fixed_trafo <- mytrafo[suppressWarnings(which(!(mytrafo %>% as.numeric()) %>% is.na()))] %>% as.eqnvec()
   fixed_df <- data.frame(as.list(fixed_trafo), stringsAsFactors=FALSE) 
   
-  fixed_df2 <- fixed_df %>% rbind(fixed_df[rep(1, (length(myconditions)-1)), ]) %>% 
-    cbind(condition = myconditions, ID = 1:length(myconditions)) %>% 
-    select(ID, condition, everything()) 
-  
-  fixedpars <- names(fixed_trafo)
+  if(nrow(fixed_df) > 0){
+    fixed_df <- as.data.table(fixed_df)
+    fixed_df2 <- fixed_df %>% rbind(fixed_df[rep(1, (length(myconditions)-1)), ]) %>% 
+      cbind(condition = myconditions, ID = 1:length(myconditions)) 
+    setcolorder(fixed_df2, c("ID", "condition"))
+  } else fixed_df2 <- NULL
   
   # .. est.grid -----
   
@@ -963,10 +962,17 @@ getParGrids <- function(mytrafo, mytrafoL, mycondition.grid, SS_pars = NULL){
   })
   
   # append to fixed.grid
-  fixed.grid <- fixed_df2 %>% cbind(partly_fixed_df %>% as.data.frame(stringsAsFactors = F)) %>% as_tibble() %>% as.data.table()
+  if(!is.null(fixed_df2) & !is_empty(partly_fixed_df)){
+    fixed.grid <- fixed_df2 %>% cbind(partly_fixed_df %>% as.data.frame(stringsAsFactors = F)) %>% as_tibble() %>% as.data.table()
+  } else if(!is.null(fixed_df2)) {
+    fixed.grid <- fixed_df2 %>% as.data.table()
+  } else if(!is_empty(partly_fixed_df)) { 
+    fixed.grid <- cbind(data.table(ID = 1:length(myconditions), condition = myconditions),
+                        partly_fixed_df %>% as.data.frame(stringsAsFactors = F) %>% as_tibble() %>% as.data.table())
+  } else fixed.grid <- NULL
   
   numcols <- setdiff(names(fixed.grid), c("ID", "condition"))
-  fixed.grid[, (numcols) :=lapply(.SD, function(x) as.numeric(x)), .SDcols=numcols]
+  if(!is.null(fixed.grid)) fixed.grid[, (numcols) :=lapply(.SD, function(x) as.numeric(x)), .SDcols=numcols]
   
   # assign NA to fixed pars
   est_df <- sapply(est_df, function(x) {
