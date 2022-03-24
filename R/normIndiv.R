@@ -983,7 +983,8 @@ getParGrids <- function(mytrafo, mytrafoL, mycondition.grid, SS_pars = NULL){
   })
   
   est.grid  <- est_df %>% as.data.frame(stringsAsFactors = F) %>% mutate(ID = 1:length(myconditions)) %>% 
-    select(ID, condition, everything()) %>% as_tibble() %>% as.data.table()
+    as_tibble() %>% as.data.table()
+  setcolorder(est.grid, c("ID", "condition"))
   
   list(est.grid, fixed.grid)
 }
