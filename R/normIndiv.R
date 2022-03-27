@@ -901,7 +901,7 @@ getParGrids <- function(mytrafo, mytrafoL, mycondition.grid, SS_pars = NULL){
     if(any(c(str_detect(mytrafo, "exp\\("),str_detect(mytrafo, "10\\^\\(")))) mytrafo <- gsub("exp\\(", "", mytrafo) %>% gsub("10\\^\\(", "", .) %>%gsub("\\(", "", .) %>% gsub("\\)", "", .)
     
     # check for mathematical parameter trafos
-    myoperations <- c("/|\\+|\\*")
+    myoperations <- c("/|\\+|\\*|\\**")
     if(any(grepl(myoperations, conditrafo))){
       myreplpars <- grep(myoperations, conditrafo, value = TRUE)
       myorigpars <- grep(myoperations, mytrafo, value = TRUE)
