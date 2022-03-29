@@ -347,7 +347,13 @@ distributed_computing <- function(
       lapply(
         seq(1,length(var_values)),
         function(i) {
-          paste0("var_values_", i, "=c(", paste(var_values[[i]], collapse=","),")")
+          if( class(var_values[[i]]) == "character") {
+            paste0("var_values_", i, "=c('", paste(var_values[[i]], collapse="','"),"')")
+          } else {
+            paste0("var_values_", i, "=c(", paste(var_values[[i]], collapse=","),")")
+          }
+          
+          
         }
       ),
       collapse = "\n"
