@@ -964,11 +964,11 @@ getParGrids <- function(mytrafo, mytrafoL, mycondition.grid, SS_pars = NULL){
   })
   
   # append to fixed.grid
-  if(!is.null(fixed_df2) & !is_empty(partly_fixed_df)){
+  if(!is.null(fixed_df2) & !purrr::is_empty(partly_fixed_df)){
     fixed.grid <- fixed_df2 %>% cbind(partly_fixed_df %>% as.data.frame(stringsAsFactors = F)) %>% as_tibble() %>% as.data.table()
   } else if(!is.null(fixed_df2)) {
     fixed.grid <- fixed_df2 %>% as.data.table()
-  } else if(!is_empty(partly_fixed_df)) { 
+  } else if(!purrr::is_empty(partly_fixed_df)) { 
     fixed.grid <- cbind(data.table(ID = 1:length(myconditions), condition = myconditions),
                         partly_fixed_df %>% as.data.frame(stringsAsFactors = F) %>% as_tibble() %>% as.data.table())
   } else fixed.grid <- NULL
