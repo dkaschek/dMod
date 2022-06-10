@@ -910,10 +910,10 @@ getParGrids <- function(mytrafo, mytrafoL, mycondition.grid, SS_pars = NULL){
       for(i in names(myreplpars)){
         myreplpar <- conditrafo[i]
         myorigpar <- mytrafo[i]
-        parsorig <- getSymbols(myorigpar)
-        parsrepl <- getSymbols(myreplpar)
-        #parsorig <- strsplit(myorigpar, split = myoperations)[[1]]   ## old version
-        #parsrepl <- strsplit(myreplpar, split = myoperations)[[1]]   ## old version
+        # parsorig <- getSymbols(myorigpar) ## new version (marcus): negelcts numbers
+        # parsrepl <- getSymbols(myreplpar) ## new version (marcus): negelcts numbers
+        parsorig <- strsplit(myorigpar, split = myoperations)[[1]]   ## old version
+        parsrepl <- strsplit(myreplpar, split = myoperations)[[1]]   ## old version
         names(parsrepl) <- parsorig
         # check whether pars are already present in addpars
         for(j in names(parsrepl)){
