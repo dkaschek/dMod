@@ -11,7 +11,7 @@ getParGrids(mytrafo, mytrafoL, mycondition.grid, SS_pars = NULL)
 
 \item{mytrafoL}{condition specific branched trafo list}
 
-\item{mycondition.grid}{condition.grid}
+\item{mycondition.grid}{condition.grid with condition names as rownames e.g. as output from attr(datalist, "condition.grid")}
 
 \item{SS_pars}{parameters determined by steady state}
 }

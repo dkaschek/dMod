@@ -5,7 +5,7 @@
 #' 
 #' @export
 #' 
-#' @example getElements(c("A*AB+B^2"))
+#' @examples getElements(c("A*AB+B^2"))
 #' 
 getElements <- function (char, exclude = NULL) 
 {
