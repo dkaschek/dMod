@@ -14,7 +14,7 @@ getElements <- function (char, exclude = NULL)
   char <- char[char != "0"]
   out <- parse(text = char, keep.source = TRUE)
   out <- utils::getParseData(out)
-  names <- unique(out$text[out$token == "SYMBOL" | out$token == "NUM_CONST"])
+  names <- out$text[out$token == "SYMBOL" | out$token == "NUM_CONST"]
   if (!is.null(exclude)) 
     names <- names[!names %in% exclude]
   return(names)
