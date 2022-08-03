@@ -864,7 +864,7 @@ check_and_sanitize_prediction <- function(prediction, data, cn, FLAGNaNInfwarnin
 #' @param mytrafo base trafo
 #' @param mytrafoL condition specific branched trafo list
 #' @param mycondition.grid condition.grid with condition names as rownames e.g. as output from attr(datalist, "condition.grid")
-#' @param SS_pars parameters determined by steady state
+#' @param SS_pars parameters determined by the steady state
 #'
 #' @return
 #' @export
@@ -898,22 +898,22 @@ getParGrids <- function(mytrafo, mytrafoL, mycondition.grid, SS_pars = NULL){
   for(cond in myconditions){
     conditrafo <- mytrafoL[[cond]][estpars]
     if(any(c(str_detect(conditrafo, "exp\\("),str_detect(conditrafo, "10\\^\\(")))) conditrafo <- gsub("exp\\(", "", conditrafo) %>% gsub("10\\^\\(", "", .) %>% gsub("\\(", "", .) %>% gsub("\\)", "", .)
-    if(any(c(str_detect(mytrafo, "exp\\("),str_detect(mytrafo, "10\\^\\(")))) mytrafo <- gsub("exp\\(", "", mytrafo) %>% gsub("10\\^\\(", "", .) %>%gsub("\\(", "", .) %>% gsub("\\)", "", .)
+    if(any(c(str_detect(est_trafo, "exp\\("),str_detect(est_trafo, "10\\^\\(")))) est_trafo <- gsub("exp\\(", "", est_trafo) %>% gsub("10\\^\\(", "", .) %>%gsub("\\(", "", .) %>% gsub("\\)", "", .)
     
     # check for mathematical parameter trafos
     myoperations <- c("/|\\+|\\*")
     if(any(grepl(myoperations, conditrafo))){
       myreplpars <- grep(myoperations, conditrafo, value = TRUE)
-      myorigpars <- grep(myoperations, mytrafo, value = TRUE)
+      myorigpars <- grep(myoperations, est_trafo, value = TRUE)
       
       addpars <- NULL
       for(i in names(myreplpars)){
         myreplpar <- conditrafo[i]
-        myorigpar <- mytrafo[i]
-        parsorig <- getSymbols(myorigpar)
-        parsrepl <- getSymbols(myreplpar)
-        #parsorig <- strsplit(myorigpar, split = myoperations)[[1]]   ## old version
-        #parsrepl <- strsplit(myreplpar, split = myoperations)[[1]]   ## old version
+        myorigpar <- est_trafo[i]
+        parsorig <- getElements(myorigpar)
+        parsrepl <- getElements(myreplpar)
+        # parsorig <- strsplit(myorigpar, split = myoperations)[[1]]   ## old version
+        # parsrepl <- strsplit(myreplpar, split = myoperations)[[1]]   ## old version
         names(parsrepl) <- parsorig
         # check whether pars are already present in addpars
         for(j in names(parsrepl)){
@@ -964,11 +964,11 @@ getParGrids <- function(mytrafo, mytrafoL, mycondition.grid, SS_pars = NULL){
   })
   
   # append to fixed.grid
-  if(!is.null(fixed_df2) & !is_empty(partly_fixed_df)){
+  if(!is.null(fixed_df2) & !purrr::is_empty(partly_fixed_df)){
     fixed.grid <- fixed_df2 %>% cbind(partly_fixed_df %>% as.data.frame(stringsAsFactors = F)) %>% as_tibble() %>% as.data.table()
   } else if(!is.null(fixed_df2)) {
     fixed.grid <- fixed_df2 %>% as.data.table()
-  } else if(!is_empty(partly_fixed_df)) { 
+  } else if(!purrr::is_empty(partly_fixed_df)) { 
     fixed.grid <- cbind(data.table(ID = 1:length(myconditions), condition = myconditions),
                         partly_fixed_df %>% as.data.frame(stringsAsFactors = F) %>% as_tibble() %>% as.data.table())
   } else fixed.grid <- NULL
@@ -1015,3 +1015,4 @@ getParGrids <- function(mytrafo, mytrafoL, mycondition.grid, SS_pars = NULL){
   
   list(est.grid, fixed.grid)
 }
+
