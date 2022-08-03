@@ -11,9 +11,6 @@
 
 \item{...}{}
 }
-\value{
-
-}
 \description{
 Title
 }

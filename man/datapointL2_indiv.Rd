@@ -31,9 +31,6 @@ attributed with this name}
 
 \item{prd_indiv}{a prediction function}
 }
-\value{
-
-}
 \description{
 DatapointL2 without access to stored predictions
 }

@@ -977,12 +977,37 @@ getParGrids <- function(mytrafo, mytrafoL, mycondition.grid, SS_pars = NULL){
   if(!is.null(fixed.grid)) fixed.grid[, (numcols) :=lapply(.SD, function(x) as.numeric(x)), .SDcols=numcols]
   
   # assign NA to fixed pars
-  est_df <- sapply(est_df, function(x) {
-    sapply(x, function(z){
-      if(grepl("^-?[[:digit:]]", z)) z <- NA
-      else z <- z
-    })
-  })
+  if (nrow(est_df) == 1) {
+    est_df <- sapply(
+      est_df,
+      function(z) {
+        if (grepl("^-?[[:digit:]]", z)) {
+          z <- NA
+        } else {
+          z <- z
+        }
+      }
+    )
+    cur_colnames <- names(est_df)
+    est_df <- matrix(est_df, nrow = 1)
+    colnames(est_df) <- cur_colnames
+  } else {
+    est_df <- sapply(
+      est_df,
+      function(x) {
+        sapply(
+          x,
+          function(z) {
+            if (grepl("^-?[[:digit:]]", z)) {
+              z <- NA
+            } else {
+              z <- z
+            }
+          }
+        )
+      }
+    )
+  }
   
   est.grid  <- est_df %>% as.data.frame(stringsAsFactors = F) %>% mutate(ID = 1:length(myconditions)) %>% 
     as_tibble() %>% as.data.table()

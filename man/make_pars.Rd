@@ -15,9 +15,6 @@ make_pars(pars, fixed = NULL, est.grid, fix.grid, ID)
 
 \item{est.vec}{}
 }
-\value{
-
-}
 \description{
 Extract pars, fixed and parnames from grids for a given condition
 }
