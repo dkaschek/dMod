@@ -60,7 +60,12 @@
 #' The default is \code{NULL}, then everything is done from the current working directory.
 #' If only a subset of the folders should be changed, all other need to be set to
 #' \code{./}.
+#' @param resetSeeds logical, if set to \code{TRUE} (default) the parameter vector
+#' with random seeds \code{.Random.seeds} from the transferred work space is deleted
+#' on remote. This ensures that each node has uses a different set of  (pseudo) random
+#' numbers. Set to FALSE at own risk.
 #' 
+#'  
 #' @return List of functions \code{check()}, \code{get()} and \code{purge()}. 
 #' \code{check()} checks, if the result is ready. 
 #' \code{get()} copies all files from the remote working directory to local and 
@@ -164,7 +169,8 @@ distributed_computing <- function(
   recover = T,
   purge_local = F,
   compile = F,
-  custom_folders = NULL
+  custom_folders = NULL,
+  resetSeeds = TRUE
   # called_function = "func(a = var_1, b = var_1, name = jobname,id = 01)",
 ) {
   original_wd <- getwd()
@@ -203,7 +209,7 @@ distributed_computing <- function(
   } else if(is.null(no_rep) & !is.null(var_values)) {
     num_nodes <- length(var_values[[1]]) - 1
   } else {
-    stop()
+    stop("I dont know what you want how often done. Please set either 'no_rep' or pass 'var_values' (_not_ both!)")
   }
   
   # define the ssh command depending on 'sshpass' being used
@@ -404,6 +410,9 @@ distributed_computing <- function(
       "# Load environment",
       paste0("load('",jobname,"_workspace.RData')"),
       "",
+      if (resetSeeds == TRUE & exists(".Random.seed")) {
+        paste0("# remove random seeds\nrm(.Random.seed)")
+      },
       "",
       "# load shared object if precompiled",
       load_so,
