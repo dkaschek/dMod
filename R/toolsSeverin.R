@@ -57,7 +57,7 @@
 #' working directory to the respective directory of the compiled files, the temporary
 #' folder from which files will be copied to the cluster and the output folder in
 #' which the calculated result from the cluster will be saved.
-#' The default is \code{NULL}, then everything is done from the currend working directory.
+#' The default is \code{NULL}, then everything is done from the current working directory.
 #' If only a subset of the folders should be changed, all other need to be set to
 #' \code{./}.
 #' 
@@ -449,7 +449,7 @@ distributed_computing <- function(
       "# Define number of nodes per task",
       paste0("#SBATCH --nodes=", nodes),
       "# Define number of cores per node",
-      paste0("#SBATCH --ntasks=",cores),
+      paste0("#SBATCH --ntasks-per-node=",cores),
       "# Define walltime",
       paste0("#SBATCH --time=",walltime),
       "# Define of repetition",
@@ -458,7 +458,7 @@ distributed_computing <- function(
       "",
       "# Load R modules",
       "module load math/R",
-      "export OPENBLAS_NUM_THREADS=1",
+      paste0("export OPENBLAS_NUM_THREADS=",cores),
       "",
       "# Run R script",
       paste0("Rscript ", jobname, ".R"),
