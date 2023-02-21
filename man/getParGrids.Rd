@@ -13,10 +13,7 @@ getParGrids(mytrafo, mytrafoL, mycondition.grid, SS_pars = NULL)
 
 \item{mycondition.grid}{condition.grid with condition names as rownames e.g. as output from attr(datalist, "condition.grid")}
 
-\item{SS_pars}{parameters determined by steady state}
-}
-\value{
-
+\item{SS_pars}{parameters determined by the steady state}
 }
 \description{
 Get est.grid and fixed.grid

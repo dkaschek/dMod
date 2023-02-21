@@ -18,7 +18,8 @@ distributed_computing(
   recover = T,
   purge_local = F,
   compile = F,
-  custom_folders = NULL
+  custom_folders = NULL,
+  resetSeeds = TRUE
 )
 }
 \arguments{
@@ -73,10 +74,15 @@ are transferred and used instead.}
 'output' and 'tmp'. The values are strings with relative paths from the current
 working directory to the respective directory of the compiled files, the temporary
 folder from which files will be copied to the cluster and the output folder in
-which the calculated result from the cluster will be saved.\n
-The default is \code{NULL}, then everything is done from the currend working directory.
+which the calculated result from the cluster will be saved.
+The default is \code{NULL}, then everything is done from the current working directory.
 If only a subset of the folders should be changed, all other need to be set to
 \code{./}.}
+
+\item{resetSeeds}{logical, if set to \code{TRUE} (default) the parameter vector
+with random seeds \code{.Random.seeds} from the transferred work space is deleted
+on remote. This ensures that each node has uses a different set of  (pseudo) random
+numbers. Set to FALSE at own risk.}
 }
 \value{
 List of functions \code{check()}, \code{get()} and \code{purge()}. 

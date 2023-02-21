@@ -13,9 +13,6 @@ PRD_indiv(prd0, est.grid, fix.grid)
 
 \item{fix.grid}{}
 }
-\value{
-
-}
 \description{
 Title
 }

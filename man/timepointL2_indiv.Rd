@@ -29,9 +29,6 @@ timepointL2_indiv(
 
 \item{prd_indiv}{}
 }
-\value{
-
-}
 \description{
 DatapointL2 without env access
 }
