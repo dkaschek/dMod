@@ -12,7 +12,8 @@ steadyStates(
   givenCQs = NULL,
   neglect = NULL,
   sparsifyLevel = 2,
-  outputFormat = "R"
+  outputFormat = "R",
+  testSteady = "T"
 )
 }
 \arguments{
@@ -33,6 +34,8 @@ steadyStates(
 \item{outputFormat}{Define the output format. By default "R" generating dMod 
 compatible output. To obtain an output appropriate for d2d [2] "M" must be 
 selected.}
+
+\item{testSteady}{Boolean, if "T" the correctness of the obtained steady states is numerically checked (this can be very time intensive). If "F" this is skipped.}
 }
 \value{
 Character vector of steady-state equations.

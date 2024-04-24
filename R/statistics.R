@@ -797,7 +797,7 @@ vcov <- function(fit, parupper = NULL, parlower = NULL) {
 #' @export
 #' @import parallel
 mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20, cores = 1, optmethod = "trust",
-                    samplefun = "rnorm", resultPath = ".", stats = FALSE, output = FALSE, cautiousMode = FALSE,
+                    samplefun = "rnorm", resultPath = ".", stats = FALSE, output = FALSE, cautiousMode = FALSE, start1stfromCenter = FALSE,
                     ...) {
   
   narrowing <- NULL
@@ -947,7 +947,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     if(is.parframe(center)) {
       argstrust$parinit <- as.parvec(center, i)
     } else {
-      if (i == 1) {
+      if (i == 1 & start1stfromCenter) {
         # First fit always starts from center
         argstrust$parinit <- center
       } else {
