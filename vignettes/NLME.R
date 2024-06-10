@@ -1,8 +1,11 @@
+rm(list=ls())
 library(dMod)
 library(nlme)
 library(dplyr)
 library(ggplot2)
-setwd("/tmp")
+setwd(tempdir())
+
+set.seed(5555)
 
 x <- eqnlist() %>% 
   addReaction("A", "B", "kA*A", "Decay of A") %>%
@@ -41,11 +44,12 @@ data <- do.call(rbind, lapply(1:n_individuals, function(i) {
   ini[1] <- rnorm(1, ini[1], .5)
   ini[2] <- rnorm(1, ini[2], .5)
   
+  rel_sigma <- 0.1
   (x*p)(timesD, ini, deriv = FALSE, conditions = rownames(covtable)[i]) %>% 
     as.data.frame() %>% 
     mutate(ID = covtable$ID[i], WGT = covtable$WGT[i]) %>%
-    mutate(sigma = 0.02) %>%
-    mutate(value = rnorm(length(value), value, sigma)) %>%
+    mutate(value = rlnorm(length(value), log(value) - log(1 + rel_sigma^2)/2, sqrt(log(1 + rel_sigma^2)))) %>%
+    mutate(sigma = rel_sigma*value) %>%
     mutate(ytype = as.numeric(name))
   
 }))
@@ -66,24 +70,27 @@ prediction <- fit %>% coef() %>% split(f = 1:10) %>%
 
 plot(prediction, as.datalist(data, split.by = "condition")) + facet_wrap(~name*condition, scales = "free") 
 
-# Set up function for saemix
-model <- modelSAEMIX(x*p, cores = 1)
-
-
-saemix.data <- saemixData(data, 
-                          name.group = "condition", 
-                          name.predictors = c("time", "name"), 
-                          name.response = "value",
-                          name.ytype = "ytype")
-
-ini <- c(A = 0, kA = -2, kB = 0)
-saemix.model <- saemixModel(model, 
-                            description = "A -> B -> 0", 
-                            psi0 = matrix(ini, nrow = 1), 
-                            name.modpar = names(ini),
-                            transform.par = rep(0, length(ini)),  
-                            error.model = c("combined"),
-                            error.init = c(.1, .1),
-                            verbose = TRUE)
-
-myfit <- saemix(saemix.model, saemix.data)
+# # Set up function for saemix (saemix with dMod not supported at the moment)
+# library(saemix)
+# 
+# 
+# model <- modelSAEMIX(x*p, cores = 1)
+# 
+# 
+# saemix.data <- saemixData(data, 
+#                           name.group = "condition", 
+#                           name.predictors = c("time", "name"), 
+#                           name.response = "value",
+#                           name.ytype = "ytype")
+# 
+# ini <- c(A = 0, kA = -2, kB = 0)
+# saemix.model <- saemixModel(model, 
+#                             description = "A -> B -> 0", 
+#                             psi0 = matrix(ini, nrow = 1), 
+#                             name.modpar = names(ini),
+#                             transform.par = rep(0, length(ini)),  
+#                             error.model = c("combined"),
+#                             error.init = c(.1, .1),
+#                             verbose = TRUE)
+# 
+# myfit <- saemix(saemix.model, saemix.data)

@@ -21,7 +21,7 @@ modelNLME <- function(prdfn, covtable = NULL, cores = 1) {
       condition <- paste(unlist(sub[1, covnames]), collapse = "_")
       
       prediction <- prdfn(timesD, parsD, conditions = condition)[[1]]
-      template <- data.frame(name = sub$name, time = sub$time, value = 0, sigma = 1)
+      template <- data.frame(name = sub$name, time = sub$time, value = 0, sigma = 1, lloq = -Inf)
       
       myres <- res(template, prediction)
       
