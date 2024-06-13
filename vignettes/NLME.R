@@ -33,7 +33,7 @@ p <- eqnvec() %>%
 estimate <- getParameters(p)
 ini <- structure(rep(-1, length(estimate)), names = estimate)
 times <- seq(0, 10, .1)
-timesD <- c(0, 1, 2, 4, 7, 10)
+timesD <- c(0.1, 1, 2, 4, 7, 10)
 
 (x*p)(times, ini) %>% plot()
 
@@ -41,12 +41,13 @@ timesD <- c(0, 1, 2, 4, 7, 10)
 # Simualte data
 data <- do.call(rbind, lapply(1:n_individuals, function(i) {
   
-  ini[1] <- rnorm(1, ini[1], .5)
-  ini[2] <- rnorm(1, ini[2], .5)
+  ini[1] <- rnorm(1, ini[1], 0.2)
+  ini[2] <- rnorm(1, ini[2], 1)
   
   rel_sigma <- 0.1
   (x*p)(timesD, ini, deriv = FALSE, conditions = rownames(covtable)[i]) %>% 
     as.data.frame() %>% 
+    filter(time>0) %>% 
     mutate(ID = covtable$ID[i], WGT = covtable$WGT[i]) %>%
     mutate(value = rlnorm(length(value), log(value) - log(1 + rel_sigma^2)/2, sqrt(log(1 + rel_sigma^2)))) %>%
     mutate(sigma = rel_sigma*value) %>%
