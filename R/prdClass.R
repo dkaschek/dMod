@@ -183,7 +183,7 @@ plotCombined.prdlist <- function(prediction, data = NULL, ..., scales = "free", 
     scale_shape_manual(name = "BLoQ", values = c(yes = 4, no = 19))
   
   if (all(data$bloq %in% "no"))
-    p <- p + guides(shape = FALSE)
+    p <- p + guides(shape = "none")
   
   
   attr(p, "data") <- list(data = data, prediction = prediction)

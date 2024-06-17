@@ -1,3 +1,4 @@
+# Example by Severin Bang <severin.bang@physik.uni-freiburg.de>
 library(tidyverse)
 library(data.table)
 library(dMod)

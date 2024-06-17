@@ -14,6 +14,7 @@
 #' @param outputFormat Define the output format. By default "R" generating dMod 
 #'   compatible output. To obtain an output appropriate for d2d [2] "M" must be 
 #'   selected.
+#' @param testSteady Boolean, if "T" the correctness of the obtained steady states is numerically checked (this can be very time intensive). If "F" this is skipped. 
 #'   
 #' @return Character vector of steady-state equations.
 #'   
@@ -29,7 +30,7 @@
 #' @export
 #' @importFrom utils write.table
 #' @example inst/examples/steadystates.R
-steadyStates <- function(model, file=NULL, rates = NULL, forcings = NULL, givenCQs = NULL, neglect=NULL, sparsifyLevel = 2, outputFormat = "R") {
+steadyStates <- function(model, file=NULL, rates = NULL, forcings = NULL, givenCQs = NULL, neglect=NULL, sparsifyLevel = 2, outputFormat = "R", testSteady = "T") {
   
   require(reticulate)
   
@@ -45,8 +46,8 @@ steadyStates <- function(model, file=NULL, rates = NULL, forcings = NULL, givenC
   
   
   # Calculate steady states.
-  source_python(system.file("code/AlyssaPetit_ver1.0.py", package = "dMod"))
-  m_ss <- Alyssa(model, as.list(forcings), as.list(givenCQs), as.list(neglect), sparsifyLevel, outputFormat)
+  source_python(system.file("code/AlyssaPetit_ver1.1.py", package = "dMod"))
+  m_ss <- Alyssa(model, as.list(forcings), as.list(givenCQs), as.list(neglect), sparsifyLevel, outputFormat, testSteady)
   
   # Write steady states to disk.
   if(length(m_ss)>1){    

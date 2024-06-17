@@ -64,7 +64,8 @@
 #' with random seeds \code{.Random.seeds} from the transferred work space is deleted
 #' on remote. This ensures that each node has uses a different set of  (pseudo) random
 #' numbers. Set to FALSE at own risk.
-#' 
+#' @param returnAll logical if set to \code{TRUE} (default) all results are returned, if set
+#' to \code{FALSE} only the \code{*result.RData} files are returned.
 #'  
 #' @return List of functions \code{check()}, \code{get()} and \code{purge()}. 
 #' \code{check()} checks, if the result is ready. 
@@ -170,7 +171,8 @@ distributed_computing <- function(
   purge_local = F,
   compile = F,
   custom_folders = NULL,
-  resetSeeds = TRUE
+  resetSeeds = TRUE,
+  returnAll = TRUE
   # called_function = "func(a = var_1, b = var_1, name = jobname,id = 01)",
 ) {
   original_wd <- getwd()
@@ -251,16 +253,29 @@ distributed_computing <- function(
   # get function
   out[[2]] <- function () {
     # copy all files back
-    system(
-      paste0(
-        "mkdir -p ", output_folder_abs, "/", jobname,"_folder/results/; ",
-        ssh_command, "-n ", machine, # go to remote
-        " 'tar -C ", jobname, "_folder", " -jcf - ./'", # compress all files on remote
-        " | ", # pipe to local
-        "",
-        "tar -C ", output_folder_abs, "/", jobname,"_folder/results/ -jxf -"
+    if (returnAll == T) {
+      system(
+        paste0(
+          "mkdir -p ", output_folder_abs, "/", jobname,"_folder/results/; ",
+          ssh_command, "-n ", machine, # go to remote
+          " 'tar -C ", jobname, "_folder", " -czf - ./'", # compress all files on remote)
+          " | ", # pipe to local
+          "",
+          "tar -C ", output_folder_abs, "/", jobname,"_folder/results/ -xzf -"
+        )
       )
-    )
+    } else {
+      # copy only result files back
+      system(
+        paste0(
+          "mkdir -p ", output_folder_abs, "/", jobname,"_folder/results/; ",
+          ssh_command, "-n ", machine, " '",
+          "find ", jobname, "_folder -type f -name \"*result.RData\" -exec tar -czf - {} +'",
+          " | tar --strip-components=1 -xz -C ", shQuote(paste0(output_folder_abs, "/", jobname,"_folder/results/"))
+        )
+      )
+    }
+
     
     # get list of all currently available output files
     # setwd(paste0(jobname,"_folder/results"))
@@ -411,7 +426,8 @@ distributed_computing <- function(
       paste0("load('",jobname,"_workspace.RData')"),
       "",
       if (resetSeeds == TRUE & exists(".Random.seed")) {
-        paste0("# remove random seeds\nrm(.Random.seed)")
+        paste0("# remove random seeds\nrm(.Random.seed)\nset.seed(as.numeric(Sys.getenv('SLURM_JOB_ID')))")
+        
       },
       "",
       "# load shared object if precompiled",
@@ -468,8 +484,8 @@ distributed_computing <- function(
       "# Load R modules",
       "module load math/R",
       # paste0("export OPENBLAS_NUM_THREADS=",cores),
-      paste0("export OMP_NUM_THREADS=",cores),
-      paste0("export MKL_NUM_THREADS=",cores),
+      paste0("export OMP_NUM_THREADS=","1"), # paste0("export OMP_NUM_THREADS=",cores),
+      paste0("export MKL_NUM_THREADS=", "1"), # paste0("export MKL_NUM_THREADS=",cores),
       "",
       "# Run R script",
       paste0("Rscript ", jobname, ".R"),

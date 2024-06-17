@@ -797,7 +797,7 @@ vcov <- function(fit, parupper = NULL, parlower = NULL) {
 #' @export
 #' @import parallel
 mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20, cores = 1, optmethod = "trust",
-                    samplefun = "rnorm", resultPath = ".", stats = FALSE, output = FALSE, cautiousMode = FALSE,
+                    samplefun = "rnorm", resultPath = ".", stats = FALSE, output = FALSE, cautiousMode = FALSE, start1stfromCenter = FALSE,
                     ...) {
   
   narrowing <- NULL
@@ -947,7 +947,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
     if(is.parframe(center)) {
       argstrust$parinit <- as.parvec(center, i)
     } else {
-      if (i == 1) {
+      if (i == 1 & start1stfromCenter) {
         # First fit always starts from center
         argstrust$parinit <- center
       } else {
@@ -1095,6 +1095,7 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
 #' @param n Integer how many lines should the parframe have
 #' @param seed Seed for the random number generator
 #' @param samplefun random number generator: \code{\link{rnorm}}, \code{\link{runif}}, etc...
+#' @param keepfirst boolean, if set to \code{TRUE} the first row of the parframe will be the pars
 #' @param ... arguments going to samplefun
 #'
 #' @return parframe (without metanames)
@@ -1107,22 +1108,34 @@ mstrust <- function(objfun, center, studyname, rinit = .1, rmax = 10, fits = 20,
 #' 
 #' # Parameter specific sigma
 #' msParframe(c(a = 0, b = 100000), 5, samplefun = rnorm, sd = c(100, 0.5))
-msParframe <- function(pars, n = 20, seed = 12345, samplefun = stats::rnorm, ...) {
+msParframe <- function(pars, n = 20, seed = 12345, samplefun = stats::rnorm, keepfirst = TRUE, ...) {
   set.seed(seed)
   
-  if (n == 1)
-    return(parframe(as.data.frame(t(pars))))
+  if (keepfirst == TRUE) {
+    if (n == 1)
+      return(parframe(as.data.frame(t(pars))))
+    
+    # generate random pars
+    rnd <- samplefun((n-1)*length(pars), ...)
+    mypars <- matrix(rnd, nrow = (n-1), byrow = T)
+    mean_pars <- 0
+    if ("mean" %in% names(formals(samplefun)))
+      mean_pars <- t(matrix(pars, nrow = length(pars), ncol = (n-1)))
+    mypars <- mypars + mean_pars
+    
+    # assure that pars itself is also part
+    mypars <- rbind(t(pars), mypars)
+  } else {
+    # generate random pars
+    rnd <- samplefun((n)*length(pars), ...)
+    mypars <- matrix(rnd, nrow = (n), byrow = T)
+    mean_pars <- 0
+    if ("mean" %in% names(formals(samplefun)))
+      mean_pars <- t(matrix(pars, nrow = length(pars), ncol = (n)))
+    mypars <- mypars + mean_pars
+  }
   
-  # generate random pars
-  rnd <- samplefun((n-1)*length(pars), ...)
-  mypars <- matrix(rnd, nrow = (n-1), byrow = T)
-  mean_pars <- 0
-  if ("mean" %in% names(formals(samplefun)))
-    mean_pars <- t(matrix(pars, nrow = length(pars), ncol = (n-1)))
-  mypars <- mypars + mean_pars
-  
-  # assure that pars itself is also part
-  mypars <- rbind(t(pars), mypars)
+
   mypars <- `names<-`(as.data.frame(mypars), names(pars))
   
   parframe(mypars)
