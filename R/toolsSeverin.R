@@ -632,7 +632,7 @@ julia_setup <- function(installJulia = FALSE, installJuliaPackages = TRUE) {
   
   # install Julia
   if (installJulia) {
-    system("curl -fsSL https://install.julialang.org | sh")
+    system("curl -fsSL https://install.julialang.org | sh -y")
     system("juliaup add release")
   }
   
@@ -649,16 +649,14 @@ julia_setup <- function(installJulia = FALSE, installJuliaPackages = TRUE) {
   # install the julia functions
   
   
-  if (installJulia) {
-    tryCatch(
-      {
-        system("git clone git@github.com:SeverinBang/JuliaSteadyStates.git ~/.JuliaSteadyStates/")
-      },
-      finally = {
-        cat("github.com:SeverinBang/JuliaSteadyStates.git could not be cloned, write Severin your github username to be added to the repository")
-      }
-    )
-  }
+  tryCatch(
+    {
+      system("git clone git@github.com:SeverinBang/JuliaSteadyStates.git ~/.JuliaSteadyStates/")
+    },
+    finally = {
+      cat("github.com:SeverinBang/JuliaSteadyStates.git could not be cloned, write Severin your github username to be added to the repository")
+    }
+  )
 
 }
 
