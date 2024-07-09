@@ -612,3 +612,109 @@ profile_pars_per_node <- function(parameters, fits_per_node) {
   
   return(out)
 }
+
+
+
+## Use Julia to calculate steady states -----------------------------------------
+
+#' Install the julia setup  
+#' 
+#' @description Installs Julia and the necessary julia packages
+#' 
+#' 
+#' @param installJulia boolean, default \code{false}. If set to true, juliaup and via this then Julia is installed. 
+#' @param installJuliaPackages boolean, default \code{true}. If set to true, the necessary packages are installed.
+#' 
+#' @return nothing
+#' 
+#' @export
+julia_setup <- function(installJulia = FALSE, installJuliaPackages = TRUE) {
+  
+  # install Julia
+  if (installJulia) {
+    system("curl -fsSL https://install.julialang.org | sh")
+    system("juliaup add release")
+  }
+  
+  if (installJuliaPackages) {
+    # install packages
+    system("julia -e 'using Pkg; Pkg.add(\"CSV\")'")
+    system("julia -e 'using Pkg; Pkg.add(\"DataFrames\")'")
+    system("julia -e 'using Pkg; Pkg.add(\"Symbolics\")'")
+    system("julia -e 'using Pkg; Pkg.add(\"Catalyst\")'")
+    system("julia -e 'using Pkg; Pkg.add(\"SymbolicUtils\")'")
+    system("julia -e 'using Pkg; Pkg.add(\"Graphs\")'")
+  }
+  
+  # install the julia functions
+  system("git clone git@github.com:SeverinBang/JuliaSteadyStates.git ~/.JuliaSteadyStates/")
+
+}
+
+
+#' Calculated the steady states of a given model  
+#' 
+#' @description Uses julia to calculate the steady state transformations
+#' 
+#' @param el the equation list
+#' @param forcings vector of strings, default \code{c("","")}. The names of the forcings which will be set to zero.
+#' @param neglect vector of strings, default \code{c("","")}. The names of the variables which will be neglected as fluxParameters and therefore will not be solved for.
+#' @param verboseLevel integer, default \code{1}. The level of verbosity of the output, right now only 1 (all) and 0 (no) is implementes.
+#' 
+#' @return named vector with the steady state transformations. The names are the inner, the values are the outer parameters
+#' 
+#' @export
+SteadyStatesJulia <- function(
+    el,
+    forcings = NULL,
+    neglect = NULL,
+    verboseLevel = 1
+) {
+  if (!requireNamespace("JuliaCall", quietly = TRUE)) {
+    warning("The rgl package must be installed to use this functionality")
+    #Either exit or do something without rgl
+    return(NULL)
+  }
+  JuliaCall::julia_setup(JULIA_HOME = "~/.juliaup/bin/")
+  if (is.null(forcings)) {
+    forcings <- c("","")
+  }
+  
+  if (is.null(neglect)) {
+    neglect <- c("","")
+  }
+  
+  # CALL JULIA
+  myWD <- getwd()
+  dModEqnFileName = "EquationsForSteadyStates"
+  write.eqnlist(el, file = paste0(dModEqnFileName, ".csv"))
+  
+  inputPath <- file.path(myWD, paste0(dModEqnFileName, ".csv"))
+  fileName <- "SteadyStatesFromJulia"
+  
+  
+  julia_source("~/.JuliaSteadyStates/ODESteadyStateTrafo_function.jl")
+
+  julia_call("determineSteadyStateTrafos", inputPath, forcings, neglect, myWD, fileName, verboseLevel)
+  
+  steadyStatesFile = read.csv(paste0(myWD,"/",fileName, ".csv" ), dec = ".", sep = ",")
+  
+  
+  
+  
+  steadyStates = data.table(keys = steadyStatesFile$Keys, values = steadyStatesFile$Values)
+  steadyStates = steadyStates[!(keys %in% forcings)]
+ 
+  
+  sstates <- steadyStates$values
+  
+  sstates <- str_replace_all(sstatesRaw, "_init", "")
+  
+  names(sstates) <- steadyStates$keys
+  
+  return(sstates)
+}
+
+
+
+

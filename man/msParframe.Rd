@@ -4,7 +4,14 @@
 \alias{msParframe}
 \title{Reproducibly construct "random" parframes}
 \usage{
-msParframe(pars, n = 20, seed = 12345, samplefun = stats::rnorm, ...)
+msParframe(
+  pars,
+  n = 20,
+  seed = 12345,
+  samplefun = stats::rnorm,
+  keepfirst = TRUE,
+  ...
+)
 }
 \arguments{
 \item{pars}{Named vector. If \code{samplefun} has a "mean"-argument, values of pars will used as mean}
@@ -14,6 +21,8 @@ msParframe(pars, n = 20, seed = 12345, samplefun = stats::rnorm, ...)
 \item{seed}{Seed for the random number generator}
 
 \item{samplefun}{random number generator: \code{\link{rnorm}}, \code{\link{runif}}, etc...}
+
+\item{keepfirst}{boolean, if set to \code{TRUE} the first row of the parframe will be the pars}
 
 \item{...}{arguments going to samplefun}
 }

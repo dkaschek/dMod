@@ -18,6 +18,7 @@ mstrust(
   stats = FALSE,
   output = FALSE,
   cautiousMode = FALSE,
+  start1stfromCenter = FALSE,
   ...
 )
 }

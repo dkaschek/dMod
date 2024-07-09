@@ -19,7 +19,8 @@ distributed_computing(
   purge_local = F,
   compile = F,
   custom_folders = NULL,
-  resetSeeds = TRUE
+  resetSeeds = TRUE,
+  returnAll = TRUE
 )
 }
 \arguments{
@@ -83,6 +84,9 @@ If only a subset of the folders should be changed, all other need to be set to
 with random seeds \code{.Random.seeds} from the transferred work space is deleted
 on remote. This ensures that each node has uses a different set of  (pseudo) random
 numbers. Set to FALSE at own risk.}
+
+\item{returnAll}{logical if set to \code{TRUE} (default) all results are returned, if set
+to \code{FALSE} only the \code{*result.RData} files are returned.}
 }
 \value{
 List of functions \code{check()}, \code{get()} and \code{purge()}. 
