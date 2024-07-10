@@ -630,9 +630,18 @@ profile_pars_per_node <- function(parameters, fits_per_node) {
 #' @export
 julia_setup <- function(installJulia = FALSE, installJuliaPackages = TRUE) {
   
+  tryCatch(
+    {
+      system("git clone git@github.com:SeverinBang/JuliaSteadyStates.git ~/.JuliaSteadyStates/")
+    },
+    finally = {
+      cat("github.com:SeverinBang/JuliaSteadyStates.git could not be cloned (again), check if ~/.JuliaSteadyStates already exists, if not write Severin your github username to be added to the repository")
+    }
+  )
+  
   # install Julia
   if (installJulia) {
-    system("curl -fsSL https://install.julialang.org | sh -y")
+    system("sh -i ~/.JuliaSteadyStates/installJuliaUp.sh -y")
     system("juliaup add release")
   }
   
@@ -646,18 +655,6 @@ julia_setup <- function(installJulia = FALSE, installJuliaPackages = TRUE) {
     system("julia -e 'using Pkg; Pkg.add(\"Graphs\")'")
   }
   
-  # install the julia functions
-  
-  
-  tryCatch(
-    {
-      system("git clone git@github.com:SeverinBang/JuliaSteadyStates.git ~/.JuliaSteadyStates/")
-    },
-    finally = {
-      cat("github.com:SeverinBang/JuliaSteadyStates.git could not be cloned, write Severin your github username to be added to the repository")
-    }
-  )
-
 }
 
 
