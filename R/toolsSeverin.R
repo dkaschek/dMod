@@ -628,7 +628,7 @@ profile_pars_per_node <- function(parameters, fits_per_node) {
 #' @return nothing
 #' 
 #' @export
-julia_setup <- function(installJulia = FALSE, installJuliaPackages = TRUE) {
+installJuliaForSteadyStates <- function(installJulia = FALSE, installJuliaPackages = TRUE) {
   
   tryCatch(
     {
@@ -677,8 +677,7 @@ SteadyStatesJulia <- function(
     verboseLevel = 1
 ) {
   if (!requireNamespace("JuliaCall", quietly = TRUE)) {
-    warning("The rgl package must be installed to use this functionality")
-    #Either exit or do something without rgl
+    warning("The 'JuliaCall' package must be installed.")
     return(NULL)
   }
   JuliaCall::julia_setup(JULIA_HOME = "~/.juliaup/bin/")
@@ -699,7 +698,7 @@ SteadyStatesJulia <- function(
   fileName <- "SteadyStatesFromJulia"
   
   
-  julia_source("~/.JuliaSteadyStates/ODESteadyStateTrafo_function.jl")
+  julia_source(file.path(Sys.getenv("HOME"),".JuliaSteadyStates/ODESteadyStateTrafo_function.jl"))
 
   julia_call("determineSteadyStateTrafos", inputPath, forcings, neglect, myWD, fileName, verboseLevel)
   
