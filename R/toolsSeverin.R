@@ -713,7 +713,7 @@ SteadyStatesJulia <- function(
   
   sstates <- steadyStates$values
   
-  sstates <- str_replace_all(sstatesRaw, "_init", "")
+  sstates <- str_replace_all(sstates, "_init", "")
   
   names(sstates) <- steadyStates$keys
   
