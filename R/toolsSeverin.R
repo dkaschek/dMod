@@ -670,17 +670,21 @@ installJuliaForSteadyStates <- function(installJulia = FALSE, installJuliaPackag
 #' @return named vector with the steady state transformations. The names are the inner, the values are the outer parameters
 #' 
 #' @export
-SteadyStatesJulia <- function(
+steadyStateToolJulia <- function(
     el,
     forcings = NULL,
     neglect = NULL,
     verboseLevel = 1
 ) {
-  if (!requireNamespace("JuliaCall", quietly = TRUE)) {
-    warning("The 'JuliaCall' package must be installed.")
-    return(NULL)
-  }
-  JuliaCall::julia_setup(JULIA_HOME = file.path(Sys.getenv("HOME"),".juliaup/bin/"))
+  # prepare things:
+  myWD <- getwd()
+  dModEqnFileName = "EquationsForSteadyStates"
+  
+  dMod::write.eqnlist(el, file = paste0(dModEqnFileName, ".csv"))
+  
+  inputPath <- file.path(myWD, paste0(dModEqnFileName, ".csv"))
+  fileName <- "SteadyStatesFromJulia"
+  
   if (is.null(forcings)) {
     forcings <- c("","")
   }
@@ -689,33 +693,40 @@ SteadyStatesJulia <- function(
     neglect <- c("","")
   }
   
-  # CALL JULIA
-  myWD <- getwd()
-  dModEqnFileName = "EquationsForSteadyStates"
-  write.eqnlist(el, file = paste0(dModEqnFileName, ".csv"))
+  # load julia
+  if (!requireNamespace("JuliaCall", quietly = TRUE)) {
+    warning("The 'JuliaCall' package must be installed.")
+    return(NULL)
+  }
+  if (dir.exists(file.path(Sys.getenv("HOME"),".juliaup/bin"))) {
+    JuliaCall::julia_setup(JULIA_HOME = file.path(Sys.getenv("HOME"),".juliaup/bin"))
+  } else if (file.exists("/usr/bin/julia")) {
+    JuliaCall::julia_setup(JULIA_HOME = "/usr/bin/")
+  } else {
+    stop("No Julia installation found, please use juliaup to install julia.")
+    return(NULL)
+  }
+  JuliaCall::julia_setup(JULIA_HOME = file.path(Sys.getenv("HOME"),".juliaup/bin"))
   
-  inputPath <- file.path(myWD, paste0(dModEqnFileName, ".csv"))
-  fileName <- "SteadyStatesFromJulia"
   
-  
+  # call the julia steady state tool:
   julia_source(file.path(Sys.getenv("HOME"),".JuliaSteadyStates/ODESteadyStateTrafo_function.jl"))
-
+  
   julia_call("determineSteadyStateTrafos", inputPath, forcings, neglect, myWD, fileName, verboseLevel = julia_eval(paste0("Int(", verboseLevel, ")")))
   
+  # load the results
   steadyStatesFile = read.csv(paste0(myWD,"/",fileName, ".csv" ), dec = ".", sep = ",")
-  
-  
-  
   
   steadyStates = data.table(keys = steadyStatesFile$Keys, values = steadyStatesFile$Values)
   steadyStates = steadyStates[!(keys %in% forcings)]
- 
+  
   
   sstates <- steadyStates$values
   
   sstates <- str_replace_all(sstates, "_init", "")
   
   names(sstates) <- steadyStates$keys
+  
   
   return(sstates)
 }
