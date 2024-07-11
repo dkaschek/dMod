@@ -680,7 +680,7 @@ SteadyStatesJulia <- function(
     warning("The 'JuliaCall' package must be installed.")
     return(NULL)
   }
-  JuliaCall::julia_setup(JULIA_HOME = "~/.juliaup/bin/")
+  JuliaCall::julia_setup(JULIA_HOME = file.path(Sys.getenv("HOME"),".juliaup/bin/"))
   if (is.null(forcings)) {
     forcings <- c("","")
   }
