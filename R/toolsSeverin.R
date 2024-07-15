@@ -710,9 +710,9 @@ steadyStateToolJulia <- function(
   
   
   # call the julia steady state tool:
-  julia_source(file.path(Sys.getenv("HOME"),".JuliaSteadyStates/ODESteadyStateTrafo_function.jl"))
+  JuliaCall::julia_source(file.path(Sys.getenv("HOME"),".JuliaSteadyStates/ODESteadyStateTrafo_function.jl"))
   
-  julia_call("determineSteadyStateTrafos", inputPath, forcings, neglect, myWD, fileName, verboseLevel = julia_eval(paste0("Int(", verboseLevel, ")")))
+  JuliaCall::julia_call("determineSteadyStateTrafos", inputPath, forcings, neglect, myWD, fileName, verboseLevel = julia_eval(paste0("Int(", verboseLevel, ")")))
   
   # load the results
   steadyStatesFile = read.csv(paste0(myWD,"/",fileName, ".csv" ), dec = ".", sep = ",")
@@ -723,7 +723,7 @@ steadyStateToolJulia <- function(
   
   sstates <- steadyStates$values
   
-  sstates <- str_replace_all(sstates, "_init", "")
+  sstates <- str_replace_all(sstates, "_initBySteadyStateTool", "")
   
   names(sstates) <- steadyStates$keys
   
