@@ -481,6 +481,7 @@ P_indiv <- function(p0, est.grid, fix.grid) {
 #' @param fix.grid 
 #' @param times 
 #' @param attr.name 
+#' @param mycores You can use mycores > 1 for parallel computation of conditions to speed up single fits or profiles. Use carefully when also performing multi-start optimization via mstrust.
 #'
 #' @return objective function
 #' @export
@@ -488,7 +489,7 @@ P_indiv <- function(p0, est.grid, fix.grid) {
 #' @md
 #'
 #' @importFrom parallel mclapply
-normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times = NULL, attr.name = "data") {
+normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times = NULL, attr.name = "data", mycores = 1) {
   
   if (!is.data.table(est.grid)) warning("est.grid was coerced to data.table (was", class(est.grid), ")")
   if (!is.data.table(fix.grid)) warning("fix.grid was coerced to data.table (was", class(fix.grid), ")")
@@ -521,7 +522,7 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
     arglist <- arglist[match.fnargs(arglist, "pars")]
     pars <- arglist[[1]]
     
-    objlists <- lapply(setNames(nm = conditions), function(cn) {
+    objlists <- mclapply(setNames(nm = conditions), function(cn) {
       if (FLAGbrowser) browser()
       
       ID <- est.grid[condition == cn, ID]
@@ -551,7 +552,7 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
       if (deriv) mywrss <- renameDerivParsInObjlist(mywrss, dummy$parnames) 
       
       mywrss
-    })
+    }, mc.cores = mycores)
     
     # Sum all objlists
     out <- Reduce("+", c(list(init_empty_objlist(c(pars, fixed), deriv = deriv)), objlists))
