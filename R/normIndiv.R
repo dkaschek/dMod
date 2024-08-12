@@ -501,11 +501,11 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
   
   timesD <- lapply(data, function(d) sort(unique(c(0, d$time))))
   
-  if (!is.null(times)) 
+  if (!is.null(times)){ 
     timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))
     timesD <- as.list(sort(union(times, timesD)), rep=length(data))
     names(timesD) <- names(data)
-    
+  }  
   x.conditions <- est.grid$condition
   data.conditions <- names(data)
   e.conditions <- names(attr(errmodel, "mappings"))
