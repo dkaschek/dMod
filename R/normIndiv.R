@@ -499,10 +499,13 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
   setkeyv(est.grid, c("ID", "condition"))
   setkeyv(fix.grid, c("ID", "condition"))
   
+  timesD <- lapply(data, function(d) sort(unique(c(0, d$time))))
   
-  timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))
   if (!is.null(times)) 
-    timesD <- sort(union(times, timesD))
+    timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))
+    timesD <- as.list(sort(union(times, timesD)), rep=length(data))
+    names(timesD) <- names(data)
+    
   x.conditions <- est.grid$condition
   data.conditions <- names(data)
   e.conditions <- names(attr(errmodel, "mappings"))
@@ -533,7 +536,7 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
       
       if (!length(pars_)) return(init_empty_objlist(pars, deriv = deriv, FLAGchisquare = TRUE)) # No pars_ can happen if one fits only condition specific parameters and in this condition there are none
       
-      prediction <- try(prd0(times = controls$times, pars = pars_, fixed = fixed_, deriv = deriv))
+      prediction <- try(prd0(times = controls$times[[cn]], pars = pars_, fixed = fixed_, deriv = deriv))
       
       if (inherits(prediction, "try-error")) 
         stop("Prediction failed in \n>>>condition = ", cn, "\n>>>ID = ", ID, "\n\nTry iterating p(pars), (x*p)(pars), ... to find the problem.")
