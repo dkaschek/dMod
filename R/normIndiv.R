@@ -499,11 +499,13 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
   setkeyv(est.grid, c("ID", "condition"))
   setkeyv(fix.grid, c("ID", "condition"))
   
-  timesD <- lapply(data, function(d) sort(unique(c(0, d$time))))
-  
+  timesD <- lapply(data, function(d){
+    times_loc <- sort(unique(c(0, d$time)))
+    if(length(times_loc) > 1) times_loc else c(times_loc,1)
+  })
   if (!is.null(times)){ 
     timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))
-    timesD <- as.list(sort(union(times, timesD)), rep=length(data))
+    timesD <- lapply(1:length(data), function(i) sort(union(times, timesD)))
     names(timesD) <- names(data)
   }  
   x.conditions <- est.grid$condition
