@@ -1229,31 +1229,33 @@ load.parlist <- function(folder) {
 #' @author Simon Beyer, \email{simon.beyer@@fdm.uni-freiburg.de}
 #'
 #' @export
-reduceReplicates <- function(x, select = "condition", datatrans = NULL) { # generic function
+reduceReplicates <- function(data, select = "condition", datatrans = NULL) {
   UseMethod("reduceReplicates")
 }
 
-# method for data.frames
-reduceReplicates.data.frame <- function(x, select = "condition", datatrans = NULL) {
+#' Method for data frames
+#' @export
+reduceReplicates.data.frame <- function(data, select = "condition", datatrans = NULL) {
   # File format definition
   fmtnames <- c("name", "time", "value", "condition")
-  if (length(intersect(names(x), fmtnames)) != length(fmtnames)) {
+  if (length(intersect(names(data), fmtnames)) != length(fmtnames)) {
     stop(paste("Mandatory column names are:", paste(fmtnames, collapse = ", ")))
   }
   
   # Transform data if requested
   if (!is.null(datatrans) && is.character(datatrans)) {
-    x$value <- eval(parse(text = datatrans))
+    x <- data$value
+    data$value <- eval(parse(text = datatrans))
   }
   
   # Define grouping conditions
   select <- unique(c("name", "time", "condition", select))
-  condidnt <- apply(x[select], 1, paste, collapse = "_")
+  condidnt <- apply(data[select], 1, paste, collapse = "_")
   conditions <- unique(condidnt)
   
   # Reduce data
   reduct <- do.call(rbind, lapply(conditions, function(cond) {
-    conddata <- x[condidnt == cond, ]
+    conddata <- data[condidnt == cond, ]
     mergecond <- paste(conddata[1, setdiff(select, c("name", "time"))], collapse = "_")
     data.frame(
       time = conddata[1, "time"],
@@ -1268,33 +1270,29 @@ reduceReplicates.data.frame <- function(x, select = "condition", datatrans = NUL
   return(reduct)
 }
 
-# method for files (character)
-reduceReplicates.character <- function(x, select = "condition", datatrans = NULL) {
+#' Method for files (character)
+#' @export
+reduceReplicates.character <- function(data, select = "condition", datatrans = NULL) {
   # Ensure the file exists
-  if (!file.exists(x)) {
+  if (!file.exists(data)) {
     stop("The specified file does not exist.")
   }
   
   # Determine the file type based on extension
-  ext <- tools::file_ext(x)
+  ext <- tools::file_ext(data)
   if (tolower(ext) == "csv") {
-    data <- read.csv(x, stringsAsFactors = FALSE)
+    data <- read.csv(data, stringsAsFactors = FALSE)
   } else if (tolower(ext) %in% c("xls", "xlsx")) {
     if (!requireNamespace("openxlsx", quietly = TRUE)) {
       stop("The 'openxlsx' package is required to read Excel files. Please install it.")
     }
-    data <- openxlsx::read.xlsx(x)
+    data <- openxlsx::read.xlsx(data)
   } else {
     stop("Unsupported file format. Only .csv, .xls, and .xlsx are supported.")
   }
   
-  # Ensure the data is a data.frame before calling reduceReplicates
-  if (!is.data.frame(data)) {
-    stop("The file could not be converted into a valid data frame.")
-  }
-  
   # Call the data.frame method
-  reduceReplicates.data.frame(data, select = select, datatrans = datatrans)
+  reduceReplicates(as.data.frame(data), select = select, datatrans = datatrans)
 }
 
 
