@@ -1173,22 +1173,19 @@ load.parlist <- function(folder) {
 }
 
 
-
-
 #' Reduce replicated measurements to mean and standard deviation
 #'
 #' @description
 #' Obtain the mean and standard deviation from replicates per condition.
 #'
-#' @param file Data file of csv. See Format for details.
-#' @param select Names of the columns in the data file used to define
+#' @param data A data frame containing the measurements. See Format for details.
+#' @param select Names of the columns in the data frame used to define
 #'        conditions, see Details.
 #' @param datatrans Character vector describing a function to transform data.
-#'        Use \kbd{x} to refere to data.
-#'
+#'        Use \kbd{x} to refer to data.
 #'
 #' @format
-#' The following columns are mandatory for the data file.
+#' The following columns are mandatory for the data frame:
 #' \describe{
 #'  \item{name}{Name of the observed species.}
 #'  \item{time}{Measurement time point.}
@@ -1197,25 +1194,25 @@ load.parlist <- function(folder) {
 #' }
 #'
 #' In addition to these columns, any number of columns can follow to allow a
-#' fine grained definition of conditions. The values of all columns named in
-#' \option{select} are then merged to get the set of conditions.
+#' fine-grained definition of conditions. The values of all columns named in
+#' \code{select} are then merged to get the set of conditions.
 #'
 #' @details
 #' Experiments are usually repeated multiple times possibly under different
-#' conditions leading to replicted measurements. The column "Condition" in the
-#' data allows to group the data by their condition. However, sometimes, a more
-#' fine grained grouping is desirable. In this case, any number of additional
-#' columns can be append to the data. These columns are referred to as
-#' "condition identifier". Which of the condition identifiers are used to do the
-#' grouping is user defined by anouncing the to \option{select}. The mandatory
-#' column "Condition" is always used. The total set of different conditions is
-#' thus defined by all combinations of values occuring in the selected condition
-#' identifiers. The replicates of each condition are then reduced to mean and
-#' variance.New conditions names are derived by merging all conditions which
-#' were used in mean and std.
+#' conditions leading to replicated measurements. The column "condition" in the
+#' data allows grouping the data by their condition. However, sometimes, a more
+#' fine-grained grouping is desirable. In this case, any number of additional
+#' columns can be appended to the data. These columns are referred to as
+#' "condition identifiers". Which of the condition identifiers are used for
+#' grouping is user-defined by specifying their names in \code{select}. The mandatory
+#' column "condition" is always used. The total set of different conditions is
+#' thus defined by all combinations of values occurring in the selected condition
+#' identifiers. The replicates of each condition are then reduced to mean and 
+#' standard deviation. New condition names are derived by merging all conditions 
+#' which were used in mean and standard deviation.
 #'
 #' @return
-#' A data frame of the following variables
+#' A data frame of the following variables:
 #' \describe{
 #'  \item{time}{Measurement time point.}
 #'  \item{name}{Name of the observed species.}
@@ -1223,61 +1220,82 @@ load.parlist <- function(folder) {
 #'  \item{sigma}{Standard error of the mean, NA for single measurements.}
 #'  \item{n}{The number of replicates reduced.}
 #'  \item{condition}{The condition for which the value and sigma were calculated. If
-#'        more than one column were used to define the condition, this variable
-#'        holds the effecive condition which is the combination of all applied
+#'        more than one column was used to define the condition, this variable
+#'        holds the effective condition which is the combination of all applied
 #'        single conditions. }
 #' }
 #'
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#' @author Simon Beyer, \email{simon.beyer@@fdm.uni-freiburg.de}
 #'
 #' @export
-reduceReplicates <- function(file, select = "condition", datatrans = NULL) {
-  
-  # File format definiton
-  fmtnames <- c("name", "time",  "value", "condition")
-  fmtnamesnumber <- length(fmtnames)
-  
-  # Read data and sanity checks
-  data <- read.csv(file)
-  if (length(intersect(names(data), fmtnames)) != fmtnamesnumber) {
+reduceReplicates <- function(x, select = "condition", datatrans = NULL) { # generic function
+  UseMethod("reduceReplicates")
+}
+
+# method for data.frames
+reduceReplicates.data.frame <- function(x, select = "condition", datatrans = NULL) {
+  # File format definition
+  fmtnames <- c("name", "time", "value", "condition")
+  if (length(intersect(names(x), fmtnames)) != length(fmtnames)) {
     stop(paste("Mandatory column names are:", paste(fmtnames, collapse = ", ")))
   }
   
   # Transform data if requested
-  if (is.character(datatrans)) {
-    x <- data$value
-    data$value <- eval(parse(text = datatrans))
+  if (!is.null(datatrans) && is.character(datatrans)) {
+    x$value <- eval(parse(text = datatrans))
   }
   
-  # Experiments are usually repeated multiple times possibly under different
-  # conditions. The column "Condition" in the data thus groups the data per
-  # condition. However, sometimes, a more fine grained grouping is desirable. In
-  # this case, any number of additional columns can be append to the data. These
-  # columns are referred to as "condition identifier". Which of the condition
-  # identifiers are used to do the grouping is user defined by giving their
-  # names in <select>. The mandatory column "Condition" is always used. The
-  # total set of different conditions is thus defined by all combinations of
-  # values occuring in the condition identifiers named for grouping. Mean and
-  # variance is computed for each condition by averaging over measurements
-  # recorded at the same time point. New conditions names are derived by merging
-  # all conditions which were used in mean and std.
+  # Define grouping conditions
   select <- unique(c("name", "time", "condition", select))
-  condidnt <- Reduce(paste, subset(data, select = select))
+  condidnt <- apply(x[select], 1, paste, collapse = "_")
   conditions <- unique(condidnt)
+  
+  # Reduce data
   reduct <- do.call(rbind, lapply(conditions, function(cond) {
-    conddata <- data[condidnt == cond,]
-    mergecond <- Reduce(paste, conddata[1, setdiff(select, c("name", "time"))])
-    data.frame(time = conddata[1, "time"],
-               value = mean(conddata[, "value"]),
-               sigma = sd(conddata[, "value"])/sqrt(nrow(conddata)),
-               n = nrow(conddata),
-               name = conddata[1, "name"],
-               condition = mergecond)
+    conddata <- x[condidnt == cond, ]
+    mergecond <- paste(conddata[1, setdiff(select, c("name", "time"))], collapse = "_")
+    data.frame(
+      time = conddata[1, "time"],
+      value = mean(conddata$value),
+      sigma = if (nrow(conddata) > 1) sd(conddata$value) / sqrt(nrow(conddata)) else NA,
+      n = nrow(conddata),
+      name = conddata[1, "name"],
+      condition = mergecond
+    )
   }))
   
   return(reduct)
 }
 
+# method for files (character)
+reduceReplicates.character <- function(x, select = "condition", datatrans = NULL) {
+  # Ensure the file exists
+  if (!file.exists(x)) {
+    stop("The specified file does not exist.")
+  }
+  
+  # Determine the file type based on extension
+  ext <- tools::file_ext(x)
+  if (tolower(ext) == "csv") {
+    data <- read.csv(x, stringsAsFactors = FALSE)
+  } else if (tolower(ext) %in% c("xls", "xlsx")) {
+    if (!requireNamespace("openxlsx", quietly = TRUE)) {
+      stop("The 'openxlsx' package is required to read Excel files. Please install it.")
+    }
+    data <- openxlsx::read.xlsx(x)
+  } else {
+    stop("Unsupported file format. Only .csv, .xls, and .xlsx are supported.")
+  }
+  
+  # Ensure the data is a data.frame before calling reduceReplicates
+  if (!is.data.frame(data)) {
+    stop("The file could not be converted into a valid data frame.")
+  }
+  
+  # Call the data.frame method
+  reduceReplicates.data.frame(data, select = select, datatrans = datatrans)
+}
 
 
 #' Fit an error model
