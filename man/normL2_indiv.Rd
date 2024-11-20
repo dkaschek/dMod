@@ -11,7 +11,8 @@ normL2_indiv(
   est.grid,
   fix.grid,
   times = NULL,
-  attr.name = "data"
+  attr.name = "data",
+  mycores = 1
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ normL2_indiv(
 \item{times}{}
 
 \item{attr.name}{}
+
+\item{mycores}{You can use mycores > 1 for parallel computation of conditions to speed up single fits or profiles. Use carefully when also performing multi-start optimization via mstrust.}
 }
 \value{
 objective function
