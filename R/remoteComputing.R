@@ -157,6 +157,7 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
     
     for (m in 1:nmachines) {
       system(paste0("ssh ", machine[m], " rm -r ", filename[m], "_folder"))
+      system(paste0("ssh ", machine[m], " rm ", filename[m], ".Rout"))
     }
     system(paste0("rm ", filename0, "*"))
   }
