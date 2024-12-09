@@ -24,8 +24,13 @@
 #' differentiation. The result is saved in the attributed "deriv", 
 #' i.e. in this case the attibutes "deriv" and "sensitivities" do not coincide. 
 #' @export
+Xs <- function(odemodel, ...) {
+  UseMethod("Xs", odemodel)
+}
+
+#' @export
 #' @import deSolve
-Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = NULL, optionsOde=list(method = "lsoda"), optionsSens=list(method = "lsodes"), fcontrol = NULL) {
+Xs.odemodelC <- function(odemodel, forcings = NULL, events = NULL, names = NULL, condition = NULL, optionsOde = list(method = "lsoda"), optionsSens = list(method = "lsodes"), fcontrol = NULL) {
   
   func <- odemodel$func
   extended <- odemodel$extended
@@ -101,7 +106,7 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
     
     # Sort event time points
     if (!is.null(events)) events <- events[order(events$time),]
-
+    
     
     myderivs <- NULL
     mysensitivities <- NULL
@@ -122,8 +127,8 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
       if (!is.null(forcings)) forc <- setForcings(extended, forcings) else forc <- NULL
       
       outSens <- suppressWarnings(do.call(odeC, c(list(y = c(unclass(yini), yiniSens), times = times, func = extended, parms = mypars, 
-                                      forcings = forc, fcontrol = fcontrol,
-                                      events = list(data = events)), optionsSens)))
+                                                       forcings = forc, fcontrol = fcontrol,
+                                                       events = list(data = events)), optionsSens)))
       #out <- cbind(outSens[,c("time", variables)], out.inputs)
       out <- submatrix(outSens, cols = c("time", names))
       mysensitivities <- submatrix(outSens, cols = !colnames(outSens) %in% c(variables, forcnames))
@@ -163,6 +168,91 @@ Xs <- function(odemodel, forcings=NULL, events=NULL, names = NULL, condition = N
   
 }
 
+#' @export
+#' @import JuliaODE
+Xs.odemodelJ <- function(odemodel, events = NULL, names = NULL, condition = NULL, optionsOde = NULL, forcings = NULL) {
+  
+  if (!is.null(forcings)) {
+    stop("Forcings are not yet supported for integration with Julia!")
+  }
+  
+  if (!is.null(events)) {
+    stop("Events should be passed to juliaODEmodel for integration with Julia!")
+  }
+  
+  # Variable and parameter names
+  variables <- attr(odemodel, "variables")
+  parameters <- attr(odemodel, "parameters")
+  
+  # Variable and parameter names of sensitivities
+  sensvar <- attr(odemodel, "sensvariables")
+  senssplit <- strsplit(sensvar, ".", fixed=TRUE)
+  senssplit.1 <- unlist(lapply(senssplit, function(v) v[1]))
+  senssplit.2 <- unlist(lapply(senssplit, function(v) paste(v[-1], collapse = ".")))
+  svariables <- intersect(senssplit.2, variables)
+  sparameters <- setdiff(senssplit.2, variables)
+  
+  
+  # Names for deriv output
+  sensGrid <- expand.grid(variables, c(svariables, sparameters), stringsAsFactors=FALSE)
+  sensNames <- paste(sensGrid[,1], sensGrid[,2], sep=".") 
+  
+  # Only a subset of all variables/forcings is returned
+  if (is.null(names)) names <- c(variables)
+  
+  # Update sensNames when names are set
+  select <- sensGrid[, 1] %in% names
+  sensNames <- paste(sensGrid[,1][select], sensGrid[,2][select], sep = ".")
+  
+  P2X <- function(times, pars, deriv=TRUE) {
+    
+    inits <- pars[variables]
+    dynpars <- pars[parameters]
+    
+    myderivs <- NULL
+    mysensitivities <- NULL
+    if (!deriv) {
+      
+      # Evaluate model without sensitivities
+      out <- odemodel$solve(inits, dynpars, times)
+      
+    } else {
+      
+      outTotal <- odemodel$senssolve(inits, dynpars, times)
+      out <- outTotal$out
+      mysensitivities <- outTotal$out_sens
+      
+      
+      # Apply parameter transformation to the derivatives
+      variables <- intersect(variables, names)
+      sensLong <- matrix(mysensitivities[,sensNames], nrow = dim(mysensitivities)[1]*length(variables))
+      dP <- attr(pars, "deriv")
+      if (!is.null(dP)) {
+        sensLong <- sensLong %*% submatrix(dP, rows = c(svariables, sparameters))
+        sensGrid <- expand.grid.alt(variables, colnames(dP))
+        sensNames <- paste(sensGrid[,1], sensGrid[,2], sep = ".")
+      }
+      myderivs <- matrix(0, nrow = nrow(mysensitivities), ncol = 1 + length(sensNames), dimnames = list(NULL, c("time", sensNames)))
+      myderivs[, 1] <- out[, 1]
+      myderivs[, -1] <- sensLong
+      
+    }
+    
+    #prdframe(out, deriv = myderivs, sensitivities = mysensitivities, parameters = unique(sensGrid[,2]))
+    prdframe(out, deriv = myderivs, sensitivities = mysensitivities, parameters = pars)
+    
+  }
+  
+  attr(P2X, "parameters") <- c(variables, parameters)
+  attr(P2X, "equations") <- as.eqnvec(attr(odemodel, "equations"))
+  attr(P2X, "forcings") <- NULL
+  attr(P2X, "events") <- events
+  attr(P2X, "modelname") <- attr(odemodel, "modelname")
+  
+  
+  prdfn(P2X, c(variables, parameters), condition) 
+  
+}
 
 #' Model prediction function for ODE models without sensitivities. 
 #' @description Interface to get an ODE 

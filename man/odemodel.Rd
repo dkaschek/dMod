@@ -2,7 +2,7 @@
 % Please edit documentation in R/classes.R
 \name{odemodel}
 \alias{odemodel}
-\title{Generate the model objects for use in Xs (models with sensitivities)}
+\title{Generate Model Objects for ODEs and Sensitivities}
 \usage{
 odemodel(
   f,
@@ -13,50 +13,83 @@ odemodel(
   fixed = NULL,
   estimate = NULL,
   modelname = "odemodel",
-  solver = c("deSolve", "Sundials"),
+  solver = c("deSolve", "Sundials", "OrdinaryDiffEqJL"),
   gridpoints = NULL,
   verbose = FALSE,
   ...
 )
 }
 \arguments{
-\item{f}{Something that can be converted to \link{eqnvec},
-e.g. a named character vector with the ODE}
+\item{f}{An object that can be converted to an \link{eqnvec}, such as a named character vector containing the ODE system.}
 
-\item{deriv}{logical, generate sensitivities or not}
+\item{deriv}{Logical; if TRUE, sensitivities are generated. Not supported when using the "OrdinaryDiffEqJL" solver.}
 
-\item{forcings}{Character vector with the names of the forcings}
+\item{forcings}{Character vector specifying the names of the forcings. Not supported when using the "OrdinaryDiffEqJL" solver.}
 
-\item{events}{data.frame of events with columns "var" (character, the name of the state to be
-affected), "time" (character or numeric, time point), "value" (character or numeric, value),
-"method" (character, either
-"replace" or "add"). See \link[deSolve]{events}. Events need to be defined here if they contain
-parameters, like the event time or value. If both, time and value are purely numeric, they
-can be specified in \code{\link{Xs}()}, too.}
+\item{events}{A data frame defining events with the following columns:
+- "var": Character, the name of the state affected.
+- "time": Character or numeric, the event time.
+- "value": Character or numeric, the event value.
+- "method": Character, either "replace" or "add" (see \link[deSolve]{events}).
+Events must be defined here if they depend on parameters. Events with purely numeric time and value
+can also be specified in \code{\link{Xs}()}.}
 
-\item{outputs}{Named character vector for additional output variables.}
+\item{outputs}{A named character vector specifying additional output variables. Not supported when using the "OrdinaryDiffEqJL" solver.}
 
-\item{fixed}{Character vector with the names of parameters (initial values and dynamic) for which
-no sensitivities are required (will speed up the integration).}
+\item{fixed}{Character vector naming parameters (initial values or dynamic) for which no sensitivities are required.
+Specifying these will speed up the integration. Not supported when using the "OrdinaryDiffEqJL" solver.}
 
-\item{estimate}{Character vector specifying parameters (initial values and dynamic) for which
-sensitivities are returned. If estimate is specified, it overwrites `fixed`.}
+\item{estimate}{Character vector specifying parameters (initial values or dynamic) for which sensitivities
+are computed. Overrides `fixed` if specified. Not supported when using the "OrdinaryDiffEqJL" solver.}
 
-\item{modelname}{Character, the name of the C file being generated.}
+\item{modelname}{Character string for the name of the C file or Julia model generated.}
 
-\item{solver}{Solver for which the equations are prepared.}
+\item{solver}{Character string specifying the solver to use. Options are "deSolve", "Sundials", or "OrdinaryDiffEqJL".}
 
-\item{gridpoints}{Integer, the minimum number of time points where the ODE is evaluated internally}
+\item{gridpoints}{Integer specifying the minimum number of internal time points for ODE evaluation. Not supported when using the "OrdinaryDiffEqJL" solver.}
 
-\item{verbose}{Print compiler output to R command line.}
+\item{verbose}{Logical; if TRUE, compiler output is printed to the R command line. Not supported when using the "OrdinaryDiffEqJL" solver.}
 
-\item{...}{Further arguments being passed to funC.}
+\item{...}{Additional arguments passed to \code{funC} for C-based solvers.}
 }
 \value{
-list with \code{func} (ODE object) and \code{extended} (ODE+Sensitivities object)
+If the solver is "deSolve" or "Sundials":
+A list containing:
+  - \code{func}: The main ODE object for "deSolve" or "Sundials".
+  - \code{extended}: The ODE object with sensitivities (if applicable).
+
+If the solver is "OrdinaryDiffEqJL":
+An object with attributes:
+\itemize{
+  \item "equations": The ODE equations passed to the function.
+  \item "variables": The dynamic variables in the system.
+  \item "sensvariables": The labels of the derivatives. E.g. Prey.alpha for \eqn{\partial \text{Prey} /\partial alpha}.
+  \item "parameters": The parameters in the system.
+  \item "events": The events data frame, if provided.
+  \item "modelname": The name of the generated Julia model.
+  \item "juliacode": The generated Julia code.
+}
+
+The returned object contains two methods:
+\itemize{
+  \item \code{$solve(inits, dynpars, times, optionsOde = NULL)}: Solves the ODE system.
+  \item \code{$senssolve(inits, dynpars, times, optionsOde = NULL)}: Solves the ODE system and computes sensitivities \eqn{\partial x(t,p) /\partial p}.
+}
+
+The returned object has class "odemodelC" for C-based solvers and "odemodelJ" for Julia-based solvers.
 }
 \description{
-Generate the model objects for use in Xs (models with sensitivities)
+This function generates the model objects required for solving ordinary differential equations (ODEs)
+with or without sensitivities. It supports different solvers and allows for the specification of events,
+forcings, and outputs.
+}
+\details{
+This function prepares ODE models for different solvers. For solvers other than "OrdinaryDiffEqJL",
+it supports generating sensitivities and allows for the specification of forcings, events, outputs,
+and grid points. For the "OrdinaryDiffEqJL" solver, unsupported arguments are ignored with a warning.
+
+When using the "OrdinaryDiffEqJL" solver, the function internally calls \code{odemodelJL},
+which generates Julia code to solve the ODE system and computes sensitivities using Julia's OrdinaryDiffEq library.
 }
 \examples{
 
@@ -99,4 +132,7 @@ plot(pred)
 
 
 }
+}
+\seealso{
+\link[deSolve]{events}, \link[cOde]{funC}, \link{Xs}, \link{odemodelJL}
 }

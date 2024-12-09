@@ -4,16 +4,7 @@
 \alias{Xs}
 \title{Model prediction function for ODE models.}
 \usage{
-Xs(
-  odemodel,
-  forcings = NULL,
-  events = NULL,
-  names = NULL,
-  condition = NULL,
-  optionsOde = list(method = "lsoda"),
-  optionsSens = list(method = "lsodes"),
-  fcontrol = NULL
-)
+Xs(odemodel, ...)
 }
 \arguments{
 \item{odemodel}{object of class \link{odemodel}}

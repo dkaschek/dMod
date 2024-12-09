@@ -1,103 +1,172 @@
-## ODE model class -------------------------------------------------------------------
-
-
-#' Generate the model objects for use in Xs (models with sensitivities)
+#' Generate Model Objects for ODEs and Sensitivities
 #'
-#' @param f Something that can be converted to \link{eqnvec},
-#' e.g. a named character vector with the ODE
-#' @param deriv logical, generate sensitivities or not
-#' @param forcings Character vector with the names of the forcings
-#' @param events data.frame of events with columns "var" (character, the name of the state to be
-#' affected), "time" (character or numeric, time point), "value" (character or numeric, value),
-#' "method" (character, either
-#' "replace" or "add"). See \link[deSolve]{events}. Events need to be defined here if they contain
-#' parameters, like the event time or value. If both, time and value are purely numeric, they
-#' can be specified in \code{\link{Xs}()}, too.
-#' @param outputs Named character vector for additional output variables.
-#' @param fixed Character vector with the names of parameters (initial values and dynamic) for which
-#' no sensitivities are required (will speed up the integration).
-#' @param estimate Character vector specifying parameters (initial values and dynamic) for which
-#' sensitivities are returned. If estimate is specified, it overwrites `fixed`.
-#' @param modelname Character, the name of the C file being generated.
-#' @param solver Solver for which the equations are prepared.
-#' @param gridpoints Integer, the minimum number of time points where the ODE is evaluated internally
-#' @param verbose Print compiler output to R command line.
-#' @param ... Further arguments being passed to funC.
-#' @return list with \code{func} (ODE object) and \code{extended} (ODE+Sensitivities object)
-#' @export
+#' This function generates the model objects required for solving ordinary differential equations (ODEs)
+#' with or without sensitivities. It supports different solvers and allows for the specification of events,
+#' forcings, and outputs.
+#'
+#' @param f An object that can be converted to an \link{eqnvec}, such as a named character vector containing the ODE system.
+#' @param deriv Logical; if TRUE, sensitivities are generated. Not supported when using the "OrdinaryDiffEqJL" solver.
+#' @param forcings Character vector specifying the names of the forcings. Not supported when using the "OrdinaryDiffEqJL" solver.
+#' @param events A data frame defining events with the following columns:
+#'   - "var": Character, the name of the state affected.
+#'   - "time": Character or numeric, the event time.
+#'   - "value": Character or numeric, the event value.
+#'   - "method": Character, either "replace" or "add" (see \link[deSolve]{events}).
+#'   Events must be defined here if they depend on parameters. Events with purely numeric time and value
+#'   can also be specified in \code{\link{Xs}()}.
+#' @param outputs A named character vector specifying additional output variables. Not supported when using the "OrdinaryDiffEqJL" solver.
+#' @param fixed Character vector naming parameters (initial values or dynamic) for which no sensitivities are required.
+#'   Specifying these will speed up the integration. Not supported when using the "OrdinaryDiffEqJL" solver.
+#' @param estimate Character vector specifying parameters (initial values or dynamic) for which sensitivities
+#'   are computed. Overrides `fixed` if specified. Not supported when using the "OrdinaryDiffEqJL" solver.
+#' @param modelname Character string for the name of the C file or Julia model generated.
+#' @param solver Character string specifying the solver to use. Options are "deSolve", "Sundials", or "OrdinaryDiffEqJL".
+#' @param gridpoints Integer specifying the minimum number of internal time points for ODE evaluation. Not supported when using the "OrdinaryDiffEqJL" solver.
+#' @param verbose Logical; if TRUE, compiler output is printed to the R command line. Not supported when using the "OrdinaryDiffEqJL" solver.
+#' @param ... Additional arguments passed to \code{funC} for C-based solvers.
+#'
+#' @details
+#' This function prepares ODE models for different solvers. For solvers other than "OrdinaryDiffEqJL",
+#' it supports generating sensitivities and allows for the specification of forcings, events, outputs,
+#' and grid points. For the "OrdinaryDiffEqJL" solver, unsupported arguments are ignored with a warning.
+#' 
+#' When using the "OrdinaryDiffEqJL" solver, the function internally calls \code{odemodelJL},
+#' which generates Julia code to solve the ODE system and computes sensitivities using Julia's OrdinaryDiffEq library.
+#'
+#' @return
+#' If the solver is "deSolve" or "Sundials":
+#' A list containing:
+#'   - \code{func}: The main ODE object for "deSolve" or "Sundials".
+#'   - \code{extended}: The ODE object with sensitivities (if applicable).
+#'
+#' If the solver is "OrdinaryDiffEqJL":
+#' An object with attributes:
+#' \itemize{
+#'   \item "equations": The ODE equations passed to the function.
+#'   \item "variables": The dynamic variables in the system.
+#'   \item "sensvariables": The labels of the derivatives. E.g. Prey.alpha for \eqn{\partial \text{Prey} /\partial alpha}.
+#'   \item "parameters": The parameters in the system.
+#'   \item "events": The events data frame, if provided.
+#'   \item "modelname": The name of the generated Julia model.
+#'   \item "juliacode": The generated Julia code.
+#' }
+#'
+#' The returned object contains two methods:
+#' \itemize{
+#'   \item \code{$solve(inits, dynpars, times, optionsOde = NULL)}: Solves the ODE system.
+#'   \item \code{$senssolve(inits, dynpars, times, optionsOde = NULL)}: Solves the ODE system and computes sensitivities \eqn{\partial x(t,p) /\partial p}.
+#' }
+#'
+#' The returned object has class "odemodelC" for C-based solvers and "odemodelJ" for Julia-based solvers.
+#'
+#' @seealso \link[deSolve]{events}, \link[cOde]{funC}, \link{Xs}, \link{odemodelJL}
+#'
 #' @example inst/examples/odemodel.R
+#'
 #' @import cOde
-odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, outputs = NULL, fixed = NULL, estimate = NULL, modelname = "odemodel", solver = c("deSolve", "Sundials"), gridpoints = NULL, verbose = FALSE, ...) {
-
-
-  if (is.null(gridpoints)) gridpoints <- 2
-
-  f <- as.eqnvec(f)
-  modelname_s <- paste0(modelname, "_s")
+#' @import JuliaODE
+#' @export
+odemodel <- function(f, deriv = TRUE, forcings=NULL, events = NULL, outputs = NULL, fixed = NULL, estimate = NULL, modelname = "odemodel", solver = c("deSolve", "Sundials", "OrdinaryDiffEqJL"), gridpoints = NULL, verbose = FALSE, ...) {
+  
   solver <- match.arg(solver)
-
-  func <- cOde::funC(f, forcings = forcings, events = events, outputs = outputs, fixed = fixed, modelname = modelname , solver = solver, nGridpoints = gridpoints, ...)
-  extended <- NULL
-  if (solver == "Sundials") {
-    # Sundials does not need "extended" by itself, but dMod relies on it.
-    extended <- func
-    attr(extended, "deriv") <- TRUE
-    attr(extended, "variables") <- c(attr(extended, "variables"), attr(extended, "variablesSens"))
-    attr(extended, "events") <- events
-  }
-
-  if (deriv && solver == "deSolve") {
-
-    mystates <- attr(func, "variables")
-    myparameters <- attr(func, "parameters")
-
-    if (is.null(estimate) & !is.null(fixed)) {
-      mystates <- setdiff(mystates, fixed)
-      myparameters <- setdiff(myparameters, fixed)
+  
+  if (solver != "OrdinaryDiffEqJL") {
+    if (is.null(gridpoints)) gridpoints <- 2
+  
+    f <- as.eqnvec(f)
+    modelname_s <- paste0(modelname, "_s")
+  
+    func <- cOde::funC(f, forcings = forcings, events = events, outputs = outputs, fixed = fixed, modelname = modelname , solver = solver, nGridpoints = gridpoints, ...)
+    extended <- NULL
+    if (solver == "Sundials") {
+      # Sundials does not need "extended" by itself, but dMod relies on it.
+      extended <- func
+      attr(extended, "deriv") <- TRUE
+      attr(extended, "variables") <- c(attr(extended, "variables"), attr(extended, "variablesSens"))
+      attr(extended, "events") <- events
     }
-
-    if (!is.null(estimate)) {
-      mystates <- intersect(mystates, estimate)
-      myparameters <- intersect(myparameters, estimate)
-    }
-
-    s <- sensitivitiesSymb(f,
-                           states = mystates,
-                           parameters = myparameters,
-                           inputs = attr(func, "forcings"),
-                           events = attr(func, "events"),
-                           reduce = TRUE)
-    fs <- c(f, s)
-    outputs <- c(attr(s, "outputs"), attr(func, "outputs"))
-    
-    events.sens <- attr(s, "events") 
-    events.func <- attr(func, "events")
-    events <- NULL
-    if (!is.null(events.func)) {
-      if (is.data.frame(events.sens)) {
-        events <- rbind(
-          as.eventlist(events.sens), 
-          as.eventlist(events.func), 
-          straingsAsFactors = FALSE)
-      } else {
-        events <- do.call(rbind, lapply(1:nrow(events.func), function(i) {
-          rbind(
-            as.eventlist(events.sens[[i]]), 
-            as.eventlist(events.func[i,]), 
-            stringsAsFactors = FALSE)
-        }))
+  
+    if (deriv && solver == "deSolve") {
+  
+      mystates <- attr(func, "variables")
+      myparameters <- attr(func, "parameters")
+  
+      if (is.null(estimate) & !is.null(fixed)) {
+        mystates <- setdiff(mystates, fixed)
+        myparameters <- setdiff(myparameters, fixed)
+      }
+  
+      if (!is.null(estimate)) {
+        mystates <- intersect(mystates, estimate)
+        myparameters <- intersect(myparameters, estimate)
+      }
+  
+      s <- sensitivitiesSymb(f,
+                             states = mystates,
+                             parameters = myparameters,
+                             inputs = attr(func, "forcings"),
+                             events = attr(func, "events"),
+                             reduce = TRUE)
+      fs <- c(f, s)
+      outputs <- c(attr(s, "outputs"), attr(func, "outputs"))
+      
+      events.sens <- attr(s, "events") 
+      events.func <- attr(func, "events")
+      events <- NULL
+      if (!is.null(events.func)) {
+        if (is.data.frame(events.sens)) {
+          events <- rbind(
+            as.eventlist(events.sens), 
+            as.eventlist(events.func), 
+            straingsAsFactors = FALSE)
+        } else {
+          events <- do.call(rbind, lapply(1:nrow(events.func), function(i) {
+            rbind(
+              as.eventlist(events.sens[[i]]), 
+              as.eventlist(events.func[i,]), 
+              stringsAsFactors = FALSE)
+          }))
+        }
+        
       }
       
+      extended <- cOde::funC(fs, forcings = forcings, modelname = modelname_s, solver = solver, nGridpoints = gridpoints, events = events, outputs = outputs, ...)
     }
     
-    extended <- cOde::funC(fs, forcings = forcings, modelname = modelname_s, solver = solver, nGridpoints = gridpoints, events = events, outputs = outputs, ...)
+    
+    out <- list(func = func, extended = extended)
+    class(out) <- "odemodelC"
+    attr(out, "class") <- "odemodelC"
+    return(out)
   }
-
-  out <- list(func = func, extended = extended)
-  attr(out, "class") <- "odemodel"
-  return(out)
-
-
+  else {
+    
+    # Check and warn about unsupported arguments for OrdinaryDiffEqJL
+    unsupported_args <- list(
+      deriv = deriv,
+      forcings = forcings,
+      outputs = outputs,
+      fixed = fixed,
+      estimate = estimate,
+      gridpoints = gridpoints,
+      verbose = verbose
+    )
+    
+    # List of arguments that are not supported
+    unsupported <- names(unsupported_args)[
+      sapply(unsupported_args, function(arg) !is.null(arg) && !(is.logical(arg) && arg == FALSE))
+    ]
+    
+    if (length(unsupported) > 0) {
+      warning(sprintf("The following arguments are not (yet) supported by the solver 'OrdinaryDiffEqJL' and will be ignored: %s", paste(unsupported, collapse = ", ")), call. = FALSE)
+    }
+    
+    out <- JuliaODE::odemodelJL(odefunction = as.eqnvec(f), modelname = modelname, events = events, ...)
+    class(out) <- "odemodelJ"
+    attr(out, "class") <- "odemodelJ"
+    return(out)
+  }
+  
 }
 
 ## Function classes ------------------------------------------------------

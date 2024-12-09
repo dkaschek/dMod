@@ -29,12 +29,15 @@ Imports:
     yaml,
     rlang,
     data.table,
-    purrr
+    purrr,
+    JuliaODE
 Suggests:
     MASS,
     rPython,
     pander,
     knitr,
-    rmarkdown,
+    rmarkdown
+Remotes:
+    simonbeyer1/JuliaODE
 RoxygenNote: 7.3.2
 VignetteBuilder: knitr
