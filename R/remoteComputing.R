@@ -223,29 +223,42 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
     sep = "\n"
   ))
   
-  # Write program code into file
-  for (m in 1:nmachines) cat(program[[m]], file = paste0(filename[m], ".R"))
-  
-  # Copy files to temporal folder
+  # Copy files to the temporary folder on the remote machine, write code and run
   for (m in 1:nmachines) {
     
-    system(paste0("ssh ", machine[m], " mkdir ", filename[m], "_folder/"), ignore.stdout = TRUE, ignore.stderr = TRUE)
-    system(paste0("ssh ", machine[m], " rm ", filename[m], "_folder/*"), ignore.stdout = TRUE, ignore.stderr = TRUE)
+    # Write program code into file
+    cat(program[[m]], file = paste0(filename[m], ".R"))
+    
+    # Create a working directory on the remote machine
+    system(paste0("ssh ", machine[m], " mkdir -p ", filename[m], "_folder/"), 
+           ignore.stdout = TRUE, ignore.stderr = TRUE)
+    
+    # Remove any old files in the working directory
+    system(paste0("ssh ", machine[m], " rm -r ", filename[m], "_folder/*"), 
+           ignore.stdout = TRUE, ignore.stderr = TRUE)
+    
+    # Copy RData files to the working directory on the remote machine
     system(paste0("scp ", getwd(), "/", filename0, ".RData* ", machine[m], ":", filename[m], "_folder/"))
+    
+    # Copy the R scripts to the working directory on the remote machine
     system(paste0("scp ", getwd(), "/", filename[m], ".R* ", machine[m], ":", filename[m], "_folder/"))
-
+    
+    # Copy compiled files if `compile` is set to TRUE, otherwise copy shared object files
     if (compile) {
       system(paste0("scp ", getwd(), "/*.c ", getwd(), "/*.cpp ", machine[m], ":", filename[m], "_folder/"))
     } else {
       system(paste0("scp ", getwd(), "/*.so ", machine[m], ":", filename[m], "_folder/"))
     }
     
+    # Execute the R script on the remote machine with the necessary environment variables
+    # export OMP_NUM_THREADS=1 & MKL_NUM_THREADS=1 ensure that each job uses only one thread
+    system(paste0(
+      "ssh ", machine[m], 
+      " 'export OMP_NUM_THREADS=1 && export MKL_NUM_THREADS=1 && ", 
+      "R CMD BATCH --vanilla ", filename[m], "_folder/", filename[m], ".R'"
+    ), intern = FALSE, wait = wait)
   }
   
-
-  
-  # Run in background
-  for (m in 1:nmachines) system(paste0("ssh ", machine[m], " R CMD BATCH --vanilla ", filename[m], "_folder/", filename[m], ".R"), intern = FALSE, wait = wait)
   
   if (wait) {
     out$get()
