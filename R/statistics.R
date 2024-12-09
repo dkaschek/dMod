@@ -1371,14 +1371,14 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
     obj <- function(par) {
       value <- with(as.list(par), {
         z <- eval(parse(text = errorModel))
-        sum(log(z)-log(dchisq((n-1)*(y^2)/z, df = n-1)), na.rm = TRUE)
+        sum((n-1)*(log(z) + y^2/z), na.rm = TRUE)
       })
       return(value)
     }
     
     fit <- optim(par = par, fn = obj, ...)
     sigma <- sqrt(with(as.list(fit$par), eval(parse(text = errorModel))))
-    dataErrorModel[condidnt == cond, ]$sigma <- sigma 
+    dataErrorModel[condidnt == cond, ]$sigma <- sigma / sqrt(n)
     dataErrorModel[condidnt == cond, -(nColData:1)] <- data.frame(as.list(fit$par))
   }
   
