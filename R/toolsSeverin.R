@@ -706,7 +706,7 @@ steadyStateToolJulia <- function(
     stop("No Julia installation found, please use juliaup to install julia.")
     return(NULL)
   }
-  JuliaCall::julia_setup(JULIA_HOME = file.path(Sys.getenv("HOME"),".juliaup/bin"))
+ 
   
   
   # call the julia steady state tool:
