@@ -505,7 +505,7 @@ normL2_indiv <- function (data, prd0, errmodel = NULL, est.grid, fix.grid, times
   })
   if (!is.null(times)){ 
     timesD <- sort(unique(c(0, do.call(c, lapply(data, function(d) d$time)))))
-    timesD <- lapply(1:length(data), function(i) sort(union(times, timesD)))
+    timesD <- lapply(1:length(data), function(i) sort(union(times[[i]], timesD)))
     names(timesD) <- names(data)
   }  
   x.conditions <- est.grid$condition

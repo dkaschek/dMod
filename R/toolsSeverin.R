@@ -643,6 +643,7 @@ installJuliaForSteadyStates <- function(installJulia = FALSE, installJuliaPackag
   if (installJulia) {
     system("sh -i ~/.JuliaSteadyStates/installJuliaUp.sh -y")
     system("juliaup add release")
+    try(system("source ~/.bashrc"))
   }
   
   if (installJuliaPackages) {
