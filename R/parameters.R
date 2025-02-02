@@ -113,6 +113,17 @@ Pexpl <- function(trafo, parameters=NULL, attach.input = FALSE, condition = NULL
     # Evaluate transformation
     args <- c(p, fixed)
     pinner <- PEval(p = args)[1,]
+    
+    # sanity check: non of pinner should be NaN
+    if(any(is.nan(pinner))) {
+      stop(
+        paste0(
+          "The following inner parameter(s) evaluate to NaN:\n\t",
+          paste0(names(pinner)[is.nan(pinner)], collapse = "\n\t"), ".\n",
+          "Perhaps a trafo devides by zero? All necessery parameters fixed?"
+        )
+      )
+    }
 
     myderiv <- NULL
     if(deriv) {
