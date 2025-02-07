@@ -1209,7 +1209,10 @@ load.parlist <- function(folder) {
 #' thus defined by all combinations of values occurring in the selected condition
 #' identifiers. The replicates of each condition are then reduced to mean and 
 #' standard deviation. New condition names are derived by merging all conditions 
-#' which were used in mean and standard deviation.
+#' which were used in mean and standard deviation. Columns that are not listed in
+#' \code{select} but have different values within grouped data are dropped. Columns
+#' that remain stable across all replicates are retained and horizontally attached
+#' to the resulting data frame.
 #'
 #' @return
 #' A data frame of the following variables:
@@ -1222,7 +1225,8 @@ load.parlist <- function(folder) {
 #'  \item{condition}{The condition for which the value and sigma were calculated. If
 #'        more than one column was used to define the condition, this variable
 #'        holds the effective condition which is the combination of all applied
-#'        single conditions. }
+#'        single conditions.}
+#'  \item{other columns}{Columns that were stable across replicates are retained and horizontally attached to the resulting data frame.}
 #' }
 #'
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
@@ -1253,22 +1257,37 @@ reduceReplicates.data.frame <- function(data, select = "condition", datatrans = 
   condidnt <- apply(data[select], 1, paste, collapse = "_")
   conditions <- unique(condidnt)
   
+  # Identify columns that are consistent across replicates
+  potential_cols <- setdiff(names(data), c("value", "sigma", "n", select))
+  stable_cols <- potential_cols[sapply(potential_cols, function(col) {
+    all(tapply(data[[col]], condidnt, function(x) length(unique(x)) == 1))
+  })]
+  dropped_cols <- setdiff(names(data), c("time", "value", "sigma", "n", stable_cols))
+  
   # Reduce data
   reduct <- do.call(rbind, lapply(conditions, function(cond) {
     conddata <- data[condidnt == cond, ]
-    mergecond <- paste(conddata[1, setdiff(select, c("name", "time"))], collapse = "_")
+    mergecond <- paste(unique(conddata[setdiff(select, c("name", "time"))]), collapse = "_")
+    
     data.frame(
       time = conddata[1, "time"],
       value = mean(conddata$value),
-      sigma = if (nrow(conddata) > 1) sd(conddata$value) / sqrt(nrow(conddata)) else NA,
+      sigma = if (nrow(conddata) > 1) {
+        sd(conddata$value) / sqrt(nrow(conddata)) # Standard Error of the Mean (SEM)
+      } else {
+        NA
+      },
       n = nrow(conddata),
       name = conddata[1, "name"],
-      condition = mergecond
+      condition = mergecond,
+      conddata[1, stable_cols, drop = FALSE] # Retain only stable columns
     )
   }))
   
+  message("Dropped columns: ", paste(setdiff(dropped_cols, names(reduct)), collapse = ", "))
   return(reduct)
 }
+
 
 #' Method for files (character)
 #' @export
@@ -1366,7 +1385,7 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
     subdata <- dataErrorModel[condidnt == cond,]
     x <- subdata$value
     n <- subdata$n
-    y <- subdata$sigma*sqrt(n)
+    y <- subdata$sigma**2 * sqrt(n)
     
     obj <- function(par) {
       value <- with(as.list(par), {
