@@ -1385,12 +1385,12 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
     subdata <- dataErrorModel[condidnt == cond,]
     x <- subdata$value
     n <- subdata$n
-    y <- subdata$sigma**2 * sqrt(n)
+    y <- subdata$sigma**2 * n
     
     obj <- function(par) {
       value <- with(as.list(par), {
         z <- eval(parse(text = errorModel))
-        sum((n-1)*(log(z) + y^2/z), na.rm = TRUE)
+        sum((n-1)*(log(z) + y/z), na.rm = TRUE)
       })
       return(value)
     }
