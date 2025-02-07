@@ -2,76 +2,86 @@
 % Please edit documentation in R/statistics.R
 \name{fitErrorModel}
 \alias{fitErrorModel}
-\title{Fit an error model}
+\title{Fit an error model using maximum likelihood estimation}
 \usage{
 fitErrorModel(
   data,
   factors,
   errorModel = "exp(s0)+exp(srel)*x^2",
   par = c(s0 = 1, srel = 0.1),
+  lower = NULL,
+  upper = NULL,
   plotting = TRUE,
   blather = FALSE,
   ...
 )
 }
 \arguments{
-\item{data}{Reduced replicate data, see \code{\link{reduceReplicates}}. Need 
-columns "value", "sigma", "n".}
+\item{data}{A data frame containing reduced replicate data. Must include 
+columns "value" (mean of replicates), "sigma" (sample standard deviation), 
+and "n" (number of replicates per condition).}
 
-\item{factors}{\option{data} is pooled with respect to the columns named
-here, see Details.}
+\item{factors}{Character vector specifying the columns in \option{data} 
+that define pooling conditions. The model is fit separately for each unique 
+combination of these factors.}
 
-\item{errorModel}{Character vector defining the error model in terms of the variance. 
-Use \kbd{x} to reference the independend variable, see Details.}
+\item{errorModel}{A character string defining the error model in terms of 
+variance. The mean is referenced as \kbd{x}, e.g., "exp(s0) + exp(srel) * x^2".}
 
-\item{par}{Inital values for the parameters of the error model.}
+\item{par}{Named numeric vector of initial values for the parameters in 
+\option{errorModel}.}
 
-\item{plotting}{If TRUE, a plot of the pooled variance together with the fit
-of the error model is shown.}
+\item{lower}{Optional named numeric vector specifying lower bounds for 
+parameters. Defaults to \code{NULL} (no bounds).}
 
-\item{blather}{If TRUE, additional information is returned, such as fit parameters 
-and sigmaLS (original sigma given in input data).}
+\item{upper}{Optional named numeric vector specifying upper bounds for 
+parameters. Defaults to \code{NULL} (no bounds).}
 
-\item{...}{Parameters handed to the optimizer \code{\link{optim}}.}
+\item{plotting}{Logical. If \code{TRUE}, a plot of the pooled variance and 
+the fitted error model is displayed.}
+
+\item{blather}{Logical. If \code{TRUE}, additional information is returned, 
+including fitted parameter values, original \code{sigma} values, and confidence intervals.}
+
+\item{...}{Additional arguments passed to the optimizer \code{\link[optimx]{optimr}}.}
 }
 \value{
-Returned by default is a data frame with columns as in \option{data}, 
-  but with the sigma values replaced by the derived values, obtained by evaluating 
-  the error model with the fit parameters. 
-  
-  If the blather = TRUE option is chosen, fit values of the parameters of the error
-  model are appended, with the column names equal to the parameter names. 
-  The error model is appended as the attribute "errorModel".
-  Confidence bounds for sigma at confidence level 68\% and 95\% are
-  calculated, their values come next in the returned data frame. Finally, the
-  effective conditions are appended to easily check how the pooling was done.
+By default, a data frame is returned, containing the original data 
+  with updated \code{sigma} values estimated from the error model.
+
+  If \option{blather = TRUE}, additional information is returned, including:
+  - The fitted parameter values.
+  - The error model used.
+  - Confidence intervals for \code{sigma} at 68\% and 95\% levels.
+  - Effective pooling conditions.
 }
 \description{
-Fit an error model to reduced replicate data, see
-  \code{\link{reduceReplicates}}.
+Fit an error model to reduced replicate data using maximum 
+likelihood estimation (MLE). The model estimates the variance of replicate 
+measurements as a function of the mean, based on a chi-square distribution.
 }
 \details{
-The variance estimator using \eqn{n-1} data points is \eqn{chi^2}
-  distributed with \eqn{n-1} degrees of freedom. Given replicates for
-  consecutive time points, the sample variance can be assumed a function of
-  the sample mean. By defining an error model which must hold for all time
-  points, a maximum likelihood estimator for the parameters of the error
-  model can be derived. The parameter \option{errorModel} takes the error
-  model as a character vector, where the mean (independent variable) is
-  refered to as \kbd{x}.
+The model assumes that the sample variance of replicate measurements 
+  follows a chi-square distribution with \eqn{n-1} degrees of freedom. The 
+  variance is estimated by maximizing the log-likelihood function derived 
+  from this distribution. Given multiple replicates, the variance can be 
+  modeled as a function of the mean.
 
-  It is desireable to estimate the variance from many replicates. The
-  parameter \option{data} must provide one or more columns which define the
-  pooling of data. In case more than one column is announced by
-  \option{factors}, all combinations are constructed. If, e.g.,
-  \option{factors = c("condition", "name")} is used, where "condition" is
-  "a", "b", "c" and repeating and "name" is "d", "e" and repeating, the
-  effective conditions used for pooling are "a d", "b e", "c d", "a e", "b
-  d", and "c e".
+  The \option{errorModel} parameter defines this functional relationship. 
+  It should be expressed as a character string, using \kbd{x} to represent 
+  the mean.
 
-  By default, a plot of the pooled data, sigma and its confidence bound at
-  68\% and 95\% is shown.
+  The optimization is performed using \code{\link[optimx]{optimr}} with the 
+  \code{"L-BFGS-B"} method, which supports bound constraints. If \option{lower} 
+  and \option{upper} are not specified, the parameters are assumed to be 
+  unconstrained.
+
+  If \option{plotting = TRUE}, the function produces a log-scale variance 
+  plot for each condition, showing the pooled variance, the fitted model, 
+  and 68\% and 95\% confidence bounds.
 }
 \author{
 Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
+
+Simon Beyer, \email{simon.beyer@fdm.uni-freiburg.de}
 }

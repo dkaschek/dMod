@@ -89,7 +89,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
   # Substitute user-set control parameters
   if (!is.null(stepControl)) sControl[match(names(stepControl), names(sControl))] <- stepControl
   if (!is.null(algoControl)) aControl[match(names(algoControl), names(aControl))] <- algoControl
-  if (!is.null(optControl )) oControl[match(names(optControl), names(oControl ))] <- optControl
+  if (!is.null(optControl )) oControl[match(names(optControl), names(oControl))] <- optControl
   
   
   # Create interRes folder for cautiousMode
@@ -1315,67 +1315,75 @@ reduceReplicates.character <- function(data, select = "condition", datatrans = N
 }
 
 
-#' Fit an error model
+#' Fit an error model using maximum likelihood estimation
 #'
-#' @description Fit an error model to reduced replicate data, see
-#'   \code{\link{reduceReplicates}}.
+#' @description Fit an error model to reduced replicate data using maximum 
+#' likelihood estimation (MLE). The model estimates the variance of replicate 
+#' measurements as a function of the mean, based on a chi-square distribution.
 #'
-#' @param data Reduced replicate data, see \code{\link{reduceReplicates}}. Need 
-#'   columns "value", "sigma", "n".
-#' @param factors \option{data} is pooled with respect to the columns named
-#'   here, see Details.
-#' @param errorModel Character vector defining the error model in terms of the variance. 
-#'   Use \kbd{x} to reference the independend variable, see Details.
-#' @param par Inital values for the parameters of the error model.
-#' @param plotting If TRUE, a plot of the pooled variance together with the fit
-#'   of the error model is shown.
-#' @param blather If TRUE, additional information is returned, such as fit parameters 
-#'  and sigmaLS (original sigma given in input data).
-#' @param ... Parameters handed to the optimizer \code{\link{optim}}.
+#' @param data A data frame containing reduced replicate data. Must include 
+#'   columns "value" (mean of replicates), "sigma" (sample standard deviation), 
+#'   and "n" (number of replicates per condition).
+#' @param factors Character vector specifying the columns in \option{data} 
+#'   that define pooling conditions. The model is fit separately for each unique 
+#'   combination of these factors.
+#' @param errorModel A character string defining the error model in terms of 
+#'   variance. The mean is referenced as \kbd{x}, e.g., "exp(s0) + exp(srel) * x^2".
+#' @param par Named numeric vector of initial values for the parameters in 
+#'   \option{errorModel}.
+#' @param lower Optional named numeric vector specifying lower bounds for 
+#'   parameters. Defaults to \code{NULL} (no bounds).
+#' @param upper Optional named numeric vector specifying upper bounds for 
+#'   parameters. Defaults to \code{NULL} (no bounds).
+#' @param plotting Logical. If \code{TRUE}, a plot of the pooled variance and 
+#'   the fitted error model is displayed.
+#' @param blather Logical. If \code{TRUE}, additional information is returned, 
+#'   including fitted parameter values, original \code{sigma} values, and confidence intervals.
+#' @param ... Additional arguments passed to the optimizer \code{\link[optimx]{optimr}}.
 #'
-#' @details The variance estimator using \eqn{n-1} data points is \eqn{chi^2}
-#'   distributed with \eqn{n-1} degrees of freedom. Given replicates for
-#'   consecutive time points, the sample variance can be assumed a function of
-#'   the sample mean. By defining an error model which must hold for all time
-#'   points, a maximum likelihood estimator for the parameters of the error
-#'   model can be derived. The parameter \option{errorModel} takes the error
-#'   model as a character vector, where the mean (independent variable) is
-#'   refered to as \kbd{x}.
+#' @details The model assumes that the sample variance of replicate measurements 
+#'   follows a chi-square distribution with \eqn{n-1} degrees of freedom. The 
+#'   variance is estimated by maximizing the log-likelihood function derived 
+#'   from this distribution. Given multiple replicates, the variance can be 
+#'   modeled as a function of the mean.
 #'
-#'   It is desireable to estimate the variance from many replicates. The
-#'   parameter \option{data} must provide one or more columns which define the
-#'   pooling of data. In case more than one column is announced by
-#'   \option{factors}, all combinations are constructed. If, e.g.,
-#'   \option{factors = c("condition", "name")} is used, where "condition" is
-#'   "a", "b", "c" and repeating and "name" is "d", "e" and repeating, the
-#'   effective conditions used for pooling are "a d", "b e", "c d", "a e", "b
-#'   d", and "c e".
+#'   The \option{errorModel} parameter defines this functional relationship. 
+#'   It should be expressed as a character string, using \kbd{x} to represent 
+#'   the mean.
 #'
-#'   By default, a plot of the pooled data, sigma and its confidence bound at
-#'   68\% and 95\% is shown.
+#'   The optimization is performed using \code{\link[optimx]{optimr}} with the 
+#'   \code{"L-BFGS-B"} method, which supports bound constraints. If \option{lower} 
+#'   and \option{upper} are not specified, the parameters are assumed to be 
+#'   unconstrained.
 #'
-#' @return Returned by default is a data frame with columns as in \option{data}, 
-#'   but with the sigma values replaced by the derived values, obtained by evaluating 
-#'   the error model with the fit parameters. 
-#'   
-#'   If the blather = TRUE option is chosen, fit values of the parameters of the error
-#'   model are appended, with the column names equal to the parameter names. 
-#'   The error model is appended as the attribute "errorModel".
-#'   Confidence bounds for sigma at confidence level 68\% and 95\% are
-#'   calculated, their values come next in the returned data frame. Finally, the
-#'   effective conditions are appended to easily check how the pooling was done.
+#'   If \option{plotting = TRUE}, the function produces a log-scale variance 
+#'   plot for each condition, showing the pooled variance, the fitted model, 
+#'   and 68\% and 95\% confidence bounds.
+#'
+#' @return By default, a data frame is returned, containing the original data 
+#'   with updated \code{sigma} values estimated from the error model.
+#'
+#'   If \option{blather = TRUE}, additional information is returned, including:
+#'   - The fitted parameter values.
+#'   - The error model used.
+#'   - Confidence intervals for \code{sigma} at 68\% and 95\% levels.
+#'   - Effective pooling conditions.
 #'
 #' @author Wolfgang Mader, \email{Wolfgang.Mader@@fdm.uni-freiburg.de}
+#' @author Simon Beyer, \email{simon.beyer@@fdm.uni-freiburg.de}
 #'
 #' @export
-#' @importFrom stats D approx optim qchisq sd time
+#' @importFrom stats qchisq
+#' @importFrom ggplot2 ggplot aes geom_point geom_line geom_ribbon ylab facet_wrap scale_y_log10 theme
+#' @importFrom optimx optimr
 fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
-                          par = c(s0 = 1, srel = .1), plotting = TRUE, blather = FALSE, ...) {
+                          par = c(s0 = 1, srel = .1), 
+                          lower = NULL, upper = NULL,  # Optional: Parametergrenzen
+                          plotting = TRUE, blather = FALSE, ...) {
   
   # Assemble conditions
   condidnt <- Reduce(paste, subset(data, select = factors))
   conditions <- unique(condidnt)
-  
   
   # Fit error model
   nColData <- ncol(data)
@@ -1385,44 +1393,48 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
     subdata <- dataErrorModel[condidnt == cond,]
     x <- subdata$value
     n <- subdata$n
-    y <- subdata$sigma**2 * n
+    y <- subdata$sigma * sqrt(n)
     
+    # Zielfunktion mit der analytischen Maximum-Likelihood
     obj <- function(par) {
-      value <- with(as.list(par), {
-        z <- eval(parse(text = errorModel))
-        sum((n-1)*(log(z) + y/z), na.rm = TRUE)
+      with(as.list(par), {
+        sigma2 <- eval(parse(text = errorModel)) 
+        negLogLik <- sum((n - 1) * (log(sigma2) + (y^2 / sigma2)), na.rm = TRUE)
+        return(negLogLik)
       })
-      return(value)
     }
     
-    fit <- optimx::optimr(par = par, fn = obj, ...)
+    # Falls keine lower/upper-Bounds definiert sind, Standardwerte setzen
+    if (is.null(lower)) lower <- rep(-Inf, length(par))
+    if (is.null(upper)) upper <- rep(Inf, length(par))
+    
+    # Optimierung mit L-BFGS-B
+    fit <- optimr(par, obj, method = "L-BFGS-B", lower = lower, upper = upper, ...)
+    
     sigma <- sqrt(with(as.list(fit$par), eval(parse(text = errorModel))))
-    dataErrorModel[condidnt == cond, ]$sigma <- sigma
+    dataErrorModel[condidnt == cond, ]$sigma <- sigma 
     dataErrorModel[condidnt == cond, -(nColData:1)] <- data.frame(as.list(fit$par))
   }
   
-  
-  # Calculate confidence bounds about sigma
-  p68 <- (1-.683)/2
-  p95 <- (1-.955)/2
-  dataErrorModel$cbLower68 <- dataErrorModel$sigma^2*qchisq(p = p68, df = dataErrorModel$n-1)/(dataErrorModel$n-1)
-  dataErrorModel$cbUpper68 <- dataErrorModel$sigma^2*qchisq(p = p68, df = dataErrorModel$n-1, lower.tail = FALSE)/(dataErrorModel$n-1)
-  dataErrorModel$cbLower95 <- dataErrorModel$sigma^2*qchisq(p = p95, df = dataErrorModel$n-1)/(dataErrorModel$n-1)
-  dataErrorModel$cbUpper95 <- dataErrorModel$sigma^2*qchisq(p = p95, df = dataErrorModel$n-1, lower.tail = FALSE)/(dataErrorModel$n-1)
-  
+  # Calculate confidence bounds for sigma
+  p68 <- (1 - .683) / 2
+  p95 <- (1 - .955) / 2
+  dataErrorModel$cbLower68 <- dataErrorModel$sigma^2 * qchisq(p = p68, df = dataErrorModel$n - 1) / (dataErrorModel$n - 1)
+  dataErrorModel$cbUpper68 <- dataErrorModel$sigma^2 * qchisq(p = p68, df = dataErrorModel$n - 1, lower.tail = FALSE) / (dataErrorModel$n - 1)
+  dataErrorModel$cbLower95 <- dataErrorModel$sigma^2 * qchisq(p = p95, df = dataErrorModel$n - 1) / (dataErrorModel$n - 1)
+  dataErrorModel$cbUpper95 <- dataErrorModel$sigma^2 * qchisq(p = p95, df = dataErrorModel$n - 1, lower.tail = FALSE) / (dataErrorModel$n - 1)
   
   # Assemble result
   dataErrorModel <- cbind(dataErrorModel, condidnt, sigmaLS = data$sigma)
   attr(dataErrorModel, "errorModel") <- errorModel
   
-  
   # Plot if requested
   if (plotting) {
-    print(ggplot(dataErrorModel, aes(x=value)) +
-            geom_point(aes(y=sigmaLS^2*(n))) +
-            geom_line(aes(y=sigma^2)) +
-            geom_ribbon(aes(ymin=cbLower95, ymax=cbUpper95), alpha=.3) +
-            geom_ribbon(aes(ymin=cbLower68, ymax=cbUpper68), alpha=.3) +
+    print(ggplot(dataErrorModel, aes(x = value)) +
+            geom_point(aes(y = sigmaLS^2 * (n))) +
+            geom_line(aes(y = sigma^2)) +
+            geom_ribbon(aes(ymin = cbLower95, ymax = cbUpper95), alpha = .3) +
+            geom_ribbon(aes(ymin = cbLower68, ymax = cbUpper68), alpha = .3) +
             ylab("variance") +
             facet_wrap(~condidnt, scales = "free") +
             scale_y_log10() +
@@ -1430,14 +1442,10 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
     )}
   
   # Return standard error of the mean
-  dataErrorModel$sigma <- dataErrorModel$sigma/sqrt(dataErrorModel$n)
+  dataErrorModel$sigma <- dataErrorModel$sigma / sqrt(dataErrorModel$n)
   data$sigma <- dataErrorModel$sigma
-  if(blather)
+  if (blather)
     return(dataErrorModel)
   else 
     return(data)
 }
-
-
-
-
