@@ -1395,7 +1395,7 @@ fitErrorModel <- function(data, factors, errorModel = "exp(s0)+exp(srel)*x^2",
       return(value)
     }
     
-    fit <- optim(par = par, fn = obj, ...)
+    fit <- optimx::optimr(par = par, fn = obj, ...)
     sigma <- sqrt(with(as.list(fit$par), eval(parse(text = errorModel))))
     dataErrorModel[condidnt == cond, ]$sigma <- sigma
     dataErrorModel[condidnt == cond, -(nColData:1)] <- data.frame(as.list(fit$par))
