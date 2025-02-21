@@ -39,7 +39,8 @@ A data frame of the following variables:
  \item{condition}{The condition for which the value and sigma were calculated. If
        more than one column was used to define the condition, this variable
        holds the effective condition which is the combination of all applied
-       single conditions. }
+       single conditions.}
+ \item{other columns}{Columns that were stable across replicates are retained and horizontally attached to the resulting data frame.}
 }
 }
 \description{
@@ -57,7 +58,10 @@ column "condition" is always used. The total set of different conditions is
 thus defined by all combinations of values occurring in the selected condition
 identifiers. The replicates of each condition are then reduced to mean and 
 standard deviation. New condition names are derived by merging all conditions 
-which were used in mean and standard deviation.
+which were used in mean and standard deviation. Columns that are not listed in
+\code{select} but have different values within grouped data are dropped. Columns
+that remain stable across all replicates are retained and horizontally attached
+to the resulting data frame.
 }
 \author{
 Wolfgang Mader, \email{Wolfgang.Mader@fdm.uni-freiburg.de}
