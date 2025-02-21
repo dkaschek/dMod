@@ -185,17 +185,22 @@ PlotPaths <- function(profs=myprofiles, ..., whichPar, sort = FALSE, relative = 
     data[, max.dev := max(c(abs(max(y)), abs(min(y)))), by = "partner"]
     setorder(data, name, -max.dev)
     # max.devis <- unique(data$max.dev)[1:n_pars]
-    data[!(max.dev %in% unique(max.dev)[1:n_pars]), partner := "others"]
     
-    data$combination <- as.factor(data$combination)
-    data$partner <- factor(data$partner, levels = unique(data$partner))
+    # create new column "label" only use to assign ploting colors
+    data[,label := ifelse(max.dev %in% unique(max.dev)[1:n_pars], partner, "Others")]
+    
+    # Define the plotting colors
+    species_colors <- c( # c(dMod_colors[2:(n_pars+1)], rep("gray", 100))
+      setNames(dMod_colors[2:(n_pars+1)], unique(data$partner)[1:n_pars]), 
+      "Others" = "gray"
+    )
     
     suppressMessages(
-      p <- ggplot(data, aes(x = x, y = y, color = partner)) + 
-        geom_path() + #geom_point(aes=aes(size=1), alpha=1/3) +
+      p <- ggplot(data, aes(x = x, y = y, color = label, group = partner)) + 
+        geom_line() + #geom_point(aes=aes(size=1), alpha=1/3) +
         xlab(paste0("log(", whichPar, ")")) + ylab("relative change of\n other paramters") +
         scale_linetype_discrete(name = "profile\nlist") +
-        scale_color_manual(values = c(dMod_colors[2:(n_pars+1)], rep("gray", 100))) + theme_dMod() +
+        scale_color_manual(values = species_colors) + theme_dMod() +
         theme(legend.position="bottom",
               legend.title = element_blank(),
               legend.box.background = element_rect(colour = "black"),
