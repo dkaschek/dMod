@@ -441,7 +441,7 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                               }
                             }
                             
-                            if (side %in% c("right", "both")) {
+                            if (side %in% c("left", "both")) {
                               # Compute left profile
                               if (verbose) {
                                 cat("\nCompute left profile\n")
