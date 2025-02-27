@@ -20,6 +20,7 @@
 #' @param cores number of cores used when computing profiles for several
 #' parameters.
 #' @param cautiousMode Logical, write every step to disk and don't delete intermediate results
+#' @param side either, "left", "right" or "both": determines the side of the profile which is calculated (usefeull for parallelization). default is "both"
 #' @param ... Arguments going to obj()
 #' @details Computation of the profile likelihood is based on the method of Lagrangian multipliers
 #' and Euler integration of the corresponding differential equation of the profile likelihood paths.
@@ -57,10 +58,13 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                     verbose = FALSE,
                     cores = 1,
                     cautiousMode = FALSE,
+                    side = c("both", "left", "right")[1],
                     ...) {
   # Ensure that obj is defined in this environment such that it is copied to the parallel workers
   force(obj)
   
+  # sanitize "side" argument, must be either "left", "right" or "both"
+  if (!(side %in% c("left", "right", "both"))) stop("side must be either 'left', 'right' or 'both'")
   
   # Guarantee that pars is named numeric without deriv attribute
   dotArgs <- list(...)
@@ -364,151 +368,153 @@ profile <- function(obj, pars, whichPar, alpha = 0.05,
                                      gamma = gamma, 
                                      whichPar = whichIndex,
                                      out.attributes, ini)
-                            
-                            # Compute right profile
-                            if (verbose) {
-                              cat("Compute right profile\n")
-                            }
-                            direction <- 1
-                            gamma <- aControl$gamma
-                            stepsize <- sControl$stepsize
-                            y <- ini
-                            
-                            lagrange.out <- lagrange.out
-                            constraint.out <- constraint.out
-                            
-                            while (i < sControl$limit) {
+                            if (side %in% c("right", "both")) {
+                              # Compute right profile
+                              if (verbose) {
+                                cat("Compute right profile\n")
+                              }
+                              direction <- 1
+                              gamma <- aControl$gamma
+                              stepsize <- sControl$stepsize
+                              y <- ini
                               
-                              ## Iteration step
-                              sufficient <- FALSE
-                              retry <- 0
-                              while (!sufficient & retry < 5) {
-                                dy <- stepsize*lagrange.out$dy
-                                y.try <- try(doIteration(), silent = TRUE)
-                                out.try <- try(doAdaption(), silent = TRUE)
-                                if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) {
-                                  sufficient <- FALSE
-                                  stepsize <- stepsize/1.5
-                                  retry <- retry + 1
-                                } else {
-                                  sufficient <- out.try$valid
-                                  stepsize <- out.try$stepsize  
+                              lagrange.out <- lagrange.out
+                              constraint.out <- constraint.out
+                              
+                              while (i < sControl$limit) {
+                                
+                                ## Iteration step
+                                sufficient <- FALSE
+                                retry <- 0
+                                while (!sufficient & retry < 5) {
+                                  dy <- stepsize*lagrange.out$dy
+                                  y.try <- try(doIteration(), silent = TRUE)
+                                  out.try <- try(doAdaption(), silent = TRUE)
+                                  if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) {
+                                    sufficient <- FALSE
+                                    stepsize <- stepsize/1.5
+                                    retry <- retry + 1
+                                  } else {
+                                    sufficient <- out.try$valid
+                                    stepsize <- out.try$stepsize  
+                                  }
+                                  
+                                }    
+                                if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
+                                
+                                
+                                ## Set values
+                                y <- y.try
+                                lagrange.out <- out.try$lagrange
+                                constraint.out <- constraint(y.try)
+                                stepsize <- out.try$stepsize
+                                gamma <- out.try$gamma
+                                out.attributes <- unlist(lagrange.out[lagrange.out$attributes])
+                                
+                                ## Return values 
+                                out <- rbind(out, 
+                                             c(value = lagrange.out$value, 
+                                               constraint = as.vector(constraint.out$value), 
+                                               stepsize = stepsize, 
+                                               gamma = gamma, 
+                                               whichPar = whichIndex,
+                                               out.attributes, 
+                                               y))
+                                
+                                if(cautiousMode) {
+                                  outCautious <- as.data.frame(out)
+                                  outCautious$whichPar <- whichPar.name
+                                  outCautious <- parframe(
+                                    outCautious,
+                                    parameters = names(pars),
+                                    metanames = c("value", "constraint", "stepsize", "gamma", "whichPar"),
+                                    obj.attributes = names(out.attributes)
+                                  )
+                                  dput(outCautious, file = file.path(interResFolder, paste0(whichPar.name, "-right.R")))
                                 }
                                 
-                              }    
-                              if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
-                              
-                              
-                              ## Set values
-                              y <- y.try
-                              lagrange.out <- out.try$lagrange
-                              constraint.out <- constraint(y.try)
-                              stepsize <- out.try$stepsize
-                              gamma <- out.try$gamma
-                              out.attributes <- unlist(lagrange.out[lagrange.out$attributes])
-                              
-                              ## Return values 
-                              out <- rbind(out, 
-                                           c(value = lagrange.out$value, 
-                                             constraint = as.vector(constraint.out$value), 
-                                             stepsize = stepsize, 
-                                             gamma = gamma, 
-                                             whichPar = whichIndex,
-                                             out.attributes, 
-                                             y))
-                              
-                              if(cautiousMode) {
-                                outCautious <- as.data.frame(out)
-                                outCautious$whichPar <- whichPar.name
-                                outCautious <- parframe(
-                                  outCautious,
-                                  parameters = names(pars),
-                                  metanames = c("value", "constraint", "stepsize", "gamma", "whichPar"),
-                                  obj.attributes = names(out.attributes)
-                                )
-                                dput(outCautious, file = file.path(interResFolder, paste0(whichPar.name, "-right.R")))
-                              }
-                              
-                              value <- lagrange.out[[sControl$stop]]
-                              if (value > threshold | constraint.out$value > limits[2]) break
-                              
-                              i <- i + 1
-                              
-                            }
-                            
-                            # Compute left profile
-                            if (verbose) {
-                              cat("\nCompute left profile\n")
-                            }
-                            i <- 0
-                            direction <- -1
-                            gamma <- aControl$gamma
-                            stepsize <- sControl$stepsize
-                            y <- ini
-                            
-                            lagrange.out <- lagrange(ini)
-                            constraint.out <- constraint(pars)
-                            
-                            while (i < sControl$limit) {
-                              
-                              ## Iteration step
-                              sufficient <- FALSE
-                              retry <- 0
-                              while (!sufficient & retry < 5) {
-                                dy <- stepsize*lagrange.out$dy
-                                y.try <- try(doIteration(), silent = TRUE)
-                                out.try <- try(doAdaption(), silent = TRUE)
-                                if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) {
-                                  sufficient <- FALSE
-                                  stepsize <- stepsize/1.5
-                                  retry <- retry + 1
-                                } else {
-                                  sufficient <- out.try$valid
-                                  stepsize <- out.try$stepsize  
-                                }
+                                value <- lagrange.out[[sControl$stop]]
+                                if (value > threshold | constraint.out$value > limits[2]) break
+                                
+                                i <- i + 1
                                 
                               }
-                              if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
-                              
-                              ## Set values
-                              y <- y.try
-                              lagrange.out <- out.try$lagrange
-                              constraint.out <- constraint(y.try)
-                              stepsize <- out.try$stepsize
-                              gamma <- out.try$gamma
-                              out.attributes <- unlist(lagrange.out[lagrange.out$attributes])
-                              
-                              
-                              ## Return values
-                              out <- rbind(c(value = lagrange.out$value, 
-                                             constraint = as.vector(constraint.out$value), 
-                                             stepsize = stepsize, 
-                                             gamma = gamma,
-                                             whichPar = whichIndex,
-                                             out.attributes,
-                                             y), 
-                                           out)
-                              
-                              if(cautiousMode) {
-                                outCautious <- as.data.frame(out)
-                                outCautious$whichPar <- whichPar.name
-                                outCautious <- parframe(
-                                  outCautious,
-                                  parameters = names(pars),
-                                  metanames = c("value", "constraint", "stepsize", "gamma", "whichPar"),
-                                  obj.attributes = names(out.attributes)
-                                )
-                                dput(outCautious, file = file.path(interResFolder, paste0(whichPar.name, "-left.R")))
-                              }
-                              
-                              
-                              value <- lagrange.out[[sControl$stop]]
-                              if (value > threshold | constraint.out$value < limits[1]) break
-                              
-                              i <- i + 1
-                              
                             }
                             
+                            if (side %in% c("right", "both")) {
+                              # Compute left profile
+                              if (verbose) {
+                                cat("\nCompute left profile\n")
+                              }
+                              i <- 0
+                              direction <- -1
+                              gamma <- aControl$gamma
+                              stepsize <- sControl$stepsize
+                              y <- ini
+                              
+                              lagrange.out <- lagrange(ini)
+                              constraint.out <- constraint(pars)
+                              
+                              while (i < sControl$limit) {
+                                
+                                ## Iteration step
+                                sufficient <- FALSE
+                                retry <- 0
+                                while (!sufficient & retry < 5) {
+                                  dy <- stepsize*lagrange.out$dy
+                                  y.try <- try(doIteration(), silent = TRUE)
+                                  out.try <- try(doAdaption(), silent = TRUE)
+                                  if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) {
+                                    sufficient <- FALSE
+                                    stepsize <- stepsize/1.5
+                                    retry <- retry + 1
+                                  } else {
+                                    sufficient <- out.try$valid
+                                    stepsize <- out.try$stepsize  
+                                  }
+                                  
+                                }
+                                if (inherits(y.try, "try-error") | inherits(out.try, "try-error")) break
+                                
+                                ## Set values
+                                y <- y.try
+                                lagrange.out <- out.try$lagrange
+                                constraint.out <- constraint(y.try)
+                                stepsize <- out.try$stepsize
+                                gamma <- out.try$gamma
+                                out.attributes <- unlist(lagrange.out[lagrange.out$attributes])
+                                
+                                
+                                ## Return values
+                                out <- rbind(c(value = lagrange.out$value, 
+                                               constraint = as.vector(constraint.out$value), 
+                                               stepsize = stepsize, 
+                                               gamma = gamma,
+                                               whichPar = whichIndex,
+                                               out.attributes,
+                                               y), 
+                                             out)
+                                
+                                if(cautiousMode) {
+                                  outCautious <- as.data.frame(out)
+                                  outCautious$whichPar <- whichPar.name
+                                  outCautious <- parframe(
+                                    outCautious,
+                                    parameters = names(pars),
+                                    metanames = c("value", "constraint", "stepsize", "gamma", "whichPar"),
+                                    obj.attributes = names(out.attributes)
+                                  )
+                                  dput(outCautious, file = file.path(interResFolder, paste0(whichPar.name, "-left.R")))
+                                }
+                                
+                                
+                                value <- lagrange.out[[sControl$stop]]
+                                if (value > threshold | constraint.out$value < limits[1]) break
+                                
+                                i <- i + 1
+                                
+                              }
+                            }
                             # Output
                             out <- as.data.frame(out)
                             out$whichPar <- whichPar.name

@@ -575,6 +575,7 @@ distributed_computing <- function(
 #' 
 #' @param parameters list of parameters 
 #' @param fits_per_node numerical, number of parameters that will be send to each node.
+#' @param side determine if both sides are calculated (default) or if the profiles are split in 'left' and 'right' for calculation
 #' 
 #' @return List with two arrays: \code{from} contains the number of the starting
 #' parameter, while \code{to} stores the respective upper end of the parameter list
@@ -586,7 +587,12 @@ distributed_computing <- function(
 #' }
 #' 
 #' @export
-profile_pars_per_node <- function(parameters, fits_per_node) {
+profile_pars_per_node <- function(parameters, fits_per_node, side = c("both", "split")[1]) {
+  # sanitize side input: must be either "left", "right" or "both"
+  if (!(side %in% c("both", "split"))) {
+    stop("'side' must be either 'both' or 'split'")
+  }
+  
   # get the number of parameters
   n_pars <- length(parameters)
   
@@ -596,7 +602,7 @@ profile_pars_per_node <- function(parameters, fits_per_node) {
   # determine the number of nodes necessary
   no_nodes <- 1:ceiling(n_pars/fits_per_node)
   
-  # generate the lists which parameters are send to wich node
+  # generate the lists which parameters are send to which node
   pars_from <- fits_per_node
   pars_to_vec <- fits_per_node
   while (pars_from < (n_pars)) {
@@ -608,7 +614,17 @@ profile_pars_per_node <- function(parameters, fits_per_node) {
   pars_from_vec <- c(1, pars_to_vec+1)
   pars_from_vec <- head(pars_from_vec, -1)
   
-  out <- list(from=pars_from_vec, to=pars_to_vec)
+  # adjust for sides 
+  if (side == "both") {
+    side_vec <-  rep("both", length(no_nodes))
+  } else {
+    # split pars_to_vec and pars_from_vec by repeating each element twice
+    pars_to_vec <- rep(pars_to_vec, each = 2)
+    pars_from_vec <- rep(pars_from_vec, each = 2)
+    side_vec <- rep(c("left", "right"), length(no_nodes))
+  }
+  
+  out <- list(from=pars_from_vec, to=pars_to_vec, side = side_vec)
   
   return(out)
 }
