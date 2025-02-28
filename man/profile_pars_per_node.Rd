@@ -4,12 +4,14 @@
 \alias{profile_pars_per_node}
 \title{Generate parameter list for distributed profile calculation}
 \usage{
-profile_pars_per_node(parameters, fits_per_node)
+profile_pars_per_node(parameters, fits_per_node, side = c("both", "split")[1])
 }
 \arguments{
 \item{parameters}{list of parameters}
 
 \item{fits_per_node}{numerical, number of parameters that will be send to each node.}
+
+\item{side}{determine if both sides are calculated (default) or if the profiles are split in 'left' and 'right' for calculation}
 }
 \value{
 List with two arrays: \code{from} contains the number of the starting

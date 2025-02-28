@@ -29,7 +29,8 @@ Imports:
     yaml,
     rlang,
     data.table,
-    purrr
+    purrr,
+    optimx
 Suggests:
     MASS,
     rPython,

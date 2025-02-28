@@ -17,6 +17,7 @@ profile(
   verbose = FALSE,
   cores = 1,
   cautiousMode = FALSE,
+  side = c("both", "left", "right")[1],
   ...
 )
 }
@@ -52,6 +53,8 @@ See \link{trust} for more details.}
 parameters.}
 
 \item{cautiousMode}{Logical, write every step to disk and don't delete intermediate results}
+
+\item{side}{either, "left", "right" or "both": determines the side of the profile which is calculated (usefeull for parallelization). default is "both"}
 
 \item{...}{Arguments going to obj()}
 }
