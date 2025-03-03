@@ -10,6 +10,7 @@ distributed_computing(
   partition = "single",
   cores = 16,
   nodes = 1,
+  mem_per_core = 2,
   walltime = "01:00:00",
   ssh_passwd = NULL,
   machine = "cluster",
@@ -39,6 +40,8 @@ possible on all nodes, more on none.}
 
 \item{nodes}{Nodes per task. Default is 1, should not be changed since 
 \code{distributed_computing()} is set up to be regulated by number of repititions.}
+
+\item{mem_per_core}{Memory that is reserved per core in gb. Default is 2gb.}
 
 \item{walltime}{Estimated runtime in the format \code{hh:mm:ss}, default is 1h.
 Jobs will be canceled after the defined time.}
@@ -139,6 +142,7 @@ jobname = "my_name",
 partition = "single",
 cores = 16,
 nodes = 1,
+mem_per_core = 2,
 walltime = "02:00:00",
 ssh_passwd = "password",
 machine = "cluster",

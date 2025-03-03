@@ -29,6 +29,7 @@
 #' possible on all nodes, more on none.
 #' @param nodes Nodes per task. Default is 1, should not be changed since 
 #' \code{distributed_computing()} is set up to be regulated by number of repititions.
+#' @param mem_per_core Memory that is reserved per core in gb. Default is 2gb.
 #' @param walltime Estimated runtime in the format \code{hh:mm:ss}, default is 1h.
 #' Jobs will be canceled after the defined time.
 #' @param ssh_passwd To be set when the sshpass should be used to automatically 
@@ -95,6 +96,7 @@
 #' partition = "single",
 #' cores = 16,
 #' nodes = 1,
+#' mem_per_core = 2,
 #' walltime = "02:00:00",
 #' ssh_passwd = "password",
 #' machine = "cluster",
@@ -162,6 +164,7 @@ distributed_computing <- function(
   partition = "single",
   cores = 16,
   nodes = 1,
+  mem_per_core = 2,
   walltime = "01:00:00",
   ssh_passwd = NULL,
   machine = "cluster",
@@ -479,6 +482,8 @@ distributed_computing <- function(
       paste0("#SBATCH --time=",walltime),
       "# Define of repetition",
       paste0("#SBATCH -a 0-", num_nodes),
+      "# memory per CPU core",
+      paste0("#SBATCH --mem-per-cpu=", mem_per_core, "gb"),
       "",
       "",
       "# Load R modules",
