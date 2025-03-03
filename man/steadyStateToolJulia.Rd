@@ -4,7 +4,13 @@
 \alias{steadyStateToolJulia}
 \title{Calculated the steady states of a given model}
 \usage{
-steadyStateToolJulia(el, forcings = NULL, neglect = NULL, verboseLevel = 1)
+steadyStateToolJulia(
+  el,
+  forcings = NULL,
+  neglect = NULL,
+  verboseLevel = 1,
+  testSteadyState = TRUE
+)
 }
 \arguments{
 \item{el}{the equation list}

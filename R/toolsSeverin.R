@@ -691,7 +691,8 @@ steadyStateToolJulia <- function(
     el,
     forcings = NULL,
     neglect = NULL,
-    verboseLevel = 1
+    verboseLevel = 1,
+    testSteadyState = TRUE
 ) {
   # prepare things:
   myWD <- getwd()
@@ -729,7 +730,7 @@ steadyStateToolJulia <- function(
   # call the julia steady state tool:
   JuliaCall::julia_source(file.path(Sys.getenv("HOME"),".JuliaSteadyStates/ODESteadyStateTrafo_function.jl"))
   
-  JuliaCall::julia_call("determineSteadyStateTrafos", inputPath, forcings, neglect, myWD, fileName, verboseLevel = JuliaCall::julia_eval(paste0("Int(", verboseLevel, ")")))
+  JuliaCall::julia_call("determineSteadyStateTrafos", inputPath, forcings, neglect, myWD, fileName, verboseLevel = JuliaCall::julia_eval(paste0("Int(", verboseLevel, ")")), testSteadyState = ifelse(testSteadyState, 1, 0)) #JuliaCall::julia_eval(paste0(ifelse(testSteadyState, "true", "false")))
   
   # load the results
   steadyStatesFile = read.csv(paste0(myWD,"/",fileName, ".csv" ), dec = ".", sep = ",")
