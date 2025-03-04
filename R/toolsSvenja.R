@@ -170,6 +170,8 @@ PlotPaths <- function(profs=myprofiles, ..., whichPar, sort = FALSE, relative = 
   }
   
   data <- droplevels(subset(data, ...))
+  data$y <- as.numeric(data$y)
+  data$x <- as.numeric(data$x)
   
   suppressMessages(
     p <- ggplot(data, aes(x = x, y = y, group = interaction(name, proflist), color = name, lty = proflist)) + 
@@ -180,9 +182,9 @@ PlotPaths <- function(profs=myprofiles, ..., whichPar, sort = FALSE, relative = 
       scale_color_manual(name = "profiled\nparameter", values = dMod_colors)
   )
   if(multi){
-    
+
     # determine strength of change
-    data[, max.dev := max(c(abs(max(y)), abs(min(y)))), by = "partner"]
+    data[, max.dev := max(c(abs(max(as.numeric(y))), abs(min(as.numeric(y) )))), by = "partner"]
     setorder(data, name, -max.dev)
     # max.devis <- unique(data$max.dev)[1:n_pars]
     

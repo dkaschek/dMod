@@ -350,6 +350,8 @@ plotProfile.parframe <- function(profs, ..., maxvalue = 5, parlist = NULL) {
   
   data$proflist <- as.factor(data$proflist)
   data <- droplevels(subset(data, ...))
+  data$y <- as.numeric(data$y)
+  data$x <- as.numeric(data$x)
   
   data.zero <- subset(data, is.zero)
   
@@ -453,6 +455,8 @@ plotProfile.list <- function(profs, ..., maxvalue = 5, parlist = NULL) {
   
   data$proflist <- as.factor(data$proflist)
   data <- droplevels(subset(data, ...))
+  data$y <- as.numeric(data$y)
+  data$x <- as.numeric(data$x)
   
   data.zero <- subset(data, is.zero)
   

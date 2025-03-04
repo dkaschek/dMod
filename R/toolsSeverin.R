@@ -767,7 +767,6 @@ steadyStateToolJulia <- function(
 #' @return \code{parframe} of the input \code{profs} with the added columns of \code{trafo} applied to the parameters.
 #' 
 #' @export
-
 addTrafoForPaths <- function(
     profs,
     trafo
@@ -793,4 +792,7 @@ addTrafoForPaths <- function(
   
   # make a parframe out of the combined data.frame and return it
   profsCombinedPF <- parframe(profsCombined)
+  attr(profsCombinedPF, "metanames") <- attr(profs, "metanames")
+  attr(profsCombinedPF, "obj.attributes") <- attr(profs, "obj.attributes")
+  return(profsCombinedPF)
 }

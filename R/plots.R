@@ -331,6 +331,8 @@ plotPaths <- function(profs, ..., whichPar = NULL, sort = FALSE, relative = TRUE
   
   
   data <- droplevels(subset(data, ...))
+  data$y <- as.numeric(data$y)
+  data$x <- as.numeric(data$x)
   
   suppressMessages(
     p <- ggplot(data, aes(x = x, y = y, group = interaction(name, proflist), color = name, lty = proflist)) + 
