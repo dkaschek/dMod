@@ -350,14 +350,14 @@ plotProfile.parframe <- function(profs, ..., maxvalue = 5, parlist = NULL) {
   
   data$proflist <- as.factor(data$proflist)
   data <- droplevels(subset(data, ...))
-  data$y <- as.numeric(data$y)
-  data$x <- as.numeric(data$x)
+
   
   data.zero <- subset(data, is.zero)
   
   threshold <- c(1, 2.7, 3.84)
   
   data <- droplevels.data.frame(subset(data, ...))
+
   
   p <- ggplot(data, aes(x=par, y=delta, group=interaction(proflist,mode), color=proflist, linetype=mode)) + facet_wrap(~name, scales="free_x") + 
     geom_hline(yintercept=threshold, lty=2, color="gray") + 
@@ -455,14 +455,17 @@ plotProfile.list <- function(profs, ..., maxvalue = 5, parlist = NULL) {
   
   data$proflist <- as.factor(data$proflist)
   data <- droplevels(subset(data, ...))
-  data$y <- as.numeric(data$y)
-  data$x <- as.numeric(data$x)
+
   
   data.zero <- subset(data, is.zero)
   
   threshold <- c(1, 2.7, 3.84)
   
   data <- droplevels.data.frame(subset(data, ...))
+  
+  data$y <- as.numeric(data$y)
+  data$x <- as.numeric(data$x)
+  
   
   p <- ggplot(data, aes(x=par, y=delta, group=interaction(proflist,mode), color=proflist, linetype=mode)) + facet_wrap(~name, scales="free_x") + 
     geom_hline(yintercept=threshold, lty=2, color="gray") + 
