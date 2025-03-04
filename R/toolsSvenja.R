@@ -131,7 +131,7 @@ PlotPaths <- function(profs=myprofiles, ..., whichPar, sort = FALSE, relative = 
       values <- proflist[[n]][, "value"]
       origin <- which.min(abs(proflist[[n]][, "constraint"]))
       if (relative) 
-        for(j in 1:ncol(paths)) paths[, j] <- paths[, j] - paths[origin, j]
+        for(j in 1:ncol(paths)) paths[, j] <- as.numeric(paths[, j]) - as.numeric(paths[origin, j])
       
       combinations <- expand.grid.alt(whichPar, colnames(paths))
       if (sort) combinations <- apply(combinations, 1, sort) else combinations <- apply(combinations, 1, identity)

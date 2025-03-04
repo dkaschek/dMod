@@ -754,6 +754,43 @@ steadyStateToolJulia <- function(
   return(sstates)
 }
 
+## apply transformation to parameter sets ---------------------------------------
 
+#' transform parametersets from the profiles for path plotting  
+#' 
+#' @description while using non-trivial steady states, parameters can couple trough the steady states. This function applies the transformation to the parameter sets from the profiles, to account for that.
+#' 
+#' 
+#' @param profs parframe with the profiles, as returned from the \link{dMod::profile} function
+#' @param trafo parameter transformation for the steady states, as returned by \code{P(steadystateTrafo)}. Currently no ther formulation is supported.
+#' 
+#' @return \code{parframe} of the input \code{profs} with the added columns of \code{trafo} applied to the parameters.
+#' 
+#' @export
 
-
+addTrafoForPaths <- function(
+    profs,
+    trafo
+) {
+  # build data.frame from trafo applied row wise to the entries (i.e. each parameterset)
+  tDF <- do.call(
+    rbind,
+    lapply(
+      seq_len(nrow(profs)),
+      function (i) {
+        parset <- do.call(c,profs[i,9:ncol(profs)])
+        tParset <- trafo(parset)
+        namedTParset <- do.call(c, flatten(tParset[1]))
+        setNames(as.data.frame(t(namedTParset)), paste0(names(namedTParset),"_trafo"))
+      }
+    )
+  )
+  # cast original profs to data.frame for joining  
+  profsDF <- as.data.frame(profs)
+  
+  # add the new columns of the transformed profs parameters
+  profsCombined <- cbind(profsDF, tDF)
+  
+  # make a parframe out of the combined data.frame and return it
+  profsCombinedPF <- parframe(profsCombined)
+}
