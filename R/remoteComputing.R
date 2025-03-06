@@ -1,4 +1,3 @@
-
 #' Detect number of free cores (on UNIX)
 #' 
 #' @description Read \code{/proc/loadavg} and subtract from the number of cores
@@ -56,15 +55,16 @@ detectFreeCores <- function(machine = NULL) {
 #' They can then be used to get the results of a job wihtout having to do it manually. 
 #' Requires the correct filename, so if the previous runbg was run with filename = NULL, you have to 
 #' specify the tmp_filename manually.
-#' 
-#' @return List of functions \code{check}, \code{get()} and \code{purge()}. 
-#' \code{check()} checks, if the result is ready.
+#' @param walltime Optional. Maximum runtime in the format "HH:MM:SS". If exceeded, the job will be terminated.
+#' @return List of functions \code{check()}, \code{get()}, \code{purge()} and \code{terminate()}. 
+#' \code{check()} checks if the result is ready.
 #' \code{get()} copies the result file
 #' to the working directory and loads it into the workspace as an object called \code{.runbgOutput}. 
 #' This object is a list named according to the machines that contains the results returned by each
 #' machine.
 #' \code{purge()} deletes the temporary folder
 #' from the working directory and the remote machines.
+#' \code{terminate()} kills all running processes associated with this job on the remote machines.
 #' @export
 #' @examples
 #' \dontrun{
@@ -95,7 +95,7 @@ detectFreeCores <- function(machine = NULL) {
 #' print(result)
 #' out_job1$purge()
 #' }
-runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.GlobalEnv), compile = FALSE, wait = FALSE, recover = F) {
+runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.GlobalEnv), compile = FALSE, wait = FALSE, recover = F, walltime = NULL) {
   
   
   expr <- as.expression(substitute(...))
@@ -109,7 +109,7 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
   filename <- paste(filename, 1:nmachines, sep = "_")
   
   # Initialize output
-  out <- structure(vector("list", 3), names = c("check", "get", "purge"))
+  out <- structure(vector("list", 4), names = c("check", "get", "purge", "terminate"))
   
   # Check
   out[[1]] <- function() {
@@ -152,10 +152,60 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
   out[[3]] <- function() {
     
     for (m in 1:nmachines) {
-      system(paste0("ssh ", machine[m], " rm -r ", filename[m], "_folder"))
-      system(paste0("ssh ", machine[m], " rm ", filename[m], ".Rout"))
+      # Check if folder exists before trying to remove it
+      folder_exists <- suppressWarnings(
+        system(paste0("ssh ", machine[m], " '[ -d ", filename[m], "_folder ] && echo 1 || echo 0'"), 
+               intern = TRUE)
+      )
+      if (folder_exists == "1") {
+        system(paste0("ssh ", machine[m], " rm -r ", filename[m], "_folder"))
+      }
+      
+      # Check if .Rout file exists before trying to remove it
+      rout_exists <- suppressWarnings(
+        system(paste0("ssh ", machine[m], " '[ -f ", filename[m], ".Rout ] && echo 1 || echo 0'"), 
+               intern = TRUE)
+      )
+      if (rout_exists == "1") {
+        system(paste0("ssh ", machine[m], " rm ", filename[m], ".Rout"))
+      }
     }
-    system(paste0("rm ", filename0, "*"))
+    
+    # Check if local files exist before trying to remove them
+    local_files <- list.files(pattern = paste0(filename0, ".*"))
+    if (length(local_files) > 0) {
+      system(paste0("rm ", filename0, "*"))
+    }
+  }
+  
+  # Add terminate function
+  out[[4]] <- function() {
+    for (m in 1:nmachines) {
+      # Get process IDs for the R processes running our job
+      # Use ps to get more detailed process info including state
+      pids <- suppressWarnings(
+        system(paste0("ssh ", machine[m], 
+               " 'ps aux | grep \"", filename[m], "\" | grep -v grep'"), 
+               intern = TRUE)
+      )
+      
+      if (length(pids) > 0) {
+        # Extract PIDs of only running (R state) processes
+        running_pids <- sapply(strsplit(pids, "\\s+"), function(x) {
+          # Check if process state contains 'R' (running)
+          if (grepl("R", x[8])) x[2] else NULL
+        })
+        running_pids <- running_pids[!sapply(running_pids, is.null)]
+        
+        if (length(running_pids) > 0) {
+          # Kill only the running processes
+          system(paste0("ssh ", machine[m], " 'kill ", paste(running_pids, collapse = " "), "'"))
+          cat("Terminated", length(running_pids), "running processes on", machine[m], "\n")
+        } else {
+          cat("No running processes found on", machine[m], "\n")
+        }
+      }
+    }
   }
   
   
@@ -205,16 +255,19 @@ runbg <- function(..., machine = "localhost", filename = NULL, input = ls(.Globa
     pack,
     paste0("setwd('~/", filename[m], "_folder')"),
     "rm(list = ls())",
+    if (!is.null(walltime)) {
+      paste0("Sys.setenv(R_TIMEOUT='", walltime, "')")
+    },
     compile.line,
     paste0("load('", filename0, ".RData')"),
-    #"do.call(loadDLL, lapply(lsdMod(c('parfn', 'prdfn', 'obsfn', 'objfn')), get))",
     "files <- list.files(pattern = '.so')",
     "for (f in files) dyn.load(f)",
-    #".oldobjects <- ls()",
     paste0(".node <- ", m),
-    paste0(".runbgOutput <- try(", as.character(expr), ")"),
-    #".newobjects <- ls()",
-    
+    if (!is.null(walltime)) {
+      paste0(".runbgOutput <- try(tools::pskill(Sys.getpid(), tools::SIGALRM, ", walltime, "); ", as.character(expr), ")")
+    } else {
+      paste0(".runbgOutput <- try(", as.character(expr), ")")
+    },
     paste0("save(", output ,", file = '", filename[m], "_result.RData')"),
     sep = "\n"
   ))

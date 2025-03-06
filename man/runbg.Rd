@@ -11,7 +11,8 @@ runbg(
   input = ls(.GlobalEnv),
   compile = FALSE,
   wait = FALSE,
-  recover = F
+  recover = F,
+  walltime = NULL
 )
 }
 \arguments{
@@ -40,16 +41,19 @@ e.g. when a session has crashed. Then, the three functions are recreated without
 They can then be used to get the results of a job wihtout having to do it manually. 
 Requires the correct filename, so if the previous runbg was run with filename = NULL, you have to 
 specify the tmp_filename manually.}
+
+\item{walltime}{Optional. Maximum runtime in the format "HH:MM:SS". If exceeded, the job will be terminated.}
 }
 \value{
-List of functions \code{check}, \code{get()} and \code{purge()}. 
-\code{check()} checks, if the result is ready.
+List of functions \code{check()}, \code{get()}, \code{purge()} and \code{terminate()}. 
+\code{check()} checks if the result is ready.
 \code{get()} copies the result file
 to the working directory and loads it into the workspace as an object called \code{.runbgOutput}. 
 This object is a list named according to the machines that contains the results returned by each
 machine.
 \code{purge()} deletes the temporary folder
 from the working directory and the remote machines.
+\code{terminate()} kills all running processes associated with this job on the remote machines.
 }
 \description{
 Generate an R code of the expression that is copied via \code{scp}
