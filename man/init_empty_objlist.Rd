@@ -4,7 +4,7 @@
 \alias{init_empty_objlist}
 \title{Create an objlist with zeros as entries}
 \usage{
-init_empty_objlist(pars, deriv = TRUE, FLAGchisquare = FALSE)
+init_empty_objlist(pars, deriv = TRUE)
 }
 \arguments{
 \item{pars}{named vector. Only names and length are used}
@@ -13,11 +13,4 @@ init_empty_objlist(pars, deriv = TRUE, FLAGchisquare = FALSE)
 }
 \description{
 Create an objlist with zeros as entries
-}
-\examples{
-init_empty_objlist(setNames(rnorm(5), letters[1:5]))
-init_empty_objlist(setNames(rnorm(5), letters[1:5]), FLAGchisquare = TRUE)
-}
-\author{
-Daniel Lill (daniel.lill@physik.uni-freiburg.de)
 }

@@ -108,18 +108,6 @@ constraintExp2 <- function(p, mu, sigma = 1, k = 0.05, fixed=NULL) {
 #' attributed with this name
 #' 
 #' 
-#' @param forcings TO BE FILLED BY DANIEL K
-#' @param iiv Example: c("ka", "ETA_EMAX"). \cr 
-#'   Vector with names which are individualized per condition
-#' @param conditional Example: data.frame(parname = "GR", covname = "SEX", covvalue = "1", stringsAsFactors = FALSE).\cr
-#'   * covname can relate to any parameter in the condition.grid of the data. \cr
-#'   * covvalue is the value of this variable to use for individualization
-#'
-#' @param fixed.grid data.frame(parname, partask, ids...) Lookup table for fixed parameters
-#' @param nauxtimes additional simulation times
-#' @param cores to parallelize over conditions not over fits
-#' 
-#' 
 #' @return Object of class \code{obsfn}, i.e. a function 
 #' \code{obj(..., fixed, deriv, conditions, env)} that returns an objective list,
 #' \link{objlist}.
@@ -200,7 +188,6 @@ normL2 <- function(data, x, errmodel = NULL, times = NULL, attr.name = "data") {
 #' @param condition character, the condition for which the constraint should apply. If
 #' \code{NULL}, applies to any condition.
 #' @return object of class \code{objfn}
-#' @seealso \link{wrss}
 #' @details If sigma is numeric, the function computes the constraint value 
 #' \deqn{\left(\frac{p-\mu}{\sigma}\right)^2}{(p-mu)^2/sigma^2}
 #' and its derivatives with respect to p. If sigma is a character, the 
@@ -375,7 +362,7 @@ constraintL2 <- function(mu, sigma = 1, attr.name = "prior", condition = NULL) {
 #' attributed with this name
 #' @param condition character, the condition for which the prediction is made.
 #' @return List of class \code{objlist}, i.e. objective value, gradient and Hessian as list.
-#' @seealso \link{wrss}, \link{constraintL2}
+#' @seealso \link{constraintL2}
 #' @details Computes the constraint value 
 #' \deqn{\left(\frac{x(t)-\mu}{\sigma}\right)^2}{(pred-p[names(mu)])^2/sigma^2}
 #' and its derivatives with respect to p.
@@ -495,7 +482,6 @@ datapointL2 <- function(name, time, value, sigma = 1, attr.name = "validation", 
 #' @param condition character, the condition for which the constraint should apply. If
 #' \code{NULL}, applies to any condition.
 #' @return List of class \code{objlist}, i.e. objective value, gradient and Hessian as list.
-#' @seealso \link{wrss}
 #' @details Computes the constraint value 
 #' \deqn{e^{\lambda} \| p-\mu \|^2}{exp(lambda)*sum((p-mu)^2)}
 #' and its derivatives with respect to p and lambda.
@@ -503,7 +489,7 @@ datapointL2 <- function(name, time, value, sigma = 1, attr.name = "validation", 
 #' p <- c(A = 1, B = 2, C = 3, lambda = 0)
 #' mu <- c(A = 0, B = 0)
 #' obj <- priorL2(mu = mu, lambda = "lambda")
-#' obj(pars = p + rnorm(length(p), 0, .1))
+#' obj(pars = p + stats::rnorm(length(p), 0, .1))
 #' @export
 priorL2 <- function(mu, lambda = "lambda", attr.name = "prior", condition = NULL) {
   
@@ -970,6 +956,7 @@ nll_BLOQ <- function(nout.bloq,
 
 
 #' @export
+#' @importFrom utils capture.output
 print.objlist <- function(x, n1 = 20, n2 = 6, ...) {
   n1 <- min(n1,length(x$gradient))
   n2 <- min(n2,length(x$gradient))
@@ -981,7 +968,7 @@ print.objlist <- function(x, n1 = 20, n2 = 6, ...) {
   print(x$hessian[1:n2,1:n2])
   cat("\n\n")
   cat("attributes\n", "==================\n")
-  cat(capture.output(str(attributes(x), max.level = 1)), sep = "\n")
+  cat(utils::capture.output(str(attributes(x), max.level = 1)), sep = "\n")
   
 }
 

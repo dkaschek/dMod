@@ -36,7 +36,7 @@ checkSensitivities <- function(p, whichpar, cond = 1, step = 0.1) {
 # -------------------------------------------------------------------------#
 
 ## check with root-triggered events
-estimate <- c("A_thres", "A", "t_A_thres", "kon", "koff", "degrad")
+estimate <- c("A_thres", "A", "B", "t_thres", "kon", "koff", "degrad")
 
 model <- eqnlist() %>%
   addReaction("A", "B", "kon*A") %>%
@@ -46,11 +46,11 @@ model <- eqnlist() %>%
   addReaction("kon", "0", "degrad*kon", "Event state") %>%
   odemodel(
     events = eventlist() %>% 
-      addEvent(var = "B", time = "t_thres", value = "1") %>% 
-      addEvent(var = "A", time = "t_A_thres", value = "1", root = "A - A_thres"),
-    estimate = estimate
+      addEvent(var = "A", time = NA, value = "1", root = "A - A_thres") |> 
+      addEvent(var = "B", time = "t_thres", value = "1")
   ) 
-x <- model %>% Xs(optionsOde = list(method = "lsoda"), optionsSens = list(method = "lsoda", rtol = 1e-10, atol = 1e-10))
+x <- model %>% Xs(optionsOde = list(method = "lsoda", rtol = 1e-10, atol = 1e-10), 
+                  optionsSens = list(method = "lsodes", rtol = 1e-10, atol = 1e-10))
 
 innerpars <- getParameters(x)
 
@@ -78,7 +78,7 @@ y <- x*p
 #pdf("~/root_events.pdf")
 
 for (i in 1:length(estimate)) {
-  out <- checkSensitivities(pouter, estimate[i], 1, .00000001) %>% as.prdlist
+  out <- checkSensitivities(pouter, estimate[i], 1, 1e-12) %>% as.prdlist
   print(plotPrediction(out) + ggtitle(estimate[i]))
   
 }
@@ -92,7 +92,7 @@ for (i in 1:length(estimate)) {
 
 
 ## check with root-triggered events
-estimate <- c("PLcure", "Fcure", "tPLcure", "EMAX")
+estimate <- c("PLcure", "Fcure", "EMAX", "tPLcure")
 model2 <- eqnvec(
   PL = "(GR - EMAX*exp(-k*time))*Gcure",
   Gcure = "(Fcure - 1)*Gcure",
@@ -100,7 +100,7 @@ model2 <- eqnvec(
 ) %>%
   odemodel(
     events = eventlist() %>% 
-      addEvent(var = "Fcure", time = "tPLcure", value = "0", root = "PL - PLcure"),
+      addEvent(var = "Fcure", time = NA, value = "0", root = "PL - PLcure"),
     estimate = estimate
   ) 
 x <- model2 %>% Xs(optionsOde = list(method = "lsoda"), optionsSens = list(method = "lsoda", rtol = 1e-10, atol = 1e-10))
@@ -121,7 +121,6 @@ pouter["GR"] <- 0.03
 pouter["PLcure"] <- -5
 pouter["EMAX"] <- 10.3
 pouter["k"] <- 1 
-pouter["tPLcure"] <- 0
 
 times <- seq(0, 10, .1)
 
@@ -160,7 +159,7 @@ model <- eqnlist() %>%
   odemodel(
     events = eventlist() %>% 
       addEvent(var = "kon", time = c(0, "toff1"), value = c(1, "kmax")) %>% 
-      addEvent(var = "B", time = c(0, "toff2"), value = c(1., "kmax"))
+      addEvent(var = "A", time = c(0, "toff2"), value = c(1., "kmax"))
   ) 
 x <- model %>% Xs()
 
@@ -191,15 +190,41 @@ for (i in 1:length(pouter)) {
 }
 
 
+## Do the check with method = "replace"
+model <- odemodel(
+  f = eqnvec("TumorVolume" = "TumorGrowthRate * TumorVolume * (1 - TumorVolume / TumorCarryingCapacity)"),
+  events = eventlist() %>% 
+    addEvent(var = "TumorVolume", time = c("SurgeryTime"), value = c("ResectionVolume"))
+) 
+x <- model %>% Xs()
+
+innerpars <- getParameters(x)
+
+p <- eqnvec() %>%
+  define("x~x", x = innerpars) %>%
+  insert("x~exp(x)", x = innerpars) %>%
+  P()
+
+outerpars <- getParameters(p)
+
+set.seed(2)
+pouter <- structure(rnorm(length(outerpars), -1), names = outerpars)
+times <- seq(0, 7, .01)
+
+pouter %>% (x*p)(times = times) %>% plot()
+# pouter %>% (x*p)(times = times) %>% getDerivs() %>% plot()
+
+y <- x*p
+
+for (i in 1:length(pouter)) {
+  out <- checkSensitivities(pouter, names(pouter)[i], 1, .000001) %>% as.prdlist
+  print(plotPrediction(out) + ggtitle(names(pouter)[i]))
+  
+}
+
+
 
 ## Do the check with method = "add"
-library(dMod)
-library(dplyr)
-library(ggplot2)
-setwd(tempdir())
-
-
-
 model <- eqnlist() %>%
   addReaction("A+A", "B", "kon*A^2") %>%
   addReaction("B", "A", "koff*B") %>%
@@ -208,9 +233,11 @@ model <- eqnlist() %>%
   addReaction("kon", "0", "decay*B*kon", "Event state") %>%
   odemodel(
     events = eventlist() %>% 
-      addEvent(var = "kon", time = "te", value = "ve", method = "add") %>% 
+      #addEvent(var = "kon", time = "te", value = "ve", method = "add") %>% 
       addEvent(var = "kon", time = "tf", value = "ve", method = "add") %>% 
-      addEvent(var = "B"  , time = "te", value = "1" , method = "add")
+      #addEvent(var = "B"  , time = "te", value = "1" , method = "add") %>%
+      addEvent(var = "A"  , time = "te", value = "ve" , method = "add")
+    
   ) 
 x <- model %>% Xs()
 
@@ -237,20 +264,13 @@ y <- x*p
 
 
 for (i in 1:length(pouter)) {
-  out <- checkSensitivities(pouter, names(pouter)[i], 1, .001) %>% as.prdlist()
+  out <- checkSensitivities(pouter, names(pouter)[i], 1, .00001) %>% as.prdlist()
   print(plotPrediction(out) + ggtitle(names(pouter)[i])) 
   
 }
 
 
 ## Do the check with method = "multiply"
-library(dMod)
-library(dplyr)
-library(ggplot2)
-setwd(tempdir())
-
-
-
 model <- eqnlist() %>%
   addReaction("A+A", "B", "kon*A^2") %>%
   addReaction("B", "A", "koff*B") %>%
@@ -261,7 +281,7 @@ model <- eqnlist() %>%
     events = eventlist() %>% 
       addEvent(var = "kon", time = "te", value = "ve", method = "multiply") %>% 
       addEvent(var = "kon", time = "tf", value = "ve", method = "multiply") %>% 
-      addEvent(var = "B"  , time = "te", value = "3.", method = "multiply")
+      addEvent(var = "A"  , time = "te", value = "3.", method = "multiply")
   ) 
 x <- model %>% Xs()
 
@@ -288,7 +308,7 @@ y <- x*p
 
 
 for (i in 1:length(pouter)) {
-  out <- checkSensitivities(pouter, names(pouter)[i], 1, .001) %>% as.prdlist()
+  out <- checkSensitivities(pouter, names(pouter)[i], 1, .00001) %>% as.prdlist()
   print(plotPrediction(out) + ggtitle(names(pouter)[i])) 
   
 }
@@ -310,7 +330,7 @@ events <- eventlist() %>%
   addEvent("INPUT1", "ton_INPUT1_1", "xon_INPUT1_1") %>% 
   addEvent("INPUT1", "toff_INPUT1_1", "0")
 
-model <- odemodel(ODEs, events = events, estimate = "ton_INPUT1_1")
+model <- odemodel(ODEs, events = events)
 attr(model$extended, "events")
 
 
@@ -322,14 +342,17 @@ p <- eqnvec() %>%
   define("x~x", x = innerpars) %>%
   define("x~0", x = c("INPUT1", "Ad", "Ac")) %>%
   define("x~1", x = c("PD")) %>%
+  insert("x~y", 
+         x = c("ton_INPUT1_1", "toff_INPUT1_1", "xon_INPUT1_1"),
+         y = c("Tlag", "Tlag + Tinf", "Dose/Tinf") ) |> 
   P()
 
 outerpars <- getParameters(p)
 
 pouter <- structure(runif(length(outerpars)), names = outerpars)
-pouter["ton_INPUT1_1"] <- 1
-pouter["toff_INPUT1_1"] <- 2
-pouter["xon_INPUT1_1"] <- 1
+pouter["Tlag"] <- 1
+pouter["Tinf"] <- 1
+pouter["Dose"] <- 100
 times <- seq(0, 4, .01)
 
 pouter %>% (x*p)(times = times) %>% plot()
@@ -339,8 +362,93 @@ y <- x*p
 
 
 for (i in 1:length(pouter)) {
-  out <- checkSensitivities(pouter, names(pouter)[i], 1, .01) %>% as.prdlist()
+  out <- checkSensitivities(pouter, names(pouter)[i], 1, .0001) %>% as.prdlist()
   print(plotPrediction(out) + ggtitle(names(pouter)[i])) 
+  
+}
+
+
+# -------------------------------------------------------------------------#
+# Check parametric events with root finding ----
+# -------------------------------------------------------------------------#
+
+
+## Do the check with method = "add"
+model <- eqnlist() %>%
+  addReaction("A", "0", "k*A^2*time") %>%
+  odemodel(
+    events = eventlist() %>% 
+      addEvent(var = "A", time = NA, value = "vjump", root = "A - Ajump", method = "add")
+  ) 
+x <- model %>% Xs()
+
+innerpars <- getParameters(x)
+
+p <- eqnvec() %>%
+  define("x~x", x = innerpars) %>%
+  define("x~0", x = "mytime") |> 
+  define("x~1", x = "A") %>%
+  insert("x~exp(x)", x = innerpars) %>%
+  P()
+
+outerpars <- getParameters(p)
+
+
+set.seed(2)
+pouter <- structure(rnorm(length(outerpars), -1), names = outerpars)
+pouter[["vjump"]] <- log(0.5)
+pouter[["Ajump"]] <- log(0.6)
+times <- seq(0, 7, .01)
+
+pouter %>% (x*p)(times = times) %>% plot()
+# pouter %>% (x*p)(times = times) %>% getDerivs() %>% plot()
+
+y <- x*p
+
+for (i in 1:length(pouter)) {
+  out <- checkSensitivities(pouter, names(pouter)[i], 1, .000001) %>% as.prdlist
+  print(plotPrediction(out) + ggtitle(names(pouter)[i]))
+  
+}
+
+
+# -------------------------------------------------------------------------#
+# Check parametric events without root finding ----
+# -------------------------------------------------------------------------#
+
+
+## Do the check with method = "replace"
+model <- eqnlist() %>%
+  addReaction("A", "0", "time*k*A^2") %>%
+  odemodel(
+    events = eventlist() %>% 
+      addEvent(var = "A", time = "tjump", value = "vjump", method = "add"),
+    estimate = c("A", "k", "tjump", "vjump")
+  ) 
+x <- model %>% Xs(optionsSens = list(method = "lsodes", rtol = 1e-10, atol = 1e-10))
+
+innerpars <- getParameters(x)
+
+p <- eqnvec() %>%
+  define("x~x", x = innerpars) %>%
+  define("x~1", x = "A") %>%
+  insert("x~exp(x)", x = innerpars) %>%
+  P()
+
+outerpars <- getParameters(p)
+
+set.seed(2)
+pouter <- structure(rnorm(length(outerpars), -1), names = outerpars)
+times <- seq(0, 7, .001)
+
+pouter %>% (x*p)(times = times) %>% plot()
+# pouter %>% (x*p)(times = times) %>% getDerivs() %>% plot()
+
+y <- x*p
+
+for (i in 1:length(pouter)) {
+  out <- checkSensitivities(pouter, names(pouter)[i], 1, .00001) %>% as.prdlist
+  print(plotPrediction(out) + ggtitle(names(pouter)[i]))
   
 }
 

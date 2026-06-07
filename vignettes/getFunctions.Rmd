@@ -3,6 +3,10 @@ title: "Accessing Information in dMod Objects"
 author: "Daniel Kaschek"
 date: "December 20, 2018"
 output: html_document
+vignette: >
+  %\VignetteIndexEntry{getFunctions}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 
@@ -19,8 +23,6 @@ We start with setting up a small model, i.e. a prediction function `x` and a par
 
 library(dMod)
 library(dplyr)
-
-setwd(tempdir())
 
 x <- eqnvec(
   A = "-lambda*A + sin(omega*time)^2"
@@ -153,3 +155,13 @@ controls(x, NULL, "optionsSens")
 Find out all about `get` functions in dMod with `dMod::get` + `TAB`. Try `controls(object)` to see which of the options you can change at any time.
 
 **Happy exploring of options!!**
+
+```{r, echo=FALSE}
+
+# Cleaning step
+dlls <- list.files(pattern = "\\.(so|dll)$")
+for (d in dlls) try(dyn.unload(d), silent = TRUE)
+files <- list.files(pattern = "\\.*(c|o|dll|so)$")
+unlink(files)
+
+```

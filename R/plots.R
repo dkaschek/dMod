@@ -48,8 +48,8 @@ theme_dMod <- function(base_size = 12, base_family = "") {
           rect = element_rect(fill = "white", colour = NA),
           text = element_text(colour = "black"),
           axis.text = element_text(size = rel(1.0), colour = "black"),
-          axis.text.x = element_text(margin=unit(c(4, 4, 0, 4), "mm")),
-          axis.text.y = element_text(margin=unit(c(4, 4, 4, 0), "mm")),
+          axis.text.x = element_text(margin=margin(4, 4, 0, 4, unit = "mm")),
+          axis.text.y = element_text(margin=margin(4, 4, 4, 0, unit = "mm")),
           axis.ticks = element_line(colour = "black"),
           axis.ticks.length = unit(-2, "mm"),
           legend.key = element_rect(colour = NA),
@@ -64,7 +64,7 @@ dMod_colors <- c("#000000", "#C5000B", "#0084D1", "#579D1C", "#FF950E", "#4B1F6F
 
 #' Standard dMod color palette
 #' 
-#' @param ... arguments goint to code{scale_color_manual()}
+#' @param ... arguments goint to \code{scale_color_manual()}
 #' @export
 #' @examples
 #' library(ggplot2)
@@ -86,7 +86,7 @@ scale_color_dMod <- function(...) {
 #' Standard dMod color scheme
 #' 
 #' @export
-#' @param ... arguments goint to code{scale_color_manual()}
+#' @param ... arguments goint to \code{scale_color_manual()}
 scale_fill_dMod <- function(...) {
   scale_fill_manual(..., values = dMod_colors)
 }
@@ -257,96 +257,11 @@ plotProfile <- function(profs,...) {
 #' @return A plot object of class \code{ggplot}.
 #' @details See \link{profile} for examples.
 #' @export
-plotPaths <- function(profs, ..., whichPar = NULL, sort = FALSE, relative = TRUE, scales = "fixed") {
-  
-  if ("parframe" %in% class(profs)) 
-    arglist <- list(profs)
-  else
-    arglist <- as.list(profs)
-  
-  
-  if (is.null(names(arglist))) {
-    profnames <- 1:length(arglist)
-  } else {
-    profnames <- names(arglist)
-  }
-  
-  
-  data <- do.call(rbind, lapply(1:length(arglist), function(i) {
-    # choose a proflist
-    proflist <- as.data.frame(arglist[[i]])
-    parameters <- attr(arglist[[i]], "parameters")
-    
-    if (is.data.frame(proflist)) {
-      whichPars <- unique(proflist$whichPar)
-      proflist <- lapply(whichPars, function(n) {
-        with(proflist, proflist[whichPar == n, ])
-      })
-      names(proflist) <- whichPars
-    }
-    
-    if (is.null(whichPar)) whichPar <- names(proflist)
-    if (is.numeric(whichPar)) whichPar <- names(proflist)[whichPar]
-    
-    subdata <- do.call(rbind, lapply(whichPar, function(n) {
-      # matirx
-      paths <- as.matrix(proflist[[n]][, parameters])
-      values <- proflist[[n]][, "value"]
-      origin <- which.min(abs(proflist[[n]][, "constraint"]))
-      if (relative) 
-        for(j in 1:ncol(paths)) paths[, j] <- as.numeric(paths[, j]) - as.numeric(paths[origin, j])
-      
-      combinations <- expand.grid.alt(whichPar, colnames(paths))
-      if (sort) combinations <- apply(combinations, 1, sort) else combinations <- apply(combinations, 1, identity)
-      combinations <- submatrix(combinations, cols = -which(combinations[1,] == combinations[2,]))
-      combinations <- submatrix(combinations, cols = !duplicated(paste(combinations[1,], combinations[2,])))
-      
-      
-      
-      
-      path.data <- do.call(rbind, lapply(1:dim(combinations)[2], function(j) {
-        data.frame(chisquare = values, 
-                   name = n,
-                   proflist = profnames[i],
-                   combination = paste(combinations[,j], collapse = " - \n"),
-                   x = paths[, combinations[1,j]],
-                   y = paths[, combinations[2,j]])
-      }))
-      
-      return(path.data)
-      
-    }))
-    
-    return(subdata)
-    
-  }))
-  
-  data$proflist <- as.factor(data$proflist)
-  
-  
-  if (relative)
-    axis.labels <- c(expression(paste(Delta, "parameter 1")), expression(paste(Delta, "parameter 2")))  
-  else
-    axis.labels <- c("parameter 1", "parameter 2")
-  
-  
-  data <- droplevels(subset(data, ...))
-  data$y <- as.numeric(data$y)
-  data$x <- as.numeric(data$x)
-  
-  suppressMessages(
-    p <- ggplot(data, aes(x = x, y = y, group = interaction(name, proflist), color = name, lty = proflist)) + 
-      facet_wrap(~combination, scales = scales) + 
-      geom_path() + #geom_point(aes=aes(size=1), alpha=1/3) +
-      xlab(axis.labels[1]) + ylab(axis.labels[2]) +
-      scale_linetype_discrete(name = "profile\nlist") +
-      scale_color_manual(name = "profiled\nparameter", values = dMod_colors)
-  )
-  
-  attr(p, "data") <- data
-  return(p)
-  
+plotPaths <- function(profs, ...) {
+  UseMethod("plotPaths", profs)
 }
+
+
 
 
 

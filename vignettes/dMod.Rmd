@@ -289,3 +289,15 @@ plotProfile(myprofile)
 ```
 
 Now, the situation is reversed. The parameter `s_EpoR` is fully determined by the data and the influence of the prior is low.
+
+```{r, echo=FALSE}
+
+# Cleaning step
+dlls <- list.files(pattern = "\\.(so|dll)$")
+for (d in dlls) try(dyn.unload(d), silent = TRUE)
+files <- list.files(pattern = "\\.*(c|o|dll|so)$")
+unlink(files)
+dirs <- list.files(pattern = "trial-.*", include.dirs = TRUE, recursive = FALSE)
+unlink(dirs, recursive = TRUE)
+
+```

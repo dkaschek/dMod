@@ -7,7 +7,7 @@
 scale_fill_dMod(...)
 }
 \arguments{
-\item{...}{arguments goint to code{scale_color_manual()}}
+\item{...}{arguments goint to \code{scale_color_manual()}}
 }
 \description{
 Standard dMod color scheme

@@ -3,6 +3,10 @@ title: "Using different ODE solves with dMod"
 author: "Daniel Kaschek"
 date: "December 25, 2018"
 output: html_document
+vignette: >
+  %\VignetteIndexEntry{Solvers}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 
@@ -16,7 +20,6 @@ dMod uses the cOde package to simulate ODEs. The cOde package is a wrapper packa
 
 library(dMod)
 library(dplyr)
-setwd(tempdir())
 
 ```
 
@@ -85,3 +88,13 @@ Here, we chose `deriv = FALSE` to avoid that the sensitivity equations are solve
 * When the ODE and the sensitivity equations are solved simultaneously (with `deriv = TRUE`), dMod uses `lsodes` by default because it is really faster for large ODE systems!
 
 **Happy solving!!**
+
+```{r, echo=FALSE}
+
+# Cleaning step
+dlls <- list.files(pattern = "\\.(so|dll)$")
+for (d in dlls) try(dyn.unload(d), silent = TRUE)
+files <- list.files(pattern = "\\.*(c|o|dll|so)$")
+unlink(files)
+
+```

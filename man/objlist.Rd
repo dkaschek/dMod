@@ -27,5 +27,7 @@ Objective lists are returned by objective functions as being generated
 by \link{normL2}, \link{constraintL2}, \link{priorL2} and \link{datapointL2}.
 }
 \examples{
-# objlist(1, c(a = 1, b = 2), matrix(2, nrow = 2, ncol = 2, dimnames = list(c("a", "b"),c("a", "b"))))
+objlist(1, c(a = 1, b = 2), 
+        matrix(2, nrow = 2, ncol = 2, 
+               dimnames = list(c("a", "b"), c("a", "b"))))
 }

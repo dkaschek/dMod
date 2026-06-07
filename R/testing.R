@@ -93,7 +93,8 @@ exmpextr <- function(test, testPath = NULL, examplePath = NULL) {
 
   # Write examples to file.
   outFile <- file(exampleFile, open = "wt")
-  
+  on.exit(close(outFile))
+
   if (!is.list(examples)) {
     writeLines(examples, outFile)
   } else {

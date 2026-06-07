@@ -2,6 +2,10 @@
 title: "The Operators `+` and `*` in dMod"
 author: "Daniel Kaschek"
 output: html_document
+vignette: >
+  %\VignetteIndexEntry{Concatenation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 The `+` and `*` operators in dMod are very characteristic and representative for the approach dMod takes. Usually, `+` handles **conditions** whereas `*` concatenates **functions** to create a new function.
@@ -15,7 +19,6 @@ knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 3.5)
 library(dMod)
 library(dplyr)
 library(ggplot2)
-setwd(tempdir())
 set.seed(9352891)
 ```
 
@@ -193,3 +196,17 @@ We see that the `logp1` tends to $-\infty$. This is because the optimum is at `p
 
 
 **Happy concatenating!!**
+
+
+
+```{r, echo=FALSE}
+
+# Cleaning step
+dlls <- list.files(pattern = "\\.(so|dll)$")
+for (d in dlls) try(dyn.unload(d), silent = TRUE)
+files <- list.files(pattern = "\\.*(c|o|dll|so)$")
+unlink(files)
+
+```
+
+

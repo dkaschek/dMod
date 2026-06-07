@@ -3,6 +3,10 @@ title: "List objects in dMod"
 author: "Daniel Kaschek"
 date: "December 21, 2018"
 output: html_document
+vignette: >
+  %\VignetteIndexEntry{Lists}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 
@@ -22,7 +26,6 @@ and what they do or do not have in common.
 
 library(dMod)
 library(dplyr)
-setwd(tempdir())
 
 ```
 
@@ -109,3 +112,13 @@ Parlists are defined by the `mstrust()` output: a list of all the fits. The most
 
 
 **Happy listing!!**
+
+```{r, echo=FALSE}
+
+# Cleaning step
+dlls <- list.files(pattern = "\\.(so|dll)$")
+for (d in dlls) try(dyn.unload(d), silent = TRUE)
+files <- list.files(pattern = "\\.*(c|o|dll|so)$")
+unlink(files)
+
+```

@@ -56,6 +56,3 @@ pars <- c(A = .8, B = -.3, sigma = 0)
 myfn(pars = pars)
 
 }
-\seealso{
-\link{wrss}
-}

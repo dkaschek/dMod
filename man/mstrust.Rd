@@ -17,8 +17,6 @@ mstrust(
   resultPath = ".",
   stats = FALSE,
   output = FALSE,
-  cautiousMode = FALSE,
-  start1stfromCenter = FALSE,
   ...
 )
 }
@@ -45,6 +43,13 @@ determine filenames for interim and final results. See Details.}
 
 \item{cores}{Number of cores for job parallelization.}
 
+\item{optmethod}{Character, indicating which optimizer should be used. Defaults 
+to "trust" (trust region optimization using derivatives). 
+Other choices are "hjkb" (Hook-Jeeves derivative-free optimization) 
+and "nmkb" (Nelder-Mead derivative-free optimization). 
+Derivative-free optimizers are only recommended as a last resort 
+if the computation and/or integration of sensitivity equations fails.}
+
 \item{samplefun}{Function to sample random initial values. It is assumed, 
 that \option{samplefun} has a named parameter "n" which defines how many 
 random numbers are to be returned, such as for \code{\link{rnorm}} or 
@@ -59,8 +64,6 @@ be stored. Defaults to ".".}
 printed to command line on mstrust completion.}
 
 \item{output}{logical. If true, writes output to the disc.}
-
-\item{cautiousMode}{Logical, write every fit to disk in deparsed form (avoids the RDA incompatibility trap) and don't delete intermediate results}
 
 \item{...}{Additional parameters handed to trust(), samplefun(), or the 
 objective function by matching parameter names. All unmatched parameters 

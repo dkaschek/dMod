@@ -42,5 +42,5 @@ vali <- datapointL2(name = "A", time = 0, value = "newpoint", sigma = 1, conditi
 vali(pars = c(p0, newpoint = 1), env = .GlobalEnv)
 }
 \seealso{
-\link{wrss}, \link{constraintL2}
+\link{constraintL2}
 }

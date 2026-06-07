@@ -6,7 +6,7 @@
 \usage{
 appendParframes(
   dMod.frame,
-  parframes = list(as.parframe(fits)),
+  parframes = list(),
   keepFits = F,
   ...,
   keepCalls = F
@@ -15,13 +15,13 @@ appendParframes(
 \arguments{
 \item{dMod.frame}{A dmod.frame, preferably with a column \code{fits}.}
 
-\item{parframes}{Expression to turn a column containing a parlist (e.g. fits) into a column of parframes}
+\item{parframes}{Expression to turn a column containing a parlist (e.g. \code{list(as.parframe(fits))}) into a column of parframes}
 
-\item{keepFits}{}
+\item{keepFits}{Logical, key or remove fits. Defaults to `FALSE`}
 
 \item{...}{Other columns you want to mutate}
 
-\item{keepCalls}{Store a record of the calls in a new colun? See \link{mutatedMod.frame}.}
+\item{keepCalls}{Store a record of the calls in a new column? See \link{mutatedMod.frame}.}
 }
 \value{
 The dMod.frame containing the column "parframes"

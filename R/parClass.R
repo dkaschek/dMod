@@ -254,6 +254,10 @@ plotPars.parframe <- function(x, tol = 1, ...){
 plotValues.parframe <- function(x, tol = 1, ...) {
   
   if (!missing(...)) x <- subset(x, ...)
+  if (nrow(x) == 0) {
+    warning("Parameter frame does not have rows.")
+    return()
+  }
   
   jumps <- stepDetect(x$value, tol)
   y.range <- c(min(x$value), max(max(x$value), min(x$value) + tol))
@@ -288,105 +292,13 @@ plotValues.parframe <- function(x, tol = 1, ...) {
 #' @rdname plotProfile
 plotProfile.parframe <- function(profs, ..., maxvalue = 5, parlist = NULL) {
   
-  if("parframe" %in% class(profs)) 
-    arglist <- list(profs)
-  else
-    arglist <- as.list(profs)
-  
-  
-  if (is.null(names(arglist))) {
-    profnames <- 1:length(arglist)
-  } else {
-    profnames <- names(arglist)
-  }
-  
-  data <- do.call(rbind, lapply(1:length(arglist), function(i) {
-    proflist <- as.data.frame(arglist[[i]])
-    obj.attributes <- attr(arglist[[i]], "obj.attributes")
-    
-    if(is.data.frame(proflist)) {
-      whichPars <- unique(proflist$whichPar)
-      proflist <- lapply(whichPars, function(n) {
-        with(proflist, proflist[whichPar == n, ])
-      })
-      names(proflist) <- whichPars
-    }
-    
-    do.valueData <- "valueData" %in% colnames(proflist[[1]])
-    do.valuePrior <- "valuePrior" %in% colnames(proflist[[1]])
-    
-    
-    # Discard faulty profiles
-    proflistidx <- sapply(proflist, function(prf) any(class(prf) == "data.frame"))
-    proflist <- proflist[proflistidx]
-    if (sum(!proflistidx) > 0) {
-      warning(sum(!proflistidx), " profiles discarded.", call. = FALSE)
-    }
-    
-    subdata <- do.call(rbind, lapply(names(proflist), function(n) {
-      
-      values <- proflist[[n]][, "value"]
-      origin <- which.min(abs(proflist[[n]][, "constraint"]))
-      zerovalue <- proflist[[n]][origin, "value"]
-      parvalues <- proflist[[n]][, n]
-      deltavalues <- values - zerovalue
-      
-      sub <- subset(data.frame(name = n, delta = deltavalues, par = parvalues, proflist = profnames[i], mode="total", is.zero = 1:nrow(proflist[[n]]) == origin), delta <= maxvalue)
-      
-      if(!is.null(obj.attributes)) {
-        for(mode in obj.attributes) {
-          valuesO <- proflist[[n]][, mode]
-          originO <- which.min(abs(proflist[[n]][, "constraint"]))
-          zerovalueO <- proflist[[n]][originO, mode]
-          deltavaluesO <- valuesO - zerovalueO
-          sub <- rbind(sub,subset(data.frame(name = n, delta = deltavaluesO, par = parvalues, proflist = profnames[i], mode=mode, is.zero = 1:nrow(proflist[[n]]) == originO), delta <= maxvalue))
-        }
-      }
-      
-      return(sub)
-    }))
-    return(subdata)
-  }))
-  
-  data$proflist <- as.factor(data$proflist)
-  data <- droplevels(subset(data, ...))
-
-  
-  data.zero <- subset(data, is.zero)
-  
-  threshold <- c(1, 2.7, 3.84)
-  
-  data <- droplevels.data.frame(subset(data, ...))
-
-  
-  p <- ggplot(data, aes(x=par, y=delta, group=interaction(proflist,mode), color=proflist, linetype=mode)) + facet_wrap(~name, scales="free_x") + 
-    geom_hline(yintercept=threshold, lty=2, color="gray") + 
-    geom_line() + #geom_point(aes=aes(size=1), alpha=1/3) +
-    geom_point(data = data.zero) +
-    ylab(expression(paste("CL /", Delta*chi^2))) +
-    scale_y_continuous(breaks=c(1, 2.7, 3.84), labels = c("68% / 1   ", "90% / 2.71", "95% / 3.84"), limits = c(NA, maxvalue)) +
-    xlab("parameter value")
-  
-  if(!is.null(parlist)){
-    delta <- 0
-    if("value" %in% colnames(parlist)){
-      minval <- min(unlist(lapply(1:length(arglist), function(i){ 
-        origin <- which.min(arglist[[i]][["constraint"]])
-        zerovalue <- arglist[[i]][origin, 1]  
-      })))
-      values <- parlist[, "value", drop = TRUE]
-      parlist <- parlist[,!(colnames(parlist) %in% c("index", "value", "converged", "iterations"))]
-      delta <- as.numeric(values - minval)
-    }
-    points <- data.frame(par = as.numeric(as.matrix(parlist)), name = rep(colnames(parlist), each = nrow(parlist)), delta = delta)
-    
-    #points <- data.frame(name = colnames(parlist), par = as.numeric(parlist), delta=0)
-    p <- p + geom_point(data=points, aes(x=par, y=delta), color = "black", inherit.aes = FALSE)
-  }
-  attr(p, "data") <- data
-  return(p)
+  plotProfile.list(profs = list(profs), ..., maxvalue = maxvalue, parlist = parlist)
   
 }
+
+
+
+
 
 
 #' @export
@@ -455,17 +367,12 @@ plotProfile.list <- function(profs, ..., maxvalue = 5, parlist = NULL) {
   
   data$proflist <- as.factor(data$proflist)
   data <- droplevels(subset(data, ...))
-
   
   data.zero <- subset(data, is.zero)
   
   threshold <- c(1, 2.7, 3.84)
   
   data <- droplevels.data.frame(subset(data, ...))
-  
-  data$y <- as.numeric(data$y)
-  data$x <- as.numeric(data$x)
-  
   
   p <- ggplot(data, aes(x=par, y=delta, group=interaction(proflist,mode), color=proflist, linetype=mode)) + facet_wrap(~name, scales="free_x") + 
     geom_hline(yintercept=threshold, lty=2, color="gray") + 
@@ -495,6 +402,106 @@ plotProfile.list <- function(profs, ..., maxvalue = 5, parlist = NULL) {
   return(p)
   
 }
+
+#' @export
+#' @rdname plotPaths
+plotPaths.parframe <- function(profs, ..., whichPar = NULL, sort = FALSE, relative = TRUE, scales = "fixed") {
+  plotPaths.list(profs = list(profs), ..., whichPar = whichPar, sort = sort, relative = relative, scales = scales)
+}
+
+
+#' @export
+#' @rdname plotPaths
+plotPaths.list <- function(profs, ..., whichPar = NULL, sort = FALSE, relative = TRUE, scales = "fixed") {
+  
+  if ("parframe" %in% class(profs)) 
+    arglist <- list(profs)
+  else
+    arglist <- as.list(profs)
+  
+  
+  if (is.null(names(arglist))) {
+    profnames <- 1:length(arglist)
+  } else {
+    profnames <- names(arglist)
+  }
+  
+  
+  data <- do.call(rbind, lapply(1:length(arglist), function(i) {
+    # choose a proflist
+    proflist <- as.data.frame(arglist[[i]])
+    parameters <- attr(arglist[[i]], "parameters")
+    
+    if (is.data.frame(proflist)) {
+      whichPars <- unique(proflist$whichPar)
+      proflist <- lapply(whichPars, function(n) {
+        with(proflist, proflist[whichPar == n, ])
+      })
+      names(proflist) <- whichPars
+    }
+    
+    if (is.null(whichPar)) whichPar <- names(proflist)
+    if (is.numeric(whichPar)) whichPar <- names(proflist)[whichPar]
+    
+    subdata <- do.call(rbind, lapply(whichPar, function(n) {
+      # matirx
+      paths <- as.matrix(proflist[[n]][, parameters])
+      values <- proflist[[n]][, "value"]
+      origin <- which.min(abs(proflist[[n]][, "constraint"]))
+      if (relative) 
+        for(j in 1:ncol(paths)) paths[, j] <- paths[, j] - paths[origin, j]
+      
+      combinations <- expand.grid.alt(whichPar, colnames(paths))
+      if (sort) combinations <- apply(combinations, 1, sort) else combinations <- apply(combinations, 1, identity)
+      combinations <- submatrix(combinations, cols = -which(combinations[1,] == combinations[2,]))
+      combinations <- submatrix(combinations, cols = !duplicated(paste(combinations[1,], combinations[2,])))
+      
+      
+      
+      
+      path.data <- do.call(rbind, lapply(1:dim(combinations)[2], function(j) {
+        data.frame(chisquare = values, 
+                   name = n,
+                   proflist = profnames[i],
+                   combination = paste(combinations[,j], collapse = " - \n"),
+                   x = paths[, combinations[1,j]],
+                   y = paths[, combinations[2,j]])
+      }))
+      
+      return(path.data)
+      
+    }))
+    
+    return(subdata)
+    
+  }))
+  
+  data$proflist <- as.factor(data$proflist)
+  
+  
+  if (relative)
+    axis.labels <- c(expression(paste(Delta, "parameter 1")), expression(paste(Delta, "parameter 2")))  
+  else
+    axis.labels <- c("parameter 1", "parameter 2")
+  
+  
+  data <- droplevels(subset(data, ...))
+  
+  suppressMessages(
+    p <- ggplot(data, aes(x = x, y = y, group = interaction(name, proflist), color = name, lty = proflist)) + 
+      facet_wrap(~combination, scales = scales) + 
+      geom_path() + #geom_point(aes=aes(size=1), alpha=1/3) +
+      xlab(axis.labels[1]) + ylab(axis.labels[2]) +
+      scale_linetype_discrete(name = "profile\nlist") +
+      scale_color_manual(name = "profiled\nparameter", values = dMod_colors)
+  )
+  
+  attr(p, "data") <- data
+  return(p)
+  
+}
+
+
 
 
 

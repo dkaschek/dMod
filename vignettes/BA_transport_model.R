@@ -107,15 +107,16 @@ out_mstrust <- mstrust(obj, pouter, rinit = 1, rmax = 10, iterlim = 500,
                        cores = 4, fits = 50)
 
 myframe <- as.parframe(out_mstrust)
-P <- plotValues(myframe, tol = .01, value < 100)
+P <- plotValues(myframe, tol = .01, value < 1000)
 print(P)
-plotPars(myframe, tol = .01, value < 100)
+plotPars(myframe, tol = .01, value < 1000)
 
 # Make predictions for the different log-likelihood values
 select <- attr(P, "jumps")
 prediction <- predict(g*x*p, times = times, pars = myframe[select,], data = data)
-ggplot(prediction, aes(x = time, y = value, group = .index, color = .value)) + 
-  facet_wrap(~name, scales = "free") + geom_line() +
+ggplot(prediction, aes(x = time, y = value)) + 
+  facet_wrap(~name, scales = "free") + 
+  geom_line(aes(color = format(.value))) +
   geom_point(data = attr(prediction, "data")) +
   theme_dMod()
 
@@ -140,8 +141,8 @@ obj <- normL2(data, g*x*p) + constraintL2(pouter, sigma = 10)
 out_mstrust <- mstrust(obj, pouter, rinit = 1, rmax = 10, iterlim = 500,
                        sd = 4, cores = 4, fits = 50)
 myframe <- as.parframe(out_mstrust)
-plotValues(myframe, tol = 1, value < 100)
-plotPars(myframe, tol = 1, value < 100)
+plotValues(myframe, tol = 1, value < 1000)
+plotPars(myframe, tol = 1, value < 1000)
 bestfit <- as.parvec(myframe)
 plot((g*x*p)(times, bestfit), data)
 
@@ -189,8 +190,18 @@ reactions <- addReaction(reactions, "TCA_cana", "TCA_buffer",
 reactions <- addReaction(reactions, "0", "switch",
                          rate = "0",
                          description = "Create a switch")
-# Translate into ODE model
-mymodel <- odemodel(reactions, modelname = "bamodel")
+
+# Define events
+event_standard <- NULL |> 
+  addEvent(var = "TCA_buffer", time = 0, value = 0, method = "replace")
+
+event_open <- event_standard |> 
+  addEvent(var = "switch", time = 0, value = 1, method = "replace")
+
+# Translate into ODE model (events need to go into model definition)
+mymodel_standard <- odemodel(reactions, modelname = "bamodel_standard", events = event_standard)
+mymodel_open <- odemodel(reactions, modelname = "bamodel_open", events = event_open)
+
 
 # Set up implicit parameter transformation
 f <- as.eqnvec(reactions)[c("TCA_buffer", "TCA_cana", "TCA_cell")]
@@ -200,7 +211,8 @@ pSS <- P(f, method = "implicit",
          compile = TRUE, modelname = "pfn")
 
 # Set up explicit parameter transformation
-innerpars <- unique(c(getParameters(mymodel),
+innerpars <- unique(c(getParameters(model_standard),
+                      getParameters(model_open),
                       getSymbols(observables),
                       getSymbols(f)))
 
@@ -211,20 +223,9 @@ trafo <- repar("x ~ exp(x)", x = innerpars, trafo)
 p <- P(trafo)
 
 # Set up prediction function with events
-event.buffer <- data.frame(var = "TCA_buffer",
-                           time = 0,
-                           value = 0,
-                           method = "replace")
-event.open <- data.frame(var = "switch",
-                         time = 0,
-                         value = 1,
-                         method = "replace")
-x <- Xs(mymodel,
-        events = event.buffer,
-        condition = "standard") +
-  Xs(mymodel,
-     events = rbind(event.buffer, event.open),
-     condition = "open")
+x <- 
+  Xs(model_standard, condition = "standard") +
+  Xs(model_open, condition = "open")
 
 # Generate observation function with modified states/parameters
 g <- Y(observables, x,
@@ -236,6 +237,7 @@ pouter <- structure(rep(-1, length(outerpars)), names = outerpars)
 obj <- normL2(data, g*x*pSS*p) + constraintL2(pouter, sigma = 10)
 
 bestfit <- trust(obj, pouter, rinit = 1, rmax = 10)$argument
+
 
 profiles_SS_implicit <- profile(obj, bestfit, names(bestfit), limits = c(-5, 5), cores = 4)
 

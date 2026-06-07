@@ -144,6 +144,18 @@ res <- function(data, out, err = NULL) {
 #' @keywords data
 NULL
 
+#' Time-course data for the Bile Acid model
+#'  
+#' The dataset used in the dMod publication: Kaschek D, Mader W, Fehling-Kaschek M, Rosenblatt M, 
+#' Timmer J. Dynamic modeling, parameter estimation, and uncertainty analysis in R. 
+#' Journal of Statistical Software. 2019 Apr 30;88:1-32.
+#'
+#' @name BAdata
+#' @docType data
+#' @keywords data
+NULL
+
+
 
 # Match with numeric tolerance 
 match.num <- function(x, y, tol = 1e-8) {

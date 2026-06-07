@@ -39,8 +39,6 @@ Values can be either characters, e.g. "V1", or numeric values for the volume. If
 reflecting the stoichiometric matrix}
 
 \item{x}{object of class \code{eqnlist}}
-
-\item{...}{additional arguments to be passed to or from methods.}
 }
 \value{
 An object of class \code{eqnlist}, basically a list.

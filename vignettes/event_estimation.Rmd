@@ -3,6 +3,10 @@ title: "Event Estimation"
 author: "Daniel Kaschek"
 date: "December 16, 2018"
 output: html_document
+vignette: >
+  %\VignetteIndexEntry{EventEstimation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 Events change the state of a dynmic system at specific time points thereby leading to discontinuous timecourses. Sometimes the exact event time or the jump height is not known. To estimate these two characteristics, they need to be introduced as event parameters. This small example shows how to do that with **dMod**.
@@ -21,7 +25,6 @@ Besides **dMod** we load **dplyr** for piping and maniupation of the simulated d
 library(dMod)
 library(dplyr)
 library(ggplot2)
-setwd(tempdir())
 ```
 
 ## Setting up the model
@@ -80,7 +83,7 @@ data <-
   # Convert to data frame
   as.data.frame() %>% 
   # We observe A at a few time points
-  filter(time %in% 1:10 & name %in% "A") %>% 
+  filter(time %in% 1:10 & name %in% c("decay")) %>% 
   # Add a sigma column and add noise
   mutate(sigma = pmax(0.1*value, 0.05)) %>% 
   mutate(value = value + rnorm(length(value), 0, sd = sigma)) %>% 
@@ -148,3 +151,13 @@ plotProfile(myprof) +
 ```
 
 **Happy event estimation!!**
+
+```{r, echo=FALSE}
+
+# Cleaning step
+dlls <- list.files(pattern = "\\.(so|dll)$")
+for (d in dlls) try(dyn.unload(d), silent = TRUE)
+files <- list.files(pattern = "\\.*(c|o|dll|so)$")
+unlink(files)
+
+```

@@ -15,7 +15,7 @@ mutatedMod.frame(dMod.frame, ..., keepCalls = F)
 }
 \description{
 This is basically dplyr::mutate with two differences
-1. It groups the tibble \link{rowwise} before mutating
+1. It groups the tibble rowwise before mutating
 2. It allows to store the calls. This is intended for use when your objects are
 not standard transformations, such as \code{prd = g*x*p} but more complicated and
 you want to keep a record of what you did.
@@ -25,10 +25,10 @@ expression in \code{list()}
 }
 \examples{
 \dontrun{
-mytbl <- tibble(a = 1:2, b = letters[1:2]) \%>\%
-mutatedMod.frame(e = paste0(a,b), keepCalls = T) \%>\%
-mutatedMod.frame(f = paste0(e, "=", a, "*", b), keepCalls = T) \%>\%
-mutatedMod.frame(e = paste0(a,"*", b), keepCalls = T)
+mytbl <- tibble(a = 1:2, b = letters[1:2])
+mytbl <- mutatedMod.frame(mytbl, e = paste0(a,b), keepCalls = T)
+mytbl <- mutatedMod.frame(mytbl, f = paste0(e, "=", a, "*", b), keepCalls = T)
+mytbl <- mutatedMod.frame(mytbl, e = paste0(a,"*", b), keepCalls = T)
 
 mytbl$.calls
 }

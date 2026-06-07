@@ -33,8 +33,5 @@ and its derivatives with respect to p and lambda.
 p <- c(A = 1, B = 2, C = 3, lambda = 0)
 mu <- c(A = 0, B = 0)
 obj <- priorL2(mu = mu, lambda = "lambda")
-obj(pars = p + rnorm(length(p), 0, .1))
-}
-\seealso{
-\link{wrss}
+obj(pars = p + stats::rnorm(length(p), 0, .1))
 }

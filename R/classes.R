@@ -486,7 +486,7 @@ obsfn <- function(X2Y, parameters = NULL, condition = NULL) {
     problematicIndices <- is.na(out) | is.infinite(out)
     if (any(problematicIndices)) {
       arrayIndices <- arrayInd(which(problematicIndices), dim(out))
-      problematicSubset <- paste0(capture.output(print(out[arrayIndices[,1], c(1,arrayIndices[,2])])), collapse = "\n")
+      problematicSubset <- paste0(utils::capture.output(print(out[arrayIndices[,1], c(1,arrayIndices[,2])])), collapse = "\n")
       stop("Prediction is NA or Inf in condition ", paste0(conditions, collapse = ","), ".\n", 
            "Subset of the prediction causing trouble:\n", problematicSubset)
     }
@@ -626,7 +626,9 @@ datalist <- function(...) {
 #' @export
 #' 
 #' @examples 
-#' # objlist(1, c(a = 1, b = 2), matrix(2, nrow = 2, ncol = 2, dimnames = list(c("a", "b"),c("a", "b"))))
+#' objlist(1, c(a = 1, b = 2), 
+#'         matrix(2, nrow = 2, ncol = 2, 
+#'                dimnames = list(c("a", "b"), c("a", "b"))))
 objlist <- function(value, gradient, hessian) {
 
   out <- list(value = value, gradient = gradient, hessian = hessian)
@@ -1484,21 +1486,23 @@ getEquations <- function(x, ...) {
 #' @return The parameters in a format that depends on the class of \code{x}.
 #' @export
 getParameters <- function(..., conditions = NULL) {
-
-
-  Reduce("union", lapply(list(...), function(x) {
-    UseMethod("getParameters", x)
-  }))
-
-
+  # Use an internal generic or a specific name to avoid collision
+  args <- list(...)
+  results <- lapply(args, getParameters_dispatch, conditions = conditions)
+  return(Reduce("union", results))
 }
 
+#' @rdname getParameters
+getParameters_dispatch <- function(x, ...) {
+  UseMethod("getParameters_dispatch")
+}
 
 
 #' @export
 #' @rdname getParameters
 #' @param x object from which the parameters are extracted
-getParameters.odemodel <- function(x, conditions = NULL) {
+#' @method getParameters_dispatch odemodel
+getParameters_dispatch.odemodel <- function(x, conditions = NULL, ...) {
 
   parameters <- c(
     attr(x$func, "variables"),
@@ -1512,7 +1516,8 @@ getParameters.odemodel <- function(x, conditions = NULL) {
 
 #' @export
 #' @rdname getParameters
-getParameters.fn <- function(x, conditions = NULL) {
+#' @method getParameters_dispatch fn
+getParameters_dispatch.fn <- function(x, conditions = NULL, ...) {
 
   if (is.null(conditions)) {
     parameters <- attr(x, "parameters")
@@ -1529,7 +1534,8 @@ getParameters.fn <- function(x, conditions = NULL) {
 }
 #' @export
 #' @rdname getParameters
-getParameters.parvec <- function(x, conditions = NULL) {
+#' @method getParameters_dispatch parvec
+getParameters_dispatch.parvec <- function(x, conditions = NULL, ...) {
 
   names(x)
 
@@ -1537,7 +1543,8 @@ getParameters.parvec <- function(x, conditions = NULL) {
 
 #' @export
 #' @rdname getParameters
-getParameters.prdframe <- function(x, conditions = NULL) {
+#' @method getParameters_dispatch prdframe
+getParameters_dispatch.prdframe <- function(x, conditions = NULL, ...) {
 
   attr(x, "parameters")
 
@@ -1545,23 +1552,26 @@ getParameters.prdframe <- function(x, conditions = NULL) {
 
 #' @export
 #' @rdname getParameters
-getParameters.prdlist <- function(x, conditions = NULL) {
+#' @method getParameters_dispatch prdlist
+getParameters_dispatch.prdlist <- function(x, conditions = NULL, ...) {
 
-  select <- 1:length(x)
+  select <- seq_along(x)
   if (!is.null(conditions)) select <- intersect(names(x), conditions)
-  lapply(x[select], function(myx) getParameters(myx))
+  lapply(x[select], function(myx) getParameters_dispatch(myx, conditions = conditions))
 
 }
 
 #' @export
 #' @rdname getParameters
-getParameters.eqnlist <- function(x) {
+#' @method getParameters_dispatch eqnlist
+getParameters_dispatch.eqnlist <- function(x, conditions = NULL, ...) {
   unique(c(getSymbols(x$states), getSymbols(x$rates), getSymbols(x$volumes)))
 }
 
 #' @export
 #' @rdname getParameters
-getParameters.eventlist <- function(x) {
+#' @method getParameters_dispatch eventlist
+getParameters_dispatch.eventlist <- function(x, conditions = NULL, ...) {
   idx <- match(c("time", "value", "root"), names(x))
   idx[!is.na(idx)]
   Reduce(union, lapply(x[idx], getSymbols))

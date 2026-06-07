@@ -43,7 +43,11 @@ events <- addEvent(events, var = "A", time = "10", value = 1, method = "add")
 # With symbols
 events <- eventlist()
 # Set "A" to "value_switch" at time "time_Switch"
-events <- addEvent(events, var = "A", time = "time_switch", value = "value_switch", method = "replace")
+events <- addEvent(events, 
+  var = "A", time = "time_switch", 
+  value = "value_switch", method = "replace")
 # Set "B" to 2 when "A" reaches "A_target". The time-parameter for internal use will be "time_root".
-events <- addEvent(events, var = "B", time = "time_root", value = 2, root = "A - A_target", method = "replace")
+events <- addEvent(events, 
+  var = "B", time = "time_root", 
+  value = 2, root = "A - A_target", method = "replace")
 }

@@ -6,21 +6,23 @@
 \alias{plotPars}
 \title{Plot parameter values for a fitlist}
 \usage{
-\method{plotPars}{tbl_df}(dMod.frame, hypothesis = 1, ..., nsteps = 3, tol = 1)
+\method{plotPars}{tbl_df}(x, hypothesis = 1, nsteps = 3, tol = 1, ...)
 
 \method{plotPars}{parframe}(x, tol = 1, ...)
 
 plotPars(x, ...)
 }
 \arguments{
-\item{...}{arguments for subsetting of x}
+\item{x}{parameter frame as obtained by as.parframe(mstrust)}
+
+\item{hypothesis}{numeric or character indicating which row of the dmod frame to use}
 
 \item{nsteps}{number of steps from the waterfall plot}
 
 \item{tol}{maximal allowed difference between neighboring objective values
 to be recognized as one.}
 
-\item{x}{parameter frame as obtained by as.parframe(mstrust)}
+\item{...}{arguments for subsetting of x}
 }
 \description{
 Plot parameter values for a fitlist

@@ -7,7 +7,7 @@
 \alias{plotData.data.frame}
 \title{Plot a list data points}
 \usage{
-\method{plotData}{tbl_df}(dMod.frame, hypothesis = 1, ...)
+\method{plotData}{tbl_df}(data, hypothesis = 1, ...)
 
 \method{plotData}{datalist}(data, ..., scales = "free", facet = "wrap", transform = NULL)
 
@@ -16,10 +16,12 @@ plotData(data, ...)
 \method{plotData}{data.frame}(data, ...)
 }
 \arguments{
-\item{...}{Further arguments going to \code{subset}.}
-
 \item{data}{Named list of data.frames as being used in \link{res}, i.e. with columns \code{name}, \code{time}, 
 \code{value} and \code{sigma}.}
+
+\item{hypothesis}{numeric or character indicating which row of the dmod frame to use}
+
+\item{...}{Further arguments going to \code{subset}.}
 
 \item{scales}{The scales argument of \code{facet_wrap} or \code{facet_grid}, i.e. \code{"free"}, \code{"fixed"}, 
 \code{"free_x"} or \code{"free_y"}}

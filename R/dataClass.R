@@ -238,16 +238,17 @@ as.data.frame.datalist <- function(x, ...) {
 #'
 #' @param x Either a \link{datalist} or a \code{data.frame} with mandatory 
 #' columns \code{c("name", "time", "value", "sigma", "lloq")}.
+#' @param ... Further arguments, currently not used
 #'
 #' @return The \code{condition.grid} of the data
 #' @export
-covariates <- function(x) {
+covariates <- function(x, ...) {
   UseMethod("covariates", x)
 }
 
 #' @export
 #' @rdname covariates
-covariates.datalist <- function(x) {
+covariates.datalist <- function(x, ...) {
 
   attr(x, "condition.grid")
 
@@ -255,7 +256,7 @@ covariates.datalist <- function(x) {
 
 #' @export
 #' @rdname covariates
-covariates.data.frame <- function(x) {
+covariates.data.frame <- function(x, ...) {
 
   exclude <- c("name", "time", "value", "sigma", "lloq")
   contains.condition <- "condition" %in% colnames(x)

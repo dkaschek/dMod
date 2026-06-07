@@ -11,14 +11,14 @@
 
 #' Generate a dMod.frame
 #'
-#' @description Basically, a dMod.frame is a \link{tibble}, which is grouped \link{rowwise}.
+#' @description Basically, a dMod.frame is a \link[tibble]{tibble}, which is grouped rowwise.
 #'
 #' Since the dMod.frame is also designed for interactive use, the class will not be called
 #' "dMod.frame" as I initially planned, but will be c("tbl_df").
 #' This way, I don't have to overwrite all the dplyr-verbs.
 #'
 #' The dMod.frame object stores all objects that are needed to reproducibly
-#' produce a result, such as a plot or profiles, in one row of a \link{tibble}.
+#' produce a result, such as a plot or profiles, in one row of a \link[tibble]{tibble}.
 #' Each row corresponds to a distinct hypothesis, e.g. one would have two distinct rows
 #' for fitting with and without a prior.
 #'
@@ -63,7 +63,7 @@ dMod.frame <- function(hypothesis, g, x, p, data, e = NULL,...) {
 #' A version of dplyr::mutate
 #'
 #' @description This is basically dplyr::mutate with two differences
-#' 1. It groups the tibble \link{rowwise} before mutating
+#' 1. It groups the tibble rowwise before mutating
 #' 2. It allows to store the calls. This is intended for use when your objects are
 #' not standard transformations, such as \code{prd = g*x*p} but more complicated and
 #' you want to keep a record of what you did.
@@ -82,10 +82,10 @@ dMod.frame <- function(hypothesis, g, x, p, data, e = NULL,...) {
 #'
 #' @examples
 #' \dontrun{
-#' mytbl <- tibble(a = 1:2, b = letters[1:2]) %>%
-#' mutatedMod.frame(e = paste0(a,b), keepCalls = T) %>%
-#' mutatedMod.frame(f = paste0(e, "=", a, "*", b), keepCalls = T) %>%
-#' mutatedMod.frame(e = paste0(a,"*", b), keepCalls = T)
+#' mytbl <- tibble(a = 1:2, b = letters[1:2])
+#' mytbl <- mutatedMod.frame(mytbl, e = paste0(a,b), keepCalls = T)
+#' mytbl <- mutatedMod.frame(mytbl, f = paste0(e, "=", a, "*", b), keepCalls = T)
+#' mytbl <- mutatedMod.frame(mytbl, e = paste0(a,"*", b), keepCalls = T)
 #'
 #' mytbl$.calls
 #' }
@@ -108,24 +108,24 @@ mutatedMod.frame <- function(dMod.frame,
 #' Append an objective function to a basic dMod.frame
 #'
 #' @param dMod.frame A dMod.frame
-#' @param prd Expression after which the concatenated prediction function is formed. Has to wrapped in list()
-#' @param obj_data Expression after which the objective function which describes the data is formed. Has to wrapped in list()
+#' @param prd Expression after which the concatenated prediction function is formed. Has to wrapped in list(), e.g. \code{list(g*(x*p))}
+#' @param obj_data Expression after which the objective function which describes the data is formed. Has to wrapped in list(), e.g. \code{list(normL2(data, prd, e))}
 #' @param obj This object is taken by the standard fitting functions. At typical expression would be \code{list(obj_data +  constr)}. Has to wrapped in list()
 #' @param ... Other columns which are mutations of existing ones or new columns.
 #' @param keepCalls Store a record of the calls in a new colun? See \link{mutatedMod.frame}.
 #' @param pars A named vector of parameters to run e.g. test simulations of the model. Defaults to random parameters
-#' @param times A vector of times to run e.g. test simulations of the model. Defaults to \code{seq(0, 1*t_max(data), length.out = 200)}
+#' @param times A vector of times to run e.g. test simulations of the model, e.g. \code{list(seq(0, 1*t_max(data), length.out = 200))}
 #'
 #' @importFrom rlang quos enquo UQS
 #'
 #' @return The dMod.frame augmented by standardized columns
 #' @export
 appendObj <- function(dMod.frame,
-                      prd = list(g*(x*p)),
-                      obj_data = list(normL2(data, prd, e)),
+                      prd = list(),
+                      obj_data = list(),
                       obj = list(obj_data),
-                      pars = list(structure(rnorm(length(getParameters(obj))), names = getParameters(obj))),
-                      times = list(seq(min(as.data.frame(data)[["time"]]), max(as.data.frame(data)[["time"]])*1.1, length.out = 200)),
+                      pars = list(structure(stats::rnorm(length(getParameters(obj))), names = getParameters(obj))),
+                      times = list(),
                       ...,
                       keepCalls = F) {
 
@@ -148,17 +148,17 @@ appendObj <- function(dMod.frame,
 #' Most plotting functions rely on a column "parframes" to be existent in the dMod.frame
 #'
 #' @param dMod.frame A dmod.frame, preferably with a column \code{fits}.
-#' @param parframes Expression to turn a column containing a parlist (e.g. fits) into a column of parframes
-#' @param keepFits 
+#' @param parframes Expression to turn a column containing a parlist (e.g. \code{list(as.parframe(fits))}) into a column of parframes
+#' @param keepFits Logical, key or remove fits. Defaults to `FALSE`
 #' @param ... Other columns you want to mutate
-#' @param keepCalls Store a record of the calls in a new colun? See \link{mutatedMod.frame}.
+#' @param keepCalls Store a record of the calls in a new column? See \link{mutatedMod.frame}.
 #'
 #' @importFrom rlang quos enquo UQS
 #'
 #' @return The dMod.frame containing the column "parframes"
 #' @export
 appendParframes <- function(dMod.frame,
-                            parframes = list(as.parframe(fits)),
+                            parframes = list(),
                             keepFits = F,
                             ...,
                             keepCalls = F) {
@@ -177,10 +177,15 @@ appendParframes <- function(dMod.frame,
 
 #' @export
 #' @rdname plotCombined
+#' @param hypothesis numeric or character indicating which row of the dmod frame to use
+#' @param index numeric, index within the parframe
 #' @param plotErrorBands If the dMod.frame contains an observation function for the 
 #' error model, use it to show error bands.
-plotCombined.tbl_df <- function(model, hypothesis = 1, index = 1, ... , plotErrorBands = F) {
+#' @return ggplot object
+plotCombined.tbl_df <- function(prediction, hypothesis = 1, index = 1, plotErrorBands = F, ... ) {
 
+  model <- prediction
+  
   dots <- substitute(alist(...))
   message("If you want to subset() the plot, specify hypothesis AND index")
   if(is.character(hypothesis)) hypothesis <- which(model$hypothesis == hypothesis)
@@ -216,7 +221,7 @@ plotCombined.tbl_df <- function(model, hypothesis = 1, index = 1, ... , plotErro
   if (plotErrorBands) {
     predicition_with_error <- NULL
     if (!is.null(model[["e"]][[hypothesis]])){
-      predicition_with_error <- dMod:::as.data.frame.prdlist(prediction, data = data, errfn = model[["e"]][[hypothesis]])
+      predicition_with_error <- as.data.frame.prdlist(prediction, data = data, errfn = model[["e"]][[hypothesis]])
       predicition_with_error <- subset(predicition_with_error, ...)
     }
     myplot <- myplot +
@@ -226,9 +231,13 @@ plotCombined.tbl_df <- function(model, hypothesis = 1, index = 1, ... , plotErro
 }
 
 #' @export
+#' @param hypothesis numeric or character indicating which row of the dmod frame to use
+#' @param index numeric, index within the parframe
 #' @rdname plotPrediction
-plotPrediction.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
+plotPrediction.tbl_df <- function(prediction, hypothesis = 1, index = 1, ... ) {
 
+  dMod.frame <- prediction
+  
   dots <- substitute(alist(...))
   message("If you want to subset() the plot, specify hypothesis AND index")
 
@@ -260,9 +269,13 @@ plotPrediction.tbl_df <- function(dMod.frame, hypothesis = 1, index = 1, ... ) {
 
 
 #' @export
+#' @param hypothesis numeric or character indicating which row of the dmod frame to use
 #' @rdname plotData
-plotData.tbl_df <- function(dMod.frame, hypothesis = 1, ... ) {
+plotData.tbl_df <- function(data, hypothesis = 1, ... ) {
 
+  
+  dMod.frame <- data
+  
   dots <- substitute(alist(...))
   if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
 
@@ -272,12 +285,15 @@ plotData.tbl_df <- function(dMod.frame, hypothesis = 1, ... ) {
 }
 
 
-
 #' @export
-#' @rdname plotPars
+#' @param hypothesis numeric or character indicating which row of the dmod frame to use
 #' @param nsteps number of steps from the waterfall plot
-plotPars.tbl_df <- function(dMod.frame, hypothesis = 1,  ..., nsteps = 3, tol = 1 ) {
+#' @param tol numeric, tolerance (difference in obj value) for step detection
+#' @rdname plotPars
+plotPars.tbl_df <- function(x, hypothesis = 1, nsteps = 3, tol = 1, ...) {
 
+  dMod.frame <- x
+  
   if (!missing(...)) {dots <- substitute(...)
   } else {
     dots <- T
@@ -307,7 +323,7 @@ plotPars.tbl_df <- function(dMod.frame, hypothesis = 1,  ..., nsteps = 3, tol = 
     mydata <- mydata[myindices,]
 
     mydata2 <- wide2long.data.frame(mydata[-c(4,5,6)], keep = 1:3)
-    mydata2$hyp_step <- paste(mydata2$hypothesis, mydata2$step, sep = "_")
+    mydata2[["hyp_step"]] <- paste(mydata2$hypothesis, mydata2$step, sep = "_")
 
     ggplot2::ggplot(mydata2, aes(x = name, y = value, color = hyp_step)) +
       geom_boxplot(outlier.alpha = 0) +     # annotate("text", x = jumps + 1, y = y.jumps, label = jumps, hjust = 0, color = "red", size = 3) +
@@ -319,9 +335,13 @@ plotPars.tbl_df <- function(dMod.frame, hypothesis = 1,  ..., nsteps = 3, tol = 
 }
 
 #' @export
+#' @param hypothesis numeric or character indicating which row of the dmod frame to use
+#' @param tol numeric, tolerance (difference in obj value) for step detection
 #' @rdname plotValues
-plotValues.tbl_df <- function(dMod.frame, hypothesis = 1, ..., tol = 1 ) {
+plotValues.tbl_df <- function(x, hypothesis = 1, ..., tol = 1 ) {
 
+  dMod.frame <- x
+  
   dots <- substitute(...)
 
   if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
@@ -357,12 +377,15 @@ plotValues.tbl_df <- function(dMod.frame, hypothesis = 1, ..., tol = 1 ) {
 #' @export
 #' @rdname plotProfile
 #' @param hypothesis numeric, can be longer than 1
-plotProfile.tbl_df <- function(dMod.frame, hypothesis = 1, ...) {
+plotProfile.tbl_df <- function(profs, hypothesis = 1, ...) {
+  
+  dMod.frame <- profs
   dots <- substitute(alist(...))
 
   if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
 
-  myprofs <- dMod.frame[["profiles"]][hypothesis] %>% setNames(dMod.frame[["hypothesis"]][hypothesis])
+  myprofs <- dMod.frame[["profiles"]][hypothesis]
+  myprofs <- setNames(myprofs, dMod.frame[["hypothesis"]][hypothesis])
 
   plotProfile.list(myprofs, ...) +
     ggtitle(label = paste0("hypotheses: ", paste0(hypothesis, collapse = ", "), "\n",
@@ -373,12 +396,15 @@ plotProfile.tbl_df <- function(dMod.frame, hypothesis = 1, ...) {
 #' @export
 #' @rdname plotPaths
 #' @param hypothesis numeric, can be longer than 1
-plotPaths.tbl_df <- function(dMod.frame, hypothesis = 1, ...) {
+plotPaths.tbl_df <- function(profs, hypothesis = 1, ...) {
+  
+  dMod.frame <- profs
   dots <- substitute(alist(...))
   
   if(is.character(hypothesis)) hypothesis <- which(dMod.frame$hypothesis == hypothesis)
   
-  myprofs <- dMod.frame[["profiles"]][hypothesis] %>% setNames(dMod.frame[["hypothesis"]][hypothesis])
+  myprofs <- dMod.frame[["profiles"]][hypothesis]
+  myprofs <- setNames(myprofs, dMod.frame[["hypothesis"]][hypothesis])
   
   plotPaths.list(myprofs, ...)
 }
@@ -389,7 +415,7 @@ plotPaths.tbl_df <- function(dMod.frame, hypothesis = 1, ...) {
 #' @export 
 #' @param hypothesis The hypothesis in the dMod.frame
 #' @rdname covariates
-covariates.tbl_df <- function(x, hypothesis = 1) {
+covariates.tbl_df <- function(x, hypothesis = 1, ...) {
   covariates.datalist(x[["data"]][[hypothesis]])
 }
 
@@ -439,6 +465,8 @@ getConditions.tbl_df <- function(x, hypothesis = 1, ...) {
 #' quadmyfun(1:10, quada)
 checkout_hypothesis <- function(dMod.frame, hypothesis, prefix = "", suffix = "") {
 
+  global_env <- .GlobalEnv
+  
   if(is.numeric(hypothesis)) {
     mydMod.frame <- dMod.frame[hypothesis,]
   } else {
@@ -449,7 +477,7 @@ checkout_hypothesis <- function(dMod.frame, hypothesis, prefix = "", suffix = ""
     if(is.list(value)&length(value)==1) value = value[[1]]
     try(assign(x = paste0(prefix,names(mydMod.frame)[i],suffix),
                value = value,
-               pos = .GlobalEnv),
+               pos = global_env),
         silent = T)
   })
 

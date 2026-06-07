@@ -1,4 +1,9 @@
-# dMod - Dynamic Modeling and Parameter Estimation in R
+---
+output: 
+  html_document: 
+    keep_md: yes
+---
+# dMod -- Dynamic Modeling and Parameter Estimation in R
 
 The dMod package is a framework that provides functions to generate ODEs of reaction networks, parameter transformations, observation functions, residual functions, etc. The framework follows the paradigm that derivative information should be used for optimization whenever possible. Therefore, all major functions produce and can handle expressions for symbolic derivatives.
 
@@ -20,14 +25,14 @@ If **PEtab support** is wanted, libSBML will be required in addition. Installati
 
 ### Load required packages
 
-```r
+``` r
 library(dMod)
 library(ggplot2)
 ```
 
 ### Generate an ODE model of enzyme kinetics with enzyme degradation
 
-```r
+``` r
 # Reactions
 f <- NULL
 f <- addReaction(f, 
@@ -60,7 +65,7 @@ x <- Xs(model)
 
 ### Define observables and generate observation function `g`
 
-```r
+``` r
 observables <- eqnvec(
   product = "Prod", 
   substrate = "(Sub + Compl)", 
@@ -73,7 +78,7 @@ g <- Y(observables, x, compile = TRUE, modelname = "obsfn", attach.input = FALSE
 
 ### Define parameter transformation for two experimental conditions
 
-```r
+``` r
 # Get all parameters
 innerpars <- getParameters(g*x)
 # Identity transformation
@@ -97,7 +102,7 @@ p <- p + P(trafo2, condition = "withDegradation")
 
 ### Initialize parameters and make prediction
 
-```r
+``` r
 # Initialize with randomly chosen parameters
 set.seed(1)
 outerpars <- getParameters(p)
@@ -112,7 +117,7 @@ plot((g*x*p)(times, pouter))
 
 ### Define data to be fitted by the model
 
-```r
+``` r
 data <- datalist(
   noDegradation = data.frame(
     name = c("product", "product", "product", "substrate", "substrate", "substrate"),
@@ -134,7 +139,7 @@ plot(data) + geom_line()
 
 ![](README_files/figure-html/data-1.png)<!-- -->
 
-```r
+``` r
 plot((g*x*p)(times, pouter), data)
 ```
 
@@ -142,7 +147,7 @@ plot((g*x*p)(times, pouter), data)
 
 ### Define an objective function to be minimized and run minimization by `trust()`
 
-```r
+``` r
 # Define prior values for parameters
 prior <- structure(rep(0, length(pouter)), names = names(pouter))
 
@@ -160,13 +165,13 @@ plot((g*x*p)(times, myfit$argument), data)
 
 ### Compute the profile likelihood to analyze parameter identifiability
 
-```r
+``` r
 # Compute the profile likelihood around the optimum
 bestfit <- myfit$argument
 profiles <- profile(obj, bestfit, names(bestfit), limits = c(-10, 10), cores = 4)
 
 # Take a look at each parameter
-plotProfile(profiles)
+plotProfile(profiles, mode == "data")
 ```
 
 ![](README_files/figure-html/profiles-1.png)<!-- -->

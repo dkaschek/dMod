@@ -1,6 +1,0 @@
-Description,Rate,STAT,pSTAT,pSTATdimer,npSTATdimer,nSTAT
-STAT phosphoryl.,p1*pEpoR*STAT,-1,1,,,
-pSTAT dimerization,p2*pSTAT*pSTAT,,-2,1,,
-pSTAT dimer import,p3*pSTATdimer,,,-1,1,
-dimer dissociation,p4*npSTATdimer,,,,-1,2
-nuclear export,p5*nSTAT,1,,,,-1

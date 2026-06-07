@@ -7,7 +7,7 @@
 \alias{plotProfile}
 \title{Profile likelihood plot}
 \usage{
-\method{plotProfile}{tbl_df}(dMod.frame, hypothesis = 1, ...)
+\method{plotProfile}{tbl_df}(profs, hypothesis = 1, ...)
 
 \method{plotProfile}{parframe}(profs, ..., maxvalue = 5, parlist = NULL)
 
@@ -16,11 +16,11 @@
 plotProfile(profs, ...)
 }
 \arguments{
+\item{profs}{Lists of profiles as being returned by \link{profile}.}
+
 \item{hypothesis}{numeric, can be longer than 1}
 
 \item{...}{logical going to subset before plotting.}
-
-\item{profs}{Lists of profiles as being returned by \link{profile}.}
 
 \item{maxvalue}{Numeric, the value where profiles are cut off.}
 

@@ -3,6 +3,10 @@ title: "Explicit and Implicit Transformations"
 author: "Daniel Kaschek"
 date: "December 18, 2018"
 output: html_document
+vignette: >
+  %\VignetteIndexEntry{Transformations}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include=FALSE}
@@ -143,3 +147,12 @@ dMod uses the package **rootSolve** to find the root of the constraint function.
 
 **Happy parameter transforming!!**
 
+```{r, echo=FALSE}
+
+# Cleaning step
+dlls <- list.files(pattern = "\\.(so|dll)$")
+for (d in dlls) try(dyn.unload(d), silent = TRUE)
+files <- list.files(pattern = "\\.*(c|o|dll|so)$")
+unlink(files)
+
+```

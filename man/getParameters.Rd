@@ -2,30 +2,33 @@
 % Please edit documentation in R/classes.R
 \name{getParameters}
 \alias{getParameters}
-\alias{getParameters.odemodel}
-\alias{getParameters.fn}
-\alias{getParameters.parvec}
-\alias{getParameters.prdframe}
-\alias{getParameters.prdlist}
-\alias{getParameters.eqnlist}
-\alias{getParameters.eventlist}
+\alias{getParameters_dispatch}
+\alias{getParameters_dispatch.odemodel}
+\alias{getParameters_dispatch.fn}
+\alias{getParameters_dispatch.parvec}
+\alias{getParameters_dispatch.prdframe}
+\alias{getParameters_dispatch.prdlist}
+\alias{getParameters_dispatch.eqnlist}
+\alias{getParameters_dispatch.eventlist}
 \title{Extract the parameters of an object}
 \usage{
 getParameters(..., conditions = NULL)
 
-\method{getParameters}{odemodel}(x, conditions = NULL)
+getParameters_dispatch(x, ...)
 
-\method{getParameters}{fn}(x, conditions = NULL)
+\method{getParameters_dispatch}{odemodel}(x, conditions = NULL, ...)
 
-\method{getParameters}{parvec}(x, conditions = NULL)
+\method{getParameters_dispatch}{fn}(x, conditions = NULL, ...)
 
-\method{getParameters}{prdframe}(x, conditions = NULL)
+\method{getParameters_dispatch}{parvec}(x, conditions = NULL, ...)
 
-\method{getParameters}{prdlist}(x, conditions = NULL)
+\method{getParameters_dispatch}{prdframe}(x, conditions = NULL, ...)
 
-\method{getParameters}{eqnlist}(x)
+\method{getParameters_dispatch}{prdlist}(x, conditions = NULL, ...)
 
-\method{getParameters}{eventlist}(x)
+\method{getParameters_dispatch}{eqnlist}(x, conditions = NULL, ...)
+
+\method{getParameters_dispatch}{eventlist}(x, conditions = NULL, ...)
 }
 \arguments{
 \item{...}{objects from which the parameters should be extracted}
