@@ -1,8 +1,8 @@
 Package: dMod
 Type: Package
 Title: Dynamic Modeling and Parameter Estimation in ODE Models
-Version: 2026.06.9000
-Date: 2026-06-06
+Version: 2026.06
+Date: 2026-06-07
 Author: Daniel Kaschek
 Maintainer: Daniel Kaschek <daniel.kaschek@gmail.com>
 Description: The framework provides functions to generate ODEs of reaction
@@ -12,7 +12,7 @@ Description: The framework provides functions to generate ODEs of reaction
     and can handle expressions for symbolic derivatives.
 License: GPL (>= 2)
 Depends:
-    cOde (>= 1.1),
+    cOde (>= 2026.06),
 Imports:
     deSolve,
     rootSolve,
